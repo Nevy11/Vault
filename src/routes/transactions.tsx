@@ -7,7 +7,6 @@ import {
   HelpCircle,
   Info,
   Check,
-  Plus,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -424,6 +423,3 @@ function TransactionsPage() {
     </div>
   );
 }
-
-// keep Plus referenced to satisfy lint when unused
-void Plus;
