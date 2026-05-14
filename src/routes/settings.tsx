@@ -157,7 +157,7 @@ function SettingsPage() {
               <NavLink to="/dashboard">Dashboard</NavLink>
               <NavLink to="/transactions">Transact</NavLink>
               <NavLink to="/settings" active>SETTINGS</NavLink>
-              <NavLink to="/dashboard">Help</NavLink>
+              <NavLink to="/help">Help</NavLink>
             </nav>
           </div>
           <div className="flex items-center gap-5 text-muted-foreground">

@@ -369,9 +369,9 @@ function TransactionsPage() {
             <Logo />
             <nav className="flex items-center gap-7">
               <NavLink to="/dashboard">Dashboard</NavLink>
-              <NavLink active>Transact</NavLink>
-              <NavLink>Settings</NavLink>
-              <NavLink>Help</NavLink>
+              <NavLink to="/transactions" active>Transact</NavLink>
+              <NavLink to="/settings">Settings</NavLink>
+              <NavLink to="/help">Help</NavLink>
             </nav>
           </div>
           <div className="flex items-center gap-4">

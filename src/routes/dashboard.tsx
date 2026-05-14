@@ -34,13 +34,23 @@ function Logo() {
   );
 }
 
-function NavLink({ children, active }: { children: React.ReactNode; active?: boolean }) {
+function NavLink({ children, active, to }: { children: React.ReactNode; active?: boolean; to?: string }) {
+  const cls = `relative pb-1 text-sm transition-colors ${
+    active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+  }`;
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={cls}
+      >
+        {children}
+        {active && <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-primary rounded-full" />}
+      </Link>
+    );
+  }
   return (
-    <button
-      className={`relative pb-1 text-sm transition-colors ${
-        active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
+    <button className={cls}>
       {children}
       {active && <span className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-primary rounded-full" />}
     </button>
@@ -176,10 +186,10 @@ function DashboardPage() {
           <div className="flex items-center gap-10">
             <Logo />
             <nav className="flex items-center gap-7">
-              <NavLink active>Dashboard</NavLink>
-              <NavLink>Transact</NavLink>
-              <NavLink>Settings</NavLink>
-              <NavLink>Help</NavLink>
+              <NavLink to="/dashboard" active>Dashboard</NavLink>
+              <NavLink to="/transactions">Transact</NavLink>
+              <NavLink to="/settings">Settings</NavLink>
+              <NavLink to="/help">Help</NavLink>
             </nav>
           </div>
           <div className="flex items-center gap-4">
