@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -183,6 +184,7 @@ function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500" />
+            <ThemeToggle />
             <button className="text-muted-foreground hover:text-foreground"><Settings className="w-4 h-4" /></button>
             <button className="text-muted-foreground hover:text-foreground"><HelpCircle className="w-4 h-4" /></button>
           </div>
