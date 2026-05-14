@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -149,23 +150,26 @@ function SettingsPage() {
       style={{ background: "var(--gradient-bg)" }}
     >
       {/* Top nav */}
-      <header className="border-b border-border/40">
-        <div className="mx-auto max-w-[1400px] px-8 lg:px-12 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-12">
+      <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-10">
             <Logo />
-            <nav className="flex items-center gap-8">
+            <nav className="flex items-center gap-7">
               <NavLink to="/dashboard">Dashboard</NavLink>
               <NavLink to="/transactions">Transact</NavLink>
-              <NavLink to="/settings" active>SETTINGS</NavLink>
+              <NavLink to="/settings" active>Settings</NavLink>
               <NavLink to="/help">Help</NavLink>
             </nav>
           </div>
-          <div className="flex items-center gap-5 text-muted-foreground">
-            <div className="h-8 w-8 rounded-full bg-primary/20 ring-2 ring-primary/30 flex items-center justify-center text-xs text-primary-foreground font-medium">
-              A
-            </div>
-            <SettingsIcon className="h-4 w-4 hover:text-foreground cursor-pointer" />
-            <HelpCircle className="h-4 w-4 hover:text-foreground cursor-pointer" />
+          <div className="flex items-center gap-4">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500" />
+            <ThemeToggle />
+            <button className="text-muted-foreground hover:text-foreground">
+              <SettingsIcon className="w-4 h-4" />
+            </button>
+            <button className="text-muted-foreground hover:text-foreground">
+              <HelpCircle className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/transactions")({
   head: () => ({
@@ -376,6 +377,7 @@ function TransactionsPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500" />
+            <ThemeToggle />
             <button className="text-muted-foreground hover:text-foreground">
               <Settings className="w-4 h-4" />
             </button>
