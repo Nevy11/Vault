@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/transactions")({
   head: () => ({
@@ -381,9 +382,18 @@ function TransactionsPage() {
             <button className="text-muted-foreground hover:text-foreground">
               <Settings className="w-4 h-4" />
             </button>
-            <button className="text-muted-foreground hover:text-foreground">
-              <HelpCircle className="w-4 h-4" />
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button className="text-muted-foreground hover:text-foreground" aria-label="About Vault OS">
+                    <HelpCircle className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-xs">
+                  Vault seamlessly aggregates your balance using leading financial service connectors, making your entire financial snapshot instantly visible securely in one place. Integration is handled by robust external APIs for a native experience.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </header>

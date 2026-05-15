@@ -180,9 +180,16 @@ function SettingsPage() {
             <button className="text-muted-foreground hover:text-foreground">
               <SettingsIcon className="w-4 h-4" />
             </button>
-            <button className="text-muted-foreground hover:text-foreground">
-              <HelpCircle className="w-4 h-4" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button className="text-muted-foreground hover:text-foreground" aria-label="About Vault OS">
+                  <HelpCircle className="w-4 h-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs">
+                Vault seamlessly aggregates your balance using leading financial service connectors, making your entire financial snapshot instantly visible securely in one place. Integration is handled by robust external APIs for a native experience.
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </header>
