@@ -13,6 +13,7 @@ import {
   HelpCircle,
   Camera,
   Upload,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -332,6 +333,12 @@ function SettingsPage() {
             </Button>
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6">
               Apply & Save Changes
+            </Button>
+            <Button asChild variant="ghost" className="text-destructive hover:text-destructive gap-2">
+              <Link to="/">
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </Link>
             </Button>
           </div>
         </div>
