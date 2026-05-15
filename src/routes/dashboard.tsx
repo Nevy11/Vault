@@ -253,10 +253,6 @@ function DashboardPage() {
             ))}
           </ul>
         </div>
-
-        <div className="mt-6 text-center">
-          <Link to="/login" className="text-xs text-muted-foreground hover:text-foreground">Sign out</Link>
-        </div>
       </main>
     </AppShell>
   );
