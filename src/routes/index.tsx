@@ -13,6 +13,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TopNav } from "@/components/top-nav";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -46,27 +47,7 @@ function Logo() {
 }
 
 function Nav() {
-  return (
-    <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Logo />
-        <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-          <a href="#security" className="hover:text-foreground transition-colors">Security</a>
-          <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-          <a href="#faq" className="hover:text-foreground transition-colors">FAQ</a>
-        </nav>
-        <div className="flex items-center gap-2">
-          <Link to="/login" className="text-sm font-medium text-foreground hover:text-primary transition-colors px-3">
-            Sign In
-          </Link>
-          <Button asChild className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
-            <Link to="/sign-up">Get Started</Link>
-          </Button>
-        </div>
-      </div>
-    </header>
-  );
+  return <TopNav />;
 }
 
 function Hero() {

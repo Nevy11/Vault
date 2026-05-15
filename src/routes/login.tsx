@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Shield, Database, Layers, Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TopNav } from "@/components/top-nav";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -45,6 +46,7 @@ function LoginPage() {
 
   return (
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
+      <TopNav />
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
         <div
           className="w-full rounded-2xl border border-border/60 bg-card/80 p-8 backdrop-blur-xl"
