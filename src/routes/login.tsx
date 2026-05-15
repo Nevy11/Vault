@@ -96,7 +96,7 @@ function LoginPage() {
         </div>
 
         <p className="mt-6 text-sm text-muted-foreground">
-          New to Vault? <Link to="/" className="text-primary font-medium hover:underline">Create Your Account</Link>
+          New to Vault? <Link to="/sign-up" className="text-primary font-medium hover:underline">Create Your Account</Link>
         </p>
 
         <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">

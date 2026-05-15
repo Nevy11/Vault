@@ -1,12 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router"; // route file
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Shield, Database, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-export const Route = createFileRoute("/")({
-  component: Index,
+export const Route = createFileRoute("/sign-up")({
+  component: SignUp,
   head: () => ({
     meta: [
       { title: "Vault — Create Your Account" },
@@ -40,7 +40,7 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
   );
 }
 
-function Index() {
+function SignUp() {
   const [agreed, setAgreed] = useState(false);
 
   return (

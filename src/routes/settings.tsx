@@ -11,11 +11,14 @@ import {
   ChevronRight,
   Settings as SettingsIcon,
   HelpCircle,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -145,22 +148,32 @@ function ToggleRow({
 
 function SettingsPage() {
   return (
-    <div
-      className="min-h-screen text-foreground"
-      style={{ background: "var(--gradient-bg)" }}
-    >
-      {/* Top nav */}
-      <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-10">
-            <Logo />
-            <nav className="flex items-center gap-7">
-              <NavLink to="/dashboard">Dashboard</NavLink>
-              <NavLink to="/transactions">Transact</NavLink>
-              <NavLink to="/settings" active>Settings</NavLink>
-              <NavLink to="/help">Help</NavLink>
-            </nav>
-          </div>
+    <TooltipProvider>
+      <div
+        className="min-h-screen text-foreground"
+        style={{ background: "var(--gradient-bg)" }}
+      >
+        {/* Top nav */}
+        <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
+          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-10">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Logo />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Vault OS - Unified digital wallet and financial management platform</p>
+                </TooltipContent>
+              </Tooltip>
+              <nav className="flex items-center gap-7">
+                <NavLink to="/dashboard">Dashboard</NavLink>
+                <NavLink to="/transactions">Transact</NavLink>
+                <NavLink to="/settings" active>Settings</NavLink>
+                <NavLink to="/help">Help</NavLink>
+              </nav>
+            </div>
           <div className="flex items-center gap-4">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500" />
             <ThemeToggle />
@@ -201,6 +214,35 @@ function SettingsPage() {
             title="Account Profile & KYC"
             meta="Sources 98, 100"
           >
+            <Row label="Profile Picture">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <User className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
+                    <Camera className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm text-muted-foreground">
+                    Upload a profile picture to personalize your account
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="gap-2">
+                      <Upload className="w-4 h-4" />
+                      Upload Photo
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                      Remove
+                    </Button>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    JPG, PNG or GIF. Max size 5MB.
+                  </div>
+                </div>
+              </div>
+            </Row>
             <Row label="Verification Status">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -368,5 +410,6 @@ function SettingsPage() {
         </div>
       </main>
     </div>
+    </TooltipProvider>
   );
 }
