@@ -1,6 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { useState } from "react";
-import { HelpCircle, Home, Menu, Send, Settings, X } from "lucide-react";
+import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -29,34 +28,15 @@ function Logo() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const currentPath = location.pathname;
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div className="min-h-screen text-foreground" style={{ background: "var(--gradient-bg)" }}>
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 z-50 h-full w-64 transform bg-card border-r border-border/40 transition-transform duration-200 ease-in-out md:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40"
       >
-        <div className="flex h-16 items-center justify-between px-4 border-b border-border/40">
+        <div className="flex h-16 items-center px-4 border-b border-border/40">
           <Logo />
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </div>
 
         <nav className="flex-1 px-4 py-4">
@@ -65,7 +45,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <li key={to}>
                 <Link
                   to={to}
-                  onClick={() => setSidebarOpen(false)}
                   className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors hover:bg-accent ${
                     isActive(currentPath)
                       ? "bg-primary text-primary-foreground"
@@ -82,38 +61,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="md:ml-64">
+      <div className="md:ml-64 pb-20">
         <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-4 w-4" />
-              </Button>
               <Logo />
             </div>
             <div className="flex items-center gap-4">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500" />
               <ThemeToggle />
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/settings">
-                  <Settings className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/help">
-                  <HelpCircle className="h-4 w-4" />
-                </Link>
-              </Button>
             </div>
           </div>
         </header>
 
-        <main>{children}</main>
+        <main className="pb-20 md:pb-0">{children}</main>
+
+        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-md md:hidden">
+          <nav className="mx-auto flex max-w-3xl items-center justify-around px-2 py-2">
+            {navItems.map(({ label, to, icon: Icon, isActive }) => (
+              <Link
+                key={to}
+                to={to}
+                aria-label={label}
+                className={`inline-flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground ${
+                  isActive(currentPath)
+                    ? "bg-primary text-primary-foreground"
+                    : "text-foreground/70"
+                }`}
+              >
+                <Icon className="h-6 w-6" />
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
     </div>
   );

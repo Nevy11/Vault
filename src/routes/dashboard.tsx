@@ -152,15 +152,15 @@ function DashboardPage() {
         </div>
 
         {/* Total net worth */}
-        <div className="rounded-2xl bg-card/30 border border-border/40 p-6 mb-4 backdrop-blur-sm flex items-center justify-between">
-          <div>
+        <div className="rounded-2xl bg-card/30 border border-border/40 p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Net Worth</div>
-            <div className="mt-2 flex items-baseline gap-3">
+            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline">
               <span className="text-5xl font-light">$14,230.15</span>
               <span className="text-xs px-2 py-1 rounded-full bg-primary/15 text-primary">+ 5.25%</span>
             </div>
           </div>
-          <Button className="gap-2">
+          <Button className="gap-2 w-full max-w-xs sm:w-auto justify-center">
             <UserPlus className="w-4 h-4" /> Add External Account
           </Button>
         </div>
