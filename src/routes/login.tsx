@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Shield, Database, Layers, Eye, EyeOff, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,7 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
 
 function LoginPage() {
   const [showPin, setShowPin] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
@@ -55,7 +56,13 @@ function LoginPage() {
             <p className="mt-1 text-sm text-muted-foreground">Enter your credentials to access your secure wallet.</p>
           </div>
 
-          <form className="mt-7 space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <form
+            className="mt-7 space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate({ to: "/dashboard" });
+            }}
+          >
             <Field label="Email Address" hint="the account email" required>
               <Input type="email" autoComplete="email" className="h-11 bg-input/60 border-border focus-visible:ring-primary" />
             </Field>
