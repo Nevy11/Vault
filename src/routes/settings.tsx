@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AppShell } from "@/components/app-shell";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -29,34 +29,6 @@ export const Route = createFileRoute("/settings")({
   }),
   component: SettingsPage,
 });
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-        <path d="M6 6 L16 26 L26 6" stroke="oklch(0.82 0.16 165)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-      <span className="font-serif text-xl tracking-tight">
-        Vault <span className="text-muted-foreground font-sans text-sm">OS</span>
-      </span>
-    </div>
-  );
-}
-
-function NavLink({ to, children, active }: { to: string; children: React.ReactNode; active?: boolean }) {
-  return (
-    <Link
-      to={to}
-      className={`relative pb-1 text-sm tracking-wide transition-colors ${
-        active
-          ? "text-foreground after:absolute after:left-0 after:right-0 after:-bottom-0.5 after:h-px after:bg-primary"
-          : "text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
 
 function SectionCard({
   icon: Icon,
@@ -148,52 +120,7 @@ function ToggleRow({
 
 function SettingsPage() {
   return (
-    <TooltipProvider>
-      <div
-        className="min-h-screen text-foreground"
-        style={{ background: "var(--gradient-bg)" }}
-      >
-        {/* Top nav */}
-        <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="flex items-center gap-10">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div>
-                    <Logo />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Vault OS - Unified digital wallet and financial management platform</p>
-                </TooltipContent>
-              </Tooltip>
-              <nav className="flex items-center gap-7">
-                <NavLink to="/dashboard">Dashboard</NavLink>
-                <NavLink to="/transactions">Transact</NavLink>
-                <NavLink to="/settings" active>Settings</NavLink>
-                <NavLink to="/help">Help</NavLink>
-              </nav>
-            </div>
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500" />
-            <ThemeToggle />
-            <button className="text-muted-foreground hover:text-foreground">
-              <SettingsIcon className="w-4 h-4" />
-            </button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground" aria-label="About Vault OS">
-                  <HelpCircle className="w-4 h-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-xs">
-                Vault seamlessly aggregates your balance using leading financial service connectors, making your entire financial snapshot instantly visible securely in one place. Integration is handled by robust external APIs for a native experience.
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-      </header>
-
+    <AppShell>
       <main className="mx-auto max-w-[1400px] px-8 lg:px-12 py-12 lg:py-16">
         {/* Header */}
         <div className="mb-12 lg:mb-16">
@@ -416,7 +343,6 @@ function SettingsPage() {
           </div>
         </div>
       </main>
-    </div>
-    </TooltipProvider>
+    </AppShell>
   );
 }
