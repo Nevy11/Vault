@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { HelpCircle, Home, Send, Settings } from "lucide-react";
+import { HelpCircle, Home, MessageCircle, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -8,6 +8,7 @@ const navItems = [
   { label: "Transact", to: "/transactions", icon: Send, isActive: (path: string) => path.startsWith("/transactions") },
   { label: "Settings", to: "/settings", icon: Settings, isActive: (path: string) => path.startsWith("/settings") },
   { label: "Help", to: "/help", icon: HelpCircle, isActive: (path: string) => path.startsWith("/help") },
+  { label: "Advisor", to: "/finance-advisor", icon: MessageCircle, isActive: (path: string) => path.startsWith("/finance-advisor") },
 ];
 
 function Logo() {
