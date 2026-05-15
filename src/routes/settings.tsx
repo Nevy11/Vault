@@ -146,7 +146,6 @@ function SettingsPage() {
           <SectionCard
             icon={User}
             title="Account Profile & KYC"
-            meta="Sources 98, 100"
           >
             <Row label="Profile Picture">
               <div className="flex items-center gap-4">
@@ -201,7 +200,6 @@ function SettingsPage() {
           <SectionCard
             icon={ShieldCheck}
             title="Security Center"
-            meta="Sources 92, 100, 102"
             hint="Required for large withdrawals"
           >
             <div>
@@ -261,7 +259,6 @@ function SettingsPage() {
           <SectionCard
             icon={SlidersHorizontal}
             title="Preferences"
-            meta="Sources 15, 95"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
@@ -299,7 +296,6 @@ function SettingsPage() {
           <SectionCard
             icon={ScrollText}
             title="Recent Activity"
-            meta="Source 92, 102"
           >
             <ul className="divide-y divide-border/40">
               {[
@@ -313,9 +309,6 @@ function SettingsPage() {
                     <div className="text-sm text-foreground">{item.text}</div>
                     <div className="mt-1 text-xs text-muted-foreground/70">{item.date}</div>
                   </div>
-                  <span className="text-xs text-muted-foreground/60 font-mono">
-                    src/{item.source}
-                  </span>
                 </li>
               ))}
             </ul>
