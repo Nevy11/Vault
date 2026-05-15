@@ -60,8 +60,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </ul>
         </nav>
         <div className="absolute left-4 bottom-4">
-          <Button variant="ghost" size="sm">
-            Sign out
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/">
+              Sign out
+            </Link>
           </Button>
         </div>
       </div>
