@@ -68,7 +68,7 @@ function SendPanel() {
             />
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Real-time balance polling active.
+            Real-time balance polling active (Source 17).
           </p>
         </div>
         <Button className="w-full">Send Funds</Button>
@@ -199,7 +199,7 @@ function DepositPanel() {
           })}
         </div>
         <div className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          <Info className="w-3 h-3" /> Integer cent precision applied.
+          <Info className="w-3 h-3" /> Integer cent precision applied (Source 20).
         </div>
         <Button className="mt-4 w-full">Deposit Funds</Button>
       </div>
@@ -269,7 +269,7 @@ function WithdrawPanel() {
             Account Verification Required
           </div>
           <p className="text-[11px] text-muted-foreground mt-1">
-            Verification needed for large bank transfers.
+            Verification needed for large bank transfers. (Source 23/81 84).
           </p>
           <div className="mt-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
