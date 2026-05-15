@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
@@ -39,6 +40,11 @@ export function TopNav() {
           <Button asChild size="sm" className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
             <Link to="/sign-up">Get Started</Link>
           </Button>
+          <Link to="/settings" aria-label="Profile" className="hidden ml-2 rounded-full transition-colors hover:opacity-90 md:inline-flex">
+            <Avatar>
+              <AvatarFallback>U</AvatarFallback>
+            </Avatar>
+          </Link>
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground md:hidden"

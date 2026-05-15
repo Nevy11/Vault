@@ -2,6 +2,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const navItems = [
   { label: "Dashboard", to: "/dashboard", icon: Home, isActive: (path: string) => path === "/dashboard" },
@@ -58,6 +59,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </ul>
         </nav>
+        <div className="absolute left-4 bottom-4">
+          <Button variant="ghost" size="sm">
+            Sign out
+          </Button>
+        </div>
       </div>
 
       {/* Main content */}
@@ -69,6 +75,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
+              <Link to="/settings" aria-label="Profile" className="rounded-full">
+                <Avatar>
+                  <AvatarFallback>U</AvatarFallback>
+                </Avatar>
+              </Link>
             </div>
           </div>
         </header>
