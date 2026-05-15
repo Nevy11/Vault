@@ -60,13 +60,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 px-4 py-4">
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {navItems.map(({ label, to, icon: Icon, isActive }) => (
               <li key={to}>
                 <Link
                   to={to}
                   onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-accent ${
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors hover:bg-accent ${
                     isActive(currentPath)
                       ? "bg-primary text-primary-foreground"
                       : "text-foreground hover:text-foreground"
