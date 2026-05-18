@@ -16,21 +16,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Initialize theme from localStorage on mount
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem("theme") as Theme | null;
-    const initialTheme = savedTheme || "light";
-    setTheme(initialTheme);
-    applyTheme(initialTheme);
+    try {
+      const savedTheme = localStorage.getItem("theme") as Theme | null;
+      const initialTheme = savedTheme || "light";
+      setTheme(initialTheme);
+      applyTheme(initialTheme);
+    } catch {
+      // ignore (SSR / privacy mode)
+    }
   }, []);
 
   // Apply theme to DOM
   const applyTheme = (newTheme: Theme) => {
+    if (typeof document === "undefined") return;
     const root = document.documentElement;
     if (newTheme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", newTheme);
+    try {
+      localStorage.setItem("theme", newTheme);
+    } catch {
+      // ignore
+    }
   };
 
   const toggleTheme = () => {
@@ -39,10 +48,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(newTheme);
   };
 
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return <>{children}</>;
-  }
+  // Keep provider mounted on SSR so consumers like useTheme() don't throw.
+  void mounted;
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
