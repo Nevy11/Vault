@@ -66,7 +66,7 @@ function SignUp() {
   const handleVerify = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (code.length === 6) {
-      navigate({ to: "/dashboard" });
+      navigate({ to: "/kyc" });
     }
   };
 
@@ -102,23 +102,12 @@ function SignUp() {
                 </div>
               </Field>
 
-              <ol className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-                <li className="flex-1">
+              <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex-1">
                   <div className="h-1 rounded-full bg-primary" />
-                  <p className="mt-2 text-foreground"><span className="font-medium">1.</span> Account Details</p>
-                </li>
-                <span className="text-muted-foreground/60">→</span>
-                <li className="flex-1">
-                  <div className="h-1 rounded-full bg-border" />
-                  <p className="mt-2"><span className="font-medium">2.</span> KYC Verification</p>
-                  <p className="text-[11px] text-muted-foreground/80">(Smile Identity API)</p>
-                </li>
-                <span className="text-muted-foreground/60">→</span>
-                <li className="flex-1">
-                  <div className="h-1 rounded-full bg-border" />
-                  <p className="mt-2"><span className="font-medium">3.</span> Success</p>
-                </li>
-              </ol>
+                  <p className="mt-2 text-foreground font-medium">Account Details</p>
+                </div>
+              </div>
 
               <label className="flex items-start gap-2.5 pt-2 text-sm text-foreground/90">
                 <Checkbox checked={agreed} onCheckedChange={(v) => setAgreed(Boolean(v))} className="mt-0.5 border-border data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground" />
