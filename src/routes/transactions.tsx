@@ -1,14 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import {
-  Search,
-  Lock,
-  Settings,
-  HelpCircle,
-  Info,
-  Check,
-  RefreshCw,
-} from "lucide-react";
+import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -62,10 +54,7 @@ function SendPanel() {
           <label className="text-xs text-muted-foreground">Send Amount</label>
           <div className="mt-2 flex items-center gap-2 rounded-md border border-border/60 px-3 py-2">
             <span className="text-muted-foreground">$</span>
-            <input
-              className="flex-1 bg-transparent text-lg outline-none"
-              placeholder=""
-            />
+            <input className="flex-1 bg-transparent text-lg outline-none" placeholder="" />
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
             Real-time balance polling active (Source 17).
@@ -97,9 +86,7 @@ function SendPanel() {
             </button>
           ))}
         </div>
-        <div className="text-xs text-muted-foreground mb-2">
-          Vault Contacts (recents list)
-        </div>
+        <div className="text-xs text-muted-foreground mb-2">Vault Contacts (recents list)</div>
         <ul className="divide-y divide-border/40 max-h-[360px] overflow-y-auto pr-1">
           {contacts.map((c) => (
             <li key={c.name} className="flex items-center justify-between py-2.5">
@@ -153,10 +140,7 @@ function DepositPanel() {
           <label className="text-xs text-muted-foreground">Deposit Amount</label>
           <div className="mt-2 flex items-center gap-2 rounded-md border border-border/60 px-3 py-2">
             <span className="text-muted-foreground">$</span>
-            <input
-              className="flex-1 bg-transparent text-lg outline-none"
-              placeholder="0.00"
-            />
+            <input className="flex-1 bg-transparent text-lg outline-none" placeholder="0.00" />
           </div>
         </div>
       </div>
@@ -173,9 +157,7 @@ function DepositPanel() {
                 key={m.id}
                 onClick={() => setMethod(m.id)}
                 className={`w-full text-left rounded-xl border p-4 transition-colors ${
-                  active
-                    ? "border-primary bg-primary/10"
-                    : "border-border/60 hover:border-border"
+                  active ? "border-primary bg-primary/10" : "border-border/60 hover:border-border"
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -189,9 +171,7 @@ function DepositPanel() {
                   <div className="flex-1">
                     <div className="text-sm font-medium">{m.title}</div>
                     <div className="text-xs text-muted-foreground mt-0.5">{m.sub}</div>
-                    {m.fee && (
-                      <div className="text-xs text-muted-foreground mt-0.5">{m.fee}</div>
-                    )}
+                    {m.fee && <div className="text-xs text-muted-foreground mt-0.5">{m.fee}</div>}
                   </div>
                 </div>
               </button>
@@ -216,10 +196,7 @@ function WithdrawPanel() {
           <label className="text-xs text-muted-foreground">Withdrawal Amount</label>
           <div className="mt-2 flex items-center gap-2 rounded-md border border-border/60 px-3 py-2">
             <span className="text-muted-foreground">$</span>
-            <input
-              className="flex-1 bg-transparent text-lg outline-none"
-              placeholder=""
-            />
+            <input className="flex-1 bg-transparent text-lg outline-none" placeholder="" />
           </div>
         </div>
       </div>

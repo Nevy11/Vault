@@ -1,13 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  UserPlus,
-  Lock,
-  MoreVertical,
-  Plus,
-  Settings,
-  HelpCircle,
-  RefreshCw,
-} from "lucide-react";
+import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
@@ -16,7 +8,10 @@ export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — Vault OS" },
-      { name: "description", content: "Unified portfolio balance and transactions across your finance accounts." },
+      {
+        name: "description",
+        content: "Unified portfolio balance and transactions across your finance accounts.",
+      },
     ],
   }),
   component: DashboardPage,
@@ -58,8 +53,12 @@ function AccountBadge({
       <div className="mt-4 text-3xl font-semibold text-primary">{amount}</div>
       {primary ? (
         <div className="mt-4 flex gap-2">
-          <Button variant="secondary" size="sm" className="flex-1">Send</Button>
-          <Button size="sm" className="flex-1">Deposit</Button>
+          <Button variant="secondary" size="sm" className="flex-1">
+            Send
+          </Button>
+          <Button size="sm" className="flex-1">
+            Deposit
+          </Button>
         </div>
       ) : (
         <div className="mt-6 text-xs text-muted-foreground text-right">{updated}</div>
@@ -72,7 +71,9 @@ function Avatar({ initial, color }: { initial: string; color: string }) {
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="relative">
-        <div className={`w-11 h-11 rounded-full ${color} flex items-center justify-center text-white font-medium`}>
+        <div
+          className={`w-11 h-11 rounded-full ${color} flex items-center justify-center text-white font-medium`}
+        >
           {initial}
         </div>
         <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card" />
@@ -82,7 +83,13 @@ function Avatar({ initial, color }: { initial: string; color: string }) {
   );
 }
 
-function QuickSend({ avatars, withAdd }: { avatars: { initial: string; color: string; name: string }[]; withAdd?: boolean }) {
+function QuickSend({
+  avatars,
+  withAdd,
+}: {
+  avatars: { initial: string; color: string; name: string }[];
+  withAdd?: boolean;
+}) {
   return (
     <div className="rounded-2xl bg-card/40 border border-border/40 p-4">
       <div className="text-sm text-muted-foreground mb-3">Quick Send (P2P)</div>
@@ -95,7 +102,9 @@ function QuickSend({ avatars, withAdd }: { avatars: { initial: string; color: st
         {avatars.map((a) => (
           <div key={a.name} className="flex flex-col items-center gap-1">
             <div className="relative">
-              <div className={`w-11 h-11 rounded-full ${a.color} flex items-center justify-center text-white font-medium`}>
+              <div
+                className={`w-11 h-11 rounded-full ${a.color} flex items-center justify-center text-white font-medium`}
+              >
                 {a.initial}
               </div>
               <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card" />
@@ -115,18 +124,33 @@ function NetWorthChart() {
       <div className="relative h-28">
         <div className="absolute left-0 top-0 text-[10px] text-muted-foreground">35K</div>
         <div className="absolute left-0 bottom-4 text-[10px] text-muted-foreground">0</div>
-        <svg viewBox="0 0 300 100" className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
+        <svg
+          viewBox="0 0 300 100"
+          className="absolute inset-0 w-full h-full"
+          preserveAspectRatio="none"
+        >
           <defs>
             <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="oklch(0.82 0.16 165)" stopOpacity="0.4" />
               <stop offset="100%" stopColor="oklch(0.82 0.16 165)" stopOpacity="0" />
             </linearGradient>
           </defs>
-          <path d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10 L300,100 L0,100 Z" fill="url(#chartFill)" />
-          <path d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10" stroke="oklch(0.82 0.16 165)" strokeWidth="2" fill="none" />
+          <path
+            d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10 L300,100 L0,100 Z"
+            fill="url(#chartFill)"
+          />
+          <path
+            d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10"
+            stroke="oklch(0.82 0.16 165)"
+            strokeWidth="2"
+            fill="none"
+          />
         </svg>
         <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-muted-foreground px-6">
-          <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span>
+          <span>Jan</span>
+          <span>Feb</span>
+          <span>Mar</span>
+          <span>Apr</span>
         </div>
       </div>
     </div>
@@ -136,10 +160,46 @@ function NetWorthChart() {
 const filters = ["All", "Vault", "Chase", "BofA", "Revolut", "Mobile Money"];
 
 const transactions = [
-  { tag: "P2P", icon: "V", color: "bg-primary/20 text-primary", title: "P2P Transfer to Maria C.", time: "Just now", amount: "+$850.00", note: "Internal Vault P2P", positive: true },
-  { tag: "PP", icon: "C", color: "bg-blue-500/20 text-blue-300", title: "Chase Bank Checkings: Direct Deposit", time: "2 hours ago", amount: "+$2,500.00", note: "[Status: Cleared]  ·  Standard ACH", positive: true },
-  { tag: "W", icon: "B", color: "bg-red-500/20 text-red-300", title: "Bank of America Savings: Withdrawal to M-Pesa", time: "2 hours ago", amount: "-$100.00", note: "M-Pesa API", positive: false },
-  { tag: "P2P", icon: "V", color: "bg-primary/20 text-primary", title: "P2P Transfer from John L.", time: "Yesterday", amount: "+$159.00", note: "Internal Vault P2P", positive: true },
+  {
+    tag: "P2P",
+    icon: "V",
+    color: "bg-primary/20 text-primary",
+    title: "P2P Transfer to Maria C.",
+    time: "Just now",
+    amount: "+$850.00",
+    note: "Internal Vault P2P",
+    positive: true,
+  },
+  {
+    tag: "PP",
+    icon: "C",
+    color: "bg-blue-500/20 text-blue-300",
+    title: "Chase Bank Checkings: Direct Deposit",
+    time: "2 hours ago",
+    amount: "+$2,500.00",
+    note: "[Status: Cleared]  ·  Standard ACH",
+    positive: true,
+  },
+  {
+    tag: "W",
+    icon: "B",
+    color: "bg-red-500/20 text-red-300",
+    title: "Bank of America Savings: Withdrawal to M-Pesa",
+    time: "2 hours ago",
+    amount: "-$100.00",
+    note: "M-Pesa API",
+    positive: false,
+  },
+  {
+    tag: "P2P",
+    icon: "V",
+    color: "bg-primary/20 text-primary",
+    title: "P2P Transfer from John L.",
+    time: "Yesterday",
+    amount: "+$159.00",
+    note: "Internal Vault P2P",
+    positive: true,
+  },
 ];
 
 function DashboardPage() {
@@ -148,16 +208,22 @@ function DashboardPage() {
       <main className="max-w-7xl mx-auto px-6 py-10">
         <div className="mb-6">
           <h1 className="text-4xl font-light tracking-tight">Unified Portfolio Balance</h1>
-          <p className="text-sm text-muted-foreground mt-1">Integrates a renew Accounts of multiple finance accounts.</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Integrates a renew Accounts of multiple finance accounts.
+          </p>
         </div>
 
         {/* Total net worth */}
         <div className="rounded-2xl bg-card/30 border border-border/40 p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">Total Net Worth</div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground">
+              Total Net Worth
+            </div>
             <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline">
               <span className="text-5xl font-light">$14,230.15</span>
-              <span className="text-xs px-2 py-1 rounded-full bg-primary/15 text-primary">+ 5.25%</span>
+              <span className="text-xs px-2 py-1 rounded-full bg-primary/15 text-primary">
+                + 5.25%
+              </span>
             </div>
           </div>
           <Button className="gap-2 w-full max-w-xs sm:w-auto justify-center">
@@ -169,20 +235,38 @@ function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <AccountBadge
             primary
-            icon={<svg width="16" height="16" viewBox="0 0 32 32"><path d="M6 6 L16 26 L26 6" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" /></svg>}
+            icon={
+              <svg width="16" height="16" viewBox="0 0 32 32">
+                <path
+                  d="M6 6 L16 26 L26 6"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </svg>
+            }
             name="Vault: Digital Wallet OS"
             type="Verified Account"
             amount="$2,450.75"
           />
           <AccountBadge
-            icon={<div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white text-xs">C</div>}
+            icon={
+              <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white text-xs">
+                C
+              </div>
+            }
             name="Chase Bank Checkings"
             type="External account"
             amount="$5,120.00"
             updated="Updated: 5:35 AM"
           />
           <AccountBadge
-            icon={<div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-white text-xs">B</div>}
+            icon={
+              <div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-white text-xs">
+                B
+              </div>
+            }
             name="Bank of America Savings"
             type="External account"
             amount="$6,660.00"
@@ -236,8 +320,12 @@ function DashboardPage() {
             {transactions.map((t, i) => (
               <li key={i} className="flex items-center justify-between py-3">
                 <div className="flex items-center gap-4">
-                  <span className="text-[10px] uppercase w-9 text-center text-muted-foreground">{t.tag}</span>
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${t.color}`}>
+                  <span className="text-[10px] uppercase w-9 text-center text-muted-foreground">
+                    {t.tag}
+                  </span>
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${t.color}`}
+                  >
                     {t.icon}
                   </div>
                   <div>
@@ -246,7 +334,11 @@ function DashboardPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`text-sm font-medium ${t.positive ? "text-primary" : "text-destructive"}`}>{t.amount}</div>
+                  <div
+                    className={`text-sm font-medium ${t.positive ? "text-primary" : "text-destructive"}`}
+                  >
+                    {t.amount}
+                  </div>
                   <div className="text-xs text-muted-foreground">{t.note}</div>
                 </div>
               </li>

@@ -41,10 +41,17 @@ export function TopNav() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link to="/login" className="hidden rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex">
+          <Link
+            to="/login"
+            className="hidden rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex"
+          >
             Sign In
           </Link>
-          <Button asChild size="sm" className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button
+            asChild
+            size="sm"
+            className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             <Link to="/sign-up">Get Started</Link>
           </Button>
           <DropdownMenu>

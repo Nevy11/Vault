@@ -111,7 +111,6 @@ function HelpPage() {
 
   return (
     <AppShell>
-
       <main className="mx-auto max-w-[1400px] px-8 lg:px-12 py-12 lg:py-16">
         {/* Header */}
         <div className="mb-12 lg:mb-16">
@@ -128,8 +127,8 @@ function HelpPage() {
                 Help <span className="text-muted-foreground/60">&</span> Support
               </h1>
               <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
-                We're here around the clock. Pick a channel, browse common
-                questions, or send us a message — a real human will respond.
+                We're here around the clock. Pick a channel, browse common questions, or send us a
+                message — a real human will respond.
               </p>
             </div>
             <div className="relative w-full lg:w-80">
@@ -146,7 +145,11 @@ function HelpPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-10">
           {/* Left column */}
           <div className="space-y-8 lg:space-y-10">
-            <SectionCard icon={ShieldCheck} title="Direct Contact Channels" meta="Choose your preferred support path">
+            <SectionCard
+              icon={ShieldCheck}
+              title="Direct Contact Channels"
+              meta="Choose your preferred support path"
+            >
               <div className="space-y-3">
                 {channels.map((c) => {
                   const Icon = c.icon;
@@ -186,7 +189,11 @@ function HelpPage() {
               </div>
             </SectionCard>
 
-            <SectionCard icon={LifeBuoy} title="Frequently Asked Questions" meta="Tap a question to expand">
+            <SectionCard
+              icon={LifeBuoy}
+              title="Frequently Asked Questions"
+              meta="Tap a question to expand"
+            >
               <div className="space-y-3">
                 {faqs.map((f, i) => {
                   const open = openFaq === i;
@@ -194,7 +201,9 @@ function HelpPage() {
                     <div
                       key={i}
                       className={`rounded-xl border transition-colors ${
-                        open ? "border-primary/30 bg-primary/[0.03]" : "border-border/40 bg-input/20"
+                        open
+                          ? "border-primary/30 bg-primary/[0.03]"
+                          : "border-border/40 bg-input/20"
                       }`}
                     >
                       <button
@@ -221,7 +230,11 @@ function HelpPage() {
           </div>
 
           {/* Right column — Contact form */}
-          <SectionCard icon={Mail} title="Direct Contact Form" meta="Typical response within 4 hours">
+          <SectionCard
+            icon={Mail}
+            title="Direct Contact Form"
+            meta="Typical response within 4 hours"
+          >
             <form className="space-y-7" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
