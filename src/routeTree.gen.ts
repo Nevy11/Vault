@@ -13,6 +13,7 @@ import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as KycRouteImport } from './routes/kyc'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as FinanceAdvisorRouteImport } from './routes/finance-advisor'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -36,6 +37,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KycRoute = KycRouteImport.update({
+  id: '/kyc',
+  path: '/kyc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HelpRoute = HelpRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
   '/help': typeof HelpRoute
+  '/kyc': typeof KycRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
   '/help': typeof HelpRoute
+  '/kyc': typeof KycRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
   '/help': typeof HelpRoute
+  '/kyc': typeof KycRoute
   '/login': typeof LoginRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finance-advisor'
     | '/help'
+    | '/kyc'
     | '/login'
     | '/settings'
     | '/sign-up'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finance-advisor'
     | '/help'
+    | '/kyc'
     | '/login'
     | '/settings'
     | '/sign-up'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/finance-advisor'
     | '/help'
+    | '/kyc'
     | '/login'
     | '/settings'
     | '/sign-up'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   FinanceAdvisorRoute: typeof FinanceAdvisorRoute
   HelpRoute: typeof HelpRoute
+  KycRoute: typeof KycRoute
   LoginRoute: typeof LoginRoute
   SettingsRoute: typeof SettingsRoute
   SignUpRoute: typeof SignUpRoute
@@ -162,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kyc': {
+      id: '/kyc'
+      path: '/kyc'
+      fullPath: '/kyc'
+      preLoaderRoute: typeof KycRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/help': {
@@ -200,6 +220,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   FinanceAdvisorRoute: FinanceAdvisorRoute,
   HelpRoute: HelpRoute,
+  KycRoute: KycRoute,
   LoginRoute: LoginRoute,
   SettingsRoute: SettingsRoute,
   SignUpRoute: SignUpRoute,
