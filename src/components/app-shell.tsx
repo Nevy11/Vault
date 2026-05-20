@@ -1,8 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { HelpCircle, Home, Send, Settings, LogOut } from "lucide-react";
+import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  MessageCircle,
+  LogOut,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,6 +20,7 @@ const navItems = [
   { label: "Transact", to: "/transactions", icon: Send, isActive: (path: string) => path.startsWith("/transactions") },
   { label: "Settings", to: "/settings", icon: Settings, isActive: (path: string) => path.startsWith("/settings") },
   { label: "Help", to: "/help", icon: HelpCircle, isActive: (path: string) => path.startsWith("/help") },
+  { label: "Advisor", to: "/finance-advisor", icon: MessageCircle, isActive: (path: string) => path.startsWith("/finance-advisor") },
 ];
 
 function Logo() {
@@ -76,8 +81,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="md:ml-64 pb-20">
-        <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
+      <div className="md:ml-64 pb-20 pt-16">
+        <header className="fixed top-0 left-0 right-0 md:left-64 z-40 border-b border-border/40 bg-background/40 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Logo />
