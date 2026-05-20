@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { hashPin } from "@/lib/utils";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUp,
@@ -172,18 +173,21 @@ function SignUp() {
     const nameParts = fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || "";
+// Link and connect data to your tables
+// 1. Create Profile
+console.log("Hashing PIN for secure storage...");
+const hashedPin = await hashPin(pin);
 
-    // 1. Create Profile
-    console.log("Upserting profile...");
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: user.id,
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone_number: phone,
-      pin_hash: pin,
-      kyc_status: "unverified",
-    });
+console.log("Upserting profile...");
+const { error: profileError } = await supabase.from("profiles").upsert({
+  id: user.id,
+  first_name: firstName,
+  last_name: lastName,
+  email: email,
+  phone_number: phone,
+  pin_hash: hashedPin,
+  kyc_status: "unverified",
+});
 
     if (profileError) {
       console.error("Profile creation error:", profileError);
