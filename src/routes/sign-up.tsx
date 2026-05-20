@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { hashPin } from "@/lib/utils";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUp,
