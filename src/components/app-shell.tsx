@@ -17,10 +17,10 @@ import {
 
 const navItems = [
   { label: "Dashboard", to: "/dashboard", icon: Home, isActive: (path: string) => path === "/dashboard" },
+  { label: "Advisor", to: "/finance-advisor", icon: MessageCircle, isActive: (path: string) => path.startsWith("/finance-advisor") },
   { label: "Transact", to: "/transactions", icon: Send, isActive: (path: string) => path.startsWith("/transactions") },
   { label: "Settings", to: "/settings", icon: Settings, isActive: (path: string) => path.startsWith("/settings") },
   { label: "Help", to: "/help", icon: HelpCircle, isActive: (path: string) => path.startsWith("/help") },
-  { label: "Advisor", to: "/finance-advisor", icon: MessageCircle, isActive: (path: string) => path.startsWith("/finance-advisor") },
 ];
 
 function Logo() {
