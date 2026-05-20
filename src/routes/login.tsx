@@ -27,7 +27,17 @@ function Logo() {
   );
 }
 
-function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: ReactNode }) {
+function Field({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm text-foreground/90 flex items-center">
@@ -119,7 +129,9 @@ function LoginPage() {
                     {showPin ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </div>
-                <a href="#" className="inline-block mt-1 text-sm text-primary hover:underline">Forgot PIN?</a>
+                <a href="#" className="inline-block mt-1 text-sm text-primary hover:underline">
+                  Forgot PIN?
+                </a>
               </Field>
 
               <div className="space-y-2">
@@ -132,7 +144,9 @@ function LoginPage() {
                   {status === "sending" ? "Authenticating..." : "Send code"}
                 </Button>
                 {status === "sending" && (
-                  <p className="text-center text-sm text-muted-foreground">Authenticating until the code is sent to your email.</p>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Authenticating until the code is sent to your email.
+                  </p>
                 )}
               </div>
             </form>
@@ -161,7 +175,7 @@ function LoginPage() {
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
-                Didn’t receive code?{' '}
+                Didn’t receive code?{" "}
                 <button
                   type="button"
                   onClick={() => {
@@ -181,13 +195,22 @@ function LoginPage() {
         {step === "signIn" && (
           <>
             <p className="mt-6 text-sm text-muted-foreground">
-              New to Vault? <Link to="/sign-up" className="text-primary font-medium hover:underline">Create Your Account</Link>
+              New to Vault?{" "}
+              <Link to="/sign-up" className="text-primary font-medium hover:underline">
+                Create Your Account
+              </Link>
             </p>
 
             <ul className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-              <li className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-primary" /> Bank-grade security</li>
-              <li className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5 text-primary" /> Data integrity</li>
-              <li className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-primary" /> Atomic transactions</li>
+              <li className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-primary" /> Bank-grade security
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Database className="h-3.5 w-3.5 text-primary" /> Data integrity
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-primary" /> Atomic transactions
+              </li>
             </ul>
           </>
         )}

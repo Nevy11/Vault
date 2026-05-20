@@ -70,7 +70,11 @@ function Hero() {
               with the security of a bank and the simplicity of a tap.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button asChild size="lg" className="h-12 bg-primary px-6 text-primary-foreground hover:bg-primary/90">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 bg-primary px-6 text-primary-foreground hover:bg-primary/90"
+              >
                 <Link to="/sign-up">
                   Create your Vault <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -81,9 +85,15 @@ function Hero() {
             </div>
 
             <ul className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-              <li className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-primary" /> Bank-grade security</li>
-              <li className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5 text-primary" /> Data integrity</li>
-              <li className="flex items-center gap-1.5"><Layers className="h-3.5 w-3.5 text-primary" /> Atomic transactions</li>
+              <li className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-primary" /> Bank-grade security
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Database className="h-3.5 w-3.5 text-primary" /> Data integrity
+              </li>
+              <li className="flex items-center gap-1.5">
+                <Layers className="h-3.5 w-3.5 text-primary" /> Atomic transactions
+              </li>
             </ul>
           </div>
 
@@ -94,10 +104,16 @@ function Hero() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Total Balance</p>
-                  <p className="mt-1 font-serif text-4xl text-foreground">$24,830.<span className="text-muted-foreground">42</span></p>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                    Total Balance
+                  </p>
+                  <p className="mt-1 font-serif text-4xl text-foreground">
+                    $24,830.<span className="text-muted-foreground">42</span>
+                  </p>
                 </div>
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">+ 4.2%</span>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                  + 4.2%
+                </span>
               </div>
 
               <div className="mt-6 grid grid-cols-3 gap-2">
@@ -130,7 +146,13 @@ function Hero() {
                       <p className="text-sm font-medium text-foreground">{row.name}</p>
                       <p className="text-xs text-muted-foreground">{row.note}</p>
                     </div>
-                    <span className={row.amount.startsWith("−") ? "text-sm text-muted-foreground" : "text-sm font-medium text-primary"}>
+                    <span
+                      className={
+                        row.amount.startsWith("−")
+                          ? "text-sm text-muted-foreground"
+                          : "text-sm font-medium text-primary"
+                      }
+                    >
                       {row.amount}
                     </span>
                   </div>
@@ -228,9 +250,7 @@ function Security() {
       <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:items-center">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-primary">Security</p>
-          <h2 className="mt-3 font-serif text-4xl text-foreground">
-            A vault, not a wallet.
-          </h2>
+          <h2 className="mt-3 font-serif text-4xl text-foreground">A vault, not a wallet.</h2>
           <p className="mt-4 text-muted-foreground">
             We treat your money like the bank does — and your privacy like the bank should. Every
             layer of Vault is engineered for safety, transparency, and your control.
@@ -261,10 +281,7 @@ function Security() {
 
           <div className="mt-6 grid grid-cols-3 gap-2">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-10 rounded-md border border-border bg-muted/30"
-              />
+              <div key={i} className="h-10 rounded-md border border-border bg-muted/30" />
             ))}
           </div>
 
@@ -291,7 +308,11 @@ function Pricing() {
       name: "Personal",
       price: "Free",
       desc: "For everyday spending, sending, and saving.",
-      features: ["Unlimited transfers within Vault", "2 free withdrawals/month", "Multi-currency wallet"],
+      features: [
+        "Unlimited transfers within Vault",
+        "2 free withdrawals/month",
+        "Multi-currency wallet",
+      ],
       cta: "Open a Vault",
       featured: false,
     },
@@ -299,7 +320,12 @@ function Pricing() {
       name: "Plus",
       price: "$6/mo",
       desc: "For frequent senders and global earners.",
-      features: ["Unlimited withdrawals", "Better FX rates", "Priority support", "Spending insights"],
+      features: [
+        "Unlimited withdrawals",
+        "Better FX rates",
+        "Priority support",
+        "Spending insights",
+      ],
       cta: "Try Plus free",
       featured: true,
     },
@@ -307,7 +333,12 @@ function Pricing() {
       name: "Business",
       price: "Custom",
       desc: "For teams moving money at scale.",
-      features: ["Multi-user access", "API & webhooks", "Dedicated rails", "SLA & compliance support"],
+      features: [
+        "Multi-user access",
+        "API & webhooks",
+        "Dedicated rails",
+        "SLA & compliance support",
+      ],
       cta: "Talk to us",
       featured: false,
     },
@@ -319,7 +350,9 @@ function Pricing() {
         <div className="max-w-2xl">
           <p className="text-xs uppercase tracking-[0.2em] text-primary">Pricing</p>
           <h2 className="mt-3 font-serif text-4xl text-foreground">Simple, honest, transparent.</h2>
-          <p className="mt-4 text-muted-foreground">No hidden fees. No surprise FX spreads. Pick the plan that fits how you move money.</p>
+          <p className="mt-4 text-muted-foreground">
+            No hidden fees. No surprise FX spreads. Pick the plan that fits how you move money.
+          </p>
         </div>
 
         <div className="mt-12 grid gap-4 md:grid-cols-3">
@@ -328,15 +361,15 @@ function Pricing() {
               key={t.name}
               className={
                 "rounded-2xl border p-7 " +
-                (t.featured
-                  ? "border-primary bg-primary/5"
-                  : "border-border bg-card")
+                (t.featured ? "border-primary bg-primary/5" : "border-border bg-card")
               }
             >
               <div className="flex items-baseline justify-between">
                 <h3 className="text-lg font-medium text-foreground">{t.name}</h3>
                 {t.featured && (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary-foreground">Popular</span>
+                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary-foreground">
+                    Popular
+                  </span>
                 )}
               </div>
               <p className="mt-3 font-serif text-3xl text-foreground">{t.price}</p>
@@ -392,7 +425,9 @@ function FAQ() {
     <section id="faq" className="border-t border-border bg-card/40 py-24">
       <div className="mx-auto max-w-3xl px-6">
         <p className="text-xs uppercase tracking-[0.2em] text-primary">FAQ</p>
-        <h2 className="mt-3 font-serif text-4xl text-foreground">Good questions, honest answers.</h2>
+        <h2 className="mt-3 font-serif text-4xl text-foreground">
+          Good questions, honest answers.
+        </h2>
 
         <div className="mt-10 divide-y divide-border rounded-2xl border border-border bg-background">
           {faqs.map(({ q, a }) => (
@@ -424,7 +459,11 @@ function CTA() {
           Open an account in under two minutes. No paperwork, no waiting rooms.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Button asChild size="lg" className="h-12 bg-primary px-6 text-primary-foreground hover:bg-primary/90">
+          <Button
+            asChild
+            size="lg"
+            className="h-12 bg-primary px-6 text-primary-foreground hover:bg-primary/90"
+          >
             <Link to="/sign-up">
               Create your Vault <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
@@ -443,11 +482,19 @@ function Footer() {
     <footer className="border-t border-border bg-background py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
         <Logo />
-        <p className="text-xs text-muted-foreground">© {new Date().getFullYear()} Vault. All rights reserved.</p>
+        <p className="text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Vault. All rights reserved.
+        </p>
         <div className="flex items-center gap-5 text-xs text-muted-foreground">
-          <a href="#" className="hover:text-foreground">Terms</a>
-          <a href="#" className="hover:text-foreground">Privacy</a>
-          <a href="#" className="hover:text-foreground">Contact</a>
+          <a href="#" className="hover:text-foreground">
+            Terms
+          </a>
+          <a href="#" className="hover:text-foreground">
+            Privacy
+          </a>
+          <a href="#" className="hover:text-foreground">
+            Contact
+          </a>
         </div>
       </div>
     </footer>

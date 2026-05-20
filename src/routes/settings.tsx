@@ -25,7 +25,10 @@ export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
       { title: "Settings — Vault OS" },
-      { name: "description", content: "Configure your Vault OS account, security, and preferences." },
+      {
+        name: "description",
+        content: "Configure your Vault OS account, security, and preferences.",
+      },
     ],
   }),
   component: SettingsPage,
@@ -55,9 +58,7 @@ function SectionCard({
             <h2 className="text-base font-medium tracking-[0.18em] uppercase text-foreground">
               {title}
             </h2>
-            {meta && (
-              <p className="mt-1 text-xs text-muted-foreground/80">{meta}</p>
-            )}
+            {meta && <p className="mt-1 text-xs text-muted-foreground/80">{meta}</p>}
           </div>
         </div>
         {hint && (
@@ -85,9 +86,7 @@ function Row({
       <div>
         <div className="text-sm text-muted-foreground">{label}</div>
         {description && (
-          <div className="mt-1 text-xs text-muted-foreground/60 leading-relaxed">
-            {description}
-          </div>
+          <div className="mt-1 text-xs text-muted-foreground/60 leading-relaxed">{description}</div>
         )}
       </div>
       <div className="min-w-0">{children}</div>
@@ -109,9 +108,7 @@ function ToggleRow({
       <div className="min-w-0">
         <div className="text-sm text-foreground">{label}</div>
         {description && (
-          <div className="mt-1 text-xs text-muted-foreground/70 leading-relaxed">
-            {description}
-          </div>
+          <div className="mt-1 text-xs text-muted-foreground/70 leading-relaxed">{description}</div>
         )}
       </div>
       <Switch defaultChecked={defaultOn} />
@@ -136,18 +133,15 @@ function SettingsPage() {
             Settings <span className="text-muted-foreground/60">&</span> Configuration
           </h1>
           <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
-            Manage your profile, security posture, and personal preferences.
-            Changes apply across all authorized devices.
+            Manage your profile, security posture, and personal preferences. Changes apply across
+            all authorized devices.
           </p>
         </div>
 
         {/* Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
           {/* Account Profile */}
-          <SectionCard
-            icon={User}
-            title="Account Profile & KYC"
-          >
+          <SectionCard icon={User} title="Account Profile & KYC">
             <Row label="Profile Picture">
               <div className="flex items-center gap-4">
                 <div className="relative">
@@ -167,7 +161,11 @@ function SettingsPage() {
                       <Upload className="w-4 h-4" />
                       Upload Photo
                     </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                    >
                       Remove
                     </Button>
                   </div>
@@ -193,7 +191,10 @@ function SettingsPage() {
               <Input defaultValue="Alex Johnson" className="bg-input/40 border-border/60 h-11" />
             </Row>
             <Row label="KYC Tag" description="Used for peer transfers">
-              <Input defaultValue="@alexj_vault" className="bg-input/40 border-border/60 h-11 font-mono" />
+              <Input
+                defaultValue="@alexj_vault"
+                className="bg-input/40 border-border/60 h-11 font-mono"
+              />
             </Row>
           </SectionCard>
 
@@ -257,10 +258,7 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Preferences */}
-          <SectionCard
-            icon={SlidersHorizontal}
-            title="Preferences"
-          >
+          <SectionCard icon={SlidersHorizontal} title="Preferences">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">Theme</label>
@@ -294,10 +292,7 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Activity */}
-          <SectionCard
-            icon={ScrollText}
-            title="Recent Activity"
-          >
+          <SectionCard icon={ScrollText} title="Recent Activity">
             <ul className="divide-y divide-border/40">
               {[
                 { date: "May 20 · 14:02", text: "Login from alexj_laptop", source: "102" },
@@ -334,7 +329,11 @@ function SettingsPage() {
             <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6">
               Apply & Save Changes
             </Button>
-            <Button asChild variant="ghost" className="text-destructive hover:text-destructive gap-2">
+            <Button
+              asChild
+              variant="ghost"
+              className="text-destructive hover:text-destructive gap-2"
+            >
               <Link to="/">
                 <LogOut className="w-4 h-4" />
                 Sign out

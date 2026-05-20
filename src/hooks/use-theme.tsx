@@ -51,11 +51,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Keep provider mounted on SSR so consumers like useTheme() don't throw.
   void mounted;
 
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

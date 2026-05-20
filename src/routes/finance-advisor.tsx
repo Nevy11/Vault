@@ -31,7 +31,15 @@ const initialMessages = [
   },
 ];
 
-function Bubble({ sender, avatar, text }: { sender: string; avatar?: React.ReactNode; text: string }) {
+function Bubble({
+  sender,
+  avatar,
+  text,
+}: {
+  sender: string;
+  avatar?: React.ReactNode;
+  text: string;
+}) {
   const isAdvisor = sender === "advisor";
   return (
     <div className={`flex ${isAdvisor ? "justify-start" : "justify-end"}`}>
@@ -64,7 +72,8 @@ function FinanceAdvisorPage() {
   const handleScroll = () => {
     const container = scrollRef.current;
     if (!container) return;
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
     setIsScrolledToBottom(distanceFromBottom < 32);
   };
 
@@ -88,7 +97,11 @@ function FinanceAdvisorPage() {
     setMessages((current) => [
       ...current,
       { sender: "user", text: trimmed },
-      { sender: "advisor", avatar: <MessageCircle className="h-4 w-4" />, text: "Sorry, this feature has not yet been implemented." },
+      {
+        sender: "advisor",
+        avatar: <MessageCircle className="h-4 w-4" />,
+        text: "Sorry, this feature has not yet been implemented.",
+      },
     ]);
     setDraft("");
   };
@@ -105,7 +118,8 @@ function FinanceAdvisorPage() {
                   Finance Advisor
                 </h1>
                 <p className="mt-1 md:mt-2 text-xs md:text-sm text-muted-foreground hidden md:block">
-                  A chat-style advisor interface to preview how your financial conversation could look.
+                  A chat-style advisor interface to preview how your financial conversation could
+                  look.
                 </p>
               </div>
               <div className="flex items-center text-sm justify-end">
@@ -131,7 +145,12 @@ function FinanceAdvisorPage() {
           >
             <div className="space-y-4">
               {messages.map((message, index) => (
-                <Bubble key={index} sender={message.sender} avatar={message.avatar} text={message.text} />
+                <Bubble
+                  key={index}
+                  sender={message.sender}
+                  avatar={message.avatar}
+                  text={message.text}
+                />
               ))}
             </div>
             <div ref={endRef} />
@@ -148,7 +167,11 @@ function FinanceAdvisorPage() {
                 placeholder="Type your message..."
                 className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
-              <Button type="submit" size="sm" className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90">
+              <Button
+                type="submit"
+                size="sm"
+                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+              >
                 Send
               </Button>
             </div>

@@ -3,10 +3,7 @@ import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  MessageCircle,
-  LogOut,
-} from "lucide-react";
+import { MessageCircle, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,11 +13,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const navItems = [
-  { label: "Dashboard", to: "/dashboard", icon: Home, isActive: (path: string) => path === "/dashboard" },
-  { label: "Advisor", to: "/finance-advisor", icon: MessageCircle, isActive: (path: string) => path.startsWith("/finance-advisor") },
-  { label: "Transact", to: "/transactions", icon: Send, isActive: (path: string) => path.startsWith("/transactions") },
-  { label: "Settings", to: "/settings", icon: Settings, isActive: (path: string) => path.startsWith("/settings") },
-  { label: "Help", to: "/help", icon: HelpCircle, isActive: (path: string) => path.startsWith("/help") },
+  {
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: Home,
+    isActive: (path: string) => path === "/dashboard",
+  },
+  {
+    label: "Advisor",
+    to: "/finance-advisor",
+    icon: MessageCircle,
+    isActive: (path: string) => path.startsWith("/finance-advisor"),
+  },
+  {
+    label: "Transact",
+    to: "/transactions",
+    icon: Send,
+    isActive: (path: string) => path.startsWith("/transactions"),
+  },
+  {
+    label: "Settings",
+    to: "/settings",
+    icon: Settings,
+    isActive: (path: string) => path.startsWith("/settings"),
+  },
+  {
+    label: "Help",
+    to: "/help",
+    icon: HelpCircle,
+    isActive: (path: string) => path.startsWith("/help"),
+  },
 ];
 
 function Logo() {
@@ -28,7 +50,13 @@ function Logo() {
     <Link to="/dashboard" className="inline-flex items-center gap-2 text-foreground">
       <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M6 6 L16 26 L26 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M6 6 L16 26 L26 6"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </span>
       <span className="font-serif text-lg tracking-tight">
@@ -45,9 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen text-foreground" style={{ background: "var(--gradient-bg)" }}>
       {/* Sidebar */}
-      <div
-        className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40"
-      >
+      <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
         <div className="flex h-16 items-center px-4 border-b border-border/40">
           <Logo />
         </div>
@@ -73,9 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="absolute left-4 bottom-4">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/">
-              Sign out
-            </Link>
+            <Link to="/">Sign out</Link>
           </Button>
         </div>
       </div>
