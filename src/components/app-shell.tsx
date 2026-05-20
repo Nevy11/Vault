@@ -62,8 +62,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="md:ml-64 pb-20">
-        <header className="border-b border-border/40 bg-background/40 backdrop-blur-md">
+      <div className="md:ml-64 pb-20 pt-16">
+        <header className="fixed top-0 left-0 right-0 md:left-64 z-40 border-b border-border/40 bg-background/40 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Logo />

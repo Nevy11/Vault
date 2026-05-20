@@ -95,21 +95,31 @@ function FinanceAdvisorPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-0 pt-6 h-[calc(100vh-4rem)] overflow-hidden">
-        <div className="mb-4 flex flex-col gap-4 px-5 md:px-0">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-              <span className="hidden md:inline">Your </span>
-              Finance Advisor
-            </h1>
-            <p className="mt-2 hidden text-sm text-muted-foreground sm:block">
-              A chat-style advisor interface to preview how your financial conversation could look.
-            </p>
+      <main className="mx-auto max-w-5xl px-0 pt-6 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+        <div className="sticky top-16 z-30 flex-shrink-0 mb-4 px-5 md:px-0 pb-2">
+          <div className="mx-auto max-w-5xl w-full rounded-2xl bg-card/95 border border-border/30 px-6 py-5 shadow-sm">
+            <div className="flex items-center justify-between gap-6 flex-wrap">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight md:text-3xl lg:text-4xl">
+                  <span>Your </span>
+                  Finance Advisor
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  A chat-style advisor interface to preview how your financial conversation could look.
+                </p>
+              </div>
+              <div className="flex items-center text-sm justify-end">
+                <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 shadow-sm">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Secure & mock insights
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="relative mx-4 overflow-hidden rounded-t-3xl border border-border/40 bg-background/80 shadow-sm md:mx-0 flex min-h-0 flex-col">
-          <div className="flex flex-wrap items-center gap-3 border-b border-border/40 px-5 py-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="relative mx-4 overflow-hidden rounded-t-3xl border border-border/40 bg-background/80 shadow-sm md:mx-0 flex min-h-0 flex-1 flex-col">
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-sm px-5 py-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
             <Shield className="h-4 w-4 text-primary" />
             Secure advice, mock insights only
           </div>
@@ -117,7 +127,7 @@ function FinanceAdvisorPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-0"
+            className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-28"
           >
             <div className="space-y-4">
               {messages.map((message, index) => (
