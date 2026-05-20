@@ -95,31 +95,31 @@ function FinanceAdvisorPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-0 pt-6 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
-        <div className="sticky top-16 z-30 flex-shrink-0 mb-4 px-5 md:px-0 pb-2">
-          <div className="mx-auto max-w-5xl w-full rounded-2xl bg-card/95 border border-border/30 px-6 py-5 shadow-sm">
-            <div className="flex items-center justify-between gap-6 flex-wrap">
+      <main className="mx-auto max-w-5xl px-0 pt-0 md:pt-6 h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+        <div className="flex-shrink-0 mb-2 md:mb-4 px-3 md:px-0 pb-0 md:pb-2">
+          <div className="mx-auto max-w-5xl w-full rounded-none md:rounded-2xl bg-card/95 border-b md:border border-border/30 px-4 md:px-6 py-3 md:py-5 shadow-sm">
+            <div className="flex items-center justify-between gap-3 md:gap-6 flex-wrap">
               <div>
-                <h1 className="text-2xl font-semibold tracking-tight md:text-3xl lg:text-4xl">
+                <h1 className="text-lg font-semibold tracking-tight md:text-3xl lg:text-4xl">
                   <span>Your </span>
                   Finance Advisor
                 </h1>
-                <p className="mt-2 text-sm text-muted-foreground">
+                <p className="mt-1 md:mt-2 text-xs md:text-sm text-muted-foreground hidden md:block">
                   A chat-style advisor interface to preview how your financial conversation could look.
                 </p>
               </div>
               <div className="flex items-center text-sm justify-end">
-                <span className="inline-flex shrink-0 items-center gap-2 rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 shadow-sm">
-                  <Shield className="h-4 w-4 text-primary" />
-                  Secure & mock insights
+                <span className="inline-flex shrink-0 items-center gap-1.5 md:gap-2 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 md:px-3 py-1 shadow-sm text-xs md:text-sm">
+                  <Shield className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
+                  Secure
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative mx-4 overflow-hidden rounded-t-3xl border border-border/40 bg-background/80 shadow-sm md:mx-0 flex min-h-0 flex-1 flex-col">
-          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-sm px-5 py-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
+        <div className="relative mx-0 md:mx-0 overflow-hidden rounded-none md:rounded-t-3xl border-t md:border border-border/40 bg-background/80 shadow-sm flex min-h-0 flex-1 flex-col">
+          <div className="sticky top-0 z-10 hidden md:flex flex-wrap items-center gap-3 border-b border-border/40 bg-background/80 backdrop-blur-sm px-5 py-3 text-xs uppercase tracking-[0.3em] text-muted-foreground">
             <Shield className="h-4 w-4 text-primary" />
             Secure advice, mock insights only
           </div>
@@ -127,7 +127,7 @@ function FinanceAdvisorPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-28"
+            className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5 py-4 md:py-5 pb-32 md:pb-28"
           >
             <div className="space-y-4">
               {messages.map((message, index) => (
@@ -150,7 +150,7 @@ function FinanceAdvisorPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="fixed inset-x-0 bottom-16 z-60 px-5 py-4 md:fixed md:left-64 md:bottom-0 md:z-60 md:px-6 md:py-5"
+          className="fixed inset-x-0 bottom-16 z-40 px-3 py-2 md:left-64 md:bottom-0 md:px-6 md:py-5"
         >
           <div className="mx-auto flex max-w-5xl items-center gap-3 rounded-3xl border border-border/60 bg-card/95 px-4 py-3 shadow-lg md:px-5">
             <input
