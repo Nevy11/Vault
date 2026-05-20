@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { hashPin } from "@/lib/utils";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUp,
@@ -125,8 +126,93 @@ function SignUp() {
     console.log("handleVerify triggered", { email, codeLength: code.length });
     
     if (code.length === 6) {
-      navigate({ to: "/dashboard" });
+      setStatus("verifying");
+      try {
+        console.log("Attempting supabase.auth.verifyOtp with type 'signup'...");
+        const { data: { user }, error } = await supabase.auth.verifyOtp({
+          email,
+          token: code,
+          type: "signup"
+        });
+
+        if (error) {
+          console.warn("VerifyOtp 'signup' failed, trying 'magiclink' as fallback...", error.message);
+          // Sometimes OTPs are treated as magiclink types depending on Supabase config
+          const { data: fallbackData, error: fallbackError } = await supabase.auth.verifyOtp({
+            email,
+            token: code,
+            type: "magiclink"
+          });
+          
+          if (fallbackError) {
+            console.error("Both 'signup' and 'magiclink' verification failed:", fallbackError);
+            throw fallbackError;
+          }
+          
+          console.log("Verification successful with 'magiclink' type");
+          return proceedWithVerifiedUser(fallbackData.user);
+        }
+
+        console.log("Verification successful with 'signup' type");
+        await proceedWithVerifiedUser(user);
+      } catch (error: any) {
+        console.error("Verification error caught:", error);
+        toast.error(error.message || "Verification failed. Please check the code.");
+      } finally {
+        setStatus("idle");
+      }
     }
+  };
+
+  const proceedWithVerifiedUser = async (user: any) => {
+    if (!user) throw new Error("No user found after verification");
+    
+    console.log("Proceeding with database operations for user:", user.id);
+    
+    // Split name for database
+    const nameParts = fullName.trim().split(/\s+/);
+    const firstName = nameParts[0] || "";
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    // 1. Create Profile
+    console.log("Upserting profile...");
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: user.id,
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      phone_number: phone,
+      pin_hash: pin,
+      kyc_status: "unverified",
+    });
+
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+      throw profileError;
+    }
+
+    // 2. Initialize Wallet
+    console.log("Initializing wallet...");
+    const { error: walletError } = await supabase.from("wallets").insert({
+      user_id: user.id,
+      balance: 0.00,
+      currency: "USD"
+    });
+
+    if (walletError && walletError.code !== "23505") {
+      console.warn("Wallet initialization warning:", walletError);
+    }
+
+    // 3. Set User Preferences
+    console.log("Setting user preferences...");
+    await supabase.from("user_preferences").upsert({
+      user_id: user.id,
+      theme: "system"
+    });
+
+    console.log("All database operations completed. Navigating to /kyc");
+    toast.success("Account verified successfully!");
+    navigate({ to: "/kyc" });
   };
 
   return (
