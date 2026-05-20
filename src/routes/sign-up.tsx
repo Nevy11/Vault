@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUp,
@@ -21,13 +23,13 @@ export const Route = createFileRoute("/sign-up")({
 
 function Logo() {
   return (
-    <div className="flex items-center justify-center gap-2">
-      <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
+    <Link to="/" className="flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
+      <svg width="36" height="36" viewBox="0 0 40 40" fill="none" aria-hidden="true">
         <path d="M6 6 L20 34 L34 6 L27 6 L20 22 L13 6 Z" fill="oklch(0.82 0.16 165)" />
         <circle cx="26" cy="14" r="3" fill="oklch(0.97 0.01 160)" opacity="0.85" />
       </svg>
       <span className="text-3xl font-serif tracking-tight text-foreground">Vault</span>
-    </div>
+    </Link>
   );
 }
 
@@ -57,29 +59,73 @@ function Field({
 function SignUp() {
   const [agreed, setAgreed] = useState(false);
   const [step, setStep] = useState<"signUp" | "verify">("signUp");
-  const [status, setStatus] = useState<"idle" | "sending">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
   const [code, setCode] = useState("");
   const navigate = useNavigate();
 
-  const handleSendCode = (event: FormEvent<HTMLFormElement>) => {
+  const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    sendCode();
-  };
+    console.log("handleSendCode triggered", { email, fullName, phone, pinLength: pin.length });
+    
+    if (!agreed) {
+      console.log("Terms not agreed");
+      toast.error("You must agree to the Terms of Service and Privacy Policy");
+      return;
+    }
 
-  const sendCode = () => {
+    if (pin !== confirmPin) {
+      console.log("PIN mismatch");
+      toast.error("PINs do not match");
+      return;
+    }
+
+    if (pin.length !== 6) {
+      console.log("PIN too short", pin.length);
+      toast.error("PIN must be 6 digits");
+      return;
+    }
+
     setStatus("sending");
-    setTimeout(() => {
-      setStatus("idle");
+    try {
+      console.log("Attempting supabase.auth.signUp...");
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password: pin,
+        options: {
+          data: {
+            full_name: fullName,
+            phone_number: phone,
+          },
+        },
+      });
+
+      if (error) {
+        console.error("Supabase signUp error:", error);
+        throw error;
+      }
+      
+      console.log("SignUp successful, data:", data);
+      toast.success("Verification code sent to your email");
       setStep("verify");
-    }, 1200);
+    } catch (error: any) {
+      console.error("Sign up error caught:", error);
+      toast.error(error.message || "Failed to send verification code");
+    } finally {
+      setStatus("idle");
+    }
   };
 
-  const handleVerify = (event: FormEvent<HTMLFormElement>) => {
+  const handleVerify = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    console.log("handleVerify triggered", { email, codeLength: code.length });
+    
     if (code.length === 6) {
-      navigate({ to: "/kyc" });
+      navigate({ to: "/dashboard" });
     }
   };
 
@@ -99,9 +145,33 @@ function SignUp() {
             <p className="mt-1 text-sm text-muted-foreground">
               {step === "signUp"
                 ? "Your secure, real-time wallet starts here."
-                : "We have sent a code to the email of the person. Enter your 6 digit code below."}
+                : `We have sent a code to ${email || "your email"}. Enter your 6 digit code below.`}
             </p>
           </div>
+
+          <ol className="mt-7 flex items-center gap-2 text-xs text-muted-foreground">
+            <li className="flex-1">
+              <div className="h-1 rounded-full bg-primary" />
+              <p className="mt-2 text-foreground font-medium">
+                <span className="font-medium">1.</span> Account Details
+              </p>
+            </li>
+            <span className="text-muted-foreground/60">→</span>
+            <li className="flex-1">
+              <div className="h-1 rounded-full bg-border" />
+              <p className="mt-2">
+                <span className="font-medium">2.</span> KYC Verification
+              </p>
+              <p className="text-[11px] text-muted-foreground/80">(Smile Identity API)</p>
+            </li>
+            <span className="text-muted-foreground/60">→</span>
+            <li className="flex-1">
+              <div className="h-1 rounded-full bg-border" />
+              <p className="mt-2">
+                <span className="font-medium">3.</span> Success
+              </p>
+            </li>
+          </ol>
 
           {step === "signUp" ? (
             <form className="mt-7 space-y-4" onSubmit={handleSendCode}>
@@ -109,6 +179,9 @@ function SignUp() {
                 <Input
                   className="h-11 bg-input/60 border-border focus-visible:ring-primary"
                   autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
                 />
               </Field>
               <Field label="Email Address" hint="will be verified" required>
@@ -118,6 +191,7 @@ function SignUp() {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </Field>
               <Field label="Phone Number" hint="for account notifications" required>
@@ -125,6 +199,9 @@ function SignUp() {
                   type="tel"
                   className="h-11 bg-input/60 border-border focus-visible:ring-primary"
                   autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
                 />
               </Field>
               <Field label="Secure PIN" hint="required for transactions" required>
@@ -136,7 +213,8 @@ function SignUp() {
                     placeholder="PIN"
                     className="h-11 bg-input/60 border-border focus-visible:ring-primary"
                     value={pin}
-                    onChange={(e) => setPin(e.target.value)}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                    required
                   />
                   <Input
                     type="password"
@@ -144,25 +222,34 @@ function SignUp() {
                     maxLength={6}
                     placeholder="Confirm PIN"
                     className="h-11 bg-input/60 border-border focus-visible:ring-primary"
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                    required
                   />
                 </div>
               </Field>
 
-              <div className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="flex-1">
+              <ol className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+                <li className="flex-1">
                   <div className="h-1 rounded-full bg-primary" />
-                  <p className="mt-2 text-foreground"><span className="font-medium">1.</span> Account Details</p>
+                  <p className="mt-2 text-foreground">
+                    <span className="font-medium">1.</span> Account Details
+                  </p>
                 </li>
                 <span className="text-muted-foreground/60">→</span>
                 <li className="flex-1">
                   <div className="h-1 rounded-full bg-border" />
-                  <p className="mt-2"><span className="font-medium">2.</span> KYC Verification</p>
+                  <p className="mt-2">
+                    <span className="font-medium">2.</span> KYC Verification
+                  </p>
                   <p className="text-[11px] text-muted-foreground/80">(Smile Identity API)</p>
                 </li>
                 <span className="text-muted-foreground/60">→</span>
                 <li className="flex-1">
                   <div className="h-1 rounded-full bg-border" />
-                  <p className="mt-2"><span className="font-medium">3.</span> Success</p>
+                  <p className="mt-2">
+                    <span className="font-medium">3.</span> Success
+                  </p>
                 </li>
               </ol>
 
@@ -188,15 +275,14 @@ function SignUp() {
               <div className="space-y-2">
                 <Button
                   type="submit"
-                  disabled={!agreed || status === "sending"}
-                  onClick={sendCode}
+                  disabled={status === "sending"}
                   className="h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {status === "sending" ? "Authenticating..." : "Send code"}
+                  {status === "sending" ? "Sending code..." : "Send code"}
                 </Button>
                 {status === "sending" && (
-                  <p className="text-center text-sm text-muted-foreground">
-                    Authenticating until the code is sent to your email.
+                  <p className="text-center text-sm text-muted-foreground animate-pulse">
+                    Requesting your secure verification code...
                   </p>
                 )}
               </div>
@@ -214,15 +300,17 @@ function SignUp() {
                   value={code}
                   onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="••••••"
-                  className="h-12 tracking-[0.45em] text-center bg-input/60 border-border focus-visible:ring-primary"
+                  className="h-12 tracking-[0.45em] text-center bg-input/60 border-border focus-visible:ring-primary font-bold text-lg"
+                  required
                 />
               </div>
 
               <Button
                 type="submit"
-                className="mt-2 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                disabled={status === "verifying" || code.length !== 6}
+                className="mt-2 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50"
               >
-                Verify and continue
+                {status === "verifying" ? "Verifying..." : "Verify and continue"}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
@@ -236,7 +324,7 @@ function SignUp() {
                   }}
                   className="text-primary font-medium hover:underline"
                 >
-                  Resend Email
+                  Change Email or Resend
                 </button>
               </p>
             </form>
