@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Shield, Database, Layers, Eye, EyeOff, Info } from "lucide-react";
+import { Shield, Database, Layers, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/top-nav";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { hashPin } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -53,29 +56,120 @@ function Field({
 function LoginPage() {
   const [showPin, setShowPin] = useState(false);
   const [step, setStep] = useState<"signIn" | "verify">("signIn");
-  const [status, setStatus] = useState<"idle" | "sending">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
   const [code, setCode] = useState("");
   const navigate = useNavigate();
 
-  const handleSendCode = (event: FormEvent<HTMLFormElement>) => {
+  const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    sendCode();
-  };
+    
+    if (!email || !pin) {
+      toast.error("Please enter both email and PIN");
+      return;
+    }
 
-  const sendCode = () => {
+    if (pin.length !== 6) {
+      toast.error("PIN must be 6 digits");
+      return;
+    }
+
     setStatus("sending");
-    setTimeout(() => {
-      setStatus("idle");
+    try {
+      // 1. Check if user exists in our profiles table first
+      const { data: profile, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (profileCheckError) throw profileCheckError;
+
+      if (!profile) {
+        throw new Error("No account found with this email. Please sign up.");
+      }
+
+      // 2. If profile exists, send OTP (explicitly avoiding redirect URL to force token flow)
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+        }
+      });
+
+      if (error) {
+        if (error.message.includes("User not found")) {
+          throw new Error("No account found with this email. Please sign up.");
+        }
+        throw error;
+      }
+
+      toast.success("Verification code sent to your email");
       setStep("verify");
-    }, 1200);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error.message || "Failed to send code");
+    } finally {
+      setStatus("idle");
+    }
   };
 
-  const handleVerify = (event: FormEvent<HTMLFormElement>) => {
+  const handleVerify = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (code.length === 6) {
-      navigate({ to: "/dashboard" });
+      setStatus("verifying");
+      try {
+        // 1. Verify OTP using 'magiclink' type for token-based verification
+        const { data: { user }, error: verifyError } = await supabase.auth.verifyOtp({
+          email,
+          token: code,
+          type: "magiclink",
+        });
+
+        if (verifyError) throw verifyError;
+
+        await processAuthenticatedUser(user);
+      } catch (error: any) {
+        console.error("Verification error:", error);
+        toast.error(error.message || "Verification failed");
+        setStatus("idle");
+      }
+    }
+  };
+
+  const processAuthenticatedUser = async (user: any) => {
+    if (!user) throw new Error("No user found after verification");
+
+    try {
+      // 2. Fetch profile to check PIN
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("pin_hash")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        await supabase.auth.signOut();
+        throw new Error("Could not retrieve account profile");
+      }
+
+      // 3. Hash entered PIN and compare
+      const hashedPin = await hashPin(pin);
+      if (profile.pin_hash === hashedPin) {
+        toast.success("Login successful!");
+        navigate({ to: "/dashboard" });
+      } else {
+        // If PIN mismatch, sign out the user
+        await supabase.auth.signOut();
+        toast.error("Incorrect PIN. Please try again.");
+        setStep("signIn");
+        setStatus("idle");
+      }
+    } catch (error: any) {
+      console.error("Profile check error:", error);
+      toast.error(error.message || "Failed to verify PIN");
+      setStatus("idle");
     }
   };
 
@@ -95,7 +189,7 @@ function LoginPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {step === "signIn"
                 ? "Enter your email and secure PIN to receive a sign-in code."
-                : "We have sent a code to the email of the person. Enter your 6 digit code below."}
+                : `We have sent a code to ${email}. Enter your 6 digit code below.`}
             </p>
           </div>
 
@@ -108,6 +202,7 @@ function LoginPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   className="h-11 bg-input/60 border-border focus-visible:ring-primary"
+                  required
                 />
               </Field>
 
@@ -116,9 +211,11 @@ function LoginPage() {
                   <Input
                     type={showPin ? "text" : "password"}
                     inputMode="numeric"
+                    maxLength={6}
                     value={pin}
-                    onChange={(event) => setPin(event.target.value)}
+                    onChange={(event) => setPin(event.target.value.replace(/\D/g, ""))}
                     className="h-11 bg-input/60 border-border focus-visible:ring-primary pr-10"
+                    required
                   />
                   <button
                     type="button"
@@ -137,14 +234,13 @@ function LoginPage() {
               <div className="space-y-2">
                 <Button
                   type="submit"
-                  onClick={sendCode}
                   disabled={status === "sending"}
                   className="mt-2 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {status === "sending" ? "Authenticating..." : "Send code"}
+                  {status === "sending" ? "Sending code..." : "Send code"}
                 </Button>
                 {status === "sending" && (
-                  <p className="text-center text-sm text-muted-foreground">
+                  <p className="text-center text-sm text-muted-foreground animate-pulse">
                     Authenticating until the code is sent to your email.
                   </p>
                 )}
@@ -163,15 +259,17 @@ function LoginPage() {
                   value={code}
                   onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="••••••"
-                  className="h-12 tracking-[0.45em] text-center bg-input/60 border-border focus-visible:ring-primary"
+                  className="h-12 tracking-[0.45em] text-center bg-input/60 border-border focus-visible:ring-primary font-bold text-lg"
+                  required
                 />
               </div>
 
               <Button
                 type="submit"
-                className="mt-2 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                disabled={status === "verifying" || code.length !== 6}
+                className="mt-2 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50"
               >
-                Verify and continue
+                {status === "verifying" ? "Verifying..." : "Verify and continue"}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">

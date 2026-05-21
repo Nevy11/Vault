@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { hashPin } from "@/lib/utils";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUp,
@@ -92,10 +93,13 @@ function SignUp() {
 
     setStatus("sending");
     try {
+      console.log("Hashing PIN...");
+      const hashedPin = await hashPin(pin);
+      
       console.log("Attempting supabase.auth.signUp...");
       const { data, error } = await supabase.auth.signUp({
         email,
-        password: pin,
+        password: hashedPin,
         options: {
           data: {
             full_name: fullName,
@@ -135,24 +139,10 @@ function SignUp() {
         });
 
         if (error) {
-          console.warn("VerifyOtp 'signup' failed, trying 'magiclink' as fallback...", error.message);
-          // Sometimes OTPs are treated as magiclink types depending on Supabase config
-          const { data: fallbackData, error: fallbackError } = await supabase.auth.verifyOtp({
-            email,
-            token: code,
-            type: "magiclink"
-          });
-          
-          if (fallbackError) {
-            console.error("Both 'signup' and 'magiclink' verification failed:", fallbackError);
-            throw fallbackError;
-          }
-          
-          console.log("Verification successful with 'magiclink' type");
-          return proceedWithVerifiedUser(fallbackData.user);
+          throw error;
         }
 
-        console.log("Verification successful with 'signup' type");
+        console.log("Verification successful");
         await proceedWithVerifiedUser(user);
       } catch (error: any) {
         console.error("Verification error caught:", error);
@@ -168,12 +158,14 @@ function SignUp() {
     
     console.log("Proceeding with database operations for user:", user.id);
     
-    // Split name for database
     const nameParts = fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || "";
 
     // 1. Create Profile
+    console.log("Hashing PIN for storage...");
+    const hashedPin = await hashPin(pin);
+    
     console.log("Upserting profile...");
     const { error: profileError } = await supabase.from("profiles").upsert({
       id: user.id,
@@ -181,7 +173,7 @@ function SignUp() {
       last_name: lastName,
       email: email,
       phone_number: phone,
-      pin_hash: pin,
+      pin_hash: hashedPin,
       kyc_status: "unverified",
     });
 
