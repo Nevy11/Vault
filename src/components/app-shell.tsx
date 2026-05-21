@@ -2,8 +2,10 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MessageCircle, LogOut, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -69,6 +71,23 @@ function Logo() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("first_name, profile_photo_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (data) setProfile(data);
+    }
+    fetchProfile();
+  }, []);
 
   return (
     <div className="min-h-screen text-foreground" style={{ background: "var(--gradient-bg)" }}>
@@ -117,7 +136,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none">
                     <Avatar>
-                      <AvatarFallback>U</AvatarFallback>
+                      <AvatarImage src={profile?.profile_photo_url} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                      </AvatarFallback>
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
