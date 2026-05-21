@@ -26,6 +26,14 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { profileSignal, useProfileSignal } from "@/lib/profile-signal";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -127,6 +135,7 @@ function SettingsPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useProfileSignal();
+  const [devices, setDevices] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for name to make input controlled and smooth
@@ -139,6 +148,7 @@ function SettingsPage() {
       setFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
       setLoading(false);
     }
+    fetchDevices();
   }, [profile]);
 
   async function fetchProfile() {
@@ -159,6 +169,25 @@ function SettingsPage() {
       toast.error(error.message || "Error loading profile");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchDevices() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_devices")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("last_login", { ascending: false });
+
+      if (error) throw error;
+      setDevices(data || []);
+    } catch (error: any) {
+      console.error("Error loading devices:", error);
     }
   }
 
@@ -404,21 +433,114 @@ function SettingsPage() {
                 description="Use device biometrics to unlock the vault."
                 defaultOn
               />
-              <ToggleRow
-                label="Authorized Devices"
-                description="Currently active: alexj_phone, alexj_laptop"
-                defaultOn
-              />
+              <div className="space-y-4">
+                <div className="text-sm text-foreground">Authorized Devices</div>
+                <div className="space-y-3">
+                  {devices.length > 0 ? (
+                    devices.map((device) => (
+                      <div key={device.id} className="flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 text-primary">
+                            <Smartphone className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-foreground">{device.device_name}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              Last login: {new Date(device.last_login).toLocaleDateString()} at {new Date(device.last_login).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_oklch(0.65_0.14_165_/_0.5)]" />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic">No authorized devices detected.</div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="border-t border-border/40 pt-6 space-y-3">
-              <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2">
-                <span className="flex items-center gap-3">
-                  <Smartphone className="h-4 w-4 text-muted-foreground" />
-                  Device Management
-                </span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
+                    <span className="flex items-center gap-3">
+                      <Smartphone className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      Device Management
+                    </span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0">
+                  <SheetHeader className="p-8 border-b border-border/20">
+                    <SheetTitle className="font-serif text-2xl">Device Management</SheetTitle>
+                    <SheetDescription className="text-muted-foreground">
+                      Review and manage all devices currently authorized to access your Vault OS account.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+                    {devices.length > 0 ? (
+                      devices.map((device) => (
+                        <div 
+                          key={device.id} 
+                          className="flex flex-col gap-3 p-4 rounded-xl border border-border/40 bg-input/10 hover:bg-input/20 transition-all group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <Smartphone className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-foreground">{device.device_name}</div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-tight">Active Session</div>
+                              </div>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-500">
+                              <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                              Live
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/10">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">First Seen</div>
+                              <div className="text-xs text-foreground/80">
+                                {new Date(device.created_at).toLocaleDateString()}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">Last Activity</div>
+                              <div className="text-xs text-foreground/80">
+                                {new Date(device.last_login).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 flex justify-end">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 text-[11px] text-destructive hover:text-white hover:bg-destructive transition-all"
+                            >
+                              Revoke Access
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 rounded-xl border border-dashed border-border/60 text-muted-foreground italic">
+                        No authorized devices detected.
+                      </div>
+                    )}
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-card to-transparent pt-10">
+                    <p className="text-[10px] text-center text-muted-foreground leading-relaxed">
+                      Revoking a device will immediately sign it out and require a new secure PIN verification to re-authorize.
+                    </p>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
               <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2">
                 <span className="flex items-center gap-3">
                   <ScrollText className="h-4 w-4 text-muted-foreground" />

@@ -7,6 +7,7 @@ import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { hashPin } from "@/lib/utils";
+import { getDeviceName } from "@/lib/device-detection";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -157,6 +158,19 @@ function LoginPage() {
       // 3. Hash entered PIN and compare
       const hashedPin = await hashPin(pin);
       if (profile.pin_hash === hashedPin) {
+        // 4. Record device login
+        const deviceName = getDeviceName();
+        try {
+          await supabase.from("user_devices").upsert({
+            user_id: user.id,
+            device_name: deviceName,
+            last_login: new Date().toISOString(),
+            is_active: true,
+          }, { onConflict: "user_id, device_name" });
+        } catch (deviceError) {
+          console.error("Failed to record device:", deviceError);
+        }
+
         toast.success("Login successful!");
         navigate({ to: "/dashboard" });
       } else {
