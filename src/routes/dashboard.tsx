@@ -53,14 +53,20 @@ function AccountBadge({
       <div className="mt-4 text-3xl font-semibold text-primary">{amount}</div>
       {primary ? (
         <div className="mt-4 flex gap-2">
-          <Button variant="secondary" size="sm" className="flex-1">
-            Send
+          <Button variant="secondary" size="sm" className="flex-1" asChild>
+            <Link to="/transactions" search={{ mode: "send" }}>
+              Send
+            </Link>
           </Button>
-          <Button size="sm" className="flex-1">
-            Deposit
+          <Button size="sm" className="flex-1" asChild>
+            <Link to="/transactions" search={{ mode: "deposit" }}>
+              Deposit
+            </Link>
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
-            Withdraw
+          <Button variant="outline" size="sm" className="flex-1" asChild>
+            <Link to="/transactions" search={{ mode: "withdraw" }}>
+              Withdraw
+            </Link>
           </Button>
         </div>
       ) : (

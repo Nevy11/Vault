@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, Smartphone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,14 @@ import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
 import { initiateStkPush } from "@/lib/daraja";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const transactionsSearchSchema = z.object({
+  mode: z.enum(["send", "deposit", "withdraw"]).optional(),
+});
 
 export const Route = createFileRoute("/transactions")({
+  validateSearch: (search) => transactionsSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Transactions — Vault OS" },
@@ -437,7 +443,20 @@ function WithdrawPanel() {
 }
 
 function TransactionsPage() {
-  const [mode, setMode] = useState<Mode>("send");
+  const { mode: initialMode } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const [mode, setMode] = useState<Mode>(initialMode || "send");
+
+  useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+    }
+  }, [initialMode]);
+
+  const handleModeChange = (newMode: Mode) => {
+    setMode(newMode);
+    navigate({ search: (prev) => ({ ...prev, mode: newMode }) });
+  };
 
   const tabs: { id: Mode; label: string }[] = [
     { id: "send", label: "Send Money" },
@@ -460,7 +479,7 @@ function TransactionsPage() {
             {tabs.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setMode(t.id)}
+                onClick={() => handleModeChange(t.id)}
                 className={`px-5 py-2 rounded-full text-sm transition-colors ${
                   mode === t.id
                     ? "bg-primary text-primary-foreground"
