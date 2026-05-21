@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -70,6 +70,7 @@ function Logo() {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const currentPath = location.pathname;
   const [profile, setProfile] = useState<any>(null);
 
@@ -88,6 +89,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
     fetchProfile();
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setProfile(null); // Clear profile state
+    navigate({ to: "/login" });
+  };
 
   return (
     <div className="min-h-screen text-foreground" style={{ background: "var(--gradient-bg)" }}>
@@ -117,8 +124,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </ul>
         </nav>
         <div className="absolute left-4 bottom-4">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/">Sign out</Link>
+          <Button variant="ghost" size="sm" onClick={handleSignOut}>
+            Sign out
           </Button>
         </div>
       </div>
@@ -155,11 +162,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/" className="cursor-pointer text-destructive focus:text-destructive">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign out
-                    </Link>
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
