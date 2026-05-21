@@ -131,6 +131,68 @@ function ToggleRow({
   );
 }
 
+function ActivityLogDrawer({ logs, children }: { logs: any[], children: React.ReactNode }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        {children}
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0">
+        <SheetHeader className="p-8 border-b border-border/20">
+          <SheetTitle className="font-serif text-2xl">Session History</SheetTitle>
+          <SheetDescription className="text-muted-foreground">
+            A comprehensive record of all security-related actions and session activity.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-100px)]">
+          {logs.length > 0 ? (
+            <div className="relative border-l border-border/40 ml-2 pl-6 space-y-8">
+              {logs.map((log) => (
+                <div key={log.id} className="relative">
+                  <div className={`absolute -left-[31px] top-0 h-2 w-2 rounded-full border-2 border-card ${
+                    log.is_suspicious ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-primary'
+                  }`} />
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground capitalize">
+                        {log.action_type.replace('_', ' ')}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground bg-input/50 px-2 py-0.5 rounded-full">
+                        {log.location || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground leading-relaxed">
+                      Successfully authenticated via <span className="text-foreground/80">{log.device_info || 'Unknown Device'}</span>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/60 mt-1">
+                      {new Date(log.created_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
+                    </div>
+                    {log.is_suspicious && (
+                      <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20 text-[10px] text-destructive flex items-center gap-2">
+                        <ShieldCheck className="h-3 w-3" />
+                        Flagged as suspicious activity
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground italic">
+              No activity logs found.
+            </div>
+          )}
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-card to-transparent pt-10">
+          <p className="text-[10px] text-center text-muted-foreground leading-relaxed">
+            Vault OS audit logs are cryptographically sealed and immutable once recorded.
+          </p>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -138,6 +200,7 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useProfileSignal();
   const [devices, setDevices] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Local state for name to make input controlled and smooth
@@ -151,6 +214,7 @@ function SettingsPage() {
       setLoading(false);
     }
     fetchDevices();
+    fetchLogs();
   }, [profile]);
 
   async function fetchProfile() {
@@ -190,6 +254,25 @@ function SettingsPage() {
       setDevices(data || []);
     } catch (error: any) {
       console.error("Error loading devices:", error);
+    }
+  }
+
+  async function fetchLogs() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("activity_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setLogs(data || []);
+    } catch (error: any) {
+      console.error("Error loading logs:", error);
     }
   }
 
@@ -543,13 +626,15 @@ function SettingsPage() {
                 </SheetContent>
               </Sheet>
 
-              <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2">
-                <span className="flex items-center gap-3">
-                  <ScrollText className="h-4 w-4 text-muted-foreground" />
-                  Session History & Activity Logs
-                </span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
+              <ActivityLogDrawer logs={logs}>
+                <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
+                  <span className="flex items-center gap-3">
+                    <ScrollText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    Session History & Activity Logs
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </button>
+              </ActivityLogDrawer>
             </div>
           </SectionCard>
 
@@ -594,23 +679,30 @@ function SettingsPage() {
           {/* Activity */}
           <SectionCard icon={ScrollText} title="Recent Activity">
             <ul className="divide-y divide-border/40">
-              {[
-                { date: "May 20 · 14:02", text: "Login from alexj_laptop", source: "102" },
-                { date: "May 19 · 10:15", text: "PIN changed", source: "92" },
-                { date: "May 18 · 09:40", text: "Device authorized: alexj_phone", source: "92" },
-                { date: "May 17 · 16:22", text: "Withdrawal approved · $2,400", source: "100" },
-              ].map((item, i) => (
-                <li key={i} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
-                  <div>
-                    <div className="text-sm text-foreground">{item.text}</div>
-                    <div className="mt-1 text-xs text-muted-foreground/70">{item.date}</div>
-                  </div>
-                </li>
-              ))}
+              {logs.length > 0 ? (
+                logs.slice(0, 4).map((item) => (
+                  <li key={item.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                    <div>
+                      <div className="text-sm text-foreground capitalize">
+                        {item.action_type.replace('_', ' ')}
+                        {item.device_info && <span className="text-muted-foreground/60 text-xs ml-2">via {item.device_info}</span>}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground/70">
+                        {new Date(item.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                      </div>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <div className="py-4 text-sm text-muted-foreground italic">No recent activity recorded.</div>
+              )}
             </ul>
-            <button className="w-full text-center text-xs text-primary hover:text-primary/80 pt-2 transition-colors">
-              View full activity log →
-            </button>
+            
+            <ActivityLogDrawer logs={logs}>
+              <button className="w-full text-center text-xs text-primary hover:text-primary/80 pt-4 transition-colors">
+                View full activity log →
+              </button>
+            </ActivityLogDrawer>
           </SectionCard>
         </div>
 

@@ -167,8 +167,16 @@ function LoginPage() {
             last_login: new Date().toISOString(),
             is_active: true,
           }, { onConflict: "user_id, device_name" });
+
+          // 5. Record activity log
+          await supabase.from("activity_logs").insert({
+            user_id: user.id,
+            action_type: "login",
+            device_info: deviceName,
+            location: "Kenya", // This would ideally come from a GeoIP service
+          });
         } catch (deviceError) {
-          console.error("Failed to record device:", deviceError);
+          console.error("Failed to record device/activity:", deviceError);
         }
 
         toast.success("Login successful!");
