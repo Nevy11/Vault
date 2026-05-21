@@ -226,7 +226,7 @@ function SecurityStatus() {
 function DashboardPage() {
   return (
     <AppShell>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
+      <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="mb-6">
           <h1 className="text-3xl sm:text-4xl font-light tracking-tight">Unified Portfolio Balance</h1>
           <p className="text-sm text-muted-foreground mt-1">

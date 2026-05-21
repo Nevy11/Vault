@@ -53,7 +53,7 @@ function Nav() {
 function Hero() {
   return (
     <section className="relative overflow-hidden" style={{ background: "var(--gradient-bg)" }}>
-      <div className="mx-auto max-w-6xl px-6 pb-24 pt-20 md:pb-32 md:pt-28">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 pb-20 pt-16 sm:pb-28 sm:pt-20 md:pb-32 md:pt-28">
         <div className="grid items-center gap-12 md:grid-cols-2">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
@@ -69,7 +69,7 @@ function Hero() {
               Vault is the modern wallet for sending, depositing, and managing money in real time —
               with the security of a bank and the simplicity of a tap.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Button
                 asChild
                 size="lg"
@@ -97,7 +97,7 @@ function Hero() {
             </ul>
           </div>
 
-          <div className="relative">
+          <div className="relative mx-auto w-full max-w-xl sm:max-w-2xl lg:max-w-none">
             <div
               className="rounded-3xl border border-border/60 bg-card/80 p-6 backdrop-blur-xl"
               style={{ boxShadow: "var(--shadow-card)" }}
@@ -205,7 +205,7 @@ function Features() {
 
   return (
     <section id="features" className="bg-background py-24">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs uppercase tracking-[0.2em] text-primary">Features</p>
           <h2 className="mt-3 font-serif text-4xl text-foreground">
@@ -247,7 +247,7 @@ function Security() {
 
   return (
     <section id="security" className="border-y border-border bg-card/40 py-24">
-      <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:items-center">
+      <div className="mx-auto grid max-w-screen-2xl gap-12 px-4 sm:px-6 lg:px-8 md:grid-cols-2 md:items-center">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-primary">Security</p>
           <h2 className="mt-3 font-serif text-4xl text-foreground">A vault, not a wallet.</h2>
@@ -346,7 +346,7 @@ function Pricing() {
 
   return (
     <section id="pricing" className="bg-background py-24">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs uppercase tracking-[0.2em] text-primary">Pricing</p>
           <h2 className="mt-3 font-serif text-4xl text-foreground">Simple, honest, transparent.</h2>
@@ -423,7 +423,7 @@ function FAQ() {
 
   return (
     <section id="faq" className="border-t border-border bg-card/40 py-24">
-      <div className="mx-auto max-w-3xl px-6">
+      <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
         <p className="text-xs uppercase tracking-[0.2em] text-primary">FAQ</p>
         <h2 className="mt-3 font-serif text-4xl text-foreground">
           Good questions, honest answers.
@@ -449,7 +449,7 @@ function CTA() {
   return (
     <section className="relative overflow-hidden bg-background py-24">
       <div
-        className="mx-auto max-w-5xl rounded-3xl border border-border px-6 py-16 text-center"
+        className="mx-auto max-w-screen-2xl rounded-3xl border border-border px-4 sm:px-6 py-14 sm:py-16 text-center"
         style={{ background: "var(--gradient-bg)", boxShadow: "var(--shadow-card)" }}
       >
         <h2 className="mx-auto max-w-2xl font-serif text-4xl text-foreground md:text-5xl">
@@ -480,7 +480,7 @@ function CTA() {
 function Footer() {
   return (
     <footer className="border-t border-border bg-background py-10">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 md:flex-row">
+      <div className="mx-auto flex max-w-screen-2xl flex-col items-center justify-between gap-4 px-4 sm:px-6 lg:px-8 md:flex-row">
         <Logo />
         <p className="text-xs text-muted-foreground">
           © {new Date().getFullYear()} Vault. All rights reserved.

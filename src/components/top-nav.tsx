@@ -41,7 +41,7 @@ export function TopNav() {
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2 text-foreground">
           <svg width="32" height="32" viewBox="0 0 40 40" fill="none" aria-hidden="true">
             <path d="M6 6 L20 34 L34 6 L27 6 L20 22 L13 6 Z" fill="oklch(0.45 0.16 165)" />
@@ -122,7 +122,7 @@ export function TopNav() {
 
       {open && (
         <div className="border-t border-border/60 bg-background/95 md:hidden">
-          <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+          <div className="mx-auto flex max-w-screen-2xl flex-col gap-1 px-4 py-3">
             {navLinks.map((link) => (
               <a
                 key={link.href}

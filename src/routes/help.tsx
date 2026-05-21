@@ -40,8 +40,8 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset]">
-      <header className="flex items-center gap-3 pb-6 mb-8 border-b border-border/40">
+    <section className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset]">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-6 mb-8 border-b border-border/40">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
           <Icon className="h-5 w-5" />
         </div>
@@ -104,7 +104,7 @@ function HelpPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-[1400px] px-8 lg:px-12 py-12 lg:py-16">
+      <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16">
         {/* Header */}
         <div className="mb-12 lg:mb-16">
           <Link

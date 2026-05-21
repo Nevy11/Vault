@@ -44,7 +44,7 @@ function Bubble({
   return (
     <div className={`flex ${isAdvisor ? "justify-start" : "justify-end"}`}>
       <div
-        className={`max-w-[85%] rounded-3xl px-4 py-3 text-sm shadow-sm ${
+        className={`max-w-[90%] sm:max-w-[80%] rounded-3xl px-4 py-3 text-sm shadow-sm ${
           isAdvisor ? "bg-card/70 text-foreground" : "bg-primary text-primary-foreground"
         }`}
       >
@@ -108,9 +108,9 @@ function FinanceAdvisorPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-5xl px-0 pt-0 md:pt-6 h-[calc(100dvh-9rem)] md:h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+      <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-0 md:pt-6 min-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
         <div className="flex-shrink-0 mb-2 md:mb-4 px-3 md:px-0 pb-0 md:pb-2">
-          <div className="mx-auto max-w-5xl w-full rounded-none md:rounded-2xl bg-card/95 border-b md:border border-border/30 px-4 md:px-6 py-3 md:py-5 shadow-sm">
+          <div className="mx-auto w-full rounded-none md:rounded-2xl bg-card/95 border-b md:border border-border/30 px-4 md:px-6 py-3 md:py-5 shadow-sm">
             <div className="flex items-center justify-between gap-3 md:gap-6 flex-wrap">
               <div>
                 <h1 className="text-lg font-semibold tracking-tight md:text-3xl lg:text-4xl">
@@ -158,7 +158,7 @@ function FinanceAdvisorPage() {
 
           <form
             onSubmit={handleSubmit}
-            className="flex-shrink-0 border-t border-border/40 bg-background/95 px-3 py-2 md:px-6 md:py-4"
+            className="flex-shrink-0 border-t border-border/40 bg-background/95 px-3 py-3 sm:px-5 sm:py-4"
           >
             <div className="mx-auto flex max-w-5xl items-center gap-3 rounded-3xl border border-border/60 bg-card/95 px-4 py-2 md:py-3 shadow-sm md:px-5">
               <input

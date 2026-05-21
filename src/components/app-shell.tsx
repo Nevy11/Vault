@@ -97,14 +97,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen text-foreground" style={{ background: "var(--gradient-bg)" }}>
+    <div className="min-h-screen w-full text-foreground overflow-x-hidden" style={{ background: "var(--gradient-bg)" }}>
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
         <div className="flex h-16 items-center px-4 border-b border-border/40">
           <Logo />
         </div>
 
-        <nav className="flex-1 px-4 py-4">
+        <nav className="flex-1 overflow-y-auto px-4 py-4">
           <ul className="space-y-3">
             {navItems.map(({ label, to, icon: Icon, isActive }) => (
               <li key={to}>
@@ -123,25 +123,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ))}
           </ul>
         </nav>
-        <div className="absolute left-4 bottom-4">
-          <Button variant="ghost" size="sm" onClick={handleSignOut}>
+        <div className="absolute left-4 bottom-4 w-[calc(100%-2rem)]">
+          <Button variant="ghost" size="sm" className="w-full" onClick={handleSignOut}>
             Sign out
           </Button>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="md:ml-64 pb-20 pt-16">
-        <header className="fixed top-0 left-0 right-0 md:left-64 z-40 border-b border-border/40 bg-background/40 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div className="md:ml-64 pb-28 pt-16 md:pb-0">
+        <header className="fixed top-0 left-0 right-0 md:left-64 z-40 border-b border-border/40 bg-background/80 backdrop-blur-md">
+          <div className="max-w-screen-2xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Logo />
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <ThemeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none">
+                  <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                     <Avatar>
                       <AvatarImage src={profile?.profile_photo_url} />
                       <AvatarFallback className="bg-primary/10 text-primary">
@@ -172,10 +172,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="pb-20 md:pb-0">{children}</main>
+        <main className="pb-20 md:pb-0 min-h-[calc(100vh-4rem)]">{children}</main>
 
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-md md:hidden">
-          <nav className="mx-auto flex max-w-3xl items-center justify-around px-2 py-2">
+          <nav className="mx-auto flex max-w-3xl items-center justify-around px-4 py-3">
             {navItems.map(({ label, to, icon: Icon, isActive }) => {
               const isTransact = label === "Transact";
               return (
