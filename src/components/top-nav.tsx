@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Menu, X, LogOut, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,6 +21,23 @@ const navLinks = [
 
 export function TopNav() {
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("first_name, profile_photo_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (data) setProfile(data);
+    }
+    fetchProfile();
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -41,47 +59,56 @@ export function TopNav() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/login"
-            className="hidden rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex"
-          >
-            Sign In
-          </Link>
-          <Button
-            asChild
-            size="sm"
-            className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Link to="/sign-up">Get Started</Link>
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="hidden ml-2 rounded-full transition-opacity hover:opacity-75 focus:outline-none md:inline-flex">
-                <Avatar>
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer">
-                  Profile
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/settings" className="cursor-pointer">
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/" className="cursor-pointer text-destructive focus:text-destructive">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign out
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!profile && (
+            <Link
+              to="/login"
+              className="hidden rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex"
+            >
+              Sign In
+            </Link>
+          )}
+          {!profile && (
+            <Button
+              asChild
+              size="sm"
+              className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Link to="/sign-up">Get Started</Link>
+            </Button>
+          )}
+          {profile && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="ml-2 rounded-full transition-opacity hover:opacity-75 focus:outline-none flex">
+                  <Avatar>
+                    <AvatarImage src={profile?.profile_photo_url} />
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings" className="cursor-pointer">
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="cursor-pointer text-destructive focus:text-destructive">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign out
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <button
             type="button"
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground md:hidden"
