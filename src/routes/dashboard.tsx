@@ -53,14 +53,20 @@ function AccountBadge({
       <div className="mt-4 text-3xl font-semibold text-primary">{amount}</div>
       {primary ? (
         <div className="mt-4 flex gap-2">
-          <Button variant="secondary" size="sm" className="flex-1">
-            Send
+          <Button variant="secondary" size="sm" className="flex-1" asChild>
+            <Link to="/transactions" search={{ mode: "send" }}>
+              Send
+            </Link>
           </Button>
-          <Button size="sm" className="flex-1">
-            Deposit
+          <Button size="sm" className="flex-1" asChild>
+            <Link to="/transactions" search={{ mode: "deposit" }}>
+              Deposit
+            </Link>
           </Button>
-          <Button variant="outline" size="sm" className="flex-1">
-            Withdraw
+          <Button variant="outline" size="sm" className="flex-1" asChild>
+            <Link to="/transactions" search={{ mode: "withdraw" }}>
+              Withdraw
+            </Link>
           </Button>
         </div>
       ) : (
@@ -292,6 +298,11 @@ function DashboardPage() {
           <div className="sm:col-span-2 lg:col-span-1">
             <NetWorthChart />
           </div>
+        </div>
+
+        {/* Recent Transactions Heading */}
+        <div className="mb-4">
+          <h2 className="text-lg font-light tracking-tight text-foreground/90">Recent transactions</h2>
         </div>
 
         {/* Transactions */}
