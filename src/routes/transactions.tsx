@@ -178,51 +178,6 @@ function SendPanel() {
 
   return (
     <div className="space-y-8">
-      {/* Header & Lists */}
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <History className="w-4 h-4" /> Recent Transactions
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {RECENT_TRANSACTIONS.map((r) => (
-              <button
-                key={`recent-${r.id}`}
-                onClick={() => handleSelectRecipient(r)}
-                className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
-              >
-                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                  {r.avatar}
-                </div>
-                <div className="text-sm font-medium truncate">{r.name}</div>
-                <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Zap className="w-4 h-4" /> Most Frequent
-          </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {FREQUENT_TRANSACTIONS.map((r) => (
-              <button
-                key={`freq-${r.id}`}
-                onClick={() => handleSelectRecipient(r)}
-                className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
-              >
-                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                  {r.avatar}
-                </div>
-                <div className="text-sm font-medium truncate">{r.name}</div>
-                <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Step 1: Provider Selection */}
       <div className="space-y-4">
         <h3 className="text-lg font-light tracking-tight">Step 1: Choose Financial Provider Type</h3>
@@ -384,6 +339,51 @@ function SendPanel() {
           </div>
         </div>
       )}
+
+      {/* Header & Lists */}
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <History className="w-4 h-4" /> Recent Transactions
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {RECENT_TRANSACTIONS.map((r) => (
+              <button
+                key={`recent-${r.id}`}
+                onClick={() => handleSelectRecipient(r)}
+                className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
+              >
+                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
+                  {r.avatar}
+                </div>
+                <div className="text-sm font-medium truncate">{r.name}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Zap className="w-4 h-4" /> Most Frequent
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+            {FREQUENT_TRANSACTIONS.map((r) => (
+              <button
+                key={`freq-${r.id}`}
+                onClick={() => handleSelectRecipient(r)}
+                className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
+              >
+                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
+                  {r.avatar}
+                </div>
+                <div className="text-sm font-medium truncate">{r.name}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Confirmation Modal */}
       <Dialog open={status === "confirming"} onOpenChange={(open) => !open && setStatus("idle")}>
