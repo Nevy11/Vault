@@ -25,6 +25,7 @@ import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { profileSignal, useProfileSignal } from "@/lib/profile-signal";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -124,12 +125,21 @@ function ToggleRow({
 function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useProfileSignal();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Local state for name to make input controlled and smooth
+  const [fullName, setFullName] = useState("");
+
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    if (!profile) {
+      fetchProfile();
+    } else {
+      setFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
+      setLoading(false);
+    }
+  }, [profile]);
 
   async function fetchProfile() {
     try {
@@ -149,6 +159,35 @@ function SettingsPage() {
       toast.error(error.message || "Error loading profile");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSave() {
+    try {
+      setSaving(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const nameParts = fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          first_name: firstName,
+          last_name: lastName,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, first_name: firstName, last_name: lastName });
+      toast.success("Profile updated successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Error updating profile");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -316,7 +355,9 @@ function SettingsPage() {
             </Row>
             <Row label="Full Name">
               <Input 
-                defaultValue={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || "User"} 
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Enter your full name"
                 className="bg-input/40 border-border/60 h-11" 
               />
             </Row>
@@ -457,18 +498,13 @@ function SettingsPage() {
             <Button variant="ghost" className="text-muted-foreground">
               Discard
             </Button>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-6">
-              Apply & Save Changes
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              className="text-destructive hover:text-destructive gap-2"
+            <Button 
+              className="bg-primary text-primary-foreground hover:bg-primary/90 px-6"
+              onClick={handleSave}
+              disabled={saving}
             >
-              <Link to="/">
-                <LogOut className="w-4 h-4" />
-                Sign out
-              </Link>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Apply & Save Changes
             </Button>
           </div>
         </div>

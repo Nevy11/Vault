@@ -66,13 +66,6 @@ const channels = [
     note: "Avg. wait: under 2 minutes",
   },
   {
-    id: "chat",
-    icon: MessageSquare,
-    title: "24/7 Live Chat",
-    detail: "Chat with a Vault specialist",
-    note: "Online now",
-  },
-  {
     id: "email",
     icon: Mail,
     title: "Email Support",
