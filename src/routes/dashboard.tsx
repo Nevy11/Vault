@@ -300,6 +300,11 @@ function DashboardPage() {
           </div>
         </div>
 
+        {/* Recent Transactions Heading */}
+        <div className="mb-4">
+          <h2 className="text-lg font-light tracking-tight text-foreground/90">Recent transactions</h2>
+        </div>
+
         {/* Transactions */}
         <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-5 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
