@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
   User,
@@ -14,12 +15,16 @@ import {
   Camera,
   Upload,
   LogOut,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -117,6 +122,102 @@ function ToggleRow({
 }
 
 function SettingsPage() {
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  async function fetchProfile() {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error: any) {
+      toast.error(error.message || "Error loading profile");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function uploadAvatar(event: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      setUploading(true);
+
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error("You must select an image to upload.");
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+
+      // Upload image to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      // Update profiles table
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ profile_photo_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, profile_photo_url: publicUrl });
+      toast.success("Profile picture updated!");
+    } catch (error: any) {
+      toast.error(error.message || "Error uploading avatar");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function removeAvatar() {
+    try {
+      setUploading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ profile_photo_url: null })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile({ ...profile, profile_photo_url: null });
+      toast.success("Profile picture removed");
+    } catch (error: any) {
+      toast.error(error.message || "Error removing avatar");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <AppShell>
       <main className="mx-auto max-w-[1400px] px-8 lg:px-12 py-12 lg:py-16">
@@ -145,19 +246,39 @@ function SettingsPage() {
             <Row label="Profile Picture">
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <User className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <button className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors">
-                    <Camera className="w-4 h-4" />
+                  <Avatar className="w-16 h-16 rounded-full border-2 border-border/40">
+                    <AvatarImage src={profile?.profile_photo_url} alt="Profile" />
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                      {profile?.first_name?.[0] || <User className="w-8 h-8" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
                   </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={uploadAvatar}
+                    accept="image/*"
+                    className="hidden"
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="text-sm text-muted-foreground">
                     Upload a profile picture to personalize your account
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
                       <Upload className="w-4 h-4" />
                       Upload Photo
                     </Button>
@@ -165,6 +286,8 @@ function SettingsPage() {
                       variant="ghost"
                       size="sm"
                       className="text-destructive hover:text-destructive"
+                      onClick={removeAvatar}
+                      disabled={uploading || !profile?.profile_photo_url}
                     >
                       Remove
                     </Button>
@@ -177,9 +300,13 @@ function SettingsPage() {
             </Row>
             <Row label="Verification Status">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                  profile?.kyc_status === 'verified' 
+                    ? 'border-primary/40 bg-primary/10 text-primary'
+                    : 'border-amber-500/40 bg-amber-500/10 text-amber-500'
+                }`}>
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  Verified · Level 2
+                  {profile?.kyc_status === 'verified' ? 'Verified · Level 2' : 'Unverified'}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
                   <Info className="h-3.5 w-3.5" />
@@ -188,12 +315,16 @@ function SettingsPage() {
               </div>
             </Row>
             <Row label="Full Name">
-              <Input defaultValue="Alex Johnson" className="bg-input/40 border-border/60 h-11" />
+              <Input 
+                defaultValue={`${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || "User"} 
+                className="bg-input/40 border-border/60 h-11" 
+              />
             </Row>
-            <Row label="KYC Tag" description="Used for peer transfers">
-              <Input
-                defaultValue="@alexj_vault"
-                className="bg-input/40 border-border/60 h-11 font-mono"
+            <Row label="Email Address">
+              <Input 
+                value={profile?.email || ""} 
+                disabled
+                className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed" 
               />
             </Row>
           </SectionCard>

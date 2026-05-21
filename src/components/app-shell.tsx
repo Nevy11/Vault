@@ -2,8 +2,10 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { HelpCircle, Home, Send, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MessageCircle, LogOut, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -69,6 +71,23 @@ function Logo() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const currentPath = location.pathname;
+  const [profile, setProfile] = useState<any>(null);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("first_name, profile_photo_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (data) setProfile(data);
+    }
+    fetchProfile();
+  }, []);
 
   return (
     <div className="min-h-screen text-foreground" style={{ background: "var(--gradient-bg)" }}>
@@ -117,7 +136,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <DropdownMenuTrigger asChild>
                   <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none">
                     <Avatar>
-                      <AvatarFallback>U</AvatarFallback>
+                      <AvatarImage src={profile?.profile_photo_url} />
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                      </AvatarFallback>
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
@@ -149,20 +171,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-md md:hidden">
           <nav className="mx-auto flex max-w-3xl items-center justify-around px-2 py-2">
-            {navItems.map(({ label, to, icon: Icon, isActive }) => (
-              <Link
-                key={to}
-                to={to}
-                aria-label={label}
-                className={`inline-flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground ${
-                  isActive(currentPath)
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70"
-                }`}
-              >
-                <Icon className="h-6 w-6" />
-              </Link>
-            ))}
+            {navItems.map(({ label, to, icon: Icon, isActive }) => {
+              const isTransact = label === "Transact";
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  aria-label={label}
+                  className={`inline-flex items-center justify-center rounded-full transition-all hover:bg-accent hover:text-foreground ${
+                    isTransact
+                      ? "h-14 w-14 -mt-6 bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110 border-4 border-background"
+                      : `h-12 w-12 ${
+                          isActive(currentPath)
+                            ? "bg-primary/10 text-primary"
+                            : "text-foreground/70"
+                        }`
+                  }`}
+                >
+                  <Icon className={`h-6 w-6 ${isTransact ? "animate-slow-spin" : ""}`} />
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </div>
