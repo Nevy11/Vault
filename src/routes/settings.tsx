@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useTheme } from "@/hooks/use-theme";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -131,6 +132,7 @@ function ToggleRow({
 }
 
 function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -556,10 +558,14 @@ function SettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">Theme</label>
-                <select className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-                  <option>Dark</option>
-                  <option>Light</option>
-                  <option>System</option>
+                <select 
+                  value={theme}
+                  onChange={(e) => setTheme(e.target.value as any)}
+                  className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="system">System</option>
                 </select>
               </div>
               <div>
