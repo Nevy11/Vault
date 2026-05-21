@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw } from "lucide-react";
+import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
@@ -58,6 +58,9 @@ function AccountBadge({
           </Button>
           <Button size="sm" className="flex-1">
             Deposit
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1">
+            Withdraw
           </Button>
         </div>
       ) : (
@@ -157,7 +160,7 @@ function NetWorthChart() {
   );
 }
 
-const filters = ["All", "Vault", "Chase", "BofA", "Revolut", "Mobile Money"];
+const filters = ["All", "Vault", "Revolut", "Mobile Money"];
 
 const transactions = [
   {
@@ -171,26 +174,6 @@ const transactions = [
     positive: true,
   },
   {
-    tag: "PP",
-    icon: "C",
-    color: "bg-blue-500/20 text-blue-300",
-    title: "Chase Bank Checkings: Direct Deposit",
-    time: "2 hours ago",
-    amount: "+$2,500.00",
-    note: "[Status: Cleared]  ·  Standard ACH",
-    positive: true,
-  },
-  {
-    tag: "W",
-    icon: "B",
-    color: "bg-red-500/20 text-red-300",
-    title: "Bank of America Savings: Withdrawal to M-Pesa",
-    time: "2 hours ago",
-    amount: "-$100.00",
-    note: "M-Pesa API",
-    positive: false,
-  },
-  {
     tag: "P2P",
     icon: "V",
     color: "bg-primary/20 text-primary",
@@ -202,80 +185,95 @@ const transactions = [
   },
 ];
 
+function SecurityStatus() {
+  return (
+    <div className="rounded-2xl bg-card/60 border border-border/50 p-5 backdrop-blur-sm flex flex-col justify-between h-full">
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <span className="text-sm font-medium">Vault Security</span>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Encryption</span>
+            <span className="text-xs font-mono text-primary">AES-256</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Privacy Mode</span>
+            <span className="text-xs text-primary">Active</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Biometrics</span>
+            <span className="text-xs text-primary">Verified</span>
+          </div>
+        </div>
+      </div>
+      <Button variant="ghost" size="sm" className="mt-4 w-full text-xs gap-2">
+        <Shield className="w-3 h-3" /> Manage Security
+      </Button>
+    </div>
+  );
+}
+
 function DashboardPage() {
   return (
     <AppShell>
-      <main className="max-w-7xl mx-auto px-6 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
         <div className="mb-6">
-          <h1 className="text-4xl font-light tracking-tight">Unified Portfolio Balance</h1>
+          <h1 className="text-3xl sm:text-4xl font-light tracking-tight">Unified Portfolio Balance</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Integrates a renew Accounts of multiple finance accounts.
           </p>
         </div>
 
         {/* Total net worth */}
-        <div className="rounded-2xl bg-card/30 border border-border/40 p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-2xl bg-card/30 border border-border/40 p-5 sm:p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-wider text-muted-foreground">
               Total Net Worth
             </div>
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-baseline">
-              <span className="text-5xl font-light">$14,230.15</span>
-              <span className="text-xs px-2 py-1 rounded-full bg-primary/15 text-primary">
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
+              <span className="text-4xl sm:text-5xl font-light">$14,230.15</span>
+              <span className="text-xs w-fit px-2 py-1 rounded-full bg-primary/15 text-primary">
                 + 5.25%
               </span>
             </div>
           </div>
-          <Button className="gap-2 w-full max-w-xs sm:w-auto justify-center">
+          <Button className="gap-2 w-full sm:w-auto justify-center">
             <UserPlus className="w-4 h-4" /> Add External Account
           </Button>
         </div>
 
         {/* Accounts grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <AccountBadge
-            primary
-            icon={
-              <svg width="16" height="16" viewBox="0 0 32 32">
-                <path
-                  d="M6 6 L16 26 L26 6"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </svg>
-            }
-            name="Vault: Digital Wallet OS"
-            type="Verified Account"
-            amount="$2,450.75"
-          />
-          <AccountBadge
-            icon={
-              <div className="w-full h-full rounded-full bg-blue-600 flex items-center justify-center text-white text-xs">
-                C
-              </div>
-            }
-            name="Chase Bank Checkings"
-            type="External account"
-            amount="$5,120.00"
-            updated="Updated: 5:35 AM"
-          />
-          <AccountBadge
-            icon={
-              <div className="w-full h-full rounded-full bg-red-600 flex items-center justify-center text-white text-xs">
-                B
-              </div>
-            }
-            name="Bank of America Savings"
-            type="External account"
-            amount="$6,660.00"
-            updated="Updated: 5:35 AM"
-          />
+          <div className="md:col-span-2">
+            <AccountBadge
+              primary
+              icon={
+                <svg width="16" height="16" viewBox="0 0 32 32">
+                  <path
+                    d="M6 6 L16 26 L26 6"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              }
+              name="Vault: Digital Wallet OS"
+              type="Verified Account"
+              amount="$2,450.75"
+            />
+          </div>
+          <div className="md:col-span-1">
+            <SecurityStatus />
+          </div>
         </div>
 
         {/* Quick send + chart */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <QuickSend
             avatars={[
               { initial: "M", color: "bg-emerald-500", name: "Maria C" },
@@ -291,12 +289,14 @@ function DashboardPage() {
               { initial: "J", color: "bg-blue-500", name: "John L" },
             ]}
           />
-          <NetWorthChart />
+          <div className="sm:col-span-2 lg:col-span-1">
+            <NetWorthChart />
+          </div>
         </div>
 
         {/* Transactions */}
-        <div className="rounded-2xl bg-card/30 border border-border/40 p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between mb-4">
+        <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-5 backdrop-blur-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex flex-wrap gap-2">
               {filters.map((f, i) => (
                 <button
@@ -318,22 +318,22 @@ function DashboardPage() {
 
           <ul className="divide-y divide-border/40">
             {transactions.map((t, i) => (
-              <li key={i} className="flex items-center justify-between py-3">
+              <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
                 <div className="flex items-center gap-4">
-                  <span className="text-[10px] uppercase w-9 text-center text-muted-foreground">
+                  <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
                     {t.tag}
                   </span>
                   <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold ${t.color}`}
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${t.color}`}
                   >
                     {t.icon}
                   </div>
-                  <div>
-                    <div className="text-sm">{t.title}</div>
+                  <div className="min-w-0">
+                    <div className="text-sm truncate">{t.title}</div>
                     <div className="text-xs text-muted-foreground">{t.time}</div>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-13 sm:ml-0">
                   <div
                     className={`text-sm font-medium ${t.positive ? "text-primary" : "text-destructive"}`}
                   >
