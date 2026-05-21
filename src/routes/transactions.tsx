@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/transactions")({
   head: () => ({
