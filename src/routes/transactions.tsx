@@ -1,13 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, Smartphone } from "lucide-react";
+import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, Smartphone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
+import { initiateStkPush } from "@/lib/daraja";
+import { toast } from "sonner";
+import { z } from "zod";
+
+const transactionsSearchSchema = z.object({
+  mode: z.enum(["send", "deposit", "withdraw"]).optional(),
+});
 
 export const Route = createFileRoute("/transactions")({
+  validateSearch: (search) => transactionsSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Transactions — Vault OS" },
@@ -113,10 +121,12 @@ function SendPanel() {
 
 function DepositPanel() {
   const [method, setMethod] = useState("stripe");
+  const [amount, setAmount] = useState("");
   const [savedPhone, setSavedPhone] = useState<string | null>(null);
   const [phoneMode, setPhoneMode] = useState<"saved" | "custom">("saved");
   const [customPhone, setCustomPhone] = useState("");
   const [loadingPhone, setLoadingPhone] = useState(false);
+  const [depositing, setDepositing] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -146,6 +156,12 @@ function DepositPanel() {
       fee: "Fee: $0.00 (Vault Covered)",
     },
     {
+      id: "mpesa",
+      title: "M-Pesa (Mobile Money)",
+      sub: "Lipa na M-Pesa STK Push",
+      fee: "Fee: 1.0% (M-Pesa Standard)",
+    },
+    {
       id: "flutterwave",
       title: "Flutterwave",
       sub: "Mobile Money / USSD",
@@ -158,9 +174,47 @@ function DepositPanel() {
       fee: "",
     },
   ];
+
   const targetPhone = phoneMode === "saved" ? savedPhone : customPhone.trim();
   const validPhone = !!targetPhone && /^\+?\d[\d\s-]{6,}$/.test(targetPhone);
-  const canSubmit = method !== "flutterwave" || validPhone;
+  const canSubmit = (method !== "mpesa" && method !== "flutterwave") || validPhone;
+  const isMpesa = method === "mpesa";
+
+  const handleDeposit = async () => {
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+
+    if (isMpesa) {
+      if (!targetPhone) {
+        toast.error("Please provide a phone number");
+        return;
+      }
+      
+      setDepositing(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated");
+
+        await initiateStkPush({
+          userId: user.id,
+          phoneNumber: targetPhone,
+          amount: parseFloat(amount),
+        });
+        toast.success("STK Push sent! Please check your phone to complete the payment.");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to initiate M-Pesa deposit");
+      } finally {
+        setDepositing(false);
+      }
+    } else if (method === "flutterwave") {
+      toast.info("Flutterwave integration is not yet complete. Please use M-Pesa or other methods.");
+    }
+    else {
+      toast.info("This payment method is not yet integrated.");
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
@@ -170,7 +224,13 @@ function DepositPanel() {
           <label className="text-xs text-muted-foreground">Deposit Amount</label>
           <div className="mt-2 flex items-center gap-2 rounded-md border border-border/60 px-3 py-2">
             <span className="text-muted-foreground">$</span>
-            <input className="flex-1 bg-transparent text-lg outline-none" placeholder="0.00" />
+            <input 
+              className="flex-1 bg-transparent text-lg outline-none" 
+              placeholder="0.00" 
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -179,7 +239,7 @@ function DepositPanel() {
         <div className="text-xs uppercase tracking-wider text-muted-foreground mb-4">
           Select Payment Method
         </div>
-        <div className="space-y-3 flex-1">
+        <div className="space-y-3 flex-1 overflow-y-auto max-h-[400px] pr-2">
           {methods.map((m) => {
             const active = method === m.id;
             return (
@@ -205,7 +265,7 @@ function DepositPanel() {
                   </div>
                 </div>
               </button>
-              {active && m.id === "flutterwave" && (
+              {active && (m.id === "flutterwave" || m.id === "mpesa") && (
                 <div className="mt-2 ml-2 rounded-xl border border-border/50 bg-background/40 p-4 space-y-3">
                   <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                     <Smartphone className="w-3.5 h-3.5" /> Mobile Money Number
@@ -276,7 +336,20 @@ function DepositPanel() {
         <div className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Info className="w-3 h-3" /> Integer cent precision applied (Source 20).
         </div>
-        <Button className="mt-4 w-full" disabled={!canSubmit}>Deposit Funds</Button>
+        <Button 
+          className="mt-4 w-full" 
+          disabled={!canSubmit || depositing}
+          onClick={handleDeposit}
+        >
+          {depositing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Deposit Funds"
+          )}
+        </Button>
       </div>
     </div>
   );
@@ -370,7 +443,20 @@ function WithdrawPanel() {
 }
 
 function TransactionsPage() {
-  const [mode, setMode] = useState<Mode>("send");
+  const { mode: initialMode } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+  const [mode, setMode] = useState<Mode>(initialMode || "send");
+
+  useEffect(() => {
+    if (initialMode) {
+      setMode(initialMode);
+    }
+  }, [initialMode]);
+
+  const handleModeChange = (newMode: Mode) => {
+    setMode(newMode);
+    navigate({ search: (prev) => ({ ...prev, mode: newMode }) });
+  };
 
   const tabs: { id: Mode; label: string }[] = [
     { id: "send", label: "Send Money" },
@@ -393,7 +479,7 @@ function TransactionsPage() {
             {tabs.map((t) => (
               <button
                 key={t.id}
-                onClick={() => setMode(t.id)}
+                onClick={() => handleModeChange(t.id)}
                 className={`px-5 py-2 rounded-full text-sm transition-colors ${
                   mode === t.id
                     ? "bg-primary text-primary-foreground"
