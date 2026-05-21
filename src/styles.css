@@ -148,13 +148,17 @@
   --sidebar-ring: oklch(0.65 0.14 165);
 }
 
-@layer base {
-  * {
-    border-color: var(--color-border);
+@layer utilities {
+  @keyframes slow-spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+  .animate-slow-spin {
+    animation: slow-spin 8s linear infinite;
   }
 }

@@ -149,20 +149,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-md md:hidden">
           <nav className="mx-auto flex max-w-3xl items-center justify-around px-2 py-2">
-            {navItems.map(({ label, to, icon: Icon, isActive }) => (
-              <Link
-                key={to}
-                to={to}
-                aria-label={label}
-                className={`inline-flex h-12 w-12 items-center justify-center rounded-full transition-colors hover:bg-accent hover:text-foreground ${
-                  isActive(currentPath)
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground/70"
-                }`}
-              >
-                <Icon className="h-6 w-6" />
-              </Link>
-            ))}
+            {navItems.map(({ label, to, icon: Icon, isActive }) => {
+              const isTransact = label === "Transact";
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  aria-label={label}
+                  className={`inline-flex items-center justify-center rounded-full transition-all hover:bg-accent hover:text-foreground ${
+                    isTransact
+                      ? "h-14 w-14 -mt-6 bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110 border-4 border-background"
+                      : `h-12 w-12 ${
+                          isActive(currentPath)
+                            ? "bg-primary/10 text-primary"
+                            : "text-foreground/70"
+                        }`
+                  }`}
+                >
+                  <Icon className={`h-6 w-6 ${isTransact ? "animate-slow-spin" : ""}`} />
+                </Link>
+              );
+            })}
           </nav>
         </div>
       </div>
