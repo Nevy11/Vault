@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/transactions")({
   head: () => ({
@@ -112,6 +113,31 @@ function SendPanel() {
 
 function DepositPanel() {
   const [method, setMethod] = useState("stripe");
+  const [savedPhone, setSavedPhone] = useState<string | null>(null);
+  const [phoneMode, setPhoneMode] = useState<"saved" | "custom">("saved");
+  const [customPhone, setCustomPhone] = useState("");
+  const [loadingPhone, setLoadingPhone] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      setLoadingPhone(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (active) setLoadingPhone(false); return; }
+      const { data } = await supabase
+        .from("profiles")
+        .select("phone_number")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!active) return;
+      const p = (data?.phone_number as string | undefined) ?? null;
+      setSavedPhone(p);
+      setPhoneMode(p ? "saved" : "custom");
+      setLoadingPhone(false);
+    })();
+    return () => { active = false; };
+  }, []);
+
   const methods = [
     {
       id: "stripe",
@@ -132,6 +158,10 @@ function DepositPanel() {
       fee: "",
     },
   ];
+  const targetPhone = phoneMode === "saved" ? savedPhone : customPhone.trim();
+  const validPhone = !!targetPhone && /^\+?\d[\d\s-]{6,}$/.test(targetPhone);
+  const canSubmit = method !== "flutterwave" || validPhone;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4">
       <div className="space-y-4">
@@ -153,8 +183,8 @@ function DepositPanel() {
           {methods.map((m) => {
             const active = method === m.id;
             return (
+              <div key={m.id}>
               <button
-                key={m.id}
                 onClick={() => setMethod(m.id)}
                 className={`w-full text-left rounded-xl border p-4 transition-colors ${
                   active ? "border-primary bg-primary/10" : "border-border/60 hover:border-border"
@@ -175,13 +205,78 @@ function DepositPanel() {
                   </div>
                 </div>
               </button>
+              {active && m.id === "flutterwave" && (
+                <div className="mt-2 ml-2 rounded-xl border border-border/50 bg-background/40 p-4 space-y-3">
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Smartphone className="w-3.5 h-3.5" /> Mobile Money Number
+                  </div>
+                  {loadingPhone ? (
+                    <div className="text-xs text-muted-foreground">Loading saved number…</div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        disabled={!savedPhone}
+                        onClick={() => setPhoneMode("saved")}
+                        className={`rounded-lg border p-3 text-left transition-colors ${
+                          phoneMode === "saved" && savedPhone
+                            ? "border-primary bg-primary/10"
+                            : "border-border/60 hover:border-border"
+                        } ${!savedPhone ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Saved
+                        </div>
+                        <div className="text-sm font-medium mt-0.5 truncate">
+                          {savedPhone ?? "No number on file"}
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPhoneMode("custom")}
+                        className={`rounded-lg border p-3 text-left transition-colors ${
+                          phoneMode === "custom"
+                            ? "border-primary bg-primary/10"
+                            : "border-border/60 hover:border-border"
+                        }`}
+                      >
+                        <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Other
+                        </div>
+                        <div className="text-sm font-medium mt-0.5">Enter number</div>
+                      </button>
+                    </div>
+                  )}
+                  {phoneMode === "custom" && (
+                    <div>
+                      <Input
+                        type="tel"
+                        inputMode="tel"
+                        placeholder="+254 7XX XXX XXX"
+                        value={customPhone}
+                        onChange={(e) => setCustomPhone(e.target.value)}
+                        className="bg-background/60"
+                      />
+                      {!validPhone && customPhone.length > 0 && (
+                        <p className="text-[11px] text-destructive mt-1">
+                          Enter a valid phone number
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    A push prompt will be sent to {targetPhone || "this number"} to confirm the deposit.
+                  </p>
+                </div>
+              )}
+              </div>
             );
           })}
         </div>
         <div className="mt-4 flex items-center gap-1.5 text-[11px] text-muted-foreground">
           <Info className="w-3 h-3" /> Integer cent precision applied (Source 20).
         </div>
-        <Button className="mt-4 w-full">Deposit Funds</Button>
+        <Button className="mt-4 w-full" disabled={!canSubmit}>Deposit Funds</Button>
       </div>
     </div>
   );
