@@ -1,8 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const CONSUMER_KEY = Deno.env.get("VITE_DARAJA_CONSUMER_KEY")!;
-const CONSUMER_SECRET = Deno.env.get("VITE_DARAJA_CONSUMER_SECRET")!;
-const ENV = Deno.env.get("VITE_DARAJA_ENV") || "sandbox";
+// Support both VITE_ prefixed (legacy) and clean env var names
+const CONSUMER_KEY = Deno.env.get("DARAJA_CONSUMER_KEY") || Deno.env.get("VITE_DARAJA_CONSUMER_KEY")!;
+const CONSUMER_SECRET = Deno.env.get("DARAJA_CONSUMER_SECRET") || Deno.env.get("VITE_DARAJA_CONSUMER_SECRET")!;
+const ENV = Deno.env.get("DARAJA_ENV") || Deno.env.get("VITE_DARAJA_ENV") || "sandbox";
+const SHORTCODE = Deno.env.get("DARAJA_SHORTCODE") || Deno.env.get("VITE_DARAJA_SHORTCODE") || "174379";
+const PASSKEY = Deno.env.get("DARAJA_PASSKEY") || Deno.env.get("VITE_DARAJA_PASSKEY") || Deno.env.get("VITE_DARAJA_PASS_KEY") || "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
 
 const DARAJA_AUTH_URL = ENV === "sandbox"
   ? "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
