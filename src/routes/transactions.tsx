@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { DepositPanel } from "@/components/deposit-panel";
+import { WithdrawPanel } from "@/components/withdraw-panel";
 import { supabase } from "@/lib/supabase";
 import { initiateStkPush } from "@/lib/daraja";
 import { toast } from "sonner";
@@ -443,9 +445,6 @@ function SendPanel() {
     </div>
   );
 }
-
-import { DepositPanel } from "@/components/deposit-panel";
-import { WithdrawPanel } from "@/components/withdraw-panel";
 
 function TransactionsPage() {
   const { mode: initialMode } = Route.useSearch();

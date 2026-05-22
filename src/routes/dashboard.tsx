@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield } from "lucide-react";
+import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -224,6 +225,8 @@ function SecurityStatus() {
 }
 
 function DashboardPage() {
+  const { balance, currency, loading, error } = useWalletBalance();
+
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
@@ -241,10 +244,23 @@ function DashboardPage() {
               Total Net Worth
             </div>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
-              <span className="text-4xl sm:text-5xl font-light">$14,230.15</span>
-              <span className="text-xs w-fit px-2 py-1 rounded-full bg-primary/15 text-primary">
-                + 5.25%
-              </span>
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm text-muted-foreground">Loading...</span>
+                </div>
+              ) : error ? (
+                <span className="text-4xl sm:text-5xl font-light text-destructive">Error</span>
+              ) : (
+                <>
+                  <span className="text-4xl sm:text-5xl font-light">
+                    {currency === 'KSH' ? 'KSH ' : '$'}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-xs w-fit px-2 py-1 rounded-full bg-primary/15 text-primary">
+                    + 5.25%
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <Button className="gap-2 w-full sm:w-auto justify-center">
@@ -270,7 +286,7 @@ function DashboardPage() {
               }
               name="Vault: Digital Wallet OS"
               type="Verified Account"
-              amount="$2,450.75"
+              amount={loading ? "Loading..." : error ? "Error" : `${currency === 'KSH' ? 'KSH ' : '$'}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           </div>
           <div className="md:col-span-1">
