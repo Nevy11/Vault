@@ -70,7 +70,8 @@ export function DepositPanel() {
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<DepositStatus>('idle');
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>('m1');
+  const [newPhoneNumber, setNewPhoneNumber] = useState("");
   const [selectedCarrier, setSelectedCarrier] = useState<string>("M-Pesa");
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [refCode, setRefCode] = useState("");
@@ -99,45 +100,96 @@ export function DepositPanel() {
       toast.error("Please enter a valid amount");
       return;
     }
+
+    if (!pin || pin.length < 4) {
+      toast.error("Please enter your transaction PIN");
+      return;
+    }
     
-    if (!selectedSourceId && !isAddingNew) {
-      toast.error("Please select a deposit source");
-      return;
+    // Determine the phone number to use for the STK push
+    let phone = "";
+    if (isAddingNew) {
+       if (!newPhoneNumber || newPhoneNumber.length < 9) {
+         toast.error("Please provide a valid phone number");
+         return;
+       }
+       phone = newPhoneNumber;
+    } else {
+       const source = SAVED_NUMBERS.find(n => n.id === selectedSourceId);
+       phone = source?.phone || "";
     }
 
-    if (pin.length < 6) {
-      toast.error("Please enter your 6-digit transaction PIN");
-      return;
+    if (!phone || phone === 'No number set') {
+       toast.error("Please select or enter a valid mobile number");
+       return;
     }
 
+    // Standardize to 254... format
+    let formattedPhone = phone.replace(/\D/g, ""); // Remove non-digits
+    if (formattedPhone.startsWith("0")) {
+      formattedPhone = "254" + formattedPhone.slice(1);
+    } else if (formattedPhone.startsWith("+")) {
+      formattedPhone = formattedPhone.slice(1);
+    } else if (!formattedPhone.startsWith("254") && formattedPhone.length === 9) {
+      formattedPhone = "254" + formattedPhone;
+    }
+
+    setStatus('processing');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Authentication required");
-        return;
+      // Get User ID (either from profile signal or directly from auth)
+      let userId = profile?.id;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id;
       }
 
+      if (!userId) {
+        throw new Error("User session not found. Please log in again.");
+      }
+
+      // Verify Vault PIN
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("pin_hash")
-        .eq("id", user.id)
+        .eq("id", userId)
         .single();
 
       if (profileError || !profileData) {
         console.error("Profile fetch error:", profileError);
-        toast.error("Error verifying PIN");
-        return;
+        throw new Error("Could not verify your identity. Please try again.");
       }
 
       const hashedPin = await hashPin(pin);
       if (profileData.pin_hash !== hashedPin) {
-        toast.error("Incorrect transaction PIN");
-        return;
+        throw new Error("Invalid transaction PIN");
       }
+
+      const { data, error } = await supabase.functions.invoke("mpesa-deposit", {
+        body: { phoneNumber: formattedPhone, amount: parseFloat(amount) * EXCHANGE_RATE },
+      });
+
+      if (error) {
+        let errorMessage = "Failed to initiate M-Pesa payment";
+        try {
+          // Try to get the error response body
+          const errorResponse = await error.context?.json();
+          errorMessage = errorResponse?.error || errorResponse?.errorMessage || error.message || errorMessage;
+        } catch (e) {
+          errorMessage = error.message || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      if (!data || (data.ResponseCode !== "0" && data.ResponseCode !== 0)) {
+        throw new Error(data?.errorMessage || data?.ResponseDescription || data?.CustomerMessage || "Payment initiation failed: No response from provider");
+      }
+
+      toast.success("Check your phone for the M-Pesa PIN prompt");
       setStatus('confirming');
-    } catch (error) {
-      console.error("PIN verification error:", error);
-      toast.error("Error verifying PIN");
+    } catch (error: any) {
+      console.error("M-Pesa trigger error:", error);
+      toast.error(error.message);
+      setStatus('idle');
     }
   };
 
@@ -297,7 +349,12 @@ export function DepositPanel() {
                       <Label>Phone Number</Label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">+254</span>
-                        <Input placeholder="7XX XXX XXX" className="pl-16 h-12 bg-background/60 rounded-xl" />
+                        <Input 
+                          placeholder="7XX XXX XXX" 
+                          className="pl-16 h-12 bg-background/60 rounded-xl" 
+                          value={newPhoneNumber}
+                          onChange={(e) => setNewPhoneNumber(e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -401,7 +458,7 @@ export function DepositPanel() {
                 onChange={(e) => setPin(e.target.value)}
               />
             </div>
-            <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">Authorize Secure Withdrawal</p>
+            <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">Authorize Secure Deposit</p>
           </div>
 
           <Button 
