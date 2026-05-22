@@ -3,9 +3,8 @@ import { HelpCircle, Home, Send, Settings, User, LogOut, MessageCircle } from "l
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { profileSignal } from "@/lib/profile-signal";
+import { useProfileSignal } from "@/lib/profile-signal";
 
 const navItems = [
   {
@@ -55,26 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      
-      if (data) {
-        setProfile(data);
-        profileSignal.set(data);
-      }
-    }
-    fetchProfile();
-  }, []);
+  const [profile, setProfile] = useProfileSignal();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

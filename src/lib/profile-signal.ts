@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-type Profile = {
+export type Profile = {
   id?: string;
   first_name?: string;
   last_name?: string;
@@ -9,6 +9,9 @@ type Profile = {
   phone_number?: string;
   profile_photo_url?: string | null;
   kyc_tag?: string;
+  pin_hash?: string;
+  nationality?: string;
+  created_at?: string;
 } | null;
 
 class ProfileSignal {

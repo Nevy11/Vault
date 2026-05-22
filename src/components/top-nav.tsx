@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
+import { useProfileSignal } from "@/lib/profile-signal";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,39 +22,11 @@ const navLinks = [
 
 export function TopNav() {
   const [open, setOpen] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
-
-  useEffect(() => {
-    async function fetchProfile(userId: string) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("first_name, profile_photo_url")
-        .eq("id", userId)
-        .maybeSingle();
-      
-      if (data) setProfile(data);
-      else setProfile(null);
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) fetchProfile(user.id);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  const [profile, setProfile] = useProfileSignal();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
     setOpen(false);
     window.location.href = "/";
   };

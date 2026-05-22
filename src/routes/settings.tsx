@@ -208,36 +208,13 @@ function SettingsPage() {
   const [fullName, setFullName] = useState("");
 
   useEffect(() => {
-    if (!profile) {
-      fetchProfile();
-    } else {
+    if (profile) {
       setFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
       setLoading(false);
     }
     fetchDevices();
     fetchLogs();
   }, [profile]);
-
-  async function fetchProfile() {
-    try {
-      setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*, phone_number")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-      setProfile(data);
-    } catch (error: any) {
-      toast.error(error.message || "Error loading profile");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   async function fetchDevices() {
     try {

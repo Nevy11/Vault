@@ -4,6 +4,7 @@ import { MessageCircle, Sparkles, Shield, TrendingUp, Volume2, VolumeX } from "l
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
+import { useProfileSignal } from "@/lib/profile-signal";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/finance-advisor")({
@@ -104,7 +105,7 @@ function FinanceAdvisorPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
-  const [userName, setUserName] = useState("there");
+  const [profile] = useProfileSignal();
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -126,17 +127,6 @@ function FinanceAdvisorPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
-
-        // Fetch user profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("first_name")
-          .eq("id", user.id)
-          .single();
-        
-        if (profile?.first_name) {
-          setUserName(profile.first_name);
-        }
 
         // Fetch chat history
         const { data: history, error: historyError } = await supabase
@@ -170,7 +160,7 @@ function FinanceAdvisorPage() {
     };
 
     fetchData();
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
     if (!isInitialLoading) {

@@ -1,10 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useProfileSignal } from "@/lib/profile-signal";
+import { format, formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -192,7 +197,88 @@ function SecurityStatus() {
 const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 
 function DashboardPage() {
-  const { balance, currency, loading, error } = useWalletBalance();
+  const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
+  const { transactions, loading: txLoading, error: txError } = useTransactions();
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [profile] = useProfileSignal();
+
+  const syncTime = useMemo(() => {
+    if (txLoading) return "Syncing...";
+    if (transactions.length === 0) return "Just now";
+    const lastActivity = new Date(transactions[0].created_at);
+    return `Data Synced ${formatDistanceToNow(lastActivity, { addSuffix: true })}`;
+  }, [transactions, txLoading]);
+
+  const filteredTransactions = useMemo(() => {
+    if (activeFilter === "All") return transactions;
+    if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
+    if (activeFilter === "Received") return transactions.filter(t => 
+      (t.type === 'transfer' && t.receiver_id === (profile as any)?.id) || 
+      t.type === 'deposit'
+    );
+    if (activeFilter === "Deposit") return transactions.filter(t => t.type === 'deposit');
+    if (activeFilter === "Withdraw") return transactions.filter(t => t.type === 'withdrawal');
+    return transactions;
+  }, [transactions, activeFilter, profile]);
+
+  const getTransactionDetails = (t: any) => {
+    const isSender = t.sender_id === (profile as any)?.id;
+    const userName = `${profile?.first_name} ${profile?.last_name}`;
+    const symbol = currency === 'USD' ? '$' : currency + ' ';
+
+    if (t.type === 'transfer') {
+      if (isSender) {
+        return {
+          title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
+          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          positive: false,
+          icon: t.receiver?.first_name?.[0] || 'V',
+          avatarUrl: t.receiver?.profile_photo_url,
+          color: "bg-primary/20 text-primary",
+        };
+      } else {
+        return {
+          title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
+          amount: `+${symbol}${t.amount.toLocaleString()}`,
+          positive: true,
+          icon: t.sender?.first_name?.[0] || 'V',
+          avatarUrl: t.sender?.profile_photo_url,
+          color: "bg-emerald-500/20 text-emerald-500",
+        };
+      }
+    } else if (t.type === 'deposit') {
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const initials = bankName.substring(0, 2).toUpperCase();
+      return {
+        title: `${bankName} to ${userName}`,
+        amount: `+${symbol}${t.amount.toLocaleString()}`,
+        positive: true,
+        icon: initials,
+        avatarUrl: null,
+        color: "bg-emerald-500/20 text-emerald-500",
+      };
+    } else if (t.type === 'withdrawal') {
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      return {
+        title: `Withdrawal to ${bankName}`,
+        amount: `-${symbol}${t.amount.toLocaleString()}`,
+        positive: false,
+        icon: bankName.substring(0, 2).toUpperCase(),
+        avatarUrl: null,
+        color: "bg-destructive/20 text-destructive",
+      };
+    }
+    return {
+      title: t.description,
+      amount: `${symbol}${t.amount.toLocaleString()}`,
+      positive: true,
+      icon: '?',
+      avatarUrl: null,
+      color: "bg-secondary text-secondary-foreground",
+    };
+  };
+
+  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
 
   return (
     <AppShell>

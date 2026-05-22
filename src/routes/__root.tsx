@@ -9,25 +9,33 @@ import {
 } from "@tanstack/react-router";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
+import { supabase } from "@/lib/supabase";
+import { useProfileSignal } from "@/lib/profile-signal";
+import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
 
+import { TopNav } from "@/components/top-nav";
+
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
+    <div className="min-h-screen bg-background flex flex-col">
+      <TopNav />
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="max-w-md text-center">
+          <h1 className="text-7xl font-bold text-foreground">404</h1>
+          <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The page you're looking for doesn't exist or has been moved.
+          </p>
+          <div className="mt-6">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Go home
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -137,6 +145,41 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [, setProfile] = useProfileSignal();
+
+  useEffect(() => {
+    async function fetchProfile(userId: string) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+      
+      if (data) {
+        setProfile(data);
+      }
+    }
+
+    // Initial check
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        fetchProfile(user.id);
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [setProfile]);
 
   return (
     <ThemeProvider>
