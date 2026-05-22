@@ -116,7 +116,7 @@ const FREQUENT_TRANSACTIONS: Recipient[] = [
 ];
 
 function SendPanel() {
-  const { currency, refetch } = useWalletBalance();
+  const { currency, refetch: refetchBalance } = useWalletBalance();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");
@@ -126,9 +126,78 @@ function SendPanel() {
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
   
+  // Recipient Lists State
+  const [recentRecipients, setRecentRecipients] = useState<Recipient[]>([]);
+  const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
+
   // Recipient Verification
   const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    const fetchRecipients = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch Recent: Get last 10 unique receivers
+        const { data: recentData } = await supabase
+          .from("transactions")
+          .select(`
+            receiver_id,
+            profiles:receiver_id (
+              id,
+              first_name,
+              last_name,
+              kyc_tag
+            )
+          `)
+          .eq("sender_id", user.id)
+          .eq("type", "transfer")
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (recentData) {
+          const uniqueRecipients: Recipient[] = [];
+          const seenIds = new Set();
+          
+          recentData.forEach((tx: any) => {
+            if (tx.profiles && !seenIds.has(tx.receiver_id)) {
+              seenIds.add(tx.receiver_id);
+              uniqueRecipients.push({
+                id: tx.receiver_id,
+                name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
+                type: "vault",
+                identifier: tx.profiles.kyc_tag || "",
+                avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
+                color: "bg-primary/20", // Could randomize this
+              });
+            }
+          });
+          setRecentRecipients(uniqueRecipients.slice(0, 5));
+        }
+
+        // Fetch Frequent (Simplified: top 5 by count)
+        const { data: freqData } = await supabase
+          .rpc('get_frequent_recipients', { p_sender_id: user.id });
+        
+        if (freqData) {
+          setFrequentRecipients(freqData.map((r: any) => ({
+            id: r.receiver_id,
+            name: `${r.first_name} ${r.last_name.charAt(0)}.`,
+            type: "vault",
+            identifier: r.kyc_tag || "",
+            avatar: r.first_name.charAt(0) + r.last_name.charAt(0),
+            color: "bg-emerald-500/20",
+          })));
+        }
+      } catch (err) {
+        console.error("Error fetching recipients:", err);
+      }
+    };
+
+    fetchRecipients();
+  }, [status === "success"]); // Refresh lists when a new transfer succeeds
 
   useEffect(() => {
     const searchRecipient = async () => {
@@ -463,47 +532,51 @@ function SendPanel() {
 
       {/* Header & Lists */}
       <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <History className="w-4 h-4" /> Recent Transactions
+        {(recentRecipients.length > 0 || isSearching) && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <History className="w-4 h-4" /> Recent Transactions
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+              {recentRecipients.map((r) => (
+                <button
+                  key={`recent-${r.id}`}
+                  onClick={() => handleSelectRecipient(r)}
+                  className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
+                >
+                  <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
+                    {r.avatar}
+                  </div>
+                  <div className="text-sm font-medium truncate">{r.name}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {RECENT_TRANSACTIONS.map((r) => (
-              <button
-                key={`recent-${r.id}`}
-                onClick={() => handleSelectRecipient(r)}
-                className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
-              >
-                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                  {r.avatar}
-                </div>
-                <div className="text-sm font-medium truncate">{r.name}</div>
-                <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Zap className="w-4 h-4" /> Most Frequent
+        {frequentRecipients.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              <Zap className="w-4 h-4" /> Most Frequent
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+              {frequentRecipients.map((r) => (
+                <button
+                  key={`freq-${r.id}`}
+                  onClick={() => handleSelectRecipient(r)}
+                  className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
+                >
+                  <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
+                    {r.avatar}
+                  </div>
+                  <div className="text-sm font-medium truncate">{r.name}</div>
+                  <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-            {FREQUENT_TRANSACTIONS.map((r) => (
-              <button
-                key={`freq-${r.id}`}
-                onClick={() => handleSelectRecipient(r)}
-                className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
-              >
-                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                  {r.avatar}
-                </div>
-                <div className="text-sm font-medium truncate">{r.name}</div>
-                <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Confirmation Modal */}
