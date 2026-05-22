@@ -1,9 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState, useMemo } from "react";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useProfileSignal } from "@/lib/profile-signal";
+import { format } from "date-fns";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -73,22 +77,6 @@ function AccountBadge({
       ) : (
         <div className="mt-6 text-xs text-muted-foreground text-right">{updated}</div>
       )}
-    </div>
-  );
-}
-
-function Avatar({ initial, color }: { initial: string; color: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative">
-        <div
-          className={`w-11 h-11 rounded-full ${color} flex items-center justify-center text-white font-medium`}
-        >
-          {initial}
-        </div>
-        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card" />
-      </div>
-      <span className="text-xs text-muted-foreground">{initial}.</span>
     </div>
   );
 }
@@ -167,31 +155,6 @@ function NetWorthChart() {
   );
 }
 
-const filters = ["All", "Vault", "Revolut", "Mobile Money"];
-
-const transactions = [
-  {
-    tag: "P2P",
-    icon: "V",
-    color: "bg-primary/20 text-primary",
-    title: "P2P Transfer to Maria C.",
-    time: "Just now",
-    amount: "+$850.00",
-    note: "Internal Vault P2P",
-    positive: true,
-  },
-  {
-    tag: "P2P",
-    icon: "V",
-    color: "bg-primary/20 text-primary",
-    title: "P2P Transfer from John L.",
-    time: "Yesterday",
-    amount: "+$159.00",
-    note: "Internal Vault P2P",
-    positive: true,
-  },
-];
-
 function SecurityStatus() {
   return (
     <div className="rounded-2xl bg-card/60 border border-border/50 p-5 backdrop-blur-sm flex flex-col justify-between h-full">
@@ -224,8 +187,72 @@ function SecurityStatus() {
   );
 }
 
+const filters = ["All", "Send", "Deposit", "Withdraw"];
+
 function DashboardPage() {
-  const { balance, currency, loading, error } = useWalletBalance();
+  const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
+  const { transactions, loading: txLoading, error: txError } = useTransactions();
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [profile] = useProfileSignal();
+
+  const filteredTransactions = useMemo(() => {
+    if (activeFilter === "All") return transactions;
+    if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer');
+    if (activeFilter === "Deposit") return transactions.filter(t => t.type === 'deposit');
+    if (activeFilter === "Withdraw") return transactions.filter(t => t.type === 'withdrawal');
+    return transactions;
+  }, [transactions, activeFilter]);
+
+  const getTransactionDetails = (t: any) => {
+    const isSender = t.sender_id === (profile as any)?.id;
+    const userName = `${profile?.first_name} ${profile?.last_name}`;
+
+    if (t.type === 'transfer') {
+      if (isSender) {
+        return {
+          title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
+          amount: `-$${t.amount.toLocaleString()}`,
+          positive: false,
+          icon: t.receiver?.first_name?.[0] || 'V',
+          color: "bg-primary/20 text-primary",
+        };
+      } else {
+        return {
+          title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
+          amount: `+$${t.amount.toLocaleString()}`,
+          positive: true,
+          icon: t.sender?.first_name?.[0] || 'V',
+          color: "bg-emerald-500/20 text-emerald-500",
+        };
+      }
+    } else if (t.type === 'deposit') {
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const initials = bankName.substring(0, 2).toUpperCase();
+      return {
+        title: `${bankName} to ${userName}`,
+        amount: `+$${t.amount.toLocaleString()}`,
+        positive: true,
+        icon: initials,
+        color: "bg-emerald-500/20 text-emerald-500",
+      };
+    } else if (t.type === 'withdrawal') {
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      return {
+        title: `Withdrawal to ${bankName}`,
+        amount: `-$${t.amount.toLocaleString()}`,
+        positive: false,
+        icon: bankName.substring(0, 2).toUpperCase(),
+        color: "bg-destructive/20 text-destructive",
+      };
+    }
+    return {
+      title: t.description,
+      amount: `$${t.amount.toLocaleString()}`,
+      positive: true,
+      icon: '?',
+      color: "bg-secondary text-secondary-foreground",
+    };
+  };
 
   return (
     <AppShell>
@@ -244,12 +271,12 @@ function DashboardPage() {
               Total Net Worth
             </div>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
-              {loading ? (
+              {balanceLoading ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span className="text-sm text-muted-foreground">Loading...</span>
                 </div>
-              ) : error ? (
+              ) : balanceError ? (
                 <span className="text-4xl sm:text-5xl font-light text-destructive">Error</span>
               ) : (
                 <>
@@ -286,7 +313,7 @@ function DashboardPage() {
               }
               name="Vault: Digital Wallet OS"
               type="Verified Account"
-              amount={loading ? "Loading..." : error ? "Error" : `${currency === 'KSH' ? 'KSH ' : '$'}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              amount={balanceLoading ? "Loading..." : balanceError ? "Error" : `${currency === 'KSH' ? 'KSH ' : '$'}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           </div>
           <div className="md:col-span-1">
@@ -328,8 +355,9 @@ function DashboardPage() {
               {filters.map((f, i) => (
                 <button
                   key={f}
+                  onClick={() => setActiveFilter(f)}
                   className={`px-3 py-1 rounded-full text-xs border ${
-                    i === 0
+                    activeFilter === f
                       ? "border-primary text-primary"
                       : "border-border/50 text-muted-foreground hover:text-foreground"
                   }`}
@@ -344,32 +372,49 @@ function DashboardPage() {
           </div>
 
           <ul className="divide-y divide-border/40">
-            {transactions.map((t, i) => (
-              <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                    {t.tag}
-                  </span>
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${t.color}`}
-                  >
-                    {t.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm truncate">{t.title}</div>
-                    <div className="text-xs text-muted-foreground">{t.time}</div>
-                  </div>
-                </div>
-                <div className="text-right sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-13 sm:ml-0">
-                  <div
-                    className={`text-sm font-medium ${t.positive ? "text-primary" : "text-destructive"}`}
-                  >
-                    {t.amount}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{t.note}</div>
-                </div>
-              </li>
-            ))}
+            {txLoading ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No transactions found.
+              </div>
+            ) : (
+              filteredTransactions.map((t) => {
+                const details = getTransactionDetails(t);
+                return (
+                  <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
+                        {t.type === 'transfer' ? 'P2P' : t.type.substring(0, 3)}
+                      </span>
+                      <div
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${details.color}`}
+                      >
+                        {details.icon}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-sm truncate">{details.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(t.created_at), "h:mm a")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-13 sm:ml-0">
+                      <div
+                        className={`text-sm font-medium ${details.positive ? "text-primary" : "text-destructive"}`}
+                      >
+                        {details.amount}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Balance: ${t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })
+            )}
           </ul>
         </div>
       </main>

@@ -173,9 +173,26 @@ export function WithdrawPanel() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 2500));
       
+      const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
+      if (!userId) throw new Error("User not found");
+
       // Update the wallet balance
+      const newBalance = balance !== null ? Math.max(0, balance - totalDeduction) : 0;
+      
+      // Record transaction
+      const { error: txError } = await supabase.from('transactions').insert({
+        sender_id: userId,
+        type: 'withdrawal',
+        method: channel === 'bank' ? 'bank' : 'mpesa',
+        amount: parseFloat(amount),
+        status: 'completed',
+        description: `Withdrawal to ${getRecipientName()}`,
+        balance_after: newBalance
+      });
+
+      if (txError) throw txError;
+
       if (balance !== null) {
-        const newBalance = Math.max(0, balance - totalDeduction);
         await updateBalance(newBalance);
       }
       
