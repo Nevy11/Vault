@@ -7,6 +7,7 @@ type Profile = {
   kyc_status?: string;
   phone_number?: string;
   profile_photo_url?: string | null;
+  kyc_tag?: string;
 } | null;
 
 class ProfileSignal {

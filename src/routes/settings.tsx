@@ -25,6 +25,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { formatKycTag } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { profileSignal, useProfileSignal } from "@/lib/profile-signal";
 import {
@@ -285,18 +286,49 @@ function SettingsPage() {
       const nameParts = fullName.trim().split(/\s+/);
       const firstName = nameParts[0] || "";
       const lastName = nameParts.slice(1).join(" ") || "";
+      const baseKycTag = formatKycTag(firstName, lastName);
+
+      const { data: existingTags, error: existingError } = await supabase
+        .from("profiles")
+        .select("kyc_tag")
+        .ilike("kyc_tag", `${baseKycTag}%`);
+
+      if (existingError) {
+        throw existingError;
+      }
+
+      const usedTags = new Set(
+        (existingTags || [])
+          .map((row: any) => row.kyc_tag)
+          .filter((tag: any): tag is string => Boolean(tag))
+      );
+
+      let kycTag = baseKycTag;
+      if (usedTags.has(baseKycTag)) {
+        let suffix = 2;
+        while (usedTags.has(`${baseKycTag}${suffix}`)) {
+          suffix += 1;
+        }
+        kycTag = `${baseKycTag}${suffix}`;
+      }
+
+      const updates: Record<string, any> = {
+        first_name: firstName,
+        last_name: lastName,
+      };
+
+      if (!profile?.kyc_tag) {
+        updates.kyc_tag = kycTag;
+      }
 
       const { error } = await supabase
         .from("profiles")
-        .update({
-          first_name: firstName,
-          last_name: lastName,
-        })
+        .update(updates)
         .eq("id", user.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, first_name: firstName, last_name: lastName });
+      setProfile({ ...profile, first_name: firstName, last_name: lastName, kyc_tag: profile?.kyc_tag || kycTag });
       toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error(error.message || "Error updating profile");

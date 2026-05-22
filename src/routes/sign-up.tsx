@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { hashPin } from "@/lib/utils";
+import { hashPin, formatKycTag } from "@/lib/utils";
 
 export const Route = createFileRoute("/sign-up")({
   component: SignUp,
@@ -153,6 +153,36 @@ function SignUp() {
     }
   };
 
+  const findUniqueKycTag = async (firstName: string, lastName: string) => {
+    const baseTag = formatKycTag(firstName, lastName);
+    const { data: existingTags, error: existingError } = await supabase
+      .from("profiles")
+      .select("kyc_tag")
+      .ilike("kyc_tag", `${baseTag}%`);
+
+    if (existingError) {
+      console.warn("Could not look up existing KYC tags:", existingError);
+      return baseTag;
+    }
+
+    const used = new Set(
+      (existingTags || [])
+        .map((row: any) => row.kyc_tag)
+        .filter((tag: any): tag is string => Boolean(tag))
+    );
+
+    if (!used.has(baseTag)) {
+      return baseTag;
+    }
+
+    let suffix = 2;
+    while (used.has(`${baseTag}${suffix}`)) {
+      suffix += 1;
+    }
+
+    return `${baseTag}${suffix}`;
+  };
+
   const proceedWithVerifiedUser = async (user: any) => {
     if (!user) throw new Error("No user found after verification");
     
@@ -161,6 +191,7 @@ function SignUp() {
     const nameParts = fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || "";
+    const kycTag = await findUniqueKycTag(firstName, lastName);
 
     // 1. Create Profile
     console.log("Hashing PIN for storage...");
@@ -175,6 +206,7 @@ function SignUp() {
       phone_number: phone,
       pin_hash: hashedPin,
       kyc_status: "unverified",
+      kyc_tag: kycTag,
     });
 
     if (profileError) {
