@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { DepositPanel } from "@/components/deposit-panel";
+import { WithdrawPanel } from "@/components/withdraw-panel";
 import { supabase } from "@/lib/supabase";
 import { initiateStkPush } from "@/lib/daraja";
 import { toast } from "sonner";
@@ -444,9 +446,6 @@ function SendPanel() {
   );
 }
 
-import { DepositPanel } from "@/components/deposit-panel";
-import { WithdrawPanel } from "@/components/withdraw-panel";
-
 function TransactionsPage() {
   const { mode: initialMode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
@@ -460,7 +459,7 @@ function TransactionsPage() {
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
-    navigate({ search: (prev) => ({ ...prev, mode: newMode }) });
+    navigate({ search: (prev: any) => ({ ...prev, mode: newMode }) });
   };
 
   const tabs: { id: Mode; label: string }[] = [
