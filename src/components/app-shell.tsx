@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, first_name, profile_photo_url, phone_number")
+        .select("*")
         .eq("id", user.id)
         .maybeSingle();
       

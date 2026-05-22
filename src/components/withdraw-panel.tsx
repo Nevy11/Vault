@@ -38,15 +38,12 @@ import { toast } from 'sonner';
 import { Link } from '@tanstack/react-router';
 import { useWalletBalance } from '@/hooks/use-wallet-balance';
 
+import { useProfileSignal } from '@/lib/profile-signal';
+
 // Mock Data
 const SAVED_BANKS = [
   { id: 'b1', name: 'Chase Bank', accountNumber: '****6789', holder: 'John Doe', logo: 'CB', color: 'bg-blue-600' },
   { id: 'b2', name: 'Bank of America', accountNumber: '****1234', holder: 'John Doe', logo: 'BA', color: 'bg-red-600' },
-];
-
-const SAVED_MOBILE = [
-  { id: 'm1', name: 'Personal M-Pesa', phone: '+254 712 345 678', provider: 'M-Pesa', color: 'bg-emerald-600' },
-  { id: 'm2', name: 'Work Airtel', phone: '+254 789 012 345', provider: 'Airtel Money', color: 'bg-red-500' },
 ];
 
 const BANKS_LIST = [
@@ -70,6 +67,7 @@ type Channel = 'bank' | 'mobile';
 type WithdrawalStatus = 'idle' | 'confirming' | 'processing' | 'success';
 
 export function WithdrawPanel() {
+  const [profile] = useProfileSignal();
   const { balance, currency, loading, updateBalance } = useWalletBalance();
   const [amount, setAmount] = useState<string>("");
   const [channel, setChannel] = useState<Channel>('bank');
@@ -78,15 +76,23 @@ export function WithdrawPanel() {
   const [status, setStatus] = useState<WithdrawalStatus>('idle');
   const [refCode, setRefCode] = useState("");
 
+  const [selectedMobileId, setSelectedMobileId] = useState<string | null>('m1');
+  const [newMobile, setNewMobile] = useState({ provider: "M-Pesa", phone: "" });
+  const [isAddingMobile, setIsAddingMobile] = useState(false);
+
+  // Mobile Recipient logic
+  const SAVED_MOBILE = useMemo(() => {
+    const phoneNumber = profile?.phone_number || 'No number set';
+    return [
+      { id: 'm1', name: 'Personal M-Pesa', phone: phoneNumber, provider: 'M-Pesa', color: 'bg-emerald-600' },
+      { id: 'm2', name: 'Secondary Line', phone: '+254 7XX XXX XXX', provider: 'Airtel Money', color: 'bg-red-500' },
+    ];
+  }, [profile]);
+
   // Bank Form States
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
   const [bankAccount, setBankAccount] = useState("");
   const [bankHolder, setBankHolder] = useState("");
-
-  // Mobile Form States
-  const [selectedMobileId, setSelectedMobileId] = useState<string | null>(null);
-  const [newMobile, setNewMobile] = useState({ provider: "M-Pesa", phone: "" });
-  const [isAddingMobile, setIsAddingMobile] = useState(false);
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
@@ -120,39 +126,44 @@ export function WithdrawPanel() {
       }
     }
 
-    if (pin.length !== 6) {
-      toast.error("Please enter your 6-digit transaction PIN");
+    if (pin.length < 4) {
+      toast.error("Please enter your transaction PIN");
       return;
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Authentication required");
-        return;
+      // Get User ID (either from profile signal or directly from auth)
+      let userId = profile?.id;
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        userId = user?.id;
       }
 
-      const { data: profile, error: profileError } = await supabase
+      if (!userId) {
+        throw new Error("User session not found. Please log in again.");
+      }
+
+      // Verify Vault PIN
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("pin_hash")
-        .eq("id", user.id)
+        .eq("id", userId)
         .single();
 
-      if (profileError || !profile) {
-        toast.error("Error verifying PIN");
-        return;
+      if (profileError || !profileData) {
+        console.error("Profile fetch error:", profileError);
+        throw new Error("Could not verify your identity. Please try again.");
       }
 
       const hashedPin = await hashPin(pin);
-      if (profile.pin_hash !== hashedPin) {
-        toast.error("Incorrect transaction PIN");
-        return;
+      if (profileData.pin_hash !== hashedPin) {
+        throw new Error("Incorrect transaction PIN");
       }
 
       setStatus('confirming');
-    } catch (error) {
-      console.error("PIN verification error:", error);
-      toast.error("An error occurred while verifying your PIN");
+    } catch (error: any) {
+      console.error("Withdrawal verification error:", error);
+      toast.error(error.message || "An error occurred during verification");
     }
   };
 
