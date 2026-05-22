@@ -13,12 +13,18 @@ const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  // Fail loudly instead of silently constructing a client pointed at a
-  // placeholder host — that's what causes the "page is unresponsive" symptom
-  // after deploy. The root error boundary will render a branded fallback.
-  throw new Error(
-    "Supabase environment variables are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY) in your deployment environment.",
-  );
+  const msg =
+    "Supabase environment variables are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY).";
+  if (import.meta.env.PROD) {
+    // In production, fail loudly so the root error boundary renders a real
+    // page instead of hanging on a placeholder client that never responds.
+    throw new Error(msg);
+  }
+  // In dev, warn but keep going so the sandbox preview still boots.
+  console.error(msg);
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl || "https://placeholder.supabase.co",
+  supabaseAnonKey || "placeholder",
+);
