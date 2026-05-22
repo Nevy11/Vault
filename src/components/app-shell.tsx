@@ -44,7 +44,7 @@ function Logo() {
   return (
     <Link to="/dashboard" className="flex items-center gap-2">
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-        <div className="h-4 w-4 border-2 border-current rounded-full" />
+        <span className="text-lg font-bold">V</span>
       </div>
       <span className="text-xl font-medium tracking-tight">Vault</span>
     </Link>
