@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { Link } from '@tanstack/react-router';
+import { useWalletBalance } from '@/hooks/use-wallet-balance';
 
 // Mock Data
 const SAVED_BANKS = [
@@ -68,6 +69,7 @@ type Channel = 'bank' | 'mobile';
 type WithdrawalStatus = 'idle' | 'confirming' | 'processing' | 'success';
 
 export function WithdrawPanel() {
+  const { balance, currency, loading, updateBalance } = useWalletBalance();
   const [amount, setAmount] = useState<string>("");
   const [channel, setChannel] = useState<Channel>('bank');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -99,7 +101,12 @@ export function WithdrawPanel() {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
+    if (balance !== null && parseFloat(amount) > balance) {
+      toast.error("Insufficient balance");
+      return;
+    }
+
     if (channel === 'bank') {
       if (!selectedBank || !bankAccount || !bankHolder) {
         toast.error("Please fill in all bank account details");
@@ -122,11 +129,23 @@ export function WithdrawPanel() {
 
   const handleConfirmWithdraw = async () => {
     setStatus('processing');
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2500));
-    setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
-    setStatus('success');
-    toast.success("Withdrawal request authorized successfully!");
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Update the wallet balance
+      if (balance !== null) {
+        const newBalance = Math.max(0, balance - totalDeduction);
+        await updateBalance(newBalance);
+      }
+      
+      setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setStatus('success');
+      toast.success("Withdrawal request authorized successfully!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
+      setStatus('idle');
+    }
   };
 
   const getRecipientName = () => {
@@ -368,10 +387,21 @@ export function WithdrawPanel() {
         <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-8">
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Vault USD Balance</Label>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+                Vault {loading ? "" : currency} Balance
+              </Label>
               <Lock className="w-3.5 h-3.5 text-muted-foreground/60" />
             </div>
-            <div className="text-4xl font-light text-primary tracking-tight">$12,450.75</div>
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Loading balance...</span>
+              </div>
+            ) : (
+              <div className="text-4xl font-light text-primary tracking-tight">
+                {currency === 'KSH' ? 'KSH ' : '$'}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">

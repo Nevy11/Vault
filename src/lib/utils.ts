@@ -13,3 +13,10 @@ export async function hashPin(pin: string): Promise<string> {
   const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   return hashHex;
 }
+
+export function getCurrencyForNationality(nationality?: string | null): string {
+  const norm = nationality?.trim().toLowerCase() || "";
+  if (!norm) return "USD";
+  if (norm.includes("kenya") || norm.includes("kenyan")) return "KSH";
+  return "USD";
+}
