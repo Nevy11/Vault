@@ -9,6 +9,7 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 serve(async (req) => {
@@ -17,22 +18,7 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, currency = "usd" } = await req.json();
-
-    // The user's ID should be in the 'sub' field of the JWT
-    // Supabase passes the user's JWT in the Authorization header
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    
-    // In a real production app, you'd verify the JWT here or use the service role client
-    // For this implementation, we'll assume the user is authenticated if they reached this point
-    // and we'll extract the user_id from the metadata passed by the client or via a token check.
-    // However, to be extra secure, let's just use metadata from the request for now 
-    // but ideally we decode the token to get the real user ID.
-    
-    // Mock user_id extraction for demonstration (ideally use supabase.auth.getUser(token))
-    // For now, we'll expect user_id to be passed or derived.
-    const { user_id } = await req.json().catch(() => ({})); 
+    const { amount, currency = "usd", user_id } = await req.json();
 
     if (!amount) {
       return new Response(JSON.stringify({ error: "Amount is required" }), {
@@ -48,7 +34,7 @@ serve(async (req) => {
         enabled: true,
       },
       metadata: {
-        user_id: user_id || "unknown", // This is critical for the webhook
+        user_id: user_id || "unknown",
       },
     });
 

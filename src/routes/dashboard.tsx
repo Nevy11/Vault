@@ -1,11 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useEffect } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      session_id: search.session_id as string | undefined,
+    };
+  },
   head: () => ({
     meta: [
       { title: "Dashboard — Vault OS" },
@@ -226,6 +233,15 @@ function SecurityStatus() {
 
 function DashboardPage() {
   const { balance, currency, loading, error } = useWalletBalance();
+  const { session_id } = useSearch({ from: "/dashboard" });
+
+  useEffect(() => {
+    if (session_id) {
+      toast.success("Deposit initiated successfully! Your balance will update once the payment is cleared.");
+      // Clear the session_id from the URL to avoid repeated toasts
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [session_id]);
 
   return (
     <AppShell>

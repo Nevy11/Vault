@@ -147,15 +147,38 @@ export function DepositPanel() {
     if (channel === 'stripe') {
       setStatus('processing');
       try {
-        const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
+        const { data, error } = await supabase.functions.invoke("stripe-checkout", {
           body: { amount: parseFloat(amount), user_id: userId },
         });
 
         if (error) throw error;
-        setStripeClientSecret(data.clientSecret);
-        setStatus('stripe_pay');
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("No checkout URL returned");
+        }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe payment: " + err.message);
+        toast.error("Failed to initiate Stripe checkout: " + err.message);
+        setStatus('idle');
+      }
+      return;
+    }
+
+    if (channel === 'bank' && selectedSourceId === 'stripe-ach') {
+      setStatus('processing');
+      try {
+        const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+          body: { amount: parseFloat(amount), user_id: userId },
+        });
+
+        if (error) throw error;
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error("No checkout URL returned");
+        }
+      } catch (err: any) {
+        toast.error("Failed to initiate Stripe checkout: " + err.message);
         setStatus('idle');
       }
       return;
@@ -231,6 +254,7 @@ export function DepositPanel() {
 
   const getSourceName = () => {
     if (channel === 'stripe') return "Credit/Debit Card";
+    if (selectedSourceId === 'stripe-ach') return "Stripe Bank Transfer";
     if (isAddingNew) return channel === 'mobile' ? selectedCarrier : "New Bank Account";
     if (channel === 'mobile') return SAVED_NUMBERS.find(n => n.id === selectedSourceId)?.name || selectedCarrier;
     return SAVED_BANK_ACCOUNTS.find(b => b.id === selectedSourceId)?.name || "Bank Account";
@@ -335,7 +359,7 @@ export function DepositPanel() {
         </div>
 
         <div className="min-h-[300px] animate-in slide-in-from-left-4 duration-500">
-          {channel === 'mobile' ? (
+          {channel === 'mobile' && (
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Select Carrier</Label>
@@ -405,7 +429,9 @@ export function DepositPanel() {
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {channel === 'bank' && (
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Search Banks</Label>
@@ -437,6 +463,25 @@ export function DepositPanel() {
                     {selectedSourceId === item.id && !isAddingNew && <Check className="w-5 h-5 text-primary" />}
                   </button>
                 ))}
+
+                <button
+                  onClick={() => { setSelectedSourceId('stripe-ach'); setIsAddingNew(false); }}
+                  className={cn(
+                    "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
+                    selectedSourceId === 'stripe-ach' && !isAddingNew
+                      ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
+                      : "border-border/60 bg-background/20 hover:border-border"
+                  )}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white text-xs font-bold">
+                    ACH
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">Stripe Bank Transfer</div>
+                    <div className="text-xs text-muted-foreground truncate">US ACH / International</div>
+                  </div>
+                  {selectedSourceId === 'stripe-ach' && !isAddingNew && <Check className="w-5 h-5 text-primary" />}
+                </button>
                 
                 <button
                   onClick={() => { setIsAddingNew(true); setSelectedSourceId(null); }}
@@ -450,6 +495,23 @@ export function DepositPanel() {
                   </div>
                   <div className="text-sm font-medium">Link New Bank Account</div>
                 </button>
+              </div>
+            </div>
+          )}
+
+          {channel === 'stripe' && (
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-6 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+                <CreditCard className="w-10 h-10" />
+              </div>
+              <div className="space-y-2 max-w-sm">
+                <h3 className="text-xl font-medium">Credit or Debit Card</h3>
+                <p className="text-sm text-muted-foreground">
+                  You will be securely redirected to Stripe to complete your deposit using any major credit or debit card.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest bg-muted/50 px-4 py-2 rounded-full">
+                <Lock className="w-3 h-3" /> Encrypted by Stripe
               </div>
             </div>
           )}

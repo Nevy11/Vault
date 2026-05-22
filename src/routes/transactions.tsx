@@ -177,20 +177,9 @@ function SendPanel() {
           setRecentRecipients(uniqueRecipients.slice(0, 5));
         }
 
-        // Fetch Frequent (Simplified: top 5 by count)
-        const { data: freqData } = await supabase
-          .rpc('get_frequent_recipients', { p_sender_id: user.id });
-        
-        if (freqData) {
-          setFrequentRecipients(freqData.map((r: any) => ({
-            id: r.receiver_id,
-            name: `${r.first_name} ${r.last_name.charAt(0)}.`,
-            type: "vault",
-            identifier: r.kyc_tag || "",
-            avatar: r.first_name.charAt(0) + r.last_name.charAt(0),
-            color: "bg-emerald-500/20",
-          })));
-        }
+        // Fetch Frequent (Simplified: use mock data or derive from recent)
+        // TODO: Create get_frequent_recipients RPC function in Supabase for production
+        setFrequentRecipients(FREQUENT_TRANSACTIONS.slice(0, 5));
       } catch (err) {
         console.error("Error fetching recipients:", err);
       }
@@ -305,7 +294,7 @@ function SendPanel() {
         setRefCode(result.reference || `VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
         
         // Refetch balance to show updated amount in profile immediately
-        await refetch();
+        await refetchBalance();
       } else {
         // Mock for other methods for now
         await new Promise((resolve) => setTimeout(resolve, 2000));
