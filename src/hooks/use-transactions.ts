@@ -16,11 +16,13 @@ export type Transaction = {
     first_name: string;
     last_name: string;
     kyc_tag: string;
+    profile_photo_url: string | null;
   };
   receiver?: {
     first_name: string;
     last_name: string;
     kyc_tag: string;
+    profile_photo_url: string | null;
   };
 };
 
@@ -42,8 +44,8 @@ export function useTransactions() {
         .from('transactions')
         .select(`
           *,
-          sender:profiles!sender_id(first_name, last_name, kyc_tag),
-          receiver:profiles!receiver_id(first_name, last_name, kyc_tag)
+          sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
+          receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
         `)
         .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order('created_at', { ascending: false });

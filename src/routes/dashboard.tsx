@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
@@ -8,6 +9,7 @@ import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { format, formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -226,6 +228,7 @@ function DashboardPage() {
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
           icon: t.receiver?.first_name?.[0] || 'V',
+          avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
@@ -234,6 +237,7 @@ function DashboardPage() {
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || 'V',
+          avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
@@ -245,6 +249,7 @@ function DashboardPage() {
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
         icon: initials,
+        avatarUrl: null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
@@ -254,6 +259,7 @@ function DashboardPage() {
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: bankName.substring(0, 2).toUpperCase(),
+        avatarUrl: null,
         color: "bg-destructive/20 text-destructive",
       };
     }
@@ -262,6 +268,7 @@ function DashboardPage() {
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
       icon: '?',
+      avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
     };
   };
@@ -403,11 +410,12 @@ function DashboardPage() {
                       <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
                         {t.type === 'transfer' ? 'P2P' : t.type.substring(0, 3)}
                       </span>
-                      <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${details.color}`}
-                      >
-                        {details.icon}
-                      </div>
+                      <Avatar className="w-9 h-9 border border-border/40 shrink-0">
+                        <AvatarImage src={details.avatarUrl} />
+                        <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
+                          {details.icon}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="min-w-0">
                         <div className="text-sm truncate">{details.title}</div>
                         <div className="text-xs text-muted-foreground">
