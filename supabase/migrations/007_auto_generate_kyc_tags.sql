@@ -15,9 +15,9 @@ BEGIN
         -- Generate base tag from first and last names
         v_base_tag := concat(
             '@',
-            lower(trim(both '.' FROM regexp_replace(regexp_replace(coalesce(NEW.first_name, ''), '[^a-z0-9]+', '.', 'g'), '\.+', '.', 'g'))),
+            lower(trim(both '.' FROM regexp_replace(coalesce(NEW.first_name, ''), '[^a-z0-9]+', '.', 'gi'))),
             '.',
-            lower(trim(both '.' FROM regexp_replace(regexp_replace(coalesce(NEW.last_name, ''), '[^a-z0-9]+', '.', 'g'), '\.+', '.', 'g')))
+            lower(trim(both '.' FROM regexp_replace(coalesce(NEW.last_name, ''), '[^a-z0-9]+', '.', 'gi')))
         );
         
         v_tag := v_base_tag;
