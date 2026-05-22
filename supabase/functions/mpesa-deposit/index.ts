@@ -41,9 +41,7 @@ serve(async (req) => {
     const accessToken = await getAccessToken();
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
     
-    const shortCode = "174379";
-    const passKey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
-    const password = btoa(`${shortCode}${passKey}${timestamp}`);
+    const password = btoa(`${SHORTCODE}${PASSKEY}${timestamp}`);
 
     const payload = {
       BusinessShortCode: shortCode,
