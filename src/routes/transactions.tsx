@@ -5,6 +5,7 @@ import {
   Smartphone, Loader2, CheckCircle2, Building2, UserCircle, 
   ArrowRight, Landmark, CreditCard, User, History, Zap
 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -91,11 +92,12 @@ const BANKS = [
 const MOBILE_PROVIDERS = ["M-Pesa", "Airtel Money", "T-Kash"];
 
 interface Recipient {
-  id: number;
+  id: string | number;
   name: string;
   type: "vault" | "bank" | "mobile";
   identifier: string;
   avatar: string;
+  avatarUrl?: string;
   color: string;
   bank?: string;
   provider?: string;
@@ -149,7 +151,8 @@ function SendPanel() {
               id,
               first_name,
               last_name,
-              kyc_tag
+              kyc_tag,
+              profile_photo_url
             )
           `)
           .eq("sender_id", user.id)
@@ -170,6 +173,7 @@ function SendPanel() {
                 type: "vault",
                 identifier: tx.profiles.kyc_tag || "",
                 avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
+                avatarUrl: tx.profiles.profile_photo_url,
                 color: "bg-primary/20", // Could randomize this
               });
             }
@@ -188,6 +192,7 @@ function SendPanel() {
             type: "vault",
             identifier: r.kyc_tag || "",
             avatar: r.first_name.charAt(0) + r.last_name.charAt(0),
+            avatarUrl: r.profile_photo_url,
             color: "bg-emerald-500/20",
           })));
         }
@@ -544,9 +549,12 @@ function SendPanel() {
                   onClick={() => handleSelectRecipient(r)}
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
-                  <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                    {r.avatar}
-                  </div>
+                  <Avatar className="w-10 h-10 mb-3 border border-border/40">
+                    <AvatarImage src={r.avatarUrl} alt={r.name} />
+                    <AvatarFallback className={cn("text-white text-xs font-bold", r.color)}>
+                      {r.avatar}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="text-sm font-medium truncate">{r.name}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
                 </button>
@@ -567,9 +575,12 @@ function SendPanel() {
                   onClick={() => handleSelectRecipient(r)}
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
-                  <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                    {r.avatar}
-                  </div>
+                  <Avatar className="w-10 h-10 mb-3 border border-border/40">
+                    <AvatarImage src={r.avatarUrl} alt={r.name} />
+                    <AvatarFallback className={cn("text-white text-xs font-bold", r.color)}>
+                      {r.avatar}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="text-sm font-medium truncate">{r.name}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
                 </button>
