@@ -514,6 +514,13 @@ function SettingsPage() {
                 className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed" 
               />
             </Row>
+            <Row label="KYC Tag">
+              <Input 
+                value={profile?.kyc_tag || ""} 
+                disabled
+                className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed font-mono text-sm" 
+              />
+            </Row>
           </SectionCard>
 
           {/* Security Center */}
