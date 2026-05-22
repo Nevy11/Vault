@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { cn, hashPin } from "@/lib/utils";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
@@ -126,16 +126,45 @@ function SendPanel() {
     if (r.provider) setProvider(r.provider);
   };
 
-  const handleSendClick = () => {
+  const handleSendClick = async () => {
     if (!amount || !identifier || (method === "bank" && !bank) || !pin) {
       toast.error("Please fill all required fields");
       return;
     }
-    if (pin.length !== 4) {
-      toast.error("PIN must be 4 digits");
+    if (pin.length !== 6) {
+      toast.error("PIN must be 6 digits");
       return;
     }
-    setStatus("confirming");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("pin_hash")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        toast.error("Error verifying PIN");
+        return;
+      }
+
+      const hashedPin = await hashPin(pin);
+      if (profile.pin_hash !== hashedPin) {
+        toast.error("Incorrect transaction PIN");
+        return;
+      }
+
+      setStatus("confirming");
+    } catch (error) {
+      console.error("PIN verification error:", error);
+      toast.error("An error occurred while verifying your PIN");
+    }
   };
 
   const handleConfirm = async () => {
@@ -321,13 +350,13 @@ function SendPanel() {
                 <Label>Vault Transaction PIN</Label>
                 <Input
                   type="password"
-                  maxLength={4}
-                  placeholder="****"
+                  maxLength={6}
+                  placeholder="******"
                   className="bg-background/40 h-12 border-border/60 text-center text-xl tracking-[1em]"
                   value={pin}
-                  onChange={(e) => setPin(e.target.value)}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 />
-                <p className="text-[10px] text-muted-foreground text-center">4-digit secure transaction code</p>
+                <p className="text-[10px] text-muted-foreground text-center">6-digit secure transaction code</p>
               </div>
 
               <Button 

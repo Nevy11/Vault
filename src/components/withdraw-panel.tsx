@@ -17,7 +17,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { cn, hashPin } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 import { 
   Dialog, 
   DialogContent, 
@@ -96,7 +97,7 @@ export function WithdrawPanel() {
     return parseFloat(amount || "0") + PLATFORM_FEE;
   }, [amount]);
 
-  const handleWithdrawClick = () => {
+  const handleWithdrawClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -119,12 +120,40 @@ export function WithdrawPanel() {
       }
     }
 
-    if (pin.length < 4) {
-      toast.error("Please enter your transaction PIN");
+    if (pin.length !== 6) {
+      toast.error("Please enter your 6-digit transaction PIN");
       return;
     }
 
-    setStatus('confirming');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("pin_hash")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profile) {
+        toast.error("Error verifying PIN");
+        return;
+      }
+
+      const hashedPin = await hashPin(pin);
+      if (profile.pin_hash !== hashedPin) {
+        toast.error("Incorrect transaction PIN");
+        return;
+      }
+
+      setStatus('confirming');
+    } catch (error) {
+      console.error("PIN verification error:", error);
+      toast.error("An error occurred while verifying your PIN");
+    }
   };
 
   const handleConfirmWithdraw = async () => {
@@ -441,13 +470,14 @@ export function WithdrawPanel() {
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60" />
                 <Input 
                   type="password" 
-                  maxLength={4} 
-                  placeholder="****"
+                  maxLength={6} 
+                  placeholder="******"
                   className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-center text-2xl tracking-[0.8em] focus:ring-primary/20"
                   value={pin}
-                  onChange={(e) => setPin(e.target.value)}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 />
               </div>
+              <p className="text-[10px] text-muted-foreground text-center">6-digit secure transaction code</p>
             </div>
 
             <Button 

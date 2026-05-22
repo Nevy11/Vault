@@ -398,7 +398,7 @@ export function DepositPanel() {
                 placeholder="******" 
                 className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-center text-2xl tracking-[0.6em] focus:ring-primary/20"
                 value={pin}
-                onChange={(e) => setPin(e.target.value)}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </div>
             <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">Authorize Secure Withdrawal</p>
