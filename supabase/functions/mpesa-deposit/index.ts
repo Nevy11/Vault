@@ -44,15 +44,15 @@ serve(async (req) => {
     const password = btoa(`${SHORTCODE}${PASSKEY}${timestamp}`);
 
     const payload = {
-      BusinessShortCode: shortCode,
+      BusinessShortCode: SHORTCODE,
       Password: password,
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
       Amount: Math.round(amount),
       PartyA: phoneNumber,
-      PartyB: shortCode,
+      PartyB: SHORTCODE,
       PhoneNumber: phoneNumber,
-      CallBackURL: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-callback`,
+      CallBackURL: `${Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL")}/functions/v1/mpesa-callback`,
       AccountReference: "VaultDeposit",
       TransactionDesc: `Deposit of ${amount}`,
     };
