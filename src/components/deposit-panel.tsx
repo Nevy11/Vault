@@ -234,6 +234,16 @@ export function DepositPanel() {
         throw new Error(data?.errorMessage || data?.ResponseDescription || data?.CustomerMessage || "Payment initiation failed: No response from provider");
       }
 
+      // Record pending transaction
+      await supabase.from("transactions").insert({
+        sender_id: userId,
+        type: "deposit",
+        method: channel === 'mobile' ? 'mpesa' : 'bank',
+        amount: parseFloat(amount),
+        status: "pending",
+        description: data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+      });
+
       toast.success("Check your phone for the M-Pesa PIN prompt");
       setStatus('confirming');
     } catch (error: any) {

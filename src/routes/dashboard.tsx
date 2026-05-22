@@ -1,11 +1,10 @@
-import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { useEffect } from "react";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -84,22 +83,6 @@ function AccountBadge({
   );
 }
 
-function Avatar({ initial, color }: { initial: string; color: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative">
-        <div
-          className={`w-11 h-11 rounded-full ${color} flex items-center justify-center text-white font-medium`}
-        >
-          {initial}
-        </div>
-        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card" />
-      </div>
-      <span className="text-xs text-muted-foreground">{initial}.</span>
-    </div>
-  );
-}
-
 function QuickSend({
   avatars,
   withAdd,
@@ -174,31 +157,6 @@ function NetWorthChart() {
   );
 }
 
-const filters = ["All", "Vault", "Revolut", "Mobile Money"];
-
-const transactions = [
-  {
-    tag: "P2P",
-    icon: "V",
-    color: "bg-primary/20 text-primary",
-    title: "P2P Transfer to Maria C.",
-    time: "Just now",
-    amount: "+$850.00",
-    note: "Internal Vault P2P",
-    positive: true,
-  },
-  {
-    tag: "P2P",
-    icon: "V",
-    color: "bg-primary/20 text-primary",
-    title: "P2P Transfer from John L.",
-    time: "Yesterday",
-    amount: "+$159.00",
-    note: "Internal Vault P2P",
-    positive: true,
-  },
-];
-
 function SecurityStatus() {
   return (
     <div className="rounded-2xl bg-card/60 border border-border/50 p-5 backdrop-blur-sm flex flex-col justify-between h-full">
@@ -231,17 +189,10 @@ function SecurityStatus() {
   );
 }
 
+const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
+
 function DashboardPage() {
   const { balance, currency, loading, error } = useWalletBalance();
-  const { session_id } = useSearch({ from: "/dashboard" });
-
-  useEffect(() => {
-    if (session_id) {
-      toast.success("Deposit initiated successfully! Your balance will update once the payment is cleared.");
-      // Clear the session_id from the URL to avoid repeated toasts
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [session_id]);
 
   return (
     <AppShell>
@@ -260,17 +211,17 @@ function DashboardPage() {
               Total Net Worth
             </div>
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
-              {loading ? (
+              {balanceLoading ? (
                 <div className="flex items-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   <span className="text-sm text-muted-foreground">Loading...</span>
                 </div>
-              ) : error ? (
+              ) : balanceError ? (
                 <span className="text-4xl sm:text-5xl font-light text-destructive">Error</span>
               ) : (
                 <>
                   <span className="text-4xl sm:text-5xl font-light">
-                    {currency === 'KSH' ? 'KSH ' : '$'}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs w-fit px-2 py-1 rounded-full bg-primary/15 text-primary">
                     + 5.25%
@@ -302,7 +253,7 @@ function DashboardPage() {
               }
               name="Vault: Digital Wallet OS"
               type="Verified Account"
-              amount={loading ? "Loading..." : error ? "Error" : `${currency === 'KSH' ? 'KSH ' : '$'}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              amount={balanceLoading ? "Loading..." : balanceError ? "Error" : `${currencySymbol}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           </div>
           <div className="md:col-span-1">
@@ -344,8 +295,9 @@ function DashboardPage() {
               {filters.map((f, i) => (
                 <button
                   key={f}
+                  onClick={() => setActiveFilter(f)}
                   className={`px-3 py-1 rounded-full text-xs border ${
-                    i === 0
+                    activeFilter === f
                       ? "border-primary text-primary"
                       : "border-border/50 text-muted-foreground hover:text-foreground"
                   }`}
@@ -355,37 +307,55 @@ function DashboardPage() {
               ))}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <RefreshCw className="w-3 h-3" /> Data Synced 2m ago
+              <RefreshCw className={`w-3 h-3 ${txLoading ? 'animate-spin' : ''}`} /> {syncTime}
             </div>
           </div>
 
           <ul className="divide-y divide-border/40">
-            {transactions.map((t, i) => (
-              <li key={i} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                    {t.tag}
-                  </span>
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold shrink-0 ${t.color}`}
-                  >
-                    {t.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm truncate">{t.title}</div>
-                    <div className="text-xs text-muted-foreground">{t.time}</div>
-                  </div>
-                </div>
-                <div className="text-right sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-13 sm:ml-0">
-                  <div
-                    className={`text-sm font-medium ${t.positive ? "text-primary" : "text-destructive"}`}
-                  >
-                    {t.amount}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{t.note}</div>
-                </div>
-              </li>
-            ))}
+            {txLoading ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                No transactions found.
+              </div>
+            ) : (
+              filteredTransactions.map((t) => {
+                const details = getTransactionDetails(t);
+                return (
+                  <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
+                    <div className="flex items-center gap-4">
+                      <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
+                        {t.type === 'transfer' ? 'P2P' : t.type.substring(0, 3)}
+                      </span>
+                      <Avatar className="w-9 h-9 border border-border/40 shrink-0">
+                        <AvatarImage src={details.avatarUrl} />
+                        <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
+                          {details.icon}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="text-sm truncate">{details.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(t.created_at), "h:mm a")}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-13 sm:ml-0">
+                      <div
+                        className={`text-sm font-medium ${details.positive ? "text-primary" : "text-destructive"}`}
+                      >
+                        {details.amount}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Balance: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })
+            )}
           </ul>
         </div>
       </main>

@@ -22,11 +22,57 @@ serve(async (req) => {
     // Success: Update database
     console.log("Transaction Success:", checkoutRequestId);
     
-    // Update the transaction status based on the CheckoutRequestID
+    // 1. Fetch the pending transaction
+    const { data: tx, error: txError } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("description", checkoutRequestId)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (txError || !tx) {
+      console.error("Error fetching transaction:", txError || "Transaction not found");
+      return new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Transaction not found" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. Update wallet balance
+    const { data: wallet, error: walletError } = await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", tx.sender_id)
+      .single();
+
+    if (walletError || !wallet) {
+      console.error("Error fetching wallet:", walletError || "Wallet not found");
+      return new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Wallet not found" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const newBalance = Number(wallet.balance) + Number(tx.amount);
+
+    const { error: walletUpdateError } = await supabase
+      .from("wallets")
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq("user_id", tx.sender_id);
+
+    if (walletUpdateError) {
+      console.error("Error updating wallet balance:", walletUpdateError);
+      return new Response(JSON.stringify({ ResultCode: 1, ResultDesc: "Wallet update failed" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // 3. Update the transaction status and balance_after
     const { error: updateError } = await supabase
       .from("transactions")
-      .update({ status: "completed" })
-      .eq("description", checkoutRequestId); // Using description as a temporary store for checkoutRequestId
+      .update({ 
+        status: "completed",
+        balance_after: newBalance
+      })
+      .eq("id", tx.id);
 
     if (updateError) {
       console.error("Error updating transaction status:", updateError);
@@ -34,6 +80,13 @@ serve(async (req) => {
   } else {
     // Failure
     console.log("Transaction Failed:", checkoutRequestId, body.ResultDesc);
+    
+    // Update status to failed
+    await supabase
+      .from("transactions")
+      .update({ status: "failed" })
+      .eq("description", checkoutRequestId)
+      .eq("status", "pending");
   }
 
   return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {

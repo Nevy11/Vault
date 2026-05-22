@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Sparkles, Shield, TrendingUp } from "lucide-react";
+import { MessageCircle, Sparkles, Shield, TrendingUp, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/finance-advisor")({
   head: () => ({
@@ -20,16 +22,49 @@ const initialMessages = [
     avatar: <MessageCircle className="h-4 w-4" />,
     text: "Hi Alex! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?",
   },
-  {
-    sender: "user",
-    text: "Help me plan my budget for next month.",
-  },
-  {
-    sender: "advisor",
-    avatar: <Sparkles className="h-4 w-4" />,
-    text: "Great! Based on your current savings and expenses, I recommend allocating 50% to essentials, 30% to goals, and 20% to discretionary spending.",
-  },
 ];
+
+function MarkdownContent({ text }: { text: string }) {
+  // Simple regex-based markdown parser for bold, headers, and lists
+  const lines = text.split("\n");
+  
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, i) => {
+        // Headers (e.g., # Header)
+        if (line.startsWith("#")) {
+          const level = line.match(/^#+/)?.[0].length || 1;
+          const content = line.replace(/^#+\s*/, "");
+          const className = level === 1 ? "text-lg font-bold" : level === 2 ? "text-base font-bold" : "text-sm font-bold";
+          return <p key={i} className={className}>{content}</p>;
+        }
+        
+        // Lists (e.g., * item or - item or 1. item)
+        if (line.match(/^[\*\-\d\.]+\s/)) {
+          const content = line.replace(/^[\*\-\d\.]+\s/, "");
+          return (
+            <div key={i} className="flex gap-2 pl-2">
+              <span className="text-primary">•</span>
+              <span>{formatBold(content)}</span>
+            </div>
+          );
+        }
+
+        return <p key={i} className="min-h-[1em]">{formatBold(line)}</p>;
+      })}
+    </div>
+  );
+}
+
+function formatBold(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} className="font-bold text-primary/90">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 function Bubble({
   sender,
@@ -56,15 +91,20 @@ function Bubble({
             Finance Advisor
           </div>
         )}
-        <p>{text}</p>
+        {isAdvisor ? <MarkdownContent text={text} /> : <p className="whitespace-pre-wrap">{text}</p>}
       </div>
     </div>
   );
 }
 
 function FinanceAdvisorPage() {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<any[]>([]);
   const [draft, setDraft] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [userName, setUserName] = useState("there");
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -82,29 +122,157 @@ function FinanceAdvisorPage() {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const fetchData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.first_name) {
+          setUserName(profile.first_name);
+        }
+
+        // Fetch chat history
+        const { data: history, error: historyError } = await supabase
+          .from("ai_chat_messages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (historyError) throw historyError;
+
+        if (history && history.length > 0) {
+          setMessages(history.map(m => ({
+            sender: m.sender,
+            text: m.text,
+            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined
+          })));
+        } else {
+          // Default greeting if no history
+          const greeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
+          setMessages([{
+            sender: "advisor",
+            avatar: <Sparkles className="h-4 w-4" />,
+            text: greeting
+          }]);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialLoading) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading, isInitialLoading]);
 
   useEffect(() => {
     handleScroll();
   }, []);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const speak = (text: string) => {
+    if (!isSpeechEnabled) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(v => v.name.includes("Google") || v.name.includes("Female") || v.lang === "en-US");
+    if (preferredVoice) utterance.voice = preferredVoice;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = draft.trim();
-    if (!trimmed) return;
+    if (!trimmed || isLoading) return;
 
-    setMessages((current) => [
-      ...current,
-      { sender: "user", text: trimmed },
-      {
-        sender: "advisor",
-        avatar: <MessageCircle className="h-4 w-4" />,
-        text: "Sorry, this feature has not yet been implemented.",
-      },
-    ]);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in to chat.");
+      return;
+    }
+
+    const newUserMessage = { sender: "user", text: trimmed };
+    setMessages((current) => [...current, newUserMessage]);
     setDraft("");
+    setIsLoading(true);
+
+    try {
+      // Save user message to database
+      await supabase.from("ai_chat_messages").insert({
+        user_id: user.id,
+        sender: "user",
+        text: trimmed
+      });
+
+      const { data, error } = await supabase.functions.invoke("gemini-chat", {
+        body: {
+          messages: messages.map(m => ({ sender: m.sender, text: m.text })),
+          userInput: trimmed
+        },
+      });
+
+      if (error) throw error;
+
+      const aiText = data.text;
+      const newAiMessage = {
+        sender: "advisor",
+        avatar: <Sparkles className="h-4 w-4" />,
+        text: aiText,
+      };
+
+      // Save AI response to database
+      await supabase.from("ai_chat_messages").insert({
+        user_id: user.id,
+        sender: "advisor",
+        text: aiText
+      });
+
+      setMessages((current) => [...current, newAiMessage]);
+      speak(aiText);
+    } catch (error: any) {
+      console.error("Error calling Gemini:", error);
+      toast.error("Failed to get response from advisor.");
+      
+      setMessages((current) => [
+        ...current,
+        {
+          sender: "advisor",
+          avatar: <Sparkles className="h-4 w-4" />,
+          text: "I'm sorry, I'm having trouble connecting to my brain right now. Please try again in a moment.",
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (isInitialLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Loading your advisor...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -118,11 +286,26 @@ function FinanceAdvisorPage() {
                   Finance Advisor
                 </h1>
                 <p className="mt-1 md:mt-2 text-xs md:text-sm text-muted-foreground hidden md:block">
-                  A chat-style advisor interface to preview how your financial conversation could
-                  look.
+                  Your personal AI-powered financial strategist, powered by Gemini.
                 </p>
               </div>
-              <div className="flex items-center text-sm justify-end">
+              <div className="flex items-center gap-2 text-sm justify-end">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full"
+                  onClick={() => {
+                    setIsSpeechEnabled(!isSpeechEnabled);
+                    if (isSpeaking) window.speechSynthesis.cancel();
+                  }}
+                  title={isSpeechEnabled ? "Mute Advisor" : "Unmute Advisor"}
+                >
+                  {isSpeechEnabled ? (
+                    <Volume2 className={`h-5 w-5 ${isSpeaking ? "text-primary animate-pulse" : ""}`} />
+                  ) : (
+                    <VolumeX className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </Button>
                 <span className="inline-flex shrink-0 items-center gap-1.5 md:gap-2 rounded-full bg-primary/10 text-primary border border-primary/20 px-2.5 md:px-3 py-1 shadow-sm text-xs md:text-sm">
                   <Shield className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary" />
                   Secure
@@ -134,8 +317,8 @@ function FinanceAdvisorPage() {
 
         <div className="relative mx-0 md:mx-0 overflow-hidden rounded-none md:rounded-t-3xl border-t md:border border-border/40 bg-background/80 shadow-sm flex min-h-0 flex-1 flex-col">
           <div className="hidden md:flex flex-wrap items-center gap-3 border-b border-border/40 bg-background/80 px-5 py-3 text-xs uppercase tracking-[0.3em] text-muted-foreground flex-shrink-0">
-            <Shield className="h-4 w-4 text-primary" />
-            Secure advice, mock insights only
+            <Sparkles className="h-4 w-4 text-primary" />
+            AI-Powered Intelligence
           </div>
 
           <div
@@ -152,6 +335,17 @@ function FinanceAdvisorPage() {
                   text={message.text}
                 />
               ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="max-w-[90%] sm:max-w-[80%] rounded-3xl px-4 py-3 text-sm shadow-sm bg-card/70 text-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary"></div>
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:0.2s]"></div>
+                      <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:0.4s]"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div ref={endRef} />
           </div>
@@ -164,15 +358,17 @@ function FinanceAdvisorPage() {
               <input
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
-                placeholder="Type your message..."
-                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                placeholder={isLoading ? "Advisor is thinking..." : "Ask me anything about your finances..."}
+                disabled={isLoading}
+                className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground disabled:opacity-50"
               />
               <Button
                 type="submit"
                 size="sm"
-                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+                disabled={isLoading || !draft.trim()}
+                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
               >
-                Send
+                {isLoading ? "..." : "Send"}
               </Button>
             </div>
           </form>
