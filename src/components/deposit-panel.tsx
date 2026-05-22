@@ -41,6 +41,13 @@ import { useProfileSignal } from '@/lib/profile-signal';
 import { supabase } from '@/lib/supabase';
 import { hashPin } from '@/lib/utils';
 
+import { StripePayment } from './stripe-payment';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+
+// Initialize Stripe (use env variable in production)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51Ro0ysE4K5QIsyl6tFrDH7oCDENuxy0P1iq7wWIvwiI5jyUtrf2Tsb0bizDjX0NIaTjiV1gzmGNVPj7GbqeyF4yX005RF2puYW');
+
 // Mock Data
 const SAVED_BANK_ACCOUNTS = [
   { id: 'b1', name: 'Equity Bank', accountNumber: '****5678', holder: 'John Doe', color: 'bg-orange-600' },
@@ -61,8 +68,8 @@ const BANKS = [
 
 const EXCHANGE_RATE = 130.00;
 
-type SourceChannel = 'bank' | 'mobile';
-type DepositStatus = 'idle' | 'confirming' | 'processing' | 'success';
+type SourceChannel = 'bank' | 'mobile' | 'stripe';
+type DepositStatus = 'idle' | 'confirming' | 'processing' | 'success' | 'stripe_pay';
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
@@ -75,6 +82,7 @@ export function DepositPanel() {
   const [selectedCarrier, setSelectedCarrier] = useState<string>("M-Pesa");
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [refCode, setRefCode] = useState("");
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
   const SAVED_NUMBERS = useMemo(() => {
     console.log("DEBUG: Current profile object:", profile);
@@ -106,6 +114,53 @@ export function DepositPanel() {
       return;
     }
     
+    // Get User ID (either from profile signal or directly from auth)
+    let userId = profile?.id;
+    if (!userId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id;
+    }
+
+    if (!userId) {
+      toast.error("User session not found. Please log in again.");
+      return;
+    }
+
+    // Verify Vault PIN
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("pin_hash")
+      .eq("id", userId)
+      .single();
+
+    if (profileError || !profileData) {
+      toast.error("Could not verify your identity. Please try again.");
+      return;
+    }
+
+    const hashedPin = await hashPin(pin);
+    if (profileData.pin_hash !== hashedPin) {
+      toast.error("Invalid transaction PIN");
+      return;
+    }
+
+    if (channel === 'stripe') {
+      setStatus('processing');
+      try {
+        const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
+          body: { amount: parseFloat(amount), user_id: userId },
+        });
+
+        if (error) throw error;
+        setStripeClientSecret(data.clientSecret);
+        setStatus('stripe_pay');
+      } catch (err: any) {
+        toast.error("Failed to initiate Stripe payment: " + err.message);
+        setStatus('idle');
+      }
+      return;
+    }
+
     // Determine the phone number to use for the STK push
     let phone = "";
     if (isAddingNew) {
@@ -136,34 +191,6 @@ export function DepositPanel() {
 
     setStatus('processing');
     try {
-      // Get User ID (either from profile signal or directly from auth)
-      let userId = profile?.id;
-      if (!userId) {
-        const { data: { user } } = await supabase.auth.getUser();
-        userId = user?.id;
-      }
-
-      if (!userId) {
-        throw new Error("User session not found. Please log in again.");
-      }
-
-      // Verify Vault PIN
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("pin_hash")
-        .eq("id", userId)
-        .single();
-
-      if (profileError || !profileData) {
-        console.error("Profile fetch error:", profileError);
-        throw new Error("Could not verify your identity. Please try again.");
-      }
-
-      const hashedPin = await hashPin(pin);
-      if (profileData.pin_hash !== hashedPin) {
-        throw new Error("Invalid transaction PIN");
-      }
-
       const { data, error } = await supabase.functions.invoke("mpesa-deposit", {
         body: { phoneNumber: formattedPhone, amount: parseFloat(amount) * EXCHANGE_RATE },
       });
@@ -203,10 +230,26 @@ export function DepositPanel() {
   };
 
   const getSourceName = () => {
+    if (channel === 'stripe') return "Credit/Debit Card";
     if (isAddingNew) return channel === 'mobile' ? selectedCarrier : "New Bank Account";
     if (channel === 'mobile') return SAVED_NUMBERS.find(n => n.id === selectedSourceId)?.name || selectedCarrier;
     return SAVED_BANK_ACCOUNTS.find(b => b.id === selectedSourceId)?.name || "Bank Account";
   };
+
+  if (status === 'stripe_pay' && stripeClientSecret) {
+    return (
+      <div className="max-w-md mx-auto py-8">
+        <h2 className="text-2xl font-light mb-6 text-center">Complete Deposit</h2>
+        <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
+          <StripePayment 
+            amount={parseFloat(amount)} 
+            onSuccess={() => setStatus('success')} 
+            onCancel={() => setStatus('idle')}
+          />
+        </Elements>
+      </div>
+    );
+  }
 
   if (status === 'success') {
     return (
@@ -265,6 +308,7 @@ export function DepositPanel() {
             {[
               { id: 'mobile', label: 'Mobile Money', icon: Smartphone },
               { id: 'bank', label: 'Bank Account', icon: Building2 },
+              { id: 'stripe', label: 'Credit Card', icon: CreditCard },
             ].map((t) => {
               const Icon = t.icon;
               return (

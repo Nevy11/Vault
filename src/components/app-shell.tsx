@@ -1,19 +1,11 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { HelpCircle, Home, Send, Settings } from "lucide-react";
+import { HelpCircle, Home, Send, Settings, User, LogOut, MessageCircle } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, LogOut, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { profileSignal } from "@/lib/profile-signal";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 
 const navItems = [
   {
@@ -50,21 +42,11 @@ const navItems = [
 
 function Logo() {
   return (
-    <Link to="/dashboard" className="inline-flex items-center gap-2 text-foreground">
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path
-            d="M6 6 L16 26 L26 6"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </span>
-      <span className="font-serif text-lg tracking-tight">
-        Vault <span className="text-muted-foreground font-sans text-sm">OS</span>
-      </span>
+    <Link to="/dashboard" className="flex items-center gap-2">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
+        <div className="h-4 w-4 border-2 border-current rounded-full" />
+      </div>
+      <span className="text-xl font-medium tracking-tight">Vault</span>
     </Link>
   );
 }
@@ -96,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setProfile(null); // Clear profile state
+    setProfile(null);
     navigate({ to: "/" });
   };
 
@@ -107,17 +89,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center px-4 border-b border-border/40">
           <Logo />
         </div>
-
-        <nav className="flex-1 overflow-y-auto px-4 py-4">
-          <ul className="space-y-3">
+        <nav className="p-4">
+          <ul className="space-y-1">
             {navItems.map(({ label, to, icon: Icon, isActive }) => (
               <li key={to}>
                 <Link
                   to={to}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors hover:bg-accent ${
+                  className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                     isActive(currentPath)
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground hover:text-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -129,6 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="absolute left-4 bottom-4 w-[calc(100%-2rem)]">
           <Button variant="ghost" size="sm" className="w-full" onClick={handleSignOut}>
+            <LogOut className="mr-2 h-4 w-4" />
             Sign out
           </Button>
         </div>
@@ -143,66 +125,47 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                    <Avatar>
-                      <AvatarImage src={profile?.profile_photo_url} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {profile?.first_name?.[0] || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="cursor-pointer">
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="cursor-pointer">
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <button 
+                onClick={() => navigate({ to: "/settings" })}
+                className="rounded-full transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <Avatar>
+                  <AvatarImage src={profile?.profile_photo_url} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
             </div>
           </div>
         </header>
 
-        <main className="pb-20 md:pb-0 min-h-[calc(100vh-4rem)]">{children}</main>
+        <main className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border/40 bg-background/95 backdrop-blur-md md:hidden">
-          <nav className="mx-auto flex max-w-3xl items-center justify-around px-4 py-3">
-            {navItems.map(({ label, to, icon: Icon, isActive }) => {
-              const isTransact = label === "Transact";
-              return (
+      {/* Mobile Nav */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">
+        <nav>
+          <ul className="flex justify-around items-center">
+            {navItems.map(({ label, to, icon: Icon, isActive }) => (
+              <li key={to}>
                 <Link
-                  key={to}
                   to={to}
-                  aria-label={label}
-                  className={`inline-flex items-center justify-center rounded-full transition-all hover:bg-accent hover:text-foreground ${
-                    isTransact
-                      ? "h-14 w-14 -mt-6 bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110 border-4 border-background"
-                      : `h-12 w-12 ${
-                          isActive(currentPath)
-                            ? "bg-primary/10 text-primary"
-                            : "text-foreground/70"
-                        }`
+                  className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors ${
+                    isActive(currentPath)
+                      ? "text-primary"
+                      : "text-muted-foreground"
                   }`}
                 >
-                  <Icon className={`h-6 w-6 ${isTransact ? "animate-slow-spin" : ""}`} />
+                  <Icon className="h-5 w-5" />
+                  <span className="text-[10px] font-medium">{label}</span>
                 </Link>
-              );
-            })}
-          </nav>
-        </div>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </div>
   );
