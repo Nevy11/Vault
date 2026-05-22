@@ -30,7 +30,7 @@ export function TopNav() {
 
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, profile_photo_url")
+        .select("first_name, profile_photo_url, phone_number")
         .eq("id", user.id)
         .maybeSingle();
       

@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, LogOut, User } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { profileSignal } from "@/lib/profile-signal";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -81,11 +82,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       const { data } = await supabase
         .from("profiles")
-        .select("first_name, profile_photo_url")
+        .select("first_name, profile_photo_url, phone_number")
         .eq("id", user.id)
         .maybeSingle();
       
-      if (data) setProfile(data);
+      if (data) {
+        setProfile(data);
+        profileSignal.set(data);
+      }
     }
     fetchProfile();
   }, []);
