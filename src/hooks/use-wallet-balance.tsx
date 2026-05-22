@@ -32,7 +32,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
 
     const { data: latestLog, error: logError } = await supabase
       .from('activity_logs')
-      .select('nationality, location')
+      .select('location')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -42,7 +42,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       console.warn('Unable to load latest activity log for currency resolution:', logError.message || logError);
     }
 
-    const rawNationality = profileNationality || latestLog?.nationality || latestLog?.location || "";
+    const rawNationality = profileNationality || latestLog?.location || "";
     return getCurrencyForNationality(rawNationality);
   };
 
