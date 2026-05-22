@@ -24,6 +24,48 @@ const initialMessages = [
   },
 ];
 
+function MarkdownContent({ text }: { text: string }) {
+  // Simple regex-based markdown parser for bold, headers, and lists
+  const lines = text.split("\n");
+  
+  return (
+    <div className="space-y-1.5">
+      {lines.map((line, i) => {
+        // Headers (e.g., # Header)
+        if (line.startsWith("#")) {
+          const level = line.match(/^#+/)?.[0].length || 1;
+          const content = line.replace(/^#+\s*/, "");
+          const className = level === 1 ? "text-lg font-bold" : level === 2 ? "text-base font-bold" : "text-sm font-bold";
+          return <p key={i} className={className}>{content}</p>;
+        }
+        
+        // Lists (e.g., * item or - item or 1. item)
+        if (line.match(/^[\*\-\d\.]+\s/)) {
+          const content = line.replace(/^[\*\-\d\.]+\s/, "");
+          return (
+            <div key={i} className="flex gap-2 pl-2">
+              <span className="text-primary">•</span>
+              <span>{formatBold(content)}</span>
+            </div>
+          );
+        }
+
+        return <p key={i} className="min-h-[1em]">{formatBold(line)}</p>;
+      })}
+    </div>
+  );
+}
+
+function formatBold(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i} className="font-bold text-primary/90">{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 function Bubble({
   sender,
   avatar,
@@ -49,18 +91,20 @@ function Bubble({
             Finance Advisor
           </div>
         )}
-        <p className="whitespace-pre-wrap">{text}</p>
+        {isAdvisor ? <MarkdownContent text={text} /> : <p className="whitespace-pre-wrap">{text}</p>}
       </div>
     </div>
   );
 }
 
 function FinanceAdvisorPage() {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<any[]>([]);
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
+  const [userName, setUserName] = useState("there");
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -78,8 +122,61 @@ function FinanceAdvisorPage() {
   };
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading]);
+    const fetchData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Fetch user profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name")
+          .eq("id", user.id)
+          .single();
+        
+        if (profile?.first_name) {
+          setUserName(profile.first_name);
+        }
+
+        // Fetch chat history
+        const { data: history, error: historyError } = await supabase
+          .from("ai_chat_messages")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: true });
+
+        if (historyError) throw historyError;
+
+        if (history && history.length > 0) {
+          setMessages(history.map(m => ({
+            sender: m.sender,
+            text: m.text,
+            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined
+          })));
+        } else {
+          // Default greeting if no history
+          const greeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
+          setMessages([{
+            sender: "advisor",
+            avatar: <Sparkles className="h-4 w-4" />,
+            text: greeting
+          }]);
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (!isInitialLoading) {
+      scrollToBottom();
+    }
+  }, [messages, isLoading, isInitialLoading]);
 
   useEffect(() => {
     handleScroll();
@@ -87,20 +184,14 @@ function FinanceAdvisorPage() {
 
   const speak = (text: string) => {
     if (!isSpeechEnabled) return;
-    
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
-    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
-    
-    // Try to find a nice female voice or a clear voice
     const voices = window.speechSynthesis.getVoices();
     const preferredVoice = voices.find(v => v.name.includes("Google") || v.name.includes("Female") || v.lang === "en-US");
     if (preferredVoice) utterance.voice = preferredVoice;
-    
     window.speechSynthesis.speak(utterance);
   };
 
@@ -109,12 +200,25 @@ function FinanceAdvisorPage() {
     const trimmed = draft.trim();
     if (!trimmed || isLoading) return;
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error("You must be logged in to chat.");
+      return;
+    }
+
     const newUserMessage = { sender: "user", text: trimmed };
     setMessages((current) => [...current, newUserMessage]);
     setDraft("");
     setIsLoading(true);
 
     try {
+      // Save user message to database
+      await supabase.from("ai_chat_messages").insert({
+        user_id: user.id,
+        sender: "user",
+        text: trimmed
+      });
+
       const { data, error } = await supabase.functions.invoke("gemini-chat", {
         body: {
           messages: messages.map(m => ({ sender: m.sender, text: m.text })),
@@ -131,17 +235,24 @@ function FinanceAdvisorPage() {
         text: aiText,
       };
 
+      // Save AI response to database
+      await supabase.from("ai_chat_messages").insert({
+        user_id: user.id,
+        sender: "advisor",
+        text: aiText
+      });
+
       setMessages((current) => [...current, newAiMessage]);
       speak(aiText);
     } catch (error: any) {
       console.error("Error calling Gemini:", error);
-      toast.error("Failed to get response from advisor: " + error.message);
+      toast.error("Failed to get response from advisor.");
       
       setMessages((current) => [
         ...current,
         {
           sender: "advisor",
-          avatar: <MessageCircle className="h-4 w-4" />,
+          avatar: <Sparkles className="h-4 w-4" />,
           text: "I'm sorry, I'm having trouble connecting to my brain right now. Please try again in a moment.",
         },
       ]);
@@ -149,6 +260,19 @@ function FinanceAdvisorPage() {
       setIsLoading(false);
     }
   };
+
+  if (isInitialLoading) {
+    return (
+      <AppShell>
+        <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            <p className="text-sm text-muted-foreground">Loading your advisor...</p>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
