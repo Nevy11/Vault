@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setProfile(null); // Clear profile state
-    navigate({ to: "/login" });
+    navigate({ to: "/" });
   };
 
   return (
