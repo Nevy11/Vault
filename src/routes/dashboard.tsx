@@ -7,7 +7,7 @@ import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useProfileSignal } from "@/lib/profile-signal";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -195,6 +195,13 @@ function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [profile] = useProfileSignal();
 
+  const syncTime = useMemo(() => {
+    if (txLoading) return "Syncing...";
+    if (transactions.length === 0) return "Just now";
+    const lastActivity = new Date(transactions[0].created_at);
+    return `Data Synced ${formatDistanceToNow(lastActivity, { addSuffix: true })}`;
+  }, [transactions, txLoading]);
+
   const filteredTransactions = useMemo(() => {
     if (activeFilter === "All") return transactions;
     if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
@@ -210,12 +217,13 @@ function DashboardPage() {
   const getTransactionDetails = (t: any) => {
     const isSender = t.sender_id === (profile as any)?.id;
     const userName = `${profile?.first_name} ${profile?.last_name}`;
+    const symbol = currency === 'USD' ? '$' : currency + ' ';
 
     if (t.type === 'transfer') {
       if (isSender) {
         return {
           title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
-          amount: `-$${t.amount.toLocaleString()}`,
+          amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
           icon: t.receiver?.first_name?.[0] || 'V',
           color: "bg-primary/20 text-primary",
@@ -223,7 +231,7 @@ function DashboardPage() {
       } else {
         return {
           title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
-          amount: `+$${t.amount.toLocaleString()}`,
+          amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || 'V',
           color: "bg-emerald-500/20 text-emerald-500",
@@ -234,7 +242,7 @@ function DashboardPage() {
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: `${bankName} to ${userName}`,
-        amount: `+$${t.amount.toLocaleString()}`,
+        amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
         icon: initials,
         color: "bg-emerald-500/20 text-emerald-500",
@@ -243,7 +251,7 @@ function DashboardPage() {
       const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
       return {
         title: `Withdrawal to ${bankName}`,
-        amount: `-$${t.amount.toLocaleString()}`,
+        amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: bankName.substring(0, 2).toUpperCase(),
         color: "bg-destructive/20 text-destructive",
@@ -251,12 +259,14 @@ function DashboardPage() {
     }
     return {
       title: t.description,
-      amount: `$${t.amount.toLocaleString()}`,
+      amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
       icon: '?',
       color: "bg-secondary text-secondary-foreground",
     };
   };
+
+  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
 
   return (
     <AppShell>
@@ -277,7 +287,7 @@ function DashboardPage() {
             <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
               {balanceLoading ? (
                 <div className="flex items-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   <span className="text-sm text-muted-foreground">Loading...</span>
                 </div>
               ) : balanceError ? (
@@ -285,7 +295,7 @@ function DashboardPage() {
               ) : (
                 <>
                   <span className="text-4xl sm:text-5xl font-light">
-                    {currency === 'KSH' ? 'KSH ' : '$'}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs w-fit px-2 py-1 rounded-full bg-primary/15 text-primary">
                     + 5.25%
@@ -317,7 +327,7 @@ function DashboardPage() {
               }
               name="Vault: Digital Wallet OS"
               type="Verified Account"
-              amount={balanceLoading ? "Loading..." : balanceError ? "Error" : `${currency === 'KSH' ? 'KSH ' : '$'}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              amount={balanceLoading ? "Loading..." : balanceError ? "Error" : `${currencySymbol}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             />
           </div>
           <div className="md:col-span-1">
@@ -371,7 +381,7 @@ function DashboardPage() {
               ))}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <RefreshCw className="w-3 h-3" /> Data Synced 2m ago
+              <RefreshCw className={`w-3 h-3 ${txLoading ? 'animate-spin' : ''}`} /> {syncTime}
             </div>
           </div>
 
@@ -412,7 +422,7 @@ function DashboardPage() {
                         {details.amount}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Balance: ${t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                        Balance: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
                       </div>
                     </div>
                   </li>
