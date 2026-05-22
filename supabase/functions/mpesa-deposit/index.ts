@@ -13,11 +13,22 @@ const DARAJA_STK_PUSH_URL = ENV === "sandbox"
   : "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
 
 async function getAccessToken() {
-  const auth = btoa(`${CONSUMER_KEY}:${CONSUMER_SECRET}`);
+  const consumerKey = Deno.env.get("VITE_DARAJA_CONSUMER_KEY");
+  const consumerSecret = Deno.env.get("VITE_DARAJA_CONSUMER_SECRET");
+
+  if (!consumerKey || !consumerSecret) {
+    throw new Error("Missing DARAJA_CONSUMER_KEY or DARAJA_CONSUMER_SECRET environment variables");
+  }
+
+  const auth = btoa(`${consumerKey}:${consumerSecret}`);
   const response = await fetch(DARAJA_AUTH_URL, {
     headers: { Authorization: `Basic ${auth}` },
   });
-  if (!response.ok) throw new Error("Failed to get Daraja access token");
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("Daraja Auth Error:", errorText);
+    throw new Error("Failed to get Daraja access token: " + errorText);
+  }
   const data = await response.json();
   return data.access_token;
 }
@@ -34,8 +45,21 @@ serve(async (req) => {
   }
 
   try {
-    const { phoneNumber, amount } = await req.json();
+    const body = await req.json();
+    console.log("M-Pesa Request Body:", JSON.stringify(body));
+    const { phoneNumber, amount } = body;
+
+    if (!phoneNumber || !amount) {
+      console.error("Missing phoneNumber or amount");
+      return new Response(JSON.stringify({ error: "phoneNumber and amount are required" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      });
+    }
+
     const accessToken = await getAccessToken();
+    console.log("Access Token retrieved successfully");
+    
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
     
     const shortCode = "174379";
@@ -43,18 +67,20 @@ serve(async (req) => {
     const password = btoa(`${shortCode}${passKey}${timestamp}`);
 
     const payload = {
-      BusinessShortCode: shortCode,
+      BusinessShortCode: SHORTCODE,
       Password: password,
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
       Amount: Math.round(amount),
       PartyA: phoneNumber,
-      PartyB: shortCode,
+      PartyB: SHORTCODE,
       PhoneNumber: phoneNumber,
-      CallBackURL: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-callback`,
+      CallBackURL: `${Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL")}/functions/v1/mpesa-callback`,
       AccountReference: "VaultDeposit",
       TransactionDesc: `Deposit of ${amount}`,
     };
+
+    console.log("Sending STK Push Payload:", JSON.stringify(payload));
 
     const response = await fetch(DARAJA_STK_PUSH_URL, {
       method: "POST",
@@ -66,12 +92,14 @@ serve(async (req) => {
     });
 
     const data = await response.json();
+    console.log("Daraja STK Push Response:", JSON.stringify(data));
     
     return new Response(JSON.stringify(data), {
       status: response.ok ? 200 : 400,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
   } catch (error: any) {
+    console.error("M-Pesa Edge Function Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },

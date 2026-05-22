@@ -6,14 +6,14 @@ BEGIN;
 WITH missing_profiles AS (
   SELECT
     id,
-    lower(trim(regexp_replace(coalesce(first_name, ''), '[^a-z0-9]+', '.', 'g'))) AS norm_first,
-    lower(trim(regexp_replace(coalesce(last_name, ''), '[^a-z0-9]+', '.', 'g'))) AS norm_last
+    lower(trim(both '.' FROM regexp_replace(coalesce(first_name, ''), '[^a-z0-9]+', '.', 'gi'))) AS norm_first,
+    lower(trim(both '.' FROM regexp_replace(coalesce(last_name, ''), '[^a-z0-9]+', '.', 'gi'))) AS norm_last
   FROM public.profiles
   WHERE kyc_tag IS NULL
 ), base_tags AS (
   SELECT
     id,
-    concat('@', regexp_replace(trim(both '.' FROM regexp_replace(norm_first, '\\.+', '.', 'g')), '\\.+', '.', 'g'), '.', regexp_replace(trim(both '.' FROM regexp_replace(norm_last, '\\.+', '.', 'g')), '\\.+', '.', 'g')) AS base_tag
+    concat('@', norm_first, '.', norm_last) AS base_tag
   FROM missing_profiles
 ), ordered_tags AS (
   SELECT
