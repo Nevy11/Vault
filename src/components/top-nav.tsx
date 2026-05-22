@@ -28,7 +28,7 @@ export function TopNav() {
       const { data } = await supabase
         .from("profiles")
         .select("first_name, profile_photo_url")
-        .eq("id", user.id)
+        .eq("id", userId)
         .maybeSingle();
       
       if (data) setProfile(data);
