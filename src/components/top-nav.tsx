@@ -24,20 +24,39 @@ export function TopNav() {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    async function fetchProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
+    async function fetchProfile(userId: string) {
       const { data } = await supabase
         .from("profiles")
         .select("first_name, profile_photo_url")
-        .eq("id", user.id)
+        .eq("id", userId)
         .maybeSingle();
       
       if (data) setProfile(data);
+      else setProfile(null);
     }
-    fetchProfile();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) fetchProfile(user.id);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setOpen(false);
+    window.location.href = "/";
+  };
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -100,11 +119,9 @@ export function TopNav() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/" className="cursor-pointer text-destructive focus:text-destructive">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
-                  </Link>
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
