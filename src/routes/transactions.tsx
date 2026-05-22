@@ -116,7 +116,7 @@ const FREQUENT_TRANSACTIONS: Recipient[] = [
 ];
 
 function SendPanel() {
-  const { currency } = useWalletBalance();
+  const { currency, refetch } = useWalletBalance();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");
@@ -125,8 +125,40 @@ function SendPanel() {
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
+  
+  // Recipient Verification
+  const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const fee = 15.0; // Flat fee for simulation
+  useEffect(() => {
+    const searchRecipient = async () => {
+      // Remove any existing @ then add one to match DB format
+      const searchTag = identifier.trim() ? `@${identifier.replace("@", "").toLowerCase()}` : "";
+      
+      if (method === "vault" && searchTag.length >= 4) { // @ + at least 3 chars
+        setIsSearching(true);
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name")
+          .eq("kyc_tag", searchTag) // DB tags start with @ and are lowercase
+          .maybeSingle();
+        
+        if (data) {
+          setRecipient({ id: data.id, name: `${data.first_name} ${data.last_name}` });
+        } else {
+          setRecipient(null);
+        }
+        setIsSearching(false);
+      } else {
+        setRecipient(null);
+      }
+    };
+
+    const timer = setTimeout(searchRecipient, 400);
+    return () => clearTimeout(timer);
+  }, [identifier, method]);
+
+  const fee = method === "vault" ? 0.0 : 15.0;
   const total = parseFloat(amount || "0") + fee;
 
   const handleSelectRecipient = (r: Recipient) => {
@@ -179,11 +211,45 @@ function SendPanel() {
 
   const handleConfirm = async () => {
     setStatus("processing");
-    // Simulate backend processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setRefCode(`VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
-    setStatus("success");
-    toast.success("Transfer completed successfully!");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not found");
+
+      if (method === "vault") {
+        const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
+          p_sender_id: user.id,
+          p_recipient_tag: identifier,
+          p_amount: parseFloat(amount)
+        });
+
+        if (rpcError) {
+          console.error("RPC Error Details:", rpcError);
+          throw new Error(rpcError.message || "Transfer failed at database level");
+        }
+        
+        const result = Array.isArray(data) ? data[0] : data;
+
+        if (!result?.success) {
+          throw new Error(result?.message || "Transfer failed");
+        }
+
+        setRefCode(result.reference || `VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+        
+        // Refetch balance to show updated amount in profile immediately
+        await refetch();
+      } else {
+        // Mock for other methods for now
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        setRefCode(`VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      }
+
+      setStatus("success");
+      toast.success("Transfer completed successfully!");
+    } catch (error: any) {
+      console.error("Transfer error:", error);
+      toast.error(error.message || "An unexpected error occurred during transfer");
+      setStatus("idle");
+    }
   };
 
   if (status === "success") {
@@ -337,6 +403,19 @@ function SendPanel() {
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                   />
+                  {method === "vault" && identifier.length >= 3 && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      {isSearching ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      ) : recipient ? (
+                        <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium animate-in fade-in zoom-in duration-300">
+                          <Check className="w-3 h-3" /> {recipient.name}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-destructive font-medium uppercase tracking-tighter">Not Found</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -373,6 +452,7 @@ function SendPanel() {
                 size="lg" 
                 className="w-full h-14 text-base font-medium shadow-lg shadow-primary/20"
                 onClick={handleSendClick}
+                disabled={method === "vault" && !recipient}
               >
                 Send Money <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
@@ -439,8 +519,14 @@ function SendPanel() {
             <div className="rounded-2xl bg-muted/50 p-4 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Recipient</span>
-                <span className="font-medium">{identifier}</span>
+                <span className="font-semibold text-foreground">{recipient ? recipient.name : identifier}</span>
               </div>
+              {recipient && (
+                <div className="flex justify-between text-[10px] -mt-2">
+                  <span className="text-muted-foreground italic">KYC Tag Verified</span>
+                  <span className="text-primary font-mono">@{identifier.replace("@", "")}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Via</span>
                 <span className="font-medium capitalize">{method} {bank && `- ${bank.split(" (")[0]}`}</span>
