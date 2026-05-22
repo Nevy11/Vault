@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { supabase } from "@/lib/supabase";
 import { initiateStkPush } from "@/lib/daraja";
 import { toast } from "sonner";
@@ -54,15 +55,23 @@ export const Route = createFileRoute("/transactions")({
 type Mode = "send" | "deposit" | "withdraw";
 
 function WalletCard() {
+  const { balance, currency, loading } = useWalletBalance();
+
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card/40 p-5 backdrop-blur-sm">
+    <div className="rounded-2xl border border-primary/40 bg-card/40 p-5 backdrop-blur-sm min-w-[200px]">
       <div className="flex items-center justify-between">
         <div className="text-xs uppercase tracking-wider text-muted-foreground">
-          Vault USD Wallet
+          Vault {currency} Wallet
         </div>
         <Lock className="w-3.5 h-3.5 text-muted-foreground" />
       </div>
-      <div className="mt-3 text-3xl font-light text-primary">$12,450.75</div>
+      <div className="mt-3 text-3xl font-light text-primary">
+        {loading ? (
+          <div className="h-9 w-24 bg-primary/10 animate-pulse rounded" />
+        ) : (
+          `${currency === "USD" ? "$" : currency + " "}${balance?.toLocaleString() ?? "0.00"}`
+        )}
+      </div>
     </div>
   );
 }
@@ -107,6 +116,7 @@ const FREQUENT_TRANSACTIONS: Recipient[] = [
 ];
 
 function SendPanel() {
+  const { currency } = useWalletBalance();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");
@@ -184,7 +194,7 @@ function SendPanel() {
         </div>
         <h2 className="text-2xl font-semibold mb-2">Transfer Successful!</h2>
         <p className="text-muted-foreground mb-6 max-w-sm">
-          Your transfer of KES {parseFloat(amount).toLocaleString()} has been processed securely.
+          Your transfer of {currency} {parseFloat(amount).toLocaleString()} has been processed securely.
         </p>
         <div className="bg-card/40 border border-border/50 rounded-2xl p-6 w-full max-w-sm mb-8">
           <div className="flex justify-between mb-3 text-sm">
@@ -193,7 +203,7 @@ function SendPanel() {
           </div>
           <div className="flex justify-between mb-3 text-sm">
             <span className="text-muted-foreground">Amount Deducted</span>
-            <span className="font-medium">KES {total.toLocaleString()}</span>
+            <span className="font-medium">{currency} {total.toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Status</span>
@@ -331,9 +341,9 @@ function SendPanel() {
               </div>
 
               <div className="space-y-2">
-                <Label>Amount (KES)</Label>
+                <Label>Amount ({currency})</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">KES</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{currency}</span>
                   <Input
                     type="number"
                     placeholder="0.00"
@@ -437,15 +447,15 @@ function SendPanel() {
               </div>
               <div className="border-t border-border/50 pt-3 flex justify-between text-sm">
                 <span className="text-muted-foreground">Amount</span>
-                <span className="font-medium">KES {parseFloat(amount || "0").toLocaleString()}</span>
+                <span className="font-medium">{currency} {parseFloat(amount || "0").toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Transaction Fee</span>
-                <span className="font-medium text-destructive">KES {fee.toLocaleString()}</span>
+                <span className="font-medium text-destructive">{currency} {fee.toLocaleString()}</span>
               </div>
               <div className="border-t border-primary/20 pt-3 flex justify-between text-base font-semibold">
                 <span>Total Deducted</span>
-                <span className="text-primary font-mono">KES {total.toLocaleString()}</span>
+                <span className="text-primary font-mono">{currency} {total.toLocaleString()}</span>
               </div>
             </div>
           </div>
