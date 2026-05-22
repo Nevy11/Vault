@@ -187,7 +187,7 @@ function SecurityStatus() {
   );
 }
 
-const filters = ["All", "Send", "Deposit", "Withdraw"];
+const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 
 function DashboardPage() {
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
@@ -197,11 +197,15 @@ function DashboardPage() {
 
   const filteredTransactions = useMemo(() => {
     if (activeFilter === "All") return transactions;
-    if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer');
+    if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
+    if (activeFilter === "Received") return transactions.filter(t => 
+      (t.type === 'transfer' && t.receiver_id === (profile as any)?.id) || 
+      t.type === 'deposit'
+    );
     if (activeFilter === "Deposit") return transactions.filter(t => t.type === 'deposit');
     if (activeFilter === "Withdraw") return transactions.filter(t => t.type === 'withdrawal');
     return transactions;
-  }, [transactions, activeFilter]);
+  }, [transactions, activeFilter, profile]);
 
   const getTransactionDetails = (t: any) => {
     const isSender = t.sender_id === (profile as any)?.id;
