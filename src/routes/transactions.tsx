@@ -459,7 +459,7 @@ function TransactionsPage() {
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
-    navigate({ search: (prev) => ({ ...prev, mode: newMode }) });
+    navigate({ search: (prev: any) => ({ ...prev, mode: newMode }) });
   };
 
   const tabs: { id: Mode; label: string }[] = [

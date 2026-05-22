@@ -37,12 +37,11 @@ import {
 import { toast } from 'sonner';
 import { Link } from '@tanstack/react-router';
 
-// Mock Data
-const SAVED_NUMBERS = [
-  { id: 'm1', name: 'Primary M-Pesa', phone: '+254 712 345 678', carrier: 'M-Pesa', color: 'bg-emerald-600' },
-  { id: 'm2', name: 'Work Airtel', phone: '+254 789 012 345', carrier: 'Airtel Money', color: 'bg-red-500' },
-];
+import { useProfileSignal } from '@/lib/profile-signal';
+import { supabase } from '@/lib/supabase';
+import { hashPin } from '@/lib/utils';
 
+// Mock Data
 const SAVED_BANK_ACCOUNTS = [
   { id: 'b1', name: 'Equity Bank', accountNumber: '****5678', holder: 'John Doe', color: 'bg-orange-600' },
   { id: 'b2', name: 'KCB Bank', accountNumber: '****1234', holder: 'John Doe', color: 'bg-green-700' },
@@ -66,6 +65,7 @@ type SourceChannel = 'bank' | 'mobile';
 type DepositStatus = 'idle' | 'confirming' | 'processing' | 'success';
 
 export function DepositPanel() {
+  const [profile] = useProfileSignal();
   const [channel, setChannel] = useState<SourceChannel>('mobile');
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
@@ -75,12 +75,26 @@ export function DepositPanel() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [refCode, setRefCode] = useState("");
 
+  const SAVED_NUMBERS = useMemo(() => {
+    console.log("DEBUG: Current profile object:", profile);
+    const phoneNumber = profile?.phone_number || 'No number set';
+    return [
+      { 
+        id: 'm1', 
+        name: phoneNumber, 
+        phone: phoneNumber, 
+        carrier: 'M-Pesa', 
+        color: 'bg-emerald-600' 
+      },
+    ];
+  }, [profile]);
+
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
     return val * EXCHANGE_RATE;
   }, [amount]);
 
-  const handleDepositClick = () => {
+  const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
       toast.error("Please enter a valid amount");
       return;
@@ -91,12 +105,40 @@ export function DepositPanel() {
       return;
     }
 
-    if (pin.length < 4) {
-      toast.error("Please enter your transaction PIN");
+    if (pin.length < 6) {
+      toast.error("Please enter your 6-digit transaction PIN");
       return;
     }
 
-    setStatus('confirming');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("pin_hash")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError || !profileData) {
+        console.error("Profile fetch error:", profileError);
+        toast.error("Error verifying PIN");
+        return;
+      }
+
+      const hashedPin = await hashPin(pin);
+      if (profileData.pin_hash !== hashedPin) {
+        toast.error("Incorrect transaction PIN");
+        return;
+      }
+      setStatus('confirming');
+    } catch (error) {
+      console.error("PIN verification error:", error);
+      toast.error("Error verifying PIN");
+    }
   };
 
   const handleConfirmDeposit = async () => {
@@ -217,18 +259,18 @@ export function DepositPanel() {
                     key={item.id}
                     onClick={() => { setSelectedSourceId(item.id); setIsAddingNew(false); }}
                     className={cn(
-                      "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
+                      "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all w-full",
                       selectedSourceId === item.id && !isAddingNew
                         ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
                         : "border-border/60 bg-background/20 hover:border-border"
                     )}
                   >
                     <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold", item.color)}>
-                      {item.carrier === 'M-Pesa' ? 'MP' : 'AM'}
+                      MP
                     </div>
                     <div className="flex-1 min-w-0">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Primary Number</div>
                       <div className="text-sm font-semibold truncate">{item.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{item.phone}</div>
                     </div>
                     {selectedSourceId === item.id && !isAddingNew && <Check className="w-5 h-5 text-primary" />}
                   </button>
@@ -352,9 +394,9 @@ export function DepositPanel() {
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input 
                 type="password" 
-                maxLength={4} 
-                placeholder="****" 
-                className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-center text-2xl tracking-[0.8em] focus:ring-primary/20"
+                maxLength={6} 
+                placeholder="******" 
+                className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-center text-2xl tracking-[0.6em] focus:ring-primary/20"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
               />

@@ -1,8 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const CONSUMER_KEY = Deno.env.get("VITE_DARAJA_CONSUMER_KEY")!;
-const CONSUMER_SECRET = Deno.env.get("VITE_DARAJA_CONSUMER_SECRET")!;
-const ENV = Deno.env.get("VITE_DARAJA_ENV") || "sandbox";
+// Support both VITE_ prefixed (legacy) and clean env var names
+const CONSUMER_KEY = Deno.env.get("DARAJA_CONSUMER_KEY") || Deno.env.get("VITE_DARAJA_CONSUMER_KEY")!;
+const CONSUMER_SECRET = Deno.env.get("DARAJA_CONSUMER_SECRET") || Deno.env.get("VITE_DARAJA_CONSUMER_SECRET")!;
+const ENV = Deno.env.get("DARAJA_ENV") || Deno.env.get("VITE_DARAJA_ENV") || "sandbox";
+const SHORTCODE = Deno.env.get("DARAJA_SHORTCODE") || Deno.env.get("VITE_DARAJA_SHORTCODE") || "174379";
+const PASSKEY = Deno.env.get("DARAJA_PASSKEY") || Deno.env.get("VITE_DARAJA_PASSKEY") || Deno.env.get("VITE_DARAJA_PASS_KEY") || "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
 
 const DARAJA_AUTH_URL = ENV === "sandbox"
   ? "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
@@ -38,20 +41,18 @@ serve(async (req) => {
     const accessToken = await getAccessToken();
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
     
-    const shortCode = "174379";
-    const passKey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
-    const password = btoa(`${shortCode}${passKey}${timestamp}`);
+    const password = btoa(`${SHORTCODE}${PASSKEY}${timestamp}`);
 
     const payload = {
-      BusinessShortCode: shortCode,
+      BusinessShortCode: SHORTCODE,
       Password: password,
       Timestamp: timestamp,
       TransactionType: "CustomerPayBillOnline",
       Amount: Math.round(amount),
       PartyA: phoneNumber,
-      PartyB: shortCode,
+      PartyB: SHORTCODE,
       PhoneNumber: phoneNumber,
-      CallBackURL: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mpesa-callback`,
+      CallBackURL: `${Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL")}/functions/v1/mpesa-callback`,
       AccountReference: "VaultDeposit",
       TransactionDesc: `Deposit of ${amount}`,
     };

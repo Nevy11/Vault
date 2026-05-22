@@ -226,7 +226,7 @@ function SettingsPage() {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("*, phone_number")
         .eq("id", user.id)
         .single();
 
