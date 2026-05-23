@@ -1,4 +1,22 @@
 import { createClient } from "@supabase/supabase-js";
+import { createRequire } from "module";
+
+// Provide a WebSocket implementation on the server (Node <22) so
+// @supabase/realtime-js can initialize correctly during SSR/dev.
+if (typeof window === "undefined") {
+  try {
+    const require = createRequire(import.meta.url);
+    // `ws` exports the constructor directly for CJS, or as { WebSocket } for newer builds.
+    // Try both shapes and attach to globalThis so Supabase picks it up.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const wsPkg = require("ws");
+    (globalThis as any).WebSocket = wsPkg.WebSocket || wsPkg;
+  } catch (e) {
+    // If `ws` isn't installed, we intentionally let createClient fail later
+    // with the existing suggestion to install `ws`.
+    // Keep silent here to avoid noisy logs.
+  }
+}
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
