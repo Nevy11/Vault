@@ -81,8 +81,8 @@ export function TopNav() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">
-                    Profile
+                  <Link to="/dashboard" className="cursor-pointer">
+                    Dashboard
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
