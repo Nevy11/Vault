@@ -25,6 +25,33 @@ const initialMessages = [
   },
 ];
 
+const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+
+function cacheKeyForUser(userId: string) {
+  return `finance-advisor-messages:${userId}`;
+}
+
+function loadCachedMessagesRaw(userId: string) {
+  try {
+    const raw = localStorage.getItem(cacheKeyForUser(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || (Date.now() - parsed.ts) > CACHE_TTL) return null;
+    return parsed.messages || null;
+  } catch (e) {
+    console.error("Failed to load cached messages:", e);
+    return null;
+  }
+}
+
+function saveCachedMessagesRaw(userId: string, messages: Array<{ sender: string; text: string }>) {
+  try {
+    const payload = { ts: Date.now(), messages };
+    localStorage.setItem(cacheKeyForUser(userId), JSON.stringify(payload));
+  } catch (e) {
+    console.error("Failed to save cached messages:", e);
+  }
+}
 function MarkdownContent({ text }: { text: string }) {
   // Simple regex-based markdown parser for bold, headers, and lists
   const lines = text.split("\n");
@@ -99,13 +126,25 @@ function Bubble({
 }
 
 function FinanceAdvisorPage() {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [profile] = useProfileSignal();
+
+  // Initialize messages synchronously from cache if possible so UI shows instantly
+  const initialCached = (typeof window !== "undefined" && profile?.id) ? loadCachedMessagesRaw(profile.id) : null;
+  const [messages, setMessages] = useState<any[]>(() => {
+    if (initialCached && initialCached.length > 0) {
+      return initialCached.map((m: any) => ({
+        sender: m.sender,
+        text: m.text,
+        avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
+      }));
+    }
+    return [];
+  });
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(initialCached ? false : true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
-  const [profile] = useProfileSignal();
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -128,29 +167,44 @@ function FinanceAdvisorPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch chat history
+        // Try to load cached messages first for instant UI.
+        const cached = loadCachedMessagesRaw(user.id);
+        if (cached && cached.length > 0) {
+          setMessages(cached.map((m: any) => ({
+            sender: m.sender,
+            text: m.text,
+            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
+          })));
+          // mark initial loading as done so UI is responsive while we refresh in background
+          setIsInitialLoading(false);
+        }
+
+        // Background fetch: only fetch recent N messages to avoid heavy loads each navigation
         const { data: history, error: historyError } = await supabase
           .from("ai_chat_messages")
           .select("*")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: true });
+          .order("created_at", { ascending: false })
+          .limit(200);
 
         if (historyError) throw historyError;
 
-        if (history && history.length > 0) {
-          setMessages(history.map(m => ({
+        const ordered = (history || []).slice().reverse();
+        if (ordered && ordered.length > 0) {
+          const mapped = ordered.map(m => ({
             sender: m.sender,
             text: m.text,
-            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined
-          })));
-        } else {
-          // Default greeting if no history
+            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
+          }));
+          setMessages(mapped);
+          // persist trimmed messages (strip React nodes)
+          saveCachedMessagesRaw(user.id, mapped.map(({ sender, text }) => ({ sender, text })));
+        } else if (!cached || cached.length === 0) {
+          // Default greeting if no history and nothing cached
           const greeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
-          setMessages([{
-            sender: "advisor",
-            avatar: <Sparkles className="h-4 w-4" />,
-            text: greeting
-          }]);
+          const greetingMsg = [{ sender: "advisor", avatar: <Sparkles className="h-4 w-4" />, text: greeting }];
+          setMessages(greetingMsg);
+          saveCachedMessagesRaw(user.id, greetingMsg.map(({ sender, text }) => ({ sender, text })));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -161,6 +215,23 @@ function FinanceAdvisorPage() {
 
     fetchData();
   }, [profile]);
+
+  // Persist messages to cache when they change
+  useEffect(() => {
+    let mounted = true;
+    const persist = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user || !mounted) return;
+        // store only sender/text to avoid serializing React nodes
+        saveCachedMessagesRaw(user.id, messages.map(m => ({ sender: m.sender, text: m.text })));
+      } catch (e) {
+        // ignore
+      }
+    };
+    persist();
+    return () => { mounted = false; };
+  }, [messages]);
 
   useEffect(() => {
     if (!isInitialLoading) {
