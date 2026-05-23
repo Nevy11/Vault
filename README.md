@@ -2,6 +2,8 @@
 
 Vault is a secure wallet web application built with React, TanStack Start, Supabase, and Vite. It supports SSR, user authentication, KYC onboarding, real-time account activity, deposits, withdrawals, and wallet management.
 
+Live demo: https://vault-one-plum.vercel.app/
+
 ## Key features
 
 - Email/PIN login and sign-up flows
