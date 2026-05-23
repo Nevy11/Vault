@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Shield, Database, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,8 +58,11 @@ function Field({
 }
 
 function SignUp() {
+  const { step: initialStep } = Route.useSearch();
   const [agreed, setAgreed] = useState(false);
-  const [step, setStep] = useState<"signUp" | "verify">("signUp");
+  const [step, setStep] = useState<"signUp" | "verify">(
+    initialStep === "verify" ? "verify" : "signUp"
+  );
   const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -67,7 +70,13 @@ function SignUp() {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [code, setCode] = useState("");
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: Route.fullPath });
+
+  useEffect(() => {
+    if (initialStep) {
+      setStep(initialStep === "verify" ? "verify" : "signUp");
+    }
+  }, [initialStep]);
 
   const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -115,6 +124,7 @@ function SignUp() {
       
       console.log("SignUp successful, data:", data);
       toast.success("Verification code sent to your email");
+      navigate({ search: (prev: any) => ({ ...prev, step: "verify" }) });
       setStep("verify");
     } catch (error: any) {
       console.error("Sign up error caught:", error);
@@ -427,6 +437,7 @@ function SignUp() {
                 <button
                   type="button"
                   onClick={() => {
+                    navigate({ search: (prev: any) => ({ ...prev, step: "signUp" }) });
                     setStep("signUp");
                     setStatus("idle");
                     setCode("");
