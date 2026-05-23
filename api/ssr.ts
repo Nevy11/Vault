@@ -1,4 +1,4 @@
-import server from "../src/server";
+import server from "../dist/server/index.js";
 
 function getRequestUrl(req: any) {
   const protocol = req.headers["x-forwarded-proto"] || "https";
