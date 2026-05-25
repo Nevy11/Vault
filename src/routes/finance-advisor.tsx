@@ -330,7 +330,7 @@ function FinanceAdvisorPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-0 md:pt-6 min-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+      <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-0 md:pt-6 h-[calc(100vh-6rem)] flex flex-col">
         <div className="flex-shrink-0 mb-2 md:mb-4 px-3 md:px-0 pb-0 md:pb-2">
           <div className="mx-auto w-full rounded-none md:rounded-2xl bg-card/95 border-b md:border border-border/30 px-4 md:px-6 py-3 md:py-5 shadow-sm">
             <div className="flex items-center justify-between gap-3 md:gap-6 flex-wrap">
@@ -378,7 +378,7 @@ function FinanceAdvisorPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5 py-4 md:py-5"
+            className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5 py-4 md:py-5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
           >
             <div className="space-y-4">
               {messages.map((message, index) => (
