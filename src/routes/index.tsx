@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Logo } from "@/components/logo";
 import { TopNav } from "@/components/top-nav";
+import { Sparkles, ArrowRight, Shield, Database, Layers, Wallet, LineChart, Lock, Globe, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
