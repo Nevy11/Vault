@@ -141,18 +141,19 @@ export function DepositPanel() {
     if (channel === 'stripe') {
       setStatus('processing');
       try {
-        const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+        const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
           body: { amount: parseFloat(amount), user_id: userId },
         });
 
         if (error) throw error;
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.clientSecret) {
+          setStripeClientSecret(data.clientSecret);
+          setStatus('stripe_pay');
         } else {
-          throw new Error("No checkout URL returned");
+          throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe checkout: " + err.message);
+        toast.error("Failed to initiate Stripe payment: " + err.message);
         setStatus('idle');
       }
       return;
@@ -161,18 +162,19 @@ export function DepositPanel() {
     if (channel === 'bank' && selectedSourceId === 'stripe-ach') {
       setStatus('processing');
       try {
-        const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+        const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
           body: { amount: parseFloat(amount), user_id: userId },
         });
 
         if (error) throw error;
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.clientSecret) {
+          setStripeClientSecret(data.clientSecret);
+          setStatus('stripe_pay');
         } else {
-          throw new Error("No checkout URL returned");
+          throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe checkout: " + err.message);
+        toast.error("Failed to initiate Stripe payment: " + err.message);
         setStatus('idle');
       }
       return;
@@ -271,7 +273,10 @@ export function DepositPanel() {
         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
           <StripePayment 
             amount={parseFloat(amount)} 
-            onSuccess={() => setStatus('success')} 
+            onSuccess={(ref) => {
+              setRefCode(ref);
+              setStatus('success');
+            }} 
             onCancel={() => setStatus('idle')}
           />
         </Elements>

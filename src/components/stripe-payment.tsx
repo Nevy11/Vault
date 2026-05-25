@@ -10,7 +10,7 @@ import { supabase } from "@/api/supabase";
 
 interface StripePaymentProps {
   amount: number;
-  onSuccess: () => void;
+  onSuccess: (referenceId: string) => void;
   onCancel: () => void;
 }
 
@@ -46,8 +46,46 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
       }
       toast.error(error.message || "Payment failed");
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      toast.success("Deposit successful!");
-      onSuccess();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User session not found");
+
+        // 1. Record the transaction in the UI table
+        const { error: txError } = await supabase.from("transactions").insert({
+          sender_id: user.id,
+          type: "deposit",
+          method: "bank",
+          amount: amount,
+          status: "completed",
+          description: `Stripe Deposit: ${paymentIntent.id}`,
+        });
+
+        if (txError) console.error("Error recording transaction:", txError);
+
+        // 2. Update the actual ledger and wallet balance
+        const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
+          p_user_id: user.id,
+          p_amount: amount,
+          p_currency: "USD",
+          p_type: "deposit",
+          p_reference: paymentIntent.id,
+          p_description: `Stripe Deposit: ${paymentIntent.id}`,
+          p_status: "completed"
+        });
+
+        if (ledgerError) {
+          console.error("Error updating ledger:", ledgerError);
+          toast.error("Payment succeeded but balance update failed. Please contact support.");
+        } else {
+          toast.success("Deposit successful! Your balance has been updated.");
+          onSuccess(paymentIntent.id);
+        }
+      } catch (dbErr: any) {
+        console.error("Database update error:", dbErr);
+        toast.error("Payment confirmed, but an error occurred updating your account.");
+        // Still call onSuccess as the payment itself was successful
+        onSuccess(paymentIntent.id);
+      }
     }
 
     setIsProcessing(false);
