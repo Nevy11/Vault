@@ -134,22 +134,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               const isTransact = label === "Transact";
               
               return (
-                <li key={to}>
+                <li key={to} className={isTransact ? "relative -top-4" : ""}>
                   <Link
                     to={to}
                     className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-all duration-300 ${
-                      active
-                        ? isTransact 
-                          ? "text-primary scale-110" 
-                          : "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
+                      isTransact
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30 h-14 w-14 justify-center rounded-full scale-110"
+                        : active
+                          ? "text-primary"
+                          : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    <Icon className={`h-5 w-5 transition-transform duration-500 ${
-                      active && isTransact ? "rotate-[360deg] text-primary" : ""
-                    }`} />
-                    <span className={`text-[10px] font-medium transition-colors ${
-                      active && isTransact ? "text-primary" : ""
+                    <Icon className={`h-5 w-5 ${
+                      isTransact ? "animate-[spin_10s_linear_infinite]" : ""
+                    } ${active && !isTransact ? "text-primary" : ""}`} />
+                    <span className={`text-[10px] font-medium ${
+                      isTransact ? "text-primary-foreground" : active ? "text-primary" : ""
                     }`}>{label}</span>
                   </Link>
                 </li>
