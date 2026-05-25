@@ -27,7 +27,7 @@ export type Transaction = {
   };
 };
 
-export function useTransactions() {
+export function useTransactions(enabled = true) {
   const [profile] = useProfileSignal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +74,10 @@ export function useTransactions() {
   };
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     fetchTransactions();
 
     const channel = supabase
@@ -86,7 +90,7 @@ export function useTransactions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [profile?.id]);
+  }, [profile?.id, enabled]);
 
   return { transactions, loading, error, refetch: fetchTransactions };
 }

@@ -196,7 +196,7 @@ const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 
 function DashboardPage() {
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  const { transactions, loading: txLoading, error: txError } = useTransactions();
+  const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const [activeFilter, setActiveFilter] = useState("All");
   const [profile] = useProfileSignal();
 
