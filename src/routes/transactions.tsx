@@ -146,81 +146,84 @@ function SendPanel() {
           .select(`
             receiver_id,
             profiles:receiver_id (
-              id,
-              first_name,
-              last_name,
-              kyc_tag
+            id,
+            first_name,
+            last_name,
+            kyc_tag,
+            profile_photo_url
             )
-          `)
-          .eq("sender_id", user.id)
-          .eq("type", "transfer")
-          .order("created_at", { ascending: false })
-          .limit(20);
+            `)
+            .eq("sender_id", user.id)
+            .eq("type", "transfer")
+            .order("created_at", { ascending: false })
+            .limit(20);
 
-        if (recentData) {
-          const uniqueRecipients: Recipient[] = [];
-          const seenIds = new Set();
-          
-          recentData.forEach((tx: any) => {
+            if (recentData) {
+            const uniqueRecipients: Recipient[] = [];
+            const seenIds = new Set();
+
+            recentData.forEach((tx: any) => {
             if (tx.profiles && !seenIds.has(tx.receiver_id)) {
-              seenIds.add(tx.receiver_id);
-              uniqueRecipients.push({
-                id: tx.receiver_id,
-                name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
-                type: "vault",
-                identifier: tx.profiles.kyc_tag || "",
-                avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
-                color: "bg-primary/20", // Could randomize this
-              });
+            seenIds.add(tx.receiver_id);
+            uniqueRecipients.push({
+              id: tx.receiver_id,
+              name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
+              type: "vault",
+              identifier: tx.profiles.kyc_tag || "",
+              avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
+              avatarUrl: tx.profiles.profile_photo_url,
+              color: "bg-primary/20", // Could randomize this
+            });
             }
-          });
-          setRecentRecipients(uniqueRecipients.slice(0, 5));
-        }
+            });
+            setRecentRecipients(uniqueRecipients.slice(0, 5));
+            }
 
-        // Fetch Frequent: Get top recipients by frequency
-        const { data: freqData } = await supabase
-          .from("transactions")
-          .select(`
+            // Fetch Frequent: Get top recipients by frequency
+            const { data: freqData } = await supabase
+            .from("transactions")
+            .select(`
             receiver_id,
             profiles:receiver_id (
-              id,
-              first_name,
-              last_name,
-              kyc_tag
+            id,
+            first_name,
+            last_name,
+            kyc_tag,
+            profile_photo_url
             )
-          `)
-          .eq("sender_id", user.id)
-          .eq("type", "transfer");
+            `)
+            .eq("sender_id", user.id)
+            .eq("type", "transfer");
 
-        if (freqData) {
-          const counts: Record<string, number> = {};
-          const profileMap: Record<string, any> = {};
-          
-          freqData.forEach((tx: any) => {
+            if (freqData) {
+            const counts: Record<string, number> = {};
+            const profileMap: Record<string, any> = {};
+
+            freqData.forEach((tx: any) => {
             if (tx.profiles) {
-              const rid = tx.receiver_id;
-              counts[rid] = (counts[rid] || 0) + 1;
-              profileMap[rid] = tx.profiles;
+            const rid = tx.receiver_id;
+            counts[rid] = (counts[rid] || 0) + 1;
+            profileMap[rid] = tx.profiles;
             }
-          });
+            });
 
-          const sortedRecipients = Object.entries(counts)
+            const sortedRecipients = Object.entries(counts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([id]) => {
-              const p = profileMap[id];
-              return {
-                id: parseInt(id),
-                name: `${p.first_name} ${p.last_name.charAt(0)}.`,
-                type: "vault" as const,
-                identifier: p.kyc_tag || "",
-                avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
-                color: "bg-primary/20",
-              };
+            const p = profileMap[id];
+            return {
+              id: parseInt(id),
+              name: `${p.first_name} ${p.last_name.charAt(0)}.`,
+              type: "vault" as const,
+              identifier: p.kyc_tag || "",
+              avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
+              avatarUrl: p.profile_photo_url,
+              color: "bg-primary/20",
+            };
             });
-          setFrequentRecipients(sortedRecipients);
-        }
-      } catch (err) {
+            setFrequentRecipients(sortedRecipients);
+            }      } catch (err) {
         console.error("Error fetching recipients:", err);
         toast.error("Unable to load recipient suggestions. Please try again.");
       }
@@ -574,9 +577,12 @@ function SendPanel() {
                   onClick={() => handleSelectRecipient(r)}
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
-                  <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                    {r.avatar}
-                  </div>
+                  <Avatar className="w-10 h-10 mb-3 border border-border/40">
+                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarFallback className={cn("text-xs font-bold", r.color)}>
+                      {r.avatar}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="text-sm font-medium truncate">{r.name}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
                 </button>
@@ -597,9 +603,12 @@ function SendPanel() {
                   onClick={() => handleSelectRecipient(r)}
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
-                  <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3", r.color)}>
-                    {r.avatar}
-                  </div>
+                  <Avatar className="w-10 h-10 mb-3 border border-border/40">
+                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarFallback className={cn("text-xs font-bold", r.color)}>
+                      {r.avatar}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="text-sm font-medium truncate">{r.name}</div>
                   <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
                 </button>
