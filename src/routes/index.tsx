@@ -15,8 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
-import { TopNav } from "@/components/top-nav";
-import { Sparkles, ArrowRight, Shield, Database, Layers, Wallet, LineChart, Lock, Globe, CheckCircle2 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
