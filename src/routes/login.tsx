@@ -1,4 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { Shield, Database, Layers, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TopNav } from "@/components/top-nav";
+import { supabase } from "@/api/supabase";
+import { toast } from "sonner";
+import { hashPin } from "@/lib/utils";
+import { getDeviceName } from "@/lib/device-detection";
 import { Logo } from "@/components/logo";
 
 export const Route = createFileRoute("/login")({

@@ -56,6 +56,19 @@ const navItems = [
   },
 ];
 
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPath = location.pathname;
+  const [profile, setProfile] = useProfileSignal();
+  const [showPhotoPreview, setShowPhotoPreview] = useState(false);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
+    navigate({ to: "/" });
+  };
+
   return (
     <div className="min-h-screen w-full text-foreground overflow-x-hidden" style={{ background: "var(--gradient-bg)" }}>
       {/* Sidebar */}

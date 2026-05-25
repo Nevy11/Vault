@@ -1,4 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, type FormEvent, type ReactNode, useEffect } from "react";
+import { Upload, CheckCircle2, User, Shield, Camera, UserCheck, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
 
 // 1. Types

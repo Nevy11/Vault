@@ -1,4 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Shield, Database, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { TopNav } from "@/components/top-nav";
+import { supabase } from "@/api/supabase";
+import { toast } from "sonner";
+import { hashPin, formatKycTag } from "@/lib/utils";
 import { Logo } from "@/components/logo";
 
 export const Route = createFileRoute("/sign-up")({
