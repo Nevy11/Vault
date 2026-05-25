@@ -30,7 +30,7 @@ export type Transaction = {
 export function useTransactions(enabled = true) {
   const [profile] = useProfileSignal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const getUserId = async (): Promise<string | null> => {
@@ -80,11 +80,23 @@ export function useTransactions(enabled = true) {
 
     fetchTransactions();
 
+    const userId = profile?.id;
+    if (!userId) return;
+
     const channel = supabase
-      .channel('transaction_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => {
-        fetchTransactions();
-      })
+      .channel(`transaction_changes_${userId}`)
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'transactions',
+          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`
+        }, 
+        () => {
+          fetchTransactions();
+        }
+      )
       .subscribe();
 
     return () => {

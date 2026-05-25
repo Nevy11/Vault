@@ -32,10 +32,19 @@ export function useWallet(providerType?: 'vault' | 'bank' | 'mobile') {
     fetchWallet();
 
     const channel = supabase
-      .channel('wallet_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'wallets' }, () => {
-        fetchWallet();
-      })
+      .channel(`wallet_changes_${user.id}`)
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'wallets',
+          filter: `user_id=eq.${user.id}`
+        }, 
+        () => {
+          fetchWallet();
+        }
+      )
       .subscribe();
 
     return () => {
