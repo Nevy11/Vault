@@ -122,7 +122,7 @@ function QuickSend({
   withAdd,
   title = "Quick Send (P2P)"
 }: {
-  avatars: { initial: string; color: string; name: string }[];
+  avatars: { id?: string; initial: string; color: string; name: string }[];
   withAdd?: boolean;
   title?: string;
 }) {
@@ -138,8 +138,8 @@ function QuickSend({
             <Plus className="w-5 h-5" />
           </button>
         )}
-        {avatars.map((a) => (
-          <div key={a.name} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
+        {avatars.map((a, index) => (
+          <div key={a.id ?? `${a.name}-${index}`} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
             <div className="relative">
               <div
                 className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
@@ -257,7 +257,69 @@ function DashboardPage() {
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
+
+  const reportMetrics = useMemo(() => {
+    if (!transactions.length) return null;
+
+    const totalInflow = transactions.reduce((sum, tx) => {
+      if (tx.type === "deposit") return sum + Number(tx.amount);
+      if (tx.type === "transfer" && tx.receiver_id === (profile as any)?.id) return sum + Number(tx.amount);
+      return sum;
+    }, 0);
+
+    const totalOutflow = transactions.reduce((sum, tx) => {
+      if (tx.type === "withdrawal") return sum + Number(tx.amount);
+      if (tx.type === "transfer" && tx.sender_id === (profile as any)?.id) return sum + Number(tx.amount);
+      return sum;
+    }, 0);
+
+    return {
+      totalInflow,
+      totalOutflow,
+      netChange: totalInflow - totalOutflow,
+      count: transactions.length,
+    };
+  }, [transactions, profile]);
+
+  const handleDownloadReport = () => {
+    if (!transactions.length) return;
+
+    const csvRows = [
+      ["Date", "Type", "Amount", "Balance After", "Description"],
+      ...transactions.map((tx) => [
+        format(new Date(tx.created_at), "yyyy-MM-dd HH:mm:ss"),
+        tx.type,
+        tx.amount,
+        tx.balance_after ?? "",
+        tx.description ?? "",
+      ]),
+    ];
+
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "vault-financial-report.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const frequentRecipients = useMemo(() => {
+    return transactions
+      .filter((tx) => tx.type === "transfer" && tx.receiver)
+      .slice(0, 4)
+      .map((tx) => ({
+        id: tx.id,
+        initial: tx.receiver?.first_name?.[0] ?? "V",
+        color: "bg-emerald-500",
+        name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? "User"}`.trim(),
+      }));
+  }, [transactions]);
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
