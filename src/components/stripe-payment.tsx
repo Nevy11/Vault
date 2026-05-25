@@ -6,7 +6,7 @@ import {
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 
 interface StripePaymentProps {
   amount: number;

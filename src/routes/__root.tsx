@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { useEffect } from "react";
 

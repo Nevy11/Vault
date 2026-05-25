@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/api/supabase';
 import { useProfileSignal } from '@/lib/profile-signal';
 
 export type Transaction = {
