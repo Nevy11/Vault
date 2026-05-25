@@ -134,12 +134,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               const isTransact = label === "Transact";
               
               return (
-                <li key={to} className={isTransact ? "relative -top-5" : ""}>
+                <li key={to} className={isTransact ? "relative -top-4" : ""}>
                   <Link
                     to={to}
                     className={`flex flex-col items-center transition-all duration-300 ${
                       isTransact
-                        ? "bg-primary text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-primary/40 h-16 w-16 justify-center rounded-full scale-110 p-0"
+                        ? "bg-primary text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-primary/40 h-[52px] w-[52px] justify-center rounded-full scale-110 p-0"
                         : `gap-1 px-3 py-1 rounded-lg ${
                             active
                               ? "text-primary"
@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           }`
                     }`}
                   >
-                    <Icon className={`${isTransact ? "h-7 w-7 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
+                    <Icon className={`${isTransact ? "h-6 w-6 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
                       active && !isTransact ? "text-primary" : ""
                     }`} />
                     <span className={`text-[10px] font-medium ${
