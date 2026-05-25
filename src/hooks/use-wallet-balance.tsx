@@ -35,6 +35,7 @@ type UseWalletBalanceReturn = {
 export function useWalletBalance(): UseWalletBalanceReturn {
   const [profile] = useProfileSignal();
   const [wallet, setWallet] = useState<WalletBalance>(null);
+  const walletRef = useRef<WalletBalance>(wallet);
   const [displayBalance, setDisplayBalance] = useState<number | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState('USD');
   const [secondaryBalance, setSecondaryBalance] = useState<BalanceBreakdown | undefined>(undefined);
@@ -91,28 +92,20 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         return;
       }
 
-      const preferredCurrency = await resolvePreferredCurrency(userId);
+      // We'll use the currency defined in the wallet record itself as the primary
+      // instead of trying to resolve it from logs every time.
       const nativeCurrency = walletData.currency || 'USD';
       const nativeAmount = Number(walletData.balance ?? 0);
-      let primaryCurrency = nativeCurrency;
-      let primaryAmount = nativeAmount;
+      
+      // Determine if we should show a secondary balance (e.g. KES for USD wallets or vice-versa)
+      // For now, we'll assume the native wallet currency is what the user wants to see primary.
+      setDisplayBalance(nativeAmount);
+      setDisplayCurrency(nativeCurrency);
 
-      if (preferredCurrency !== nativeCurrency) {
-        primaryCurrency = preferredCurrency;
-        if (nativeCurrency === 'USD' && preferredCurrency === 'KSH') {
-          primaryAmount = nativeAmount * KES_USD_RATE;
-        } else if (nativeCurrency === 'KSH' && preferredCurrency === 'USD') {
-          primaryAmount = nativeAmount / KES_USD_RATE;
-        }
-      }
-
-      setDisplayBalance(primaryAmount);
-      setDisplayCurrency(primaryCurrency);
-
-      const alternateCurrency = primaryCurrency === 'USD' ? 'KSH' : 'USD';
-      const alternateAmount = primaryCurrency === 'USD'
-        ? primaryAmount * KES_USD_RATE
-        : primaryAmount / KES_USD_RATE;
+      const alternateCurrency = nativeCurrency === 'USD' ? 'KSH' : 'USD';
+      const alternateAmount = nativeCurrency === 'USD'
+        ? nativeAmount * KES_USD_RATE
+        : nativeAmount / KES_USD_RATE;
 
       setSecondaryBalance({
         amount: Number(alternateAmount.toFixed(2)),
@@ -120,67 +113,60 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         label: alternateCurrency === 'USD' ? 'USD equivalent' : 'KES equivalent',
       });
     },
-    [resolvePreferredCurrency],
+    [],
   );
 
-  const fetchWallet = useCallback(async () => {
+  const fetchWallet = useCallback(async (isSilent = false) => {
     try {
-      setIsSyncing(true);
-      setLoading(true);
-      setError(null);
-
-      const userId = await getUserId();
-      if (!userId) {
-        setLoading(false);
-        setIsSyncing(false);
+      const currentUserId = profile?.id;
+      if (!currentUserId) {
+        if (!isSilent) setLoading(false);
         return;
       }
 
-      const preferredCurrency = await resolvePreferredCurrency(userId);
+      setIsSyncing(true);
+      if (!isSilent && !walletRef.current) setLoading(true);
+      setError(null);
 
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
-        .eq('user_id', userId)
-        .single();
+        .eq('user_id', currentUserId)
+        .maybeSingle();
 
       if (fetchError) {
-        if (fetchError.code === 'PGRST116') {
-          const { data: newWallet, error: createError } = await supabase
-            .from('wallets')
-            .insert([
-              {
-                user_id: userId,
-                balance: 0,
-                currency: preferredCurrency,
-              },
-            ])
-            .select()
-            .single();
+        setError(fetchError.message);
+      } else if (!data) {
+        // Only create if it definitely doesn't exist and we aren't in a loop
+        const { data: newWallet, error: createError } = await supabase
+          .from('wallets')
+          .insert([
+            {
+              user_id: currentUserId,
+              balance: 0,
+              currency: 'USD',
+            },
+          ])
+          .select()
+          .single();
 
-          if (createError) {
-            setError(createError.message);
-          } else {
-            setWallet(newWallet);
-            await computeBalances(newWallet, userId);
-          }
+        if (createError) {
+          setError(createError.message);
         } else {
-          setError(fetchError.message);
+          setWallet(newWallet);
+          walletRef.current = newWallet;
+          await computeBalances(newWallet, currentUserId);
         }
       } else {
-        if (data.currency !== preferredCurrency) {
-          const { error: updateCurrencyError } = await supabase
-            .from('wallets')
-            .update({ currency: preferredCurrency, updated_at: new Date().toISOString() })
-            .eq('id', data.id);
-
-          if (!updateCurrencyError) {
-            data.currency = preferredCurrency;
-          }
+        // Update local state only if data actually changed
+        const prev = walletRef.current;
+        const changed = !prev || prev.id !== data.id || prev.balance !== data.balance || prev.currency !== data.currency;
+        
+        if (changed) {
+          setWallet(data);
+          walletRef.current = data;
+          await computeBalances(data, currentUserId);
         }
-
-        setWallet(data);
-        await computeBalances(data, userId);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -188,11 +174,11 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       setLoading(false);
       setIsSyncing(false);
     }
-  }, [computeBalances, getUserId, resolvePreferredCurrency]);
+  }, [computeBalances, profile?.id]);
 
   useEffect(() => {
     fetchWallet();
-  }, [profile?.id, fetchWallet]);
+  }, [fetchWallet]);
 
   useEffect(() => {
     let mounted = true;
@@ -273,6 +259,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       } else {
         const updatedWallet = { ...wallet, balance: newBalance, updated_at: new Date().toISOString() };
         setWallet(updatedWallet);
+        walletRef.current = updatedWallet;
         const userId = await getUserId();
         if (userId) {
           await computeBalances(updatedWallet, userId);
