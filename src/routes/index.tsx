@@ -1,19 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Shield,
-  Database,
-  Layers,
-  ArrowRight,
-  Wallet,
-  Send,
-  LineChart,
-  Lock,
-  Sparkles,
-  Globe,
-  CheckCircle2,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TopNav } from "@/components/top-nav";
+import { createFileRoute } from '@tanstack/react-router'
+import { Logo } from "@/components/logo";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -33,18 +19,6 @@ export const Route = createFileRoute("/")({
     ],
   }),
 });
-
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
-        <path d="M6 6 L20 34 L34 6 L27 6 L20 22 L13 6 Z" fill="oklch(0.45 0.16 165)" />
-        <circle cx="26" cy="14" r="3" fill="oklch(0.65 0.14 165)" opacity="0.85" />
-      </svg>
-      <span className="text-2xl font-serif tracking-tight text-foreground">Vault</span>
-    </div>
-  );
-}
 
 function Nav() {
   return <TopNav />;

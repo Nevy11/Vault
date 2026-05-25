@@ -20,6 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { Logo } from "@/components/logo";
+
 const navLinks = [
   { label: "Features", href: "/#features" },
   { label: "Security", href: "/#security" },
@@ -42,12 +44,7 @@ export function TopNav() {
   return (
     <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2 text-foreground">
-          <svg width="32" height="32" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-            <path d="M6 6 L20 34 L34 6 L27 6 L20 22 L13 6 Z" fill="oklch(0.45 0.16 165)" />
-          </svg>
-          <span className="text-base font-serif tracking-tight">Vault</span>
-        </Link>
+        <Logo />
 
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
           {navLinks.map((link) => (
