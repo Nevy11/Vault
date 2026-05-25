@@ -1,4 +1,9 @@
-allowBuilds:
-  esbuild: set this to true or false
-  sharp: set this to true or false
-  workerd: set this to true or false
+packages:
+  - '.'
+  - 'mobile'
+
+# Optional: Configuration for allowed builds in the workspace
+# allowBuilds:
+#   esbuild: true
+#   sharp: true
+#   workerd: true
