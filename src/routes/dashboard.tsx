@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp } from "lucide-react";
+import { supabase } from "@/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -257,63 +258,6 @@ function DashboardPage() {
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const [activeFilter, setActiveFilter] = useState("All");
   const [profile] = useProfileSignal();
-  const [showReport, setShowReport] = useState(false);
-
-  const reportMetrics = useMemo(() => {
-    if (!transactions.length || !profile?.id) return null;
-    
-    let totalInflow = 0;
-    let totalOutflow = 0;
-    
-    transactions.forEach(t => {
-      const isSender = t.sender_id === (profile as any).id;
-      if (t.type === 'transfer') {
-        if (isSender) totalOutflow += t.amount;
-        else totalInflow += t.amount;
-      } else if (t.type === 'deposit') {
-        totalInflow += t.amount;
-      } else if (t.type === 'withdrawal') {
-        totalOutflow += t.amount;
-      }
-    });
-
-    return {
-      totalInflow,
-      totalOutflow,
-      netChange: totalInflow - totalOutflow,
-      count: transactions.length,
-    };
-  }, [transactions, profile]);
-
-  const handleDownloadReport = () => {
-    if (!transactions.length || !profile?.id) return;
-
-    const headers = ["Date", "Type", "Description", "Amount", "Balance After"];
-    const csvRows = [headers.join(",")];
-    
-    transactions.forEach(t => {
-      const isSender = t.sender_id === (profile as any).id;
-      const amountPrefix = (t.type === 'transfer' && isSender) || t.type === 'withdrawal' ? '-' : '+';
-      const row = [
-        `"${new Date(t.created_at).toLocaleString()}"`,
-        `"${t.type}"`,
-        `"${(t.description || "").replace(/"/g, '""')}"`,
-        `"${amountPrefix}${t.amount}"`,
-        `"${t.balance_after || ""}"`
-      ];
-      csvRows.push(row.join(","));
-    });
-    
-    const csvString = csvRows.join("\n");
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Vault_Report_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
@@ -567,7 +511,7 @@ function DashboardPage() {
         {/* Quick send + chart */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <QuickSend
-            avatars={[
+            avatars={frequentRecipients.length > 0 ? frequentRecipients : [
               { initial: "M", color: "bg-emerald-500", name: "Maria C" },
               { initial: "J", color: "bg-blue-500", name: "John L" },
               { initial: "L", color: "bg-pink-500", name: "Lisa M" },

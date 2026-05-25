@@ -176,27 +176,27 @@ export function WithdrawPanel() {
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error("User not found");
 
-      // Record transaction using atomic RPC
-      const { data: entryId, error: rpcError } = await supabase.rpc('create_ledger_entry', {
-        p_user_id: userId,
-        p_amount: -totalDeduction, // Negative for withdrawal
-        p_currency: 'USD',
-        p_type: 'withdrawal',
-        p_description: `Withdrawal to ${getRecipientName()}`,
-        p_metadata: { 
-          payment_method: channel === 'bank' ? 'bank' : 'mpesa',
-          fee: PLATFORM_FEE,
-          recipient: getRecipientName()
-        },
-        p_status: 'completed'
+      // Update the wallet balance
+      const newBalance = balance !== null ? Math.max(0, balance - totalDeduction) : 0;
+      
+      // Record transaction
+      const { error: txError } = await supabase.from('transactions').insert({
+        sender_id: userId,
+        type: 'withdrawal',
+        method: channel === 'bank' ? 'bank' : 'mpesa',
+        amount: parseFloat(amount),
+        status: 'completed',
+        description: `Withdrawal to ${getRecipientName()}`,
+        balance_after: newBalance
       });
 
-      if (rpcError) throw rpcError;
+      if (txError) throw txError;
 
-      // Refetch balance via hook refetch if needed, though realtime should handle it
-      await refetch();
+      if (balance !== null) {
+        await updateBalance(newBalance);
+      }
       
-      setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setRefCode(rpcData[0].tx_id || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       setStatus('success');
       toast.success("Withdrawal request authorized successfully!");
     } catch (err) {

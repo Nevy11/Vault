@@ -330,7 +330,7 @@ function FinanceAdvisorPage() {
 
   return (
     <AppShell>
-      <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-0 md:pt-6 min-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
+      <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 pt-0 md:pt-6 h-[calc(100vh-6rem)] flex flex-col">
         {/* Back Button */}
         <div className="mb-4 hidden md:block">
           <Link
@@ -389,7 +389,7 @@ function FinanceAdvisorPage() {
           <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5 py-4 md:py-5"
+            className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5 py-4 md:py-5 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full"
           >
             <div className="space-y-4">
               {messages.map((message, index) => (
