@@ -182,6 +182,7 @@ function SendPanel() {
         setFrequentRecipients(FREQUENT_TRANSACTIONS.slice(0, 5));
       } catch (err) {
         console.error("Error fetching recipients:", err);
+        toast.error("Unable to load recipient suggestions. Please try again.");
       }
     };
 

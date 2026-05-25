@@ -130,6 +130,7 @@ function FinanceAdvisorPage() {
 
   // Initialize messages synchronously from cache if possible so UI shows instantly
   const initialCached = (typeof window !== "undefined" && profile?.id) ? loadCachedMessagesRaw(profile.id) : null;
+  const defaultGreeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
   const [messages, setMessages] = useState<any[]>(() => {
     if (initialCached && initialCached.length > 0) {
       return initialCached.map((m: any) => ({
@@ -149,6 +150,8 @@ function FinanceAdvisorPage() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
+  const userId = profile?.id ?? null;
+
   const handleScroll = () => {
     const container = scrollRef.current;
     if (!container) return;
@@ -162,20 +165,18 @@ function FinanceAdvisorPage() {
   };
 
   useEffect(() => {
+    if (!userId) return;
+
     const fetchData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
         // Try to load cached messages first for instant UI.
-        const cached = loadCachedMessagesRaw(user.id);
+        const cached = loadCachedMessagesRaw(userId);
         if (cached && cached.length > 0) {
           setMessages(cached.map((m: any) => ({
             sender: m.sender,
             text: m.text,
             avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
           })));
-          // mark initial loading as done so UI is responsive while we refresh in background
           setIsInitialLoading(false);
         }
 
@@ -183,7 +184,7 @@ function FinanceAdvisorPage() {
         const { data: history, error: historyError } = await supabase
           .from("ai_chat_messages")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(200);
 
@@ -197,41 +198,34 @@ function FinanceAdvisorPage() {
             avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
           }));
           setMessages(mapped);
-          // persist trimmed messages (strip React nodes)
-          saveCachedMessagesRaw(user.id, mapped.map(({ sender, text }) => ({ sender, text })));
+          saveCachedMessagesRaw(userId, mapped.map(({ sender, text }) => ({ sender, text })));
         } else if (!cached || cached.length === 0) {
-          // Default greeting if no history and nothing cached
-          const greeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
-          const greetingMsg = [{ sender: "advisor", avatar: <Sparkles className="h-4 w-4" />, text: greeting }];
+          const greetingMsg = [{ sender: "advisor", avatar: <Sparkles className="h-4 w-4" />, text: defaultGreeting }];
           setMessages(greetingMsg);
-          saveCachedMessagesRaw(user.id, greetingMsg.map(({ sender, text }) => ({ sender, text })));
+          saveCachedMessagesRaw(userId, greetingMsg.map(({ sender, text }) => ({ sender, text })));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+        toast.error("Unable to load advisor data. Please refresh the page.");
       } finally {
         setIsInitialLoading(false);
       }
     };
 
     fetchData();
-  }, [profile]);
+  }, [userId, defaultGreeting]);
 
   // Persist messages to cache when they change
   useEffect(() => {
+    if (!userId) return;
     let mounted = true;
-    const persist = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user || !mounted) return;
-        // store only sender/text to avoid serializing React nodes
-        saveCachedMessagesRaw(user.id, messages.map(m => ({ sender: m.sender, text: m.text })));
-      } catch (e) {
-        // ignore
-      }
+    const persist = () => {
+      if (!mounted) return;
+      saveCachedMessagesRaw(userId, messages.map(m => ({ sender: m.sender, text: m.text })));
     };
     persist();
     return () => { mounted = false; };
-  }, [messages]);
+  }, [messages, userId]);
 
   useEffect(() => {
     if (!isInitialLoading) {
@@ -261,8 +255,7 @@ function FinanceAdvisorPage() {
     const trimmed = draft.trim();
     if (!trimmed || isLoading) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    if (!userId) {
       toast.error("You must be logged in to chat.");
       return;
     }
@@ -275,7 +268,7 @@ function FinanceAdvisorPage() {
     try {
       // Save user message to database
       await supabase.from("ai_chat_messages").insert({
-        user_id: user.id,
+        user_id: userId,
         sender: "user",
         text: trimmed
       });
@@ -298,7 +291,7 @@ function FinanceAdvisorPage() {
 
       // Save AI response to database
       await supabase.from("ai_chat_messages").insert({
-        user_id: user.id,
+        user_id: userId,
         sender: "advisor",
         text: aiText
       });

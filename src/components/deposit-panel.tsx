@@ -114,13 +114,7 @@ export function DepositPanel() {
       return;
     }
     
-    // Get User ID (either from profile signal or directly from auth)
-    let userId = profile?.id;
-    if (!userId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      userId = user?.id;
-    }
-
+    const userId = profile?.id;
     if (!userId) {
       toast.error("User session not found. Please log in again.");
       return;

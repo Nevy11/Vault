@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useProfileSignal } from '@/lib/profile-signal';
 
 export type Transaction = {
   id: string;
@@ -27,15 +28,25 @@ export type Transaction = {
 };
 
 export function useTransactions() {
+  const [profile] = useProfileSignal();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const getUserId = async (): Promise<string | null> => {
+    if (profile?.id) {
+      return profile.id;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  };
+
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const userId = await getUserId();
+      if (!userId) {
         setLoading(false);
         return;
       }
@@ -47,7 +58,7 @@ export function useTransactions() {
           sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
           receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
         `)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -75,7 +86,7 @@ export function useTransactions() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [profile?.id]);
 
   return { transactions, loading, error, refetch: fetchTransactions };
 }

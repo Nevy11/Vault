@@ -46,40 +46,45 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     return getCurrencyForNationality(rawNationality);
   };
 
+  const getUserId = async (): Promise<string | null> => {
+    if (profile?.id) {
+      return profile.id;
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      throw authError;
+    }
+
+    return user?.id ?? null;
+  };
+
   const fetchWallet = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError) {
-        setError(authError.message);
+      const userId = await getUserId();
+      if (!userId) {
         setLoading(false);
         return;
       }
 
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      const preferredCurrency = await resolvePreferredCurrency(userId);
 
-      const preferredCurrency = await resolvePreferredCurrency(user.id);
-
-      // Fetch wallet data
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (fetchError) {
         if (fetchError.code === 'PGRST116') {
-          // No wallet found, create one
           const { data: newWallet, error: createError } = await supabase
             .from('wallets')
             .insert([
               {
-                user_id: user.id,
+                user_id: userId,
                 balance: 0,
                 currency: preferredCurrency,
               },
@@ -118,7 +123,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
 
   useEffect(() => {
     fetchWallet();
-  }, [profile?.email]);
+  }, [profile?.id]);
 
   const refetch = async () => {
     await fetchWallet();

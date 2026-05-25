@@ -232,6 +232,7 @@ function SettingsPage() {
       setDevices(data || []);
     } catch (error: any) {
       console.error("Error loading devices:", error);
+      toast.error(error.message || "Unable to load your devices.");
     }
   }
 
@@ -251,6 +252,7 @@ function SettingsPage() {
       setLogs(data || []);
     } catch (error: any) {
       console.error("Error loading logs:", error);
+      toast.error(error.message || "Unable to load your activity logs.");
     }
   }
 

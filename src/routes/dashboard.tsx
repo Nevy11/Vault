@@ -290,6 +290,14 @@ function DashboardPage() {
           </p>
         </div>
 
+        {(balanceError || txError) && (
+          <div className="mb-4 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {balanceError ? `Balance error: ${balanceError}` : null}
+            {balanceError && txError ? " " : null}
+            {txError ? `Transaction error: ${txError}` : null}
+          </div>
+        )}
+
         {/* Total net worth */}
         <div className="rounded-2xl bg-card/30 border border-border/40 p-5 sm:p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
