@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/api/supabase';
 
 export function useWallet(providerType?: 'vault' | 'bank' | 'mobile') {
   const [wallet, setWallet] = useState<{ balance: number; currency: string } | null>(null);

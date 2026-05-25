@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Sparkles, Shield, TrendingUp, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { toast } from "sonner";
 
@@ -25,6 +25,33 @@ const initialMessages = [
   },
 ];
 
+const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+
+function cacheKeyForUser(userId: string) {
+  return `finance-advisor-messages:${userId}`;
+}
+
+function loadCachedMessagesRaw(userId: string) {
+  try {
+    const raw = localStorage.getItem(cacheKeyForUser(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts || (Date.now() - parsed.ts) > CACHE_TTL) return null;
+    return parsed.messages || null;
+  } catch (e) {
+    console.error("Failed to load cached messages:", e);
+    return null;
+  }
+}
+
+function saveCachedMessagesRaw(userId: string, messages: Array<{ sender: string; text: string }>) {
+  try {
+    const payload = { ts: Date.now(), messages };
+    localStorage.setItem(cacheKeyForUser(userId), JSON.stringify(payload));
+  } catch (e) {
+    console.error("Failed to save cached messages:", e);
+  }
+}
 function MarkdownContent({ text }: { text: string }) {
   // Simple regex-based markdown parser for bold, headers, and lists
   const lines = text.split("\n");
@@ -99,16 +126,31 @@ function Bubble({
 }
 
 function FinanceAdvisorPage() {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [profile] = useProfileSignal();
+
+  // Initialize messages synchronously from cache if possible so UI shows instantly
+  const initialCached = (typeof window !== "undefined" && profile?.id) ? loadCachedMessagesRaw(profile.id) : null;
+  const defaultGreeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
+  const [messages, setMessages] = useState<any[]>(() => {
+    if (initialCached && initialCached.length > 0) {
+      return initialCached.map((m: any) => ({
+        sender: m.sender,
+        text: m.text,
+        avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
+      }));
+    }
+    return [];
+  });
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(initialCached ? false : true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSpeechEnabled, setIsSpeechEnabled] = useState(true);
-  const [profile] = useProfileSignal();
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+
+  const userId = profile?.id ?? null;
 
   const handleScroll = () => {
     const container = scrollRef.current;
@@ -123,44 +165,67 @@ function FinanceAdvisorPage() {
   };
 
   useEffect(() => {
+    if (!userId) return;
+
     const fetchData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        // Try to load cached messages first for instant UI.
+        const cached = loadCachedMessagesRaw(userId);
+        if (cached && cached.length > 0) {
+          setMessages(cached.map((m: any) => ({
+            sender: m.sender,
+            text: m.text,
+            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
+          })));
+          setIsInitialLoading(false);
+        }
 
-        // Fetch chat history
+        // Background fetch: only fetch recent N messages to avoid heavy loads each navigation
         const { data: history, error: historyError } = await supabase
           .from("ai_chat_messages")
           .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: true });
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(200);
 
         if (historyError) throw historyError;
 
-        if (history && history.length > 0) {
-          setMessages(history.map(m => ({
+        const ordered = (history || []).slice().reverse();
+        if (ordered && ordered.length > 0) {
+          const mapped = ordered.map(m => ({
             sender: m.sender,
             text: m.text,
-            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined
-          })));
-        } else {
-          // Default greeting if no history
-          const greeting = `Hi ${profile?.first_name || "there"}! I can help you improve your spending, save more, and grow your net worth. What would you like to do today?`;
-          setMessages([{
-            sender: "advisor",
-            avatar: <Sparkles className="h-4 w-4" />,
-            text: greeting
-          }]);
+            avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
+          }));
+          setMessages(mapped);
+          saveCachedMessagesRaw(userId, mapped.map(({ sender, text }) => ({ sender, text })));
+        } else if (!cached || cached.length === 0) {
+          const greetingMsg = [{ sender: "advisor", avatar: <Sparkles className="h-4 w-4" />, text: defaultGreeting }];
+          setMessages(greetingMsg);
+          saveCachedMessagesRaw(userId, greetingMsg.map(({ sender, text }) => ({ sender, text })));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
+        toast.error("Unable to load advisor data. Please refresh the page.");
       } finally {
         setIsInitialLoading(false);
       }
     };
 
     fetchData();
-  }, [profile]);
+  }, [userId, defaultGreeting]);
+
+  // Persist messages to cache when they change
+  useEffect(() => {
+    if (!userId) return;
+    let mounted = true;
+    const persist = () => {
+      if (!mounted) return;
+      saveCachedMessagesRaw(userId, messages.map(m => ({ sender: m.sender, text: m.text })));
+    };
+    persist();
+    return () => { mounted = false; };
+  }, [messages, userId]);
 
   useEffect(() => {
     if (!isInitialLoading) {
@@ -190,8 +255,7 @@ function FinanceAdvisorPage() {
     const trimmed = draft.trim();
     if (!trimmed || isLoading) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    if (!userId) {
       toast.error("You must be logged in to chat.");
       return;
     }
@@ -204,7 +268,7 @@ function FinanceAdvisorPage() {
     try {
       // Save user message to database
       await supabase.from("ai_chat_messages").insert({
-        user_id: user.id,
+        user_id: userId,
         sender: "user",
         text: trimmed
       });
@@ -227,7 +291,7 @@ function FinanceAdvisorPage() {
 
       // Save AI response to database
       await supabase.from("ai_chat_messages").insert({
-        user_id: user.id,
+        user_id: userId,
         sender: "advisor",
         text: aiText
       });

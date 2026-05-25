@@ -13,9 +13,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
-    return {
-      session_id: search.session_id as string | undefined,
-    };
+    return search as { session_id?: string };
   },
   head: () => ({
     meta: [
@@ -289,6 +287,14 @@ function DashboardPage() {
             Integrates a renew Accounts of multiple finance accounts.
           </p>
         </div>
+
+        {(balanceError || txError) && (
+          <div className="mb-4 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {balanceError ? `Balance error: ${balanceError}` : null}
+            {balanceError && txError ? " " : null}
+            {txError ? `Transaction error: ${txError}` : null}
+          </div>
+        )}
 
         {/* Total net worth */}
         <div className="rounded-2xl bg-card/30 border border-border/40 p-5 sm:p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

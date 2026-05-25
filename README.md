@@ -126,7 +126,7 @@ If the app loads without styles in production, verify the site is building the c
 - The app uses custom CSS variables and `@theme inline` definitions in `src/styles.css`.
 - `src/components/ui/input.tsx` defines the base input styling used across login/sign-up forms.
 - `src/components/top-nav.tsx` controls the profile dropdown and sign-out behavior.
-- `src/server.ts` normalizes SSR response errors and ensures runtime-safe server rendering.
+- `src/api/server.ts` normalizes SSR response errors and ensures runtime-safe server rendering.
 
 ## Troubleshooting
 

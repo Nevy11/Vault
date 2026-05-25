@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 import { formatKycTag } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -232,6 +232,7 @@ function SettingsPage() {
       setDevices(data || []);
     } catch (error: any) {
       console.error("Error loading devices:", error);
+      toast.error(error.message || "Unable to load your devices.");
     }
   }
 
@@ -251,6 +252,7 @@ function SettingsPage() {
       setLogs(data || []);
     } catch (error: any) {
       console.error("Error loading logs:", error);
+      toast.error(error.message || "Unable to load your activity logs.");
     }
   }
 

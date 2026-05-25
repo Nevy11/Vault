@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 // @supabase/realtime-js can initialize correctly during SSR/dev.
 if (typeof window === "undefined") {
   try {
+    // @ts-ignore
     const wsPkg = await import("ws");
     const wsImpl = (wsPkg as any).WebSocket || (wsPkg as any).default || wsPkg;
     (globalThis as any).WebSocket = wsImpl;

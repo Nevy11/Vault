@@ -4,7 +4,7 @@ import { Shield, Database, Layers, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/top-nav";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 import { hashPin } from "@/lib/utils";
 import { getDeviceName } from "@/lib/device-detection";
