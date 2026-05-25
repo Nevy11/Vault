@@ -714,6 +714,17 @@ function TransactionsPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Back Button */}
+        <div className="mb-8">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+        </div>
+
         {/* Toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-full border border-border/50 bg-card/40 p-1 backdrop-blur-sm">

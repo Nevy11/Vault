@@ -148,6 +148,20 @@ function RootComponent() {
   const [, setProfile] = useProfileSignal();
 
   useEffect(() => {
+    // Check if the page was reloaded
+    const isReload = 
+      window.performance && 
+      (
+        performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming
+      )?.type === "reload";
+
+    if (isReload) {
+      console.log("Page reload detected. Clearing user data for security.");
+      supabase.auth.signOut().then(() => {
+        setProfile(null);
+      });
+    }
+
     async function fetchProfile(userId: string) {
       const { data } = await supabase
         .from("profiles")
