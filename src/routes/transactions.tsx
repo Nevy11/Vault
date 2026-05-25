@@ -3,10 +3,11 @@ import { useEffect, useState, useMemo } from "react";
 import { 
   Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, 
   Smartphone, Loader2, CheckCircle2, Building2, UserCircle, 
-  ArrowRight, Landmark, CreditCard, User, History, Zap
+  ArrowRight, Landmark, CreditCard, User, History, Zap, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
@@ -59,19 +60,36 @@ function WalletCard() {
   const { balance, currency, loading } = useWalletBalance();
 
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card/40 p-5 backdrop-blur-sm min-w-[200px]">
-      <div className="flex items-center justify-between">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">
-          Vault {currency} Wallet
+    <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-6 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
+      {/* Decorative glass reflection */}
+      <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
+              Vault {currency} Wallet
+            </div>
+          </div>
+          <Lock className="w-3.5 h-3.5 text-muted-foreground/40" />
         </div>
-        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-      </div>
-      <div className="mt-3 text-3xl font-light text-primary">
-        {loading ? (
-          <div className="h-9 w-24 bg-primary/10 animate-pulse rounded" />
-        ) : (
-          `${currency === "USD" ? "$" : currency + " "}${balance?.toLocaleString() ?? "0.00"}`
-        )}
+        
+        <div className="flex flex-col">
+          <div className="text-3xl font-semibold tracking-tight text-primary">
+            {loading ? (
+              <div className="h-9 w-32 bg-primary/10 animate-pulse rounded-lg" />
+            ) : (
+              `${currency === "USD" ? "$" : currency + " "}${balance?.toLocaleString() ?? "0.00"}`
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">Active & Encrypted</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -715,6 +733,17 @@ function TransactionsPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Back Button */}
+        <div className="mb-8">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+        </div>
+
         {/* Toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-full border border-border/50 bg-card/40 p-1 backdrop-blur-sm">

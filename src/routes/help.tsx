@@ -40,19 +40,25 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset]">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-6 mb-8 border-b border-border/40">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div>
-          <h2 className="text-base font-medium tracking-[0.18em] uppercase text-foreground">
-            {title}
-          </h2>
-          {meta && <p className="mt-1 text-xs text-muted-foreground/80">{meta}</p>}
+    <section className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/60 backdrop-blur-md p-8 sm:p-10 shadow-xl transition-all hover:bg-card/70 hover:border-primary/20">
+      <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
+      
+      <header className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between pb-8 mb-10 border-b border-border/20">
+        <div className="flex items-center gap-5">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-inner group-hover:scale-110 transition-transform">
+            <Icon className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold tracking-[0.15em] uppercase text-foreground">
+              {title}
+            </h2>
+            {meta && <p className="mt-1 text-xs text-muted-foreground/80 font-medium">{meta}</p>}
+          </div>
         </div>
       </header>
-      {children}
+      <div className="relative z-10">
+        {children}
+      </div>
     </section>
   );
 }

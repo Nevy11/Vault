@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode, useEffect } from "react";
-import { Upload, CheckCircle2, User, Shield, Camera, UserCheck, ArrowRight } from "lucide-react";
+import { Upload, CheckCircle2, User, Shield, Camera, UserCheck, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/top-nav";
@@ -124,6 +124,15 @@ export default function KYCPage() {
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
       <TopNav />
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
+        <div className="w-full mb-6">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+        </div>
         <div
           className="w-full rounded-2xl border border-border/60 bg-card/80 p-8 backdrop-blur-xl"
           style={{ boxShadow: "var(--shadow-card)" }}
