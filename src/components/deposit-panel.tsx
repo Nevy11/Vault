@@ -232,9 +232,9 @@ export function DepositPanel() {
 
       // Record pending transaction
       await supabase.from("transactions").insert({
-        sender_id: userId,
+        receiver_id: userId,
         type: "deposit",
-        method: channel === 'mobile' ? 'mpesa' : 'bank',
+        method: channel === 'mobile' ? 'mpesa' : (selectedSourceId === 'stripe-ach' ? 'bank' : 'bank'),
         amount: parseFloat(amount),
         status: "pending",
         description: data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,

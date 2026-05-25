@@ -11,9 +11,12 @@ import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useProfileSignal } from "@/lib/profile-signal";
 import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 import { z } from "zod";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -700,6 +703,155 @@ function SendPanel() {
   );
 }
 
+function TransactionHistory() {
+  const { balance, currency, loading: balanceLoading } = useWalletBalance();
+  const { transactions, loading: txLoading } = useTransactions(!balanceLoading);
+  const [profile] = useProfileSignal();
+
+  const getTransactionDetails = (t: any) => {
+    const isSender = t.sender_id === (profile as any)?.id;
+    const userName = profile?.first_name 
+      ? `${profile.first_name} ${profile.last_name || ""}`.trim()
+      : (profile?.email?.split('@')[0] || "Vault User");
+    const symbol = currency === 'USD' ? '$' : currency + ' ';
+
+    if (t.type === 'transfer') {
+      if (isSender) {
+        return {
+          title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
+          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          positive: false,
+          icon: t.receiver?.first_name?.[0] || 'V',
+          avatarUrl: t.receiver?.profile_photo_url,
+          color: "bg-primary/20 text-primary",
+        };
+      } else {
+        return {
+          title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
+          amount: `+${symbol}${t.amount.toLocaleString()}`,
+          positive: true,
+          icon: t.sender?.first_name?.[0] || 'V',
+          avatarUrl: t.sender?.profile_photo_url,
+          color: "bg-emerald-500/20 text-emerald-500",
+        };
+      }
+    } else if (t.type === 'deposit') {
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const initials = bankName.substring(0, 2).toUpperCase();
+      return {
+        title: `${bankName} deposit to ${userName}`,
+        amount: `+${symbol}${t.amount.toLocaleString()}`,
+        positive: true,
+        icon: initials,
+        avatarUrl: null,
+        color: "bg-emerald-500/20 text-emerald-500",
+      };
+    } else if (t.type === 'withdrawal') {
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      return {
+        title: `Withdrawal to ${bankName}`,
+        amount: `-${symbol}${t.amount.toLocaleString()}`,
+        positive: false,
+        icon: bankName.substring(0, 2).toUpperCase(),
+        avatarUrl: null,
+        color: "bg-destructive/20 text-destructive",
+      };
+    }
+    return {
+      title: t.description,
+      amount: `${symbol}${t.amount.toLocaleString()}`,
+      positive: true,
+      icon: '?',
+      avatarUrl: null,
+      color: "bg-secondary text-secondary-foreground",
+    };
+  };
+
+  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
+
+  return (
+    <div className="mt-12 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-light tracking-tight flex items-center gap-2">
+          <History className="w-5 h-5 text-primary" /> 
+          Detailed Ledger History
+        </h2>
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/40">
+          Zero-Trust Immutable Records
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-6 backdrop-blur-sm shadow-inner">
+        <ul className="divide-y divide-border/40">
+          {txLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
+              <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                <Search className="w-6 h-6 text-muted-foreground/40" />
+              </div>
+              <p className="text-sm text-muted-foreground font-medium">No activity found in your ledger history.</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-tighter">Initialize your first transaction to see records here.</p>
+            </div>
+          ) : (
+            transactions.map((t) => {
+              const details = getTransactionDetails(t);
+              return (
+                <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 transition-colors hover:bg-white/5 group px-2 rounded-lg -mx-2">
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center justify-center w-12 shrink-0">
+                      <span className="text-[9px] font-bold uppercase text-muted-foreground/60 mb-1">
+                        {format(new Date(t.created_at), "MMM")}
+                      </span>
+                      <span className="text-lg font-serif leading-none">
+                        {format(new Date(t.created_at), "dd")}
+                      </span>
+                    </div>
+                    <Avatar className="w-10 h-10 border border-border/40 shrink-0 group-hover:scale-105 transition-transform">
+                      <AvatarImage src={details.avatarUrl || undefined} />
+                      <AvatarFallback className={cn("text-xs font-bold", details.color)}>
+                        {details.icon}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{details.title}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${
+                          t.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                          t.status === 'pending' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
+                          'bg-destructive/10 text-destructive'
+                        }`}>
+                          {t.status}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/60">
+                          {format(new Date(t.created_at), "h:mm a")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto pl-16 sm:pl-0">
+                    <div
+                      className={`text-base font-semibold font-mono ${details.positive ? "text-primary" : "text-destructive"}`}
+                    >
+                      {details.amount}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
+                      Bal: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                    </div>
+                  </div>
+                </li>
+              );
+            })
+          )}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function TransactionsPage() {
   const { mode: initialMode } = Route.useSearch();
   const navigate = Route.useNavigate();
@@ -779,6 +931,9 @@ function TransactionsPage() {
         {mode === "send" && <SendPanel />}
         {mode === "deposit" && <DepositPanel />}
         {mode === "withdraw" && <WithdrawPanel />}
+
+        {/* Transaction History Section */}
+        <TransactionHistory />
       </main>
     </AppShell>
   );
