@@ -14,12 +14,35 @@ export type Profile = {
   created_at?: string;
 } | null;
 
+const PROFILE_CACHE_KEY = "vault_profile_cache";
+
 class ProfileSignal {
   private value: Profile = null;
   private subscribers: Set<(value: Profile) => void> = new Set();
 
+  constructor() {
+    // Try to hydrate from localStorage on initialization
+    if (typeof window !== "undefined") {
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (cached) {
+        try {
+          this.value = JSON.parse(cached);
+        } catch (e) {
+          console.error("Failed to parse cached profile", e);
+        }
+      }
+    }
+  }
+
   set(newValue: Profile) {
     this.value = newValue;
+    if (typeof window !== "undefined") {
+      if (newValue) {
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(newValue));
+      } else {
+        localStorage.removeItem(PROFILE_CACHE_KEY);
+      }
+    }
     this.subscribers.forEach((callback) => callback(newValue));
   }
 

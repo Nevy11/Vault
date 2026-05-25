@@ -150,22 +150,39 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [, setProfile] = useProfileSignal();
+  const [profile, setProfile] = useProfileSignal();
 
   useEffect(() => {
     async function fetchProfile(userId: string) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-      
-      if (data) {
-        setProfile(data);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data) {
+          // Only update if data has changed to prevent unnecessary re-renders/lag
+          const current = profileSignal.get();
+          const hasChanged = !current || 
+            current.id !== data.id || 
+            current.kyc_status !== data.kyc_status ||
+            current.profile_photo_url !== data.profile_photo_url ||
+            current.first_name !== data.first_name ||
+            current.last_name !== data.last_name;
+
+          if (hasChanged) {
+            setProfile(data);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
       }
     }
 
-    // Initial check
+    // Initial check - skip if we already have it in memory to reduce lag
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         fetchProfile(user.id);
@@ -175,9 +192,14 @@ function RootComponent() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        fetchProfile(session.user.id);
+        // Debounce or skip if session is same as current profile to reduce lag
+        if (profileSignal.get()?.id !== session.user.id) {
+          fetchProfile(session.user.id);
+        }
       } else {
-        setProfile(null);
+        if (profileSignal.get() !== null) {
+          setProfile(null);
+        }
       }
     });
 

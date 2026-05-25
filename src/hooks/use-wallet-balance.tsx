@@ -4,6 +4,7 @@ import { useProfileSignal } from '@/lib/profile-signal';
 import { getCurrencyForNationality } from '@/lib/utils';
 
 const KES_USD_RATE = 130.0;
+const WALLET_CACHE_KEY = "vault_wallet_cache";
 
 type WalletBalance = {
   id: string;
@@ -13,6 +14,18 @@ type WalletBalance = {
   created_at: string;
   updated_at: string;
 } | null;
+
+// Helper to get cached wallet
+const getCachedWallet = (): WalletBalance => {
+  if (typeof window === "undefined") return null;
+  const cached = localStorage.getItem(WALLET_CACHE_KEY);
+  if (!cached) return null;
+  try {
+    return JSON.parse(cached);
+  } catch (e) {
+    return null;
+  }
+};
 
 type BalanceBreakdown = {
   amount: number;
@@ -34,12 +47,12 @@ type UseWalletBalanceReturn = {
 
 export function useWalletBalance(): UseWalletBalanceReturn {
   const [profile] = useProfileSignal();
-  const [wallet, setWallet] = useState<WalletBalance>(null);
+  const [wallet, setWallet] = useState<WalletBalance>(getCachedWallet());
   const walletRef = useRef<WalletBalance>(wallet);
-  const [displayBalance, setDisplayBalance] = useState<number | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState('USD');
+  const [displayBalance, setDisplayBalance] = useState<number | null>(wallet?.balance ?? null);
+  const [displayCurrency, setDisplayCurrency] = useState(wallet?.currency ?? 'USD');
   const [secondaryBalance, setSecondaryBalance] = useState<BalanceBreakdown | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!wallet);
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -155,6 +168,9 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         } else {
           setWallet(newWallet);
           walletRef.current = newWallet;
+          if (typeof window !== "undefined") {
+            localStorage.setItem(WALLET_CACHE_KEY, JSON.stringify(newWallet));
+          }
           await computeBalances(newWallet, currentUserId);
         }
       } else {
@@ -165,6 +181,9 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         if (changed) {
           setWallet(data);
           walletRef.current = data;
+          if (typeof window !== "undefined") {
+            localStorage.setItem(WALLET_CACHE_KEY, JSON.stringify(data));
+          }
           await computeBalances(data, currentUserId);
         }
       }
