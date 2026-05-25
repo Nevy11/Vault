@@ -21,6 +21,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import { Logo } from "@/components/logo";
+
 const navItems = [
   {
     label: "Dashboard",
@@ -54,36 +56,12 @@ const navItems = [
   },
 ];
 
-function Logo() {
-  return (
-    <Link to="/dashboard" className="flex items-center gap-2">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-        <span className="text-lg font-bold">V</span>
-      </div>
-      <span className="text-xl font-medium tracking-tight">Vault</span>
-    </Link>
-  );
-}
-
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const currentPath = location.pathname;
-  const [profile, setProfile] = useProfileSignal();
-  const [showPhotoPreview, setShowPhotoPreview] = useState(false);
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setProfile(null);
-    navigate({ to: "/" });
-  };
-
   return (
     <div className="min-h-screen w-full text-foreground overflow-x-hidden" style={{ background: "var(--gradient-bg)" }}>
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
         <div className="flex h-16 items-center px-4 border-b border-border/40">
-          <Logo />
+          <Logo to="/dashboard" />
         </div>
         <nav className="p-4">
           <ul className="space-y-1">
@@ -117,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="fixed top-0 left-0 right-0 md:left-64 z-40 border-b border-border/40 bg-background/80 backdrop-blur-md">
           <div className="max-w-screen-2xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Logo />
+              <Logo to="/dashboard" />
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />

@@ -1,13 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
-import { Shield, Database, Layers, Eye, EyeOff } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { TopNav } from "@/components/top-nav";
-import { supabase } from "@/api/supabase";
-import { toast } from "sonner";
-import { hashPin } from "@/lib/utils";
-import { getDeviceName } from "@/lib/device-detection";
+import { createFileRoute } from '@tanstack/react-router'
+import { Logo } from "@/components/logo";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -18,18 +10,6 @@ export const Route = createFileRoute("/login")({
     ],
   }),
 });
-
-function Logo() {
-  return (
-    <Link to="/" className="flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
-      <svg width="36" height="36" viewBox="0 0 40 40" fill="none">
-        <path d="M6 6 L20 34 L34 6 L27 6 L20 22 L13 6 Z" fill="oklch(0.82 0.16 165)" />
-        <circle cx="26" cy="14" r="3" fill="oklch(0.97 0.01 160)" opacity="0.85" />
-      </svg>
-      <span className="text-3xl font-serif tracking-tight text-foreground">Vault</span>
-    </Link>
-  );
-}
 
 function Field({
   label,
