@@ -3,10 +3,18 @@ import { useState, useMemo } from "react";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -249,6 +257,63 @@ function DashboardPage() {
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const [activeFilter, setActiveFilter] = useState("All");
   const [profile] = useProfileSignal();
+  const [showReport, setShowReport] = useState(false);
+
+  const reportMetrics = useMemo(() => {
+    if (!transactions.length || !profile?.id) return null;
+    
+    let totalInflow = 0;
+    let totalOutflow = 0;
+    
+    transactions.forEach(t => {
+      const isSender = t.sender_id === (profile as any).id;
+      if (t.type === 'transfer') {
+        if (isSender) totalOutflow += t.amount;
+        else totalInflow += t.amount;
+      } else if (t.type === 'deposit') {
+        totalInflow += t.amount;
+      } else if (t.type === 'withdrawal') {
+        totalOutflow += t.amount;
+      }
+    });
+
+    return {
+      totalInflow,
+      totalOutflow,
+      netChange: totalInflow - totalOutflow,
+      count: transactions.length,
+    };
+  }, [transactions, profile]);
+
+  const handleDownloadReport = () => {
+    if (!transactions.length || !profile?.id) return;
+
+    const headers = ["Date", "Type", "Description", "Amount", "Balance After"];
+    const csvRows = [headers.join(",")];
+    
+    transactions.forEach(t => {
+      const isSender = t.sender_id === (profile as any).id;
+      const amountPrefix = (t.type === 'transfer' && isSender) || t.type === 'withdrawal' ? '-' : '+';
+      const row = [
+        `"${new Date(t.created_at).toLocaleString()}"`,
+        `"${t.type}"`,
+        `"${(t.description || "").replace(/"/g, '""')}"`,
+        `"${amountPrefix}${t.amount}"`,
+        `"${t.balance_after || ""}"`
+      ];
+      csvRows.push(row.join(","));
+    });
+    
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Vault_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
@@ -334,7 +399,7 @@ function DashboardPage() {
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="mb-6">
-          <h1 className="text-3xl sm:text-4xl font-light tracking-tight">Unified Portfolio Balance</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Unified Portfolio Balance</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Integrates a renew Accounts of multiple finance accounts.
           </p>
@@ -373,7 +438,7 @@ function DashboardPage() {
                   <span className="text-5xl sm:text-6xl font-light text-destructive">Error</span>
                 ) : (
                   <>
-                    <span className="text-5xl sm:text-6xl font-light tracking-tight">
+                    <span className="text-5xl sm:text-6xl font-bold tracking-tight">
                       {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-semibold">
@@ -391,12 +456,87 @@ function DashboardPage() {
               <Button className="h-12 px-6 rounded-2xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95">
                 <UserPlus className="w-4 h-4 mr-2" /> Add External Account
               </Button>
-              <Button variant="outline" className="h-12 px-6 rounded-2xl font-semibold border-border/60 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95">
+              <Button 
+                variant="outline" 
+                className="h-12 px-6 rounded-2xl font-semibold border-border/60 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95"
+                onClick={() => setShowReport(true)}
+              >
                 Detailed Report
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Report Modal */}
+        <Dialog open={showReport} onOpenChange={setShowReport}>
+          <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-2xl border-border/40">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">Financial Health Report</DialogTitle>
+              <DialogDescription>
+                A comprehensive breakdown of your Vault OS ledger activity.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-6 space-y-6">
+              {reportMetrics ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Inflow</div>
+                    <div className="text-xl font-semibold text-emerald-500">
+                      +{currencySymbol}{reportMetrics.totalInflow.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Outflow</div>
+                    <div className="text-xl font-semibold text-destructive">
+                      -{currencySymbol}{reportMetrics.totalOutflow.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Net Position</div>
+                    <div className={cn(
+                      "text-xl font-semibold",
+                      reportMetrics.netChange >= 0 ? "text-primary" : "text-destructive"
+                    )}>
+                      {reportMetrics.netChange >= 0 ? '+' : ''}{currencySymbol}{reportMetrics.netChange.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Activity Volume</div>
+                    <div className="text-xl font-semibold text-foreground">
+                      {reportMetrics.count} <span className="text-xs font-normal text-muted-foreground">Transactions</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground italic">
+                  No transaction history available to generate report.
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-border/40 bg-muted/30 p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider mb-2">Ledger Insights</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Your current balance of {currencySymbol}{balance?.toLocaleString()} is derived from {reportMetrics?.count || 0} cryptographically signed ledger entries. 
+                  Vault OS maintains a zero-trust immutable record of every fractional change.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-3">
+              <Button variant="ghost" onClick={() => setShowReport(false)} className="flex-1">
+                Close
+              </Button>
+              <Button 
+                onClick={handleDownloadReport} 
+                disabled={!transactions.length}
+                className="flex-1 gap-2"
+              >
+                <RefreshCw className="w-4 h-4" /> Download CSV Statement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Accounts grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

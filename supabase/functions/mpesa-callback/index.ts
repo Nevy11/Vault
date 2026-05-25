@@ -37,11 +37,13 @@ serve(async (req) => {
       });
     }
 
+    const userId = tx.receiver_id || tx.sender_id;
+
     // 2. Update wallet balance
     const { data: wallet, error: walletError } = await supabase
       .from("wallets")
       .select("balance")
-      .eq("user_id", tx.sender_id)
+      .eq("user_id", userId)
       .single();
 
     if (walletError || !wallet) {
@@ -56,7 +58,7 @@ serve(async (req) => {
     const { error: walletUpdateError } = await supabase
       .from("wallets")
       .update({ balance: newBalance, updated_at: new Date().toISOString() })
-      .eq("user_id", tx.sender_id);
+      .eq("user_id", userId);
 
     if (walletUpdateError) {
       console.error("Error updating wallet balance:", walletUpdateError);
@@ -74,22 +76,19 @@ serve(async (req) => {
       })
       .eq("id", tx.id);
 
-    if (updateError) {
-      console.error("Error updating transaction status:", updateError);
-    }
-  } else {
-    // Failure
-    console.log("Transaction Failed:", checkoutRequestId, body.ResultDesc);
-    
-    // Update status to failed
-    await supabase
-      .from("transactions")
-      .update({ status: "failed" })
-      .eq("description", checkoutRequestId)
-      .eq("status", "pending");
-  }
+    // 4. Record in immutable ledger
+    await supabase.from("ledger_entries").insert({
+      user_id: userId,
+      amount: tx.amount,
+      currency: "USD",
+      type: "deposit",
+      status: "completed",
+      reference: checkoutRequestId,
+      description: `M-Pesa Deposit: ${checkoutRequestId}`,
+      metadata: { mpesa_checkout_id: checkoutRequestId, payment_method: 'mpesa' }
+    });
 
-  return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {
-    headers: { "Content-Type": "application/json" },
-  });
+    return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {
+      headers: { "Content-Type": "application/json" },
+    });
 });
