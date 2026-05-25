@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2 } from "lucide-react";
+import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -43,45 +43,67 @@ function AccountBadge({
   primary?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-card/60 border border-border/50 p-5 backdrop-blur-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-primary">
-            {icon}
+    <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm transition-all hover:bg-card/80 hover:border-primary/30">
+      {/* Decorative background element */}
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
+      
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+              {icon}
+            </div>
+            <div>
+              <div className="text-base font-medium tracking-tight">{name}</div>
+              <div className="text-xs text-muted-foreground/80 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+                {type}
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm font-medium">{name}</div>
-            <div className="text-xs text-muted-foreground">{type}</div>
+          {primary ? (
+            <div className="h-8 w-8 rounded-full hover:bg-muted/50 flex items-center justify-center transition-colors cursor-pointer">
+              <MoreVertical className="w-4 h-4 text-muted-foreground" />
+            </div>
+          ) : (
+            <Lock className="w-4 h-4 text-muted-foreground/60" />
+          )}
+        </div>
+        
+        <div className="mt-6">
+          <div className="text-3xl font-semibold tracking-tight text-primary">
+            {amount}
+          </div>
+          <div className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 opacity-60">
+            Available Balance
           </div>
         </div>
+
         {primary ? (
-          <MoreVertical className="w-4 h-4 text-muted-foreground" />
+          <div className="mt-6 flex gap-2">
+            <Button variant="secondary" size="sm" className="flex-1 h-9 rounded-xl font-medium shadow-sm active:scale-95 transition-transform" asChild>
+              <Link to="/transactions" search={{ mode: "send" }}>
+                Send
+              </Link>
+            </Button>
+            <Button size="sm" className="flex-1 h-9 rounded-xl font-medium shadow-md active:scale-95 transition-transform" asChild>
+              <Link to="/transactions" search={{ mode: "deposit" }}>
+                Deposit
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1 h-9 rounded-xl font-medium border-border/60 hover:bg-muted/50 active:scale-95 transition-transform" asChild>
+              <Link to="/transactions" search={{ mode: "withdraw" }}>
+                Withdraw
+              </Link>
+            </Button>
+          </div>
         ) : (
-          <Lock className="w-4 h-4 text-muted-foreground" />
+          <div className="mt-6 pt-4 border-t border-border/20 text-[10px] text-muted-foreground/60 flex items-center justify-end gap-1">
+            <RefreshCw className="w-2.5 h-2.5" />
+            {updated}
+          </div>
         )}
       </div>
-      <div className="mt-4 text-3xl font-semibold text-primary">{amount}</div>
-      {primary ? (
-        <div className="mt-4 flex gap-2">
-          <Button variant="secondary" size="sm" className="flex-1" asChild>
-            <Link to="/transactions" search={{ mode: "send" }}>
-              Send
-            </Link>
-          </Button>
-          <Button size="sm" className="flex-1" asChild>
-            <Link to="/transactions" search={{ mode: "deposit" }}>
-              Deposit
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" asChild>
-            <Link to="/transactions" search={{ mode: "withdraw" }}>
-              Withdraw
-            </Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="mt-6 text-xs text-muted-foreground text-right">{updated}</div>
-      )}
     </div>
   );
 }
@@ -89,30 +111,35 @@ function AccountBadge({
 function QuickSend({
   avatars,
   withAdd,
+  title = "Quick Send (P2P)"
 }: {
   avatars: { initial: string; color: string; name: string }[];
   withAdd?: boolean;
+  title?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-card/40 border border-border/40 p-4">
-      <div className="text-sm text-muted-foreground mb-3">Quick Send (P2P)</div>
-      <div className="flex items-center gap-4">
+    <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm transition-all hover:border-border/60">
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">{title}</div>
+        <ArrowRight className="w-3 h-3 text-muted-foreground/40" />
+      </div>
+      <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
         {withAdd && (
-          <button className="w-11 h-11 rounded-full border border-dashed border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
-            <Plus className="w-4 h-4" />
+          <button className="flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all">
+            <Plus className="w-5 h-5" />
           </button>
         )}
         {avatars.map((a) => (
-          <div key={a.name} className="flex flex-col items-center gap-1">
+          <div key={a.name} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
             <div className="relative">
               <div
-                className={`w-11 h-11 rounded-full ${a.color} flex items-center justify-center text-white font-medium`}
+                className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
               >
                 {a.initial}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary border-2 border-card" />
+              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
             </div>
-            <span className="text-xs text-muted-foreground">{a.name}</span>
+            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{a.name}</span>
           </div>
         ))}
       </div>
@@ -122,21 +149,28 @@ function QuickSend({
 
 function NetWorthChart() {
   return (
-    <div className="rounded-2xl bg-card/40 border border-border/40 p-4">
-      <div className="text-sm font-medium mb-3">Net Worth Over Time</div>
-      <div className="relative h-28">
-        <div className="absolute left-0 top-0 text-[10px] text-muted-foreground">35K</div>
-        <div className="absolute left-0 bottom-4 text-[10px] text-muted-foreground">0</div>
+    <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-full flex flex-col transition-all hover:border-border/60">
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">Net Worth Growth</div>
+        <TrendingUp className="w-3 h-3 text-emerald-500" />
+      </div>
+      <div className="relative flex-1 min-h-[100px] mt-2">
+        <div className="absolute left-0 top-0 text-[10px] text-muted-foreground/40 font-mono">35K</div>
+        <div className="absolute left-0 bottom-6 text-[10px] text-muted-foreground/40 font-mono">0</div>
         <svg
           viewBox="0 0 300 100"
-          className="absolute inset-0 w-full h-full"
+          className="absolute inset-0 w-full h-full pr-2"
           preserveAspectRatio="none"
         >
           <defs>
             <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="oklch(0.82 0.16 165)" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="oklch(0.82 0.16 165)" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
             </linearGradient>
+            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
           </defs>
           <path
             d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10 L300,100 L0,100 Z"
@@ -144,16 +178,19 @@ function NetWorthChart() {
           />
           <path
             d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10"
-            stroke="oklch(0.82 0.16 165)"
-            strokeWidth="2"
+            stroke="var(--primary)"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             fill="none"
+            style={{ filter: "drop-shadow(0 0 4px var(--primary-foreground))" }}
           />
         </svg>
-        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-muted-foreground px-6">
-          <span>Jan</span>
-          <span>Feb</span>
-          <span>Mar</span>
-          <span>Apr</span>
+        <div className="absolute bottom-0 left-6 right-0 flex justify-between text-[10px] text-muted-foreground/60 font-medium pt-2 border-t border-border/10">
+          <span>JAN</span>
+          <span>FEB</span>
+          <span>MAR</span>
+          <span>APR</span>
         </div>
       </div>
     </div>
@@ -162,31 +199,44 @@ function NetWorthChart() {
 
 function SecurityStatus() {
   return (
-    <div className="rounded-2xl bg-card/60 border border-border/50 p-5 backdrop-blur-sm flex flex-col justify-between h-full">
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <ShieldCheck className="w-4 h-4" />
+    <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
+      <div className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
+      
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner group-hover:scale-110 transition-transform">
+            <ShieldCheck className="w-5 h-5" />
           </div>
-          <span className="text-sm font-medium">Vault Security</span>
+          <div>
+            <span className="text-base font-medium tracking-tight">Security Shield</span>
+            <div className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+              SYSTEM SECURE
+            </div>
+          </div>
         </div>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Encryption</span>
-            <span className="text-xs font-mono text-primary">AES-256</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Privacy Mode</span>
-            <span className="text-xs text-primary">Active</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Biometrics</span>
-            <span className="text-xs text-primary">Verified</span>
-          </div>
+        
+        <div className="space-y-4">
+          {[
+            { label: "End-to-End Encryption", val: "AES-256", status: "active" },
+            { label: "Identity Protection", val: "ENHANCED", status: "active" },
+            { label: "Device Integrity", val: "VERIFIED", status: "active" },
+          ].map((item) => (
+            <div key={item.label} className="group/item">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors">{item.label}</span>
+                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{item.val}</span>
+              </div>
+              <div className="h-1 w-full bg-muted/30 rounded-full overflow-hidden">
+                <div className="h-full bg-primary/40 rounded-full w-full group-hover:bg-primary/60 transition-all duration-700" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-      <Button variant="ghost" size="sm" className="mt-4 w-full text-xs gap-2">
-        <Shield className="w-3 h-3" /> Manage Security
+      
+      <Button variant="ghost" size="sm" className="relative z-10 mt-8 w-full text-xs gap-2 h-9 rounded-xl border border-border/40 hover:bg-muted/50 hover:border-border transition-all">
+        <Shield className="w-3 h-3" /> Security Settings
       </Button>
     </div>
   );
@@ -297,34 +347,53 @@ function DashboardPage() {
         )}
 
         {/* Total net worth */}
-        <div className="rounded-2xl bg-card/30 border border-border/40 p-5 sm:p-6 mb-4 backdrop-blur-sm flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">
-              Total Net Worth
-            </div>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-3">
-              {balanceLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">Loading...</span>
+        <div className="group relative overflow-hidden rounded-3xl bg-card/40 border border-border/40 p-8 sm:p-10 mb-8 backdrop-blur-md transition-all hover:bg-card/50 hover:border-primary/20 shadow-xl">
+          {/* Large decorative background pattern */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, var(--primary) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+          <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/5 blur-[100px] transition-all group-hover:bg-primary/10" />
+          <div className="absolute -left-24 -bottom-24 h-64 w-64 rounded-full bg-primary/5 blur-[80px] transition-all group-hover:bg-primary/10" />
+          
+          <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                <div className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
+                  Total Unified Net Worth
                 </div>
-              ) : balanceError ? (
-                <span className="text-4xl sm:text-5xl font-light text-destructive">Error</span>
-              ) : (
-                <>
-                  <span className="text-4xl sm:text-5xl font-light">
-                    {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <span className="text-xs w-fit px-2 py-1 rounded-full bg-primary/15 text-primary">
-                    + 5.25%
-                  </span>
-                </>
-              )}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-4">
+                {balanceLoading ? (
+                  <div className="flex items-center gap-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                    <span className="text-xl text-muted-foreground font-light">Analyzing portfolio...</span>
+                  </div>
+                ) : balanceError ? (
+                  <span className="text-5xl sm:text-6xl font-light text-destructive">Error</span>
+                ) : (
+                  <>
+                    <span className="text-5xl sm:text-6xl font-light tracking-tight">
+                      {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-semibold">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      + 5.25%
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground/60 max-w-sm leading-relaxed">
+                Your portfolio is currently outperforming 84% of similar Vault accounts this month.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button className="h-12 px-6 rounded-2xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95">
+                <UserPlus className="w-4 h-4 mr-2" /> Add External Account
+              </Button>
+              <Button variant="outline" className="h-12 px-6 rounded-2xl font-semibold border-border/60 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95">
+                Detailed Report
+              </Button>
             </div>
           </div>
-          <Button className="gap-2 w-full sm:w-auto justify-center">
-            <UserPlus className="w-4 h-4" /> Add External Account
-          </Button>
         </div>
 
         {/* Accounts grid */}
