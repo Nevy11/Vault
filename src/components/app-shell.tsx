@@ -3,7 +3,7 @@ import { HelpCircle, Home, Send, Settings, User, LogOut, MessageCircle } from "l
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 
 const navItems = [
@@ -110,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className="rounded-full transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <Avatar>
-                  <AvatarImage src={profile?.profile_photo_url} />
+                  <AvatarImage src={profile?.profile_photo_url || undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary">
                     {profile?.first_name?.[0] || <User className="h-4 w-4" />}
                   </AvatarFallback>

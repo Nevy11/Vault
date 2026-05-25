@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TopNav } from "@/components/top-nav";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 import { hashPin, formatKycTag } from "@/lib/utils";
 
 export const Route = createFileRoute("/sign-up")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return search as { step?: string };
+  },
   component: SignUp,
   head: () => ({
     meta: [

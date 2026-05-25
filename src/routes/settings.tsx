@@ -23,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 import { formatKycTag } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

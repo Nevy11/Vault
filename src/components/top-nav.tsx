@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogOut, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import {
   DropdownMenu,
@@ -72,7 +72,7 @@ export function TopNav() {
               <DropdownMenuTrigger asChild>
                 <button className="ml-2 rounded-full transition-opacity hover:opacity-75 focus:outline-none flex">
                   <Avatar>
-                    <AvatarImage src={profile?.profile_photo_url} />
+                    <AvatarImage src={profile?.profile_photo_url || undefined} />
                     <AvatarFallback className="bg-primary/10 text-primary">
                       {profile?.first_name?.[0] || <User className="h-4 w-4" />}
                     </AvatarFallback>

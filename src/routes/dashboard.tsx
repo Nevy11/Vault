@@ -13,9 +13,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
-    return {
-      session_id: search.session_id as string | undefined,
-    };
+    return search as { session_id?: string };
   },
   head: () => ({
     meta: [

@@ -12,8 +12,8 @@ import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { supabase } from "@/lib/supabase";
-import { initiateStkPush } from "@/lib/daraja";
+import { supabase } from "@/api/supabase";
+import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
 import { z } from "zod";
 import {

@@ -38,7 +38,7 @@ import { toast } from 'sonner';
 import { Link } from '@tanstack/react-router';
 
 import { useProfileSignal } from '@/lib/profile-signal';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/api/supabase';
 import { hashPin } from '@/lib/utils';
 
 import { StripePayment } from './stripe-payment';

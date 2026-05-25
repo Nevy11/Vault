@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Sparkles, Shield, TrendingUp, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { toast } from "sonner";
 
