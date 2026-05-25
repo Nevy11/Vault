@@ -1,19 +1,17 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { 
-  Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, 
-  Smartphone, Loader2, CheckCircle2, Building2, UserCircle, 
-  ArrowRight, Landmark, CreditCard, User, History, Zap
+  Search, Lock, Check, Smartphone, Loader2, CheckCircle2, 
+  ArrowRight, Landmark, CreditCard, User, History, Zap, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { supabase } from "@/api/supabase";
-import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
@@ -32,15 +30,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn, hashPin } from "@/lib/utils";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
 });
 
+type Mode = "send" | "deposit" | "withdraw";
+
 export const Route = createFileRoute("/transactions")({
-  validateSearch: (search) => transactionsSearchSchema.parse(search),
+  validateSearch: (search: Record<string, unknown>) => transactionsSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Transactions — Vault OS" },
@@ -53,25 +52,40 @@ export const Route = createFileRoute("/transactions")({
   component: TransactionsPage,
 });
 
-type Mode = "send" | "deposit" | "withdraw";
-
 function WalletCard() {
   const { balance, currency, loading } = useWalletBalance();
 
   return (
-    <div className="rounded-2xl border border-primary/40 bg-card/40 p-5 backdrop-blur-sm min-w-[200px]">
-      <div className="flex items-center justify-between">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">
-          Vault {currency} Wallet
+    <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-6 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
+      {/* Decorative glass reflection */}
+      <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
+      
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
+              Vault {currency} Wallet
+            </div>
+          </div>
+          <Lock className="w-3.5 h-3.5 text-muted-foreground/40" />
         </div>
-        <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-      </div>
-      <div className="mt-3 text-3xl font-light text-primary">
-        {loading ? (
-          <div className="h-9 w-24 bg-primary/10 animate-pulse rounded" />
-        ) : (
-          `${currency === "USD" ? "$" : currency + " "}${balance?.toLocaleString() ?? "0.00"}`
-        )}
+        
+        <div className="flex flex-col">
+          <div className="text-3xl font-semibold tracking-tight text-primary">
+            {loading ? (
+              <div className="h-9 w-32 bg-primary/10 animate-pulse rounded-lg" />
+            ) : (
+              `${currency === "USD" ? "$" : currency + " "}${balance?.toLocaleString() ?? "0.00"}`
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">Active & Encrypted</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -92,28 +106,29 @@ const BANKS = [
 const MOBILE_PROVIDERS = ["M-Pesa", "Airtel Money", "T-Kash"];
 
 interface Recipient {
-  id: number;
+  id: string | number;
   name: string;
   type: "vault" | "bank" | "mobile";
   identifier: string;
   avatar: string;
+  avatarUrl?: string | null;
   color: string;
   bank?: string;
   provider?: string;
 }
 
 const RECENT_TRANSACTIONS: Recipient[] = [
-  { id: 1, name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
-  { id: 2, name: "KCB Bank", type: "bank", identifier: "1234567890", avatar: "KCB", color: "bg-blue-600", bank: "KCB Bank (Kenya Commercial Bank)" },
-  { id: 3, name: "John L.", type: "mobile", identifier: "+254712345678", avatar: "JL", color: "bg-amber-500", provider: "M-Pesa" },
-  { id: 4, name: "Lisa M.", type: "vault", identifier: "@lisa", avatar: "LM", color: "bg-pink-500" },
+  { id: "1", name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
+  { id: "2", name: "KCB Bank", type: "bank", identifier: "1234567890", avatar: "KCB", color: "bg-blue-600", bank: "KCB Bank (Kenya Commercial Bank)" },
+  { id: "3", name: "John L.", type: "mobile", identifier: "+254712345678", avatar: "JL", color: "bg-amber-500", provider: "M-Pesa" },
+  { id: "4", name: "Lisa M.", type: "vault", identifier: "@lisa", avatar: "LM", color: "bg-pink-500" },
 ];
 
 const FREQUENT_TRANSACTIONS: Recipient[] = [
-  { id: 1, name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
-  { id: 5, name: "Ben A.", type: "vault", identifier: "@ben", avatar: "BA", color: "bg-teal-500" },
-  { id: 6, name: "Absa Bank", type: "bank", identifier: "0987654321", avatar: "Absa", color: "bg-red-600", bank: "Absa Bank Kenya" },
-  { id: 7, name: "M-Pesa", type: "mobile", identifier: "+254722222222", avatar: "MP", color: "bg-green-600", provider: "M-Pesa" },
+  { id: "1", name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
+  { id: "5", name: "Ben A.", type: "vault", identifier: "@ben", avatar: "BA", color: "bg-teal-500" },
+  { id: "6", name: "Absa Bank", type: "bank", identifier: "0987654321", avatar: "Absa", color: "bg-red-600", bank: "Absa Bank Kenya" },
+  { id: "7", name: "M-Pesa", type: "mobile", identifier: "+254722222222", avatar: "MP", color: "bg-green-600", provider: "M-Pesa" },
 ];
 
 function SendPanel() {
@@ -147,84 +162,85 @@ function SendPanel() {
           .select(`
             receiver_id,
             profiles:receiver_id (
-            id,
-            first_name,
-            last_name,
-            kyc_tag,
-            profile_photo_url
+              id,
+              first_name,
+              last_name,
+              kyc_tag,
+              profile_photo_url
             )
-            `)
-            .eq("sender_id", user.id)
-            .eq("type", "transfer")
-            .order("created_at", { ascending: false })
-            .limit(20);
+          `)
+          .eq("sender_id", user.id)
+          .eq("type", "transfer")
+          .order("created_at", { ascending: false })
+          .limit(20);
 
-            if (recentData) {
-            const uniqueRecipients: Recipient[] = [];
-            const seenIds = new Set();
+        if (recentData) {
+          const uniqueRecipients: Recipient[] = [];
+          const seenIds = new Set();
 
-            recentData.forEach((tx: any) => {
+          recentData.forEach((tx: any) => {
             if (tx.profiles && !seenIds.has(tx.receiver_id)) {
-            seenIds.add(tx.receiver_id);
-            uniqueRecipients.push({
-              id: tx.receiver_id,
-              name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
-              type: "vault",
-              identifier: tx.profiles.kyc_tag || "",
-              avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
-              avatarUrl: tx.profiles.profile_photo_url,
-              color: "bg-primary/20", // Could randomize this
-            });
+              seenIds.add(tx.receiver_id);
+              uniqueRecipients.push({
+                id: tx.receiver_id,
+                name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
+                type: "vault",
+                identifier: tx.profiles.kyc_tag || "",
+                avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
+                avatarUrl: tx.profiles.profile_photo_url,
+                color: "bg-primary/20",
+              });
             }
-            });
-            setRecentRecipients(uniqueRecipients.slice(0, 5));
-            }
+          });
+          setRecentRecipients(uniqueRecipients.slice(0, 5));
+        }
 
-            // Fetch Frequent: Get top recipients by frequency
-            const { data: freqData } = await supabase
-            .from("transactions")
-            .select(`
+        // Fetch Frequent: Get top recipients by frequency
+        const { data: freqData } = await supabase
+          .from("transactions")
+          .select(`
             receiver_id,
             profiles:receiver_id (
-            id,
-            first_name,
-            last_name,
-            kyc_tag,
-            profile_photo_url
+              id,
+              first_name,
+              last_name,
+              kyc_tag,
+              profile_photo_url
             )
-            `)
-            .eq("sender_id", user.id)
-            .eq("type", "transfer");
+          `)
+          .eq("sender_id", user.id)
+          .eq("type", "transfer");
 
-            if (freqData) {
-            const counts: Record<string, number> = {};
-            const profileMap: Record<string, any> = {};
+        if (freqData) {
+          const counts: Record<string, number> = {};
+          const profileMap: Record<string, any> = {};
 
-            freqData.forEach((tx: any) => {
+          freqData.forEach((tx: any) => {
             if (tx.profiles) {
-            const rid = tx.receiver_id;
-            counts[rid] = (counts[rid] || 0) + 1;
-            profileMap[rid] = tx.profiles;
+              const rid = tx.receiver_id;
+              counts[rid] = (counts[rid] || 0) + 1;
+              profileMap[rid] = tx.profiles;
             }
-            });
+          });
 
-            const sortedRecipients = Object.entries(counts)
+          const sortedRecipients = Object.entries(counts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([id]) => {
-            const p = profileMap[id];
-            return {
-              id: parseInt(id),
-              name: `${p.first_name} ${p.last_name.charAt(0)}.`,
-              type: "vault" as const,
-              identifier: p.kyc_tag || "",
-              avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
-              avatarUrl: p.profile_photo_url,
-              color: "bg-primary/20",
-            };
+              const p = profileMap[id];
+              return {
+                id: id,
+                name: `${p.first_name} ${p.last_name.charAt(0)}.`,
+                type: "vault" as const,
+                identifier: p.kyc_tag || "",
+                avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
+                avatarUrl: p.profile_photo_url,
+                color: "bg-primary/20",
+              };
             });
-            setFrequentRecipients(sortedRecipients);
-            }      } catch (err) {
+          setFrequentRecipients(sortedRecipients);
+        }
+      } catch (err) {
         console.error("Error fetching recipients:", err);
         toast.error("Unable to load recipient suggestions. Please try again.");
       }
@@ -579,7 +595,7 @@ function SendPanel() {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarImage src={r.avatarUrl || undefined} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>
@@ -605,7 +621,7 @@ function SendPanel() {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarImage src={r.avatarUrl || undefined} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>
@@ -686,7 +702,7 @@ function SendPanel() {
 
 function TransactionsPage() {
   const { mode: initialMode } = Route.useSearch();
-  const navigate = useNavigate({ from: Route.fullPath });
+  const navigate = Route.useNavigate();
   const [mode, setMode] = useState<Mode>(initialMode || "send");
 
   useEffect(() => {
@@ -697,7 +713,12 @@ function TransactionsPage() {
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
-    navigate({ search: (prev: any) => ({ ...prev, mode: newMode }) });
+    navigate({
+      search: (prev: any) => ({
+        ...prev,
+        mode: newMode,
+      }),
+    });
   };
 
   const tabs: { id: Mode; label: string }[] = [
@@ -715,6 +736,17 @@ function TransactionsPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Back Button */}
+        <div className="mb-8">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Link>
+        </div>
+
         {/* Toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-full border border-border/50 bg-card/40 p-1 backdrop-blur-sm">

@@ -10,7 +10,7 @@ import {
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfileSignal, profileSignal } from "@/lib/profile-signal";
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
@@ -106,6 +106,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "/v-logo.svg",
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -145,33 +150,57 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [, setProfile] = useProfileSignal();
+  const [profile, setProfile] = useProfileSignal();
 
   useEffect(() => {
     async function fetchProfile(userId: string) {
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
+      if (!userId) return;
       
-      if (data) {
-        setProfile(data);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data) {
+          const current = profileSignal.get();
+          // Deep compare relevant fields to prevent unnecessary re-renders
+          const hasChanged = !current || 
+            current.id !== data.id || 
+            current.kyc_status !== data.kyc_status ||
+            current.profile_photo_url !== data.profile_photo_url ||
+            current.first_name !== data.first_name ||
+            current.last_name !== data.last_name ||
+            current.kyc_tag !== data.kyc_tag;
+
+          if (hasChanged) {
+            console.log("Profile data updated/synced");
+            setProfile(data);
+          }
+        } else {
+          console.warn("No profile found for authenticated user:", userId);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
       }
     }
 
     // Initial check
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        fetchProfile(user.id);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
       }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state change:", event);
       if (session?.user) {
         fetchProfile(session.user.id);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setProfile(null);
       }
     });
