@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { hashPin } from "@/lib/utils";
 import { getDeviceName } from "@/lib/device-detection";
 import { Logo } from "@/components/logo";
+import { profileSignal } from "@/lib/profile-signal";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -132,14 +133,14 @@ function LoginPage() {
     if (!user) throw new Error("No user found after verification");
 
     try {
-      // 2. Fetch profile to check PIN
+      // 2. Fetch profile to check PIN and prepopulate global state
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("pin_hash")
+        .select("*")
         .eq("id", user.id)
         .single();
 
-      if (profileError) {
+      if (profileError || !profile) {
         await supabase.auth.signOut();
         throw new Error("Could not retrieve account profile");
       }
@@ -147,6 +148,9 @@ function LoginPage() {
       // 3. Hash entered PIN and compare
       const hashedPin = await hashPin(pin);
       if (profile.pin_hash === hashedPin) {
+        // Pre-populate profile signal so dashboard is ready instantly
+        profileSignal.set(profile);
+
         // 4. Record device login
         const deviceName = getDeviceName();
         try {

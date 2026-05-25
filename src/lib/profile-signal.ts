@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export type Profile = {
   id?: string;
@@ -70,5 +70,9 @@ export function useProfileSignal() {
     };
   }, []);
 
-  return [profile, profileSignal.set.bind(profileSignal)] as const;
+  const setter = useCallback((newValue: Profile) => {
+    profileSignal.set(newValue);
+  }, []);
+
+  return [profile, setter] as const;
 }

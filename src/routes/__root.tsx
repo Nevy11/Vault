@@ -10,7 +10,7 @@ import {
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfileSignal, profileSignal } from "@/lib/profile-signal";
 import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
@@ -153,21 +153,9 @@ function RootComponent() {
   const [profile, setProfile] = useProfileSignal();
 
   useEffect(() => {
-    // Check if the page was reloaded
-    const isReload = 
-      window.performance && 
-      (
-        performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming
-      )?.type === "reload";
-
-    if (isReload) {
-      console.log("Page reload detected. Clearing user data for security.");
-      supabase.auth.signOut().then(() => {
-        setProfile(null);
-      });
-    }
-
     async function fetchProfile(userId: string) {
+      if (!userId) return;
+      
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -178,42 +166,42 @@ function RootComponent() {
         if (error) throw error;
         
         if (data) {
-          // Only update if data has changed to prevent unnecessary re-renders/lag
           const current = profileSignal.get();
+          // Deep compare relevant fields to prevent unnecessary re-renders
           const hasChanged = !current || 
             current.id !== data.id || 
             current.kyc_status !== data.kyc_status ||
             current.profile_photo_url !== data.profile_photo_url ||
             current.first_name !== data.first_name ||
-            current.last_name !== data.last_name;
+            current.last_name !== data.last_name ||
+            current.kyc_tag !== data.kyc_tag;
 
           if (hasChanged) {
+            console.log("Profile data updated/synced");
             setProfile(data);
           }
+        } else {
+          console.warn("No profile found for authenticated user:", userId);
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
       }
     }
 
-    // Initial check - skip if we already have it in memory to reduce lag
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        fetchProfile(user.id);
+    // Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchProfile(session.user.id);
       }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state change:", event);
       if (session?.user) {
-        // Debounce or skip if session is same as current profile to reduce lag
-        if (profileSignal.get()?.id !== session.user.id) {
-          fetchProfile(session.user.id);
-        }
-      } else {
-        if (profileSignal.get() !== null) {
-          setProfile(null);
-        }
+        fetchProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null);
       }
     });
 

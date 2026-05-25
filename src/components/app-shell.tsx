@@ -135,7 +135,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         </Avatar>
                         <div className="flex flex-col space-y-0.5 min-w-0">
                           <p className="text-sm font-medium leading-none truncate">
-                            {profile?.first_name} {profile?.last_name}
+                            {profile?.first_name 
+                              ? `${profile.first_name} ${profile.last_name || ""}`.trim()
+                              : (profile?.email?.split('@')[0] || "Vault User")}
                           </p>
                           <p className="text-xs leading-none text-muted-foreground truncate">
                             Personal Account

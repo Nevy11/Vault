@@ -271,7 +271,9 @@ function DashboardPage() {
 
   const getTransactionDetails = (t: any) => {
     const isSender = t.sender_id === (profile as any)?.id;
-    const userName = `${profile?.first_name} ${profile?.last_name}`;
+    const userName = profile?.first_name 
+      ? `${profile.first_name} ${profile.last_name || ""}`.trim()
+      : (profile?.email?.split('@')[0] || "Vault User");
     const symbol = currency === 'USD' ? '$' : currency + ' ';
 
     if (t.type === 'transfer') {
