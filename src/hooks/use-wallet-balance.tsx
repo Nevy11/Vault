@@ -219,10 +219,16 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         .channel(`wallet-balance-updates-${profile.id}-${uniqueSuffix}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'wallets', filter: `user_id=eq.${profile.id}` },
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'wallets', 
+            filter: `user_id=eq.${profile.id}` 
+          },
           async () => {
             if (!mounted) return;
-            await fetchWallet();
+            console.log("Real-time wallet update detected, refetching...");
+            await fetchWallet(true);
           },
         )
         .on(

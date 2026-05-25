@@ -42,7 +42,7 @@ BEGIN
     -- Update legacy wallets table
     INSERT INTO public.wallets (user_id, balance, currency)
     VALUES (p_user_id, p_amount, p_currency)
-    ON CONFLICT (user_id) DO UPDATE
+    ON CONFLICT (user_id, currency) DO UPDATE
     SET balance = (SELECT COALESCE(balance, 0) FROM public.wallet_balances WHERE user_id = p_user_id AND currency = p_currency),
         updated_at = NOW();
 
