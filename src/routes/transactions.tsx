@@ -177,9 +177,49 @@ function SendPanel() {
           setRecentRecipients(uniqueRecipients.slice(0, 5));
         }
 
-        // Fetch Frequent (Simplified: use mock data or derive from recent)
-        // TODO: Create get_frequent_recipients RPC function in Supabase for production
-        setFrequentRecipients(FREQUENT_TRANSACTIONS.slice(0, 5));
+        // Fetch Frequent: Get top recipients by frequency
+        const { data: freqData } = await supabase
+          .from("transactions")
+          .select(`
+            receiver_id,
+            profiles:receiver_id (
+              id,
+              first_name,
+              last_name,
+              kyc_tag
+            )
+          `)
+          .eq("sender_id", user.id)
+          .eq("type", "transfer");
+
+        if (freqData) {
+          const counts: Record<string, number> = {};
+          const profileMap: Record<string, any> = {};
+          
+          freqData.forEach((tx: any) => {
+            if (tx.profiles) {
+              const rid = tx.receiver_id;
+              counts[rid] = (counts[rid] || 0) + 1;
+              profileMap[rid] = tx.profiles;
+            }
+          });
+
+          const sortedRecipients = Object.entries(counts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([id]) => {
+              const p = profileMap[id];
+              return {
+                id: parseInt(id),
+                name: `${p.first_name} ${p.last_name.charAt(0)}.`,
+                type: "vault" as const,
+                identifier: p.kyc_tag || "",
+                avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
+                color: "bg-primary/20",
+              };
+            });
+          setFrequentRecipients(sortedRecipients);
+        }
       } catch (err) {
         console.error("Error fetching recipients:", err);
         toast.error("Unable to load recipient suggestions. Please try again.");
