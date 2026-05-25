@@ -40,6 +40,7 @@ import { Link } from '@tanstack/react-router';
 import { useProfileSignal } from '@/lib/profile-signal';
 import { supabase } from '@/api/supabase';
 import { hashPin } from '@/lib/utils';
+import { useWalletBalance } from '@/hooks/use-wallet-balance';
 
 import { StripePayment } from './stripe-payment';
 import { loadStripe } from '@stripe/stripe-js';
@@ -73,6 +74,7 @@ type DepositStatus = 'idle' | 'confirming' | 'processing' | 'success' | 'stripe_
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
+  const { currency, balance: walletBalance } = useWalletBalance();
   const [channel, setChannel] = useState<SourceChannel>('mobile');
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
@@ -83,6 +85,8 @@ export function DepositPanel() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+
+  const currencySymbol = currency === 'USD' ? '$' : (currency === 'KSH' ? 'KES ' : currency + ' ');
 
   const SAVED_NUMBERS = useMemo(() => {
     console.log("DEBUG: Current profile object:", profile);
@@ -100,8 +104,15 @@ export function DepositPanel() {
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
+    if (currency === 'KSH') return val;
     return val * EXCHANGE_RATE;
-  }, [amount]);
+  }, [amount, currency]);
+
+  const usdEquivalent = useMemo(() => {
+    const val = parseFloat(amount || "0");
+    if (currency === 'USD') return val;
+    return val / EXCHANGE_RATE;
+  }, [amount, currency]);
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -531,13 +542,21 @@ export function DepositPanel() {
       <div className="space-y-6">
         <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-8">
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Deposit Amount (USD)</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Deposit Amount ({currency})</Label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-light">$</span>
+              <span className={cn(
+                "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-light",
+                currency === 'USD' ? "text-2xl" : "text-lg"
+              )}>
+                {currencySymbol}
+              </span>
               <Input 
                 type="number" 
                 placeholder="0.00" 
-                className="pl-10 h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20"
+                className={cn(
+                  "h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20",
+                  currency === 'USD' ? "pl-10" : "pl-16"
+                )}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
@@ -553,9 +572,15 @@ export function DepositPanel() {
               <span className="bg-emerald-500/20 px-2 py-0.5 rounded">1 USD = {EXCHANGE_RATE} KES</span>
             </div>
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Equivalent KES</div>
+              <div className="text-xs text-muted-foreground">
+                {currency === 'USD' ? 'Equivalent KES' : 'Equivalent USD'}
+              </div>
               <div className="text-2xl font-mono text-emerald-500 font-bold">
-                KES {kesEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {currency === 'USD' ? 'KES ' : '$'}
+                {(currency === 'USD' ? kesEquivalent : usdEquivalent).toLocaleString(undefined, { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+                })}
               </div>
             </div>
           </div>
