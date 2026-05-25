@@ -179,24 +179,32 @@ export function WithdrawPanel() {
       // Update the wallet balance
       const newBalance = balance !== null ? Math.max(0, balance - totalDeduction) : 0;
       
-      // Record transaction
-      const { error: txError } = await supabase.from('transactions').insert({
+      // Record transaction via RPC
+      const { data: rpcData, error: rpcError } = await supabase.rpc('process_withdrawal', {
+        p_user_id: userId,
+        p_amount: totalDeduction,
+        p_tx_id: `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`
+      });
+
+      if (rpcError) throw rpcError;
+      if (!rpcData[0].success) throw new Error(rpcData[0].message);
+
+      // Create a ledger/transaction record if the RPC function only handled the balance
+      await supabase.from('transactions').insert({
         sender_id: userId,
         type: 'withdrawal',
         method: channel === 'bank' ? 'bank' : 'mpesa',
         amount: parseFloat(amount),
         status: 'completed',
         description: `Withdrawal to ${getRecipientName()}`,
-        balance_after: newBalance
+        balance_after: rpcData[0].new_balance
       });
 
-      if (txError) throw txError;
-
       if (balance !== null) {
-        await updateBalance(newBalance);
+        await updateBalance(rpcData[0].new_balance);
       }
       
-      setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setRefCode(rpcData[0].tx_id || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       setStatus('success');
       toast.success("Withdrawal request authorized successfully!");
     } catch (err) {

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp } from "lucide-react";
+import { supabase } from "@/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -249,6 +250,41 @@ function DashboardPage() {
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const [activeFilter, setActiveFilter] = useState("All");
   const [profile] = useProfileSignal();
+  const [frequentRecipients, setFrequentRecipients] = useState<{initial: string, color: string, name: string}[]>([]);
+
+  useEffect(() => {
+    const fetchFrequent = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: freqData } = await supabase
+        .from("transactions")
+        .select("receiver_id")
+        .eq("sender_id", user.id)
+        .eq("type", "transfer");
+
+      if (freqData) {
+        const counts: Record<string, number> = {};
+        freqData.forEach((tx: any) => {
+            const rid = tx.receiver_id;
+            if(rid) {
+                counts[rid] = (counts[rid] || 0) + 1;
+            }
+        });
+
+        const sorted = Object.entries(counts)
+          .sort(([, a], [, b]) => (b as number) - (a as number))
+          .slice(0, 5)
+          .map(([id]) => ({
+              initial: "U",
+              color: "bg-primary/20",
+              name: `User ${id.substring(0, 4)}`
+          }));
+        setFrequentRecipients(sorted);
+      }
+    };
+    fetchFrequent();
+  }, []);
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
@@ -427,7 +463,7 @@ function DashboardPage() {
         {/* Quick send + chart */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <QuickSend
-            avatars={[
+            avatars={frequentRecipients.length > 0 ? frequentRecipients : [
               { initial: "M", color: "bg-emerald-500", name: "Maria C" },
               { initial: "J", color: "bg-blue-500", name: "John L" },
               { initial: "L", color: "bg-pink-500", name: "Lisa M" },
