@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { Logo } from "@/components/logo";
+import { TopNav } from "@/components/top-nav";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
