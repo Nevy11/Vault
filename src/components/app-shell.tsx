@@ -129,21 +129,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">
         <nav>
           <ul className="flex justify-around items-center">
-            {navItems.map(({ label, to, icon: Icon, isActive }) => (
-              <li key={to}>
-                <Link
-                  to={to}
-                  className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors ${
-                    isActive(currentPath)
-                      ? "text-primary"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="text-[10px] font-medium">{label}</span>
-                </Link>
-              </li>
-            ))}
+            {navItems.map(({ label, to, icon: Icon, isActive }) => {
+              const active = isActive(currentPath);
+              const isTransact = label === "Transact";
+              
+              return (
+                <li key={to}>
+                  <Link
+                    to={to}
+                    className={`flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-all duration-300 ${
+                      active
+                        ? isTransact 
+                          ? "text-primary scale-110" 
+                          : "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className={`h-5 w-5 transition-transform duration-500 ${
+                      active && isTransact ? "rotate-[360deg] text-primary" : ""
+                    }`} />
+                    <span className={`text-[10px] font-medium transition-colors ${
+                      active && isTransact ? "text-primary" : ""
+                    }`}>{label}</span>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
       </div>
