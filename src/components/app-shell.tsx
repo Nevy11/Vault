@@ -147,9 +147,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                           }`
                     }`}
                   >
-                    <Icon className={`h-5 w-5 ${
-                      isTransact ? "animate-[spin_8s_linear_infinite]" : ""
-                    } ${active && !isTransact ? "text-primary" : ""}`} />
+                    <Icon className={`${isTransact ? "h-7 w-7 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
+                      active && !isTransact ? "text-primary" : ""
+                    }`} />
                     <span className={`text-[10px] font-medium ${
                       isTransact ? "hidden" : active ? "text-primary" : ""
                     }`}>{label}</span>
