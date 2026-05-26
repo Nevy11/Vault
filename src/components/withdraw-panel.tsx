@@ -201,7 +201,7 @@ export function WithdrawPanel() {
         await updateBalance(newBalance);
       }
       
-      setRefCode(rpcData[0].tx_id || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       setStatus('success');
       toast.success("Withdrawal successful!");
     } catch (err) {

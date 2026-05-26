@@ -58,6 +58,67 @@ export function useWalletBalance(): UseWalletBalanceReturn {
   const [isSyncing, setIsSyncing] = useState(false);
   const channelRef = useRef<any>(null);
 
+  // Initialize from cache on mount to avoid hydration mismatch
+  useEffect(() => {
+    const cached = getCachedWallet();
+    if (cached) {
+      setWallet(cached);
+      walletRef.current = cached;
+      setDisplayBalance(cached.balance);
+      setDisplayCurrency(cached.currency);
+      setLoading(false);
+      
+      const alternateCurrency = cached.currency === 'USD' ? 'KSH' : 'USD';
+      const alternateAmount = cached.currency === 'USD'
+        ? cached.balance * KES_USD_RATE
+        : cached.balance / KES_USD_RATE;
+
+      setSecondaryBalance({
+        amount: Number(alternateAmount.toFixed(2)),
+        currency: alternateCurrency,
+        label: alternateCurrency === 'USD' ? 'USD equivalent' : 'KES equivalent',
+      });
+    }
+  }, []);
+
+  const resolvePreferredCurrency = useCallback(
+    async (userId: string) => {
+      const profileNationality = (profile as any)?.nationality || (profile as any)?.country || '';
+
+      const { data: latestLog, error: logError } = await supabase
+        .from('activity_logs')
+        .select('location')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (logError) {
+        console.warn(
+          'Unable to load latest activity log for currency resolution:',
+          logError.message || logError,
+        );
+      }
+
+      const rawNationality = profileNationality || latestLog?.location || '';
+      return getCurrencyForNationality(rawNationality);
+    },
+    [profile],
+  );
+
+  const getUserId = useCallback(async (): Promise<string | null> => {
+    if (profile?.id) {
+      return profile.id;
+    }
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      throw authError;
+    }
+
+    return user?.id ?? null;
+  }, [profile]);
+
   const computeBalances = useCallback(
     async (walletData: WalletBalance, userId: string) => {
       if (!walletData) {
