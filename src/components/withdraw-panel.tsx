@@ -188,7 +188,7 @@ export function WithdrawPanel() {
       const { error: txError } = await supabase.from('transactions').insert({
         sender_id: userId,
         type: 'withdrawal',
-        method: channel === 'bank' ? 'bank' : 'mpesa',
+        method: 'vault',
         amount: parseFloat(amount),
         status: 'completed',
         description: `Withdrawal to ${getRecipientName()}`,

@@ -489,7 +489,7 @@ function DashboardPage() {
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: initials,
-        avatarUrl: t.receiver?.profile_photo_url || null,
+        avatarUrl: t.receiver?.profile_photo_url || profile?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
       };
     }
