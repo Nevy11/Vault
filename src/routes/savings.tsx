@@ -115,7 +115,10 @@ function SavingsPage() {
         .maybeSingle();
 
       console.log("Fetched savings goal data:", data);
-      if (data) setSavingsGoal(data);
+      if (data) {
+        setSavingsGoal(data);
+        console.log("State updated with:", data);
+      }
       else console.log("No active savings goal found for user");
       setLoading(false);
     };
