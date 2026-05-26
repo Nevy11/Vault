@@ -709,6 +709,7 @@ function TransactionHistory() {
   const [profile] = useProfileSignal();
 
   const getTransactionDetails = (t: any) => {
+    console.log("Processing transaction:", t);
     const isSender = t.sender_id === (profile as any)?.id;
     const userName = profile?.first_name 
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
@@ -738,12 +739,13 @@ function TransactionHistory() {
     } else if (t.type === 'deposit') {
       const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
       const initials = bankName.substring(0, 2).toUpperCase();
+      console.log("Deposit Avatar URL:", t.sender?.profile_photo_url || profile?.profile_photo_url);
       return {
         title: `${bankName} deposit to ${userName}`,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
         icon: initials,
-        avatarUrl: null,
+        avatarUrl: t.sender?.profile_photo_url || profile?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
@@ -753,7 +755,8 @@ function TransactionHistory() {
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: bankName.substring(0, 2).toUpperCase(),
-        avatarUrl: null,
+        // Always prefer the user's own profile photo for withdrawal entries
+        avatarUrl: profile?.profile_photo_url || t.receiver?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
       };
     }
