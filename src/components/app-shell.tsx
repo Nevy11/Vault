@@ -373,14 +373,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Advisor Drawer */}
       <Sheet open={isAdvisorOpen} onOpenChange={setIsAdvisorOpen}>
-        <SheetContent side="bottom" className="h-[85vh] w-[calc(100%-2rem)] max-w-[600px] left-1/2 -translate-x-1/2 bottom-4 p-0 bg-background/60 backdrop-blur-3xl border border-border/40 rounded-[32px] overflow-hidden shadow-2xl">
+        <SheetContent 
+          side="bottom" 
+          className="h-[85vh] md:h-[80vh] w-[98vw] md:w-[calc(100%-4rem)] max-w-[850px] left-1/2 -translate-x-1/2 bottom-2 md:bottom-6 p-0 bg-background/60 backdrop-blur-3xl border border-border/40 rounded-[24px] md:rounded-[32px] overflow-hidden shadow-2xl transition-all duration-300"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>Finance Advisor</SheetTitle>
             <SheetDescription>
               Your personal AI-powered financial strategist.
             </SheetDescription>
           </SheetHeader>
-          <div className="p-4 h-full">
+          <div className="p-3 md:p-4 h-full">
             <FinanceAdvisorContent isModal />
           </div>
         </SheetContent>
@@ -401,19 +404,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">
         <nav>
-          <ul className="flex justify-around items-center">
+          <ul className="grid grid-cols-5 items-center">
             {mobileNavItems.map(({ label, to, icon: Icon, isActive }) => {
               const active = isActive(currentPath);
               const isTransact = label === "Transact";
               
               return (
-                <li key={to} className={isTransact ? "relative -top-4" : ""}>
+                <li key={to} className={`flex justify-center ${isTransact ? "relative -top-4" : ""}`}>
                   <Link
                     to={to}
                     className={`flex flex-col items-center transition-all duration-300 ${
                       isTransact
                         ? "bg-primary text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-primary/40 h-[52px] w-[52px] justify-center rounded-full scale-110 p-0"
-                        : `gap-1 px-3 py-1 rounded-lg ${
+                        : `gap-1 px-1 py-1 rounded-lg w-full max-w-[80px] ${
                             active
                               ? "text-primary"
                               : "text-muted-foreground hover:text-foreground"
@@ -423,7 +426,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Icon className={`${isTransact ? "h-6 w-6 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
                       active && !isTransact ? "text-primary" : ""
                     }`} />
-                    <span className={`text-[10px] font-medium ${
+                    <span className={`text-[10px] font-medium text-center truncate w-full ${
                       isTransact ? "hidden" : active ? "text-primary" : ""
                     }`}>{label}</span>
                   </Link>
