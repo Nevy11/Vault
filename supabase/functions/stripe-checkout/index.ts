@@ -47,7 +47,7 @@ serve(async (req) => {
       });
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:8080";
+    const origin = req.headers.get("origin") || "http://localhost:8081";
     const unitAmount = Math.round(Number(amount) * 100);
 
     console.log(`Creating session: ${unitAmount} ${currency} for user ${user_id}`);
