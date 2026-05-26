@@ -156,50 +156,166 @@ function QuickSend({
   );
 }
 
-function NetWorthChart() {
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from "recharts";
+
+// ... rest of imports ...
+
+function NetWorthChart({ 
+  transactions, 
+  currencySymbol 
+}: { 
+  transactions: Transaction[], 
+  currencySymbol: string 
+}) {
+  const [viewMode, setViewMode] = useState<"daily" | "transaction">("transaction");
+
+  const chartData = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+
+    // Sort transactions by date ascending to calculate running balance
+    const sorted = [...transactions].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    if (viewMode === "transaction") {
+      return sorted.map((t, index) => ({
+        name: format(new Date(t.created_at), "MMM dd"),
+        fullDate: format(new Date(t.created_at), "PPP p"),
+        value: Number(t.balance_after || 0),
+        index: index + 1
+      }));
+    } else {
+      // Daily mode: aggregate by day
+      const dailyMap: Record<string, number> = {};
+      sorted.forEach(t => {
+        const day = format(new Date(t.created_at), "yyyy-MM-dd");
+        dailyMap[day] = Number(t.balance_after || 0);
+      });
+
+      return Object.entries(dailyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([day, value]) => ({
+          name: format(new Date(day), "MMM dd"),
+          fullDate: format(new Date(day), "PPP"),
+          value
+        }));
+    }
+  }, [transactions, viewMode]);
+
+  const latestValue = chartData.length > 0 ? chartData[chartData.length - 1].value : 0;
+  const initialValue = chartData.length > 0 ? chartData[0].value : 0;
+  const isPositive = latestValue >= initialValue;
+
   return (
     <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-full flex flex-col transition-all hover:border-border/60">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">Net Worth Growth</div>
-        <TrendingUp className="w-3 h-3 text-emerald-500" />
+        <div>
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+            Net Worth Growth
+            <TrendingUp className={`w-3 h-3 ${isPositive ? "text-emerald-500" : "text-destructive"}`} />
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">
+            {viewMode === "daily" ? "Daily closing balance" : "Per transaction history"}
+          </div>
+        </div>
+        <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/20">
+          <button
+            onClick={() => setViewMode("transaction")}
+            className={`px-2 py-1 text-[9px] font-black rounded-md transition-all ${
+              viewMode === "transaction" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            TX
+          </button>
+          <button
+            onClick={() => setViewMode("daily")}
+            className={`px-2 py-1 text-[9px] font-black rounded-md transition-all ${
+              viewMode === "daily" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            DAY
+          </button>
+        </div>
       </div>
-      <div className="relative flex-1 min-h-[100px] mt-2">
-        <div className="absolute left-0 top-0 text-[10px] text-muted-foreground/40 font-mono">35K</div>
-        <div className="absolute left-0 bottom-6 text-[10px] text-muted-foreground/40 font-mono">0</div>
-        <svg
-          viewBox="0 0 300 100"
-          className="absolute inset-0 w-full h-full pr-2"
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-            </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-          <path
-            d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10 L300,100 L0,100 Z"
-            fill="url(#chartFill)"
-          />
-          <path
-            d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10"
-            stroke="var(--primary)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-            style={{ filter: "drop-shadow(0 0 4px var(--primary-foreground))" }}
-          />
-        </svg>
-        <div className="absolute bottom-0 left-6 right-0 flex justify-between text-[10px] text-muted-foreground/60 font-medium pt-2 border-t border-border/10">
-          <span>JAN</span>
-          <span>FEB</span>
-          <span>MAR</span>
-          <span>APR</span>
+      
+      <div className="relative flex-1 min-h-[120px] mt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              vertical={false} 
+              stroke="var(--border)" 
+              opacity={0.1} 
+            />
+            <XAxis 
+              dataKey="name" 
+              hide 
+            />
+            <YAxis 
+              hide 
+              domain={['dataMin - 100', 'dataMax + 100']}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="rounded-xl bg-card/95 border border-border/40 p-3 shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">
+                        {payload[0].payload.fullDate}
+                      </p>
+                      <p className="text-sm font-black text-primary">
+                        {currencySymbol}{payload[0].value?.toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="var(--primary)"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorValue)"
+              animationDuration={1500}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-border/10 flex justify-between items-center">
+        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+          {chartData.length} data points
+        </div>
+        <div className="flex gap-4">
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] text-muted-foreground uppercase font-black">Low</span>
+            <span className="text-[10px] font-black">{currencySymbol}{Math.min(...chartData.map(d => d.value || 0)).toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] text-muted-foreground uppercase font-black">High</span>
+            <span className="text-[10px] font-black text-emerald-500">{currencySymbol}{Math.max(...chartData.map(d => d.value || 0)).toLocaleString()}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -613,7 +729,10 @@ function DashboardPage() {
             ]}
           />
           <div className="hidden lg:block lg:col-span-1">
-            <NetWorthChart />
+            <NetWorthChart 
+              transactions={transactions} 
+              currencySymbol={currencySymbol} 
+            />
           </div>
         </div>
 
