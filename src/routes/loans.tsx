@@ -11,7 +11,12 @@ import {
   TrendingUp,
   CreditCard,
   Zap,
-  Check
+  Check,
+  X,
+  Smartphone,
+  Building2,
+  ArrowLeft,
+  Wallet
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -20,6 +25,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format, addMonths } from "date-fns";
@@ -32,6 +39,10 @@ function LoansPage() {
   const [activeTab, setActiveTab] = useState<string>("request");
   const [loanAmount, setLoanAmount] = useState<string>("");
   const [period, setPeriod] = useState<string>("3");
+  const [showRepayPopup, setShowRepayPopup] = useState(false);
+  const [repayAmount, setRepayAmount] = useState("");
+  const [repayProvider, setRepayProvider] = useState("");
+  const [sourceIdentifier, setSourceIdentifier] = useState("");
 
   // Mock User Eligibility Data
   const userStats = {
@@ -71,6 +82,25 @@ function LoansPage() {
       description: "Congratulations! Your credit limit has been increased by 15% due to your excellent repayment record.",
     });
     setActiveTab("success");
+    setShowRepayPopup(false);
+  };
+
+  const handlePartialRepay = () => {
+    if (!repayAmount || !repayProvider) {
+      toast.error("Incomplete Details", { description: "Please enter amount and select source." });
+      return;
+    }
+    if (repayProvider !== "any" && !sourceIdentifier) {
+      const label = ["mpesa", "airtel"].includes(repayProvider) ? "Phone Number" : "Account Number";
+      toast.error(`Missing ${label}`, { description: `Please provide your ${label.toLowerCase()}.` });
+      return;
+    }
+    toast.success("Repayment Processed", {
+      description: `KES ${parseFloat(repayAmount).toLocaleString()} has been deducted from your ${repayProvider} account.`
+    });
+    setShowRepayPopup(false);
+    setRepayAmount("");
+    setSourceIdentifier("");
   };
 
   return (
@@ -120,7 +150,7 @@ function LoansPage() {
                 </p>
               </div>
             </div>
-            <Button variant="destructive" className="rounded-xl px-8 h-12 font-black shadow-lg shadow-destructive/20 active:scale-95 transition-all" onClick={() => setActiveTab("success")}>
+            <Button variant="destructive" className="rounded-xl px-8 h-12 font-black shadow-lg shadow-destructive/20 active:scale-95 transition-all" onClick={() => setShowRepayPopup(true)}>
               Repay Now
             </Button>
           </div>
@@ -297,7 +327,7 @@ function LoansPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="p-8 border-t border-white/10 flex gap-4 bg-white/5">
-                  <Button className="flex-1 rounded-xl h-14 font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all" onClick={() => toast.info("Partial repayment feature coming soon!")}>Repay Amount</Button>
+                  <Button className="flex-1 rounded-xl h-14 font-black text-lg shadow-xl shadow-primary/20 active:scale-95 transition-all" onClick={() => setShowRepayPopup(true)}>Repay Amount</Button>
                   <Button variant="outline" className="flex-1 rounded-xl h-14 border-white/30 font-black text-lg hover:bg-emerald-500/10 transition-all hover:border-emerald-500/50 active:scale-95" onClick={() => setActiveTab("success")}>Simulate Full Settlement</Button>
                 </CardFooter>
               </Card>
@@ -375,7 +405,7 @@ function LoansPage() {
                   </div>
 
                   <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                    <Button size="lg" className="h-18 px-12 rounded-[1.5rem] text-xl font-black shadow-2xl shadow-primary/30 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={handleFullRepayment}>
+                    <Button size="lg" className="h-18 px-12 rounded-[1.5rem] text-xl font-black shadow-2xl shadow-primary/30 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setShowRepayPopup(true)}>
                       Pay Balance Now
                     </Button>
                     <Button variant="outline" size="lg" className="h-18 px-12 rounded-[1.5rem] text-xl font-black border-white/40 backdrop-blur-md hover:bg-white/10 transition-all active:scale-95" onClick={() => setActiveTab("tracker")}>
@@ -438,21 +468,101 @@ function LoansPage() {
         </Tabs>
       </main>
       </div>
-    </AppShell>
-  );
-}
 
-// Helper components for Select
-const SelectTrigger = ({ children, className }: any) => <div className={cn("flex items-center justify-between px-4 cursor-pointer", className)}>{children}</div>;
-const SelectValue = ({ placeholder }: any) => <span className="text-sm font-black">{placeholder}</span>;
-const SelectContent = ({ children, className }: any) => <div className={cn("mt-2 p-2 shadow-xl", className)}>{children}</div>;
-const SelectItem = ({ children, value }: any) => <div className="p-2 hover:bg-muted/40 rounded-lg cursor-pointer text-sm font-black">{children}</div>;
-function Select({ children, value, onValueChange }: any) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <div onClick={() => setOpen(!open)}>{children[0]}</div>
-      {open && <div className="absolute z-50 w-full" onClick={() => setOpen(false)}>{children[1]}</div>}
-    </div>
+      {/* REPAYMENT POPUP MODAL */}
+      <Dialog open={showRepayPopup} onOpenChange={setShowRepayPopup}>
+        <DialogContent className="max-w-md rounded-[2.5rem] border-white/30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative p-8">
+            <button onClick={() => setShowRepayPopup(false)} className="absolute right-6 top-6 w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center hover:bg-muted/40 transition-colors z-20">
+              <X className="w-4 h-4" />
+            </button>
+
+            <DialogHeader className="mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-4 shadow-lg border border-emerald-500/20">
+                <CreditCard className="w-7 h-7" />
+              </div>
+              <DialogTitle className="text-2xl font-black text-slate-950 dark:text-white">Loan Repayment</DialogTitle>
+              <DialogDescription className="font-bold text-slate-700 dark:text-slate-300">Settle your outstanding balance and grow your limit.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-8">
+              <div className="p-6 rounded-2xl bg-slate-900/5 dark:bg-white/5 border border-white/10 text-center">
+                <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total Outstanding</span>
+                <p className="text-3xl font-black text-slate-950 dark:text-white">KES {userStats.activeLoan.remaining.toLocaleString()}</p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Where are you repaying from?</Label>
+                <Select value={repayProvider} onValueChange={(val) => {
+                  setRepayProvider(val);
+                  setSourceIdentifier("");
+                }}>
+                  <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-black">
+                    <SelectValue placeholder="Select Payment Source" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto z-[100]">
+                    <SelectItem value="any" className="font-black text-emerald-600">Any Available Source</SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-black text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1"><Smartphone className="w-3 h-3"/> Mobile Money</div>
+                    <SelectItem value="mpesa" className="font-bold text-slate-950 dark:text-white">M-Pesa (Safaricom)</SelectItem>
+                    <SelectItem value="airtel" className="font-bold text-slate-950 dark:text-white">Airtel Money</SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-black text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1"><Building2 className="w-3 h-3"/> Bank Accounts</div>
+                    <SelectItem value="kcb" className="font-bold text-slate-950 dark:text-white">KCB Group</SelectItem>
+                    <SelectItem value="equity" className="font-bold text-slate-950 dark:text-white">Equity Bank</SelectItem>
+                    <SelectItem value="ncba" className="font-bold text-slate-950 dark:text-white">NCBA Bank</SelectItem>
+                    <SelectItem value="absa" className="font-bold text-slate-950 dark:text-white">Absa Kenya</SelectItem>
+                    <SelectItem value="coop" className="font-bold text-slate-950 dark:text-white">Co-operative Bank</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Conditional Identifier Input */}
+              {repayProvider && repayProvider !== "any" && (
+                <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {["mpesa", "airtel"].includes(repayProvider) ? "Enter Phone Number" : "Enter Account Number"}
+                  </Label>
+                  <div className="relative">
+                    {["mpesa", "airtel"].includes(repayProvider) ? (
+                      <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    )}
+                    <Input 
+                      placeholder={["mpesa", "airtel"].includes(repayProvider) ? "e.g. 0712345678" : "e.g. 1234567890"}
+                      value={sourceIdentifier}
+                      onChange={(e) => setSourceIdentifier(e.target.value)}
+                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-black text-slate-950 dark:text-white" 
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Repayment Amount (KES)</Label>
+                <div className="relative">
+                  <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={repayAmount}
+                    onChange={(e) => setRepayAmount(e.target.value)}
+                    className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-black text-slate-950 dark:text-white" 
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-10 flex gap-4">
+              <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black border-white/20" onClick={() => setShowRepayPopup(false)}>
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+              </Button>
+              <Button className="flex-1 h-14 rounded-2xl font-black shadow-xl bg-emerald-600 hover:bg-emerald-700" onClick={handlePartialRepay}>
+                Repay Loan <Check className="ml-2 w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </AppShell>
   );
 }
