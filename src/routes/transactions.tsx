@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { 
-  Search, Lock, Check, Smartphone, Loader2, CheckCircle2, 
+  Search, Lock as LockIcon, Check, Smartphone, Loader2, CheckCircle2, 
   ArrowRight, Landmark, CreditCard, User, History, Zap, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ function WalletCard() {
               Vault {currency} Wallet
             </div>
           </div>
-          <Lock className="w-3.5 h-3.5 text-muted-foreground/40" />
+          <LockIcon className="w-3.5 h-3.5 text-muted-foreground/40" />
         </div>
         
         <div className="flex flex-col">

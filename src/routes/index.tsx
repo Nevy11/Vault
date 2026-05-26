@@ -7,7 +7,7 @@ import {
   Wallet,
   Send,
   LineChart,
-  Lock,
+  Lock as LockIcon,
   Sparkles,
   Globe,
   CheckCircle2,
@@ -171,7 +171,7 @@ function Features() {
       desc: "Stripe, Flutterwave, ACH, and more. Deposit and withdraw with the rail that fits.",
     },
     {
-      icon: Lock,
+      icon: LockIcon,
       title: "End-to-end security",
       desc: "Biometric unlock, device binding, and a recovery phrase you fully control.",
     },
@@ -260,7 +260,7 @@ function Security() {
         >
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <Lock className="h-6 w-6" />
+              <LockIcon className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm font-medium text-foreground">Vault is locked</p>
