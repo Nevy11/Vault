@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
-import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp } from "lucide-react";
+import { UserPlus, Lock as LockIcon, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp, Landmark } from "lucide-react";
 import { supabase } from "@/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -75,7 +75,7 @@ function AccountBadge({
               <MoreVertical className="w-4 h-4 text-muted-foreground" />
             </div>
           ) : (
-            <Lock className="w-4 h-4 text-muted-foreground/60" />
+            <LockIcon className="w-4 h-4 text-muted-foreground/60" />
           )}
         </div>
         
@@ -570,8 +570,27 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick send + chart */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        {/* Quick actions + Finance Hub */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <Link 
+            to="/finance-hub"
+            className="lg:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 backdrop-blur-sm transition-all hover:bg-primary/20 hover:border-primary/40 shadow-lg"
+          >
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Finance & Credit</div>
+              <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Landmark className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Savings & Loans</h3>
+                <p className="text-xs text-muted-foreground">Unlock 2% rewards & instant credit</p>
+              </div>
+            </div>
+          </Link>
           <QuickSend
             avatars={frequentRecipients.length > 0 ? frequentRecipients : [
               { initial: "M", color: "bg-emerald-500", name: "Maria C" },
@@ -580,14 +599,7 @@ function DashboardPage() {
               { initial: "A", color: "bg-red-500", name: "Ben A" },
             ]}
           />
-          <QuickSend
-            withAdd
-            avatars={[
-              { initial: "M", color: "bg-emerald-500", name: "Maria C" },
-              { initial: "J", color: "bg-blue-500", name: "John L" },
-            ]}
-          />
-          <div className="sm:col-span-2 lg:col-span-1">
+          <div className="hidden lg:block lg:col-span-1">
             <NetWorthChart />
           </div>
         </div>

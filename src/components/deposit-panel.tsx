@@ -8,7 +8,7 @@ import {
   ArrowRight, 
   Loader2, 
   CheckCircle2,
-  Lock,
+  Lock as LockIcon,
   ChevronDown,
   Search,
   CreditCard,
@@ -520,7 +520,7 @@ export function DepositPanel() {
                 </p>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest bg-muted/50 px-4 py-2 rounded-full">
-                <Lock className="w-3 h-3" /> Encrypted by Stripe
+                <LockIcon className="w-3 h-3" /> Encrypted by Stripe
               </div>
             </div>
           )}
@@ -563,7 +563,7 @@ export function DepositPanel() {
           <div className="space-y-4">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Vault Transaction PIN</Label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input 
                 type="password" 
                 maxLength={6} 
@@ -637,7 +637,7 @@ export function DepositPanel() {
           
           <div className="bg-primary/5 p-4 text-center border-t border-white/5">
             <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-2 tracking-widest uppercase">
-              <Lock className="w-3 h-3" /> PCI-DSS Compliant Gateway
+              <LockIcon className="w-3 h-3" /> PCI-DSS Compliant Gateway
             </p>
           </div>
         </DialogContent>
