@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { 
   Search, Lock as LockIcon, Check, Smartphone, Loader2, CheckCircle2, 
   ArrowRight, Landmark, CreditCard, User, History, Zap, ArrowLeft
@@ -11,7 +11,7 @@ import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ import { cn, hashPin, calculateTransactionFee } from "@/lib/utils";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
+  to: z.string().optional(),
 });
 
 type Mode = "send" | "deposit" | "withdraw";
@@ -60,7 +61,6 @@ function WalletCard() {
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-6 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
-      {/* Decorative glass reflection */}
       <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
       
       <div className="relative z-10">
@@ -120,36 +120,27 @@ interface Recipient {
   provider?: string;
 }
 
-const RECENT_TRANSACTIONS: Recipient[] = [
-  { id: "1", name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
-  { id: "2", name: "KCB Bank", type: "bank", identifier: "1234567890", avatar: "KCB", color: "bg-blue-600", bank: "KCB Bank (Kenya Commercial Bank)" },
-  { id: "3", name: "John L.", type: "mobile", identifier: "+254712345678", avatar: "JL", color: "bg-amber-500", provider: "M-Pesa" },
-  { id: "4", name: "Lisa M.", type: "vault", identifier: "@lisa", avatar: "LM", color: "bg-pink-500" },
-];
-
-const FREQUENT_TRANSACTIONS: Recipient[] = [
-  { id: "1", name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
-  { id: "5", name: "Ben A.", type: "vault", identifier: "@ben", avatar: "BA", color: "bg-teal-500" },
-  { id: "6", name: "Absa Bank", type: "bank", identifier: "0987654321", avatar: "Absa", color: "bg-red-600", bank: "Absa Bank Kenya" },
-  { id: "7", name: "M-Pesa", type: "mobile", identifier: "+254722222222", avatar: "MP", color: "bg-green-600", provider: "M-Pesa" },
-];
-
 function SendPanel() {
+  const { to } = Route.useSearch();
   const { currency, refetch: refetchBalance } = useWalletBalance();
-  const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
+  const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(to ? "vault" : null);
   const [amount, setAmount] = useState("");
-  const [identifier, setIdentifier] = useState("");
+  const [identifier, setIdentifier] = useState(to || "");
   const [bank, setBank] = useState("");
   const [provider, setProvider] = useState("M-Pesa");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
+
+  useEffect(() => {
+    if (to) {
+      setIdentifier(to);
+      setMethod("vault");
+    }
+  }, [to]);
   
-  // Recipient Lists State
   const [recentRecipients, setRecentRecipients] = useState<Recipient[]>([]);
   const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
-
-  // Recipient Verification
   const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -159,7 +150,6 @@ function SendPanel() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch Recent: Get last 10 unique receivers
         const { data: recentData } = await supabase
           .from("transactions")
           .select(`
@@ -198,7 +188,6 @@ function SendPanel() {
           setRecentRecipients(uniqueRecipients.slice(0, 5));
         }
 
-        // Fetch Frequent: Get top recipients by frequency
         const { data: freqData } = await supabase
           .from("transactions")
           .select(`
@@ -245,24 +234,21 @@ function SendPanel() {
         }
       } catch (err) {
         console.error("Error fetching recipients:", err);
-        toast.error("Unable to load recipient suggestions. Please try again.");
       }
     };
 
     fetchRecipients();
-  }, [status === "success"]); // Refresh lists when a new transfer succeeds
+  }, [status === "success"]);
 
   useEffect(() => {
     const searchRecipient = async () => {
-      // Remove any existing @ then add one to match DB format
       const searchTag = identifier.trim() ? `@${identifier.replace("@", "").toLowerCase()}` : "";
-      
-      if (method === "vault" && searchTag.length >= 4) { // @ + at least 3 chars
+      if (method === "vault" && searchTag.length >= 4) {
         setIsSearching(true);
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
-          .eq("kyc_tag", searchTag) // DB tags start with @ and are lowercase
+          .eq("kyc_tag", searchTag)
           .maybeSingle();
         
         if (data) {
@@ -302,24 +288,16 @@ function SendPanel() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Authentication required");
-        return;
-      }
+      if (!user) return;
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("pin_hash")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profile) {
-        toast.error("Error verifying PIN");
-        return;
-      }
-
       const hashedPin = await hashPin(pin);
-      if (profile.pin_hash !== hashedPin) {
+      if (profile?.pin_hash !== hashedPin) {
         toast.error("Incorrect transaction PIN");
         return;
       }
@@ -327,7 +305,6 @@ function SendPanel() {
       setStatus("confirming");
     } catch (error) {
       console.error("PIN verification error:", error);
-      toast.error("An error occurred while verifying your PIN");
     }
   };
 
@@ -344,23 +321,14 @@ function SendPanel() {
           p_amount: parseFloat(amount)
         });
 
-        if (rpcError) {
-          console.error("RPC Error Details:", rpcError);
-          throw new Error(rpcError.message || "Transfer failed at database level");
-        }
+        if (rpcError) throw new Error(rpcError.message || "Transfer failed");
         
         const result = Array.isArray(data) ? data[0] : data;
-
-        if (!result?.success) {
-          throw new Error(result?.message || "Transfer failed");
-        }
+        if (!result?.success) throw new Error(result?.message || "Transfer failed");
 
         setRefCode(result.reference || `VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
-        
-        // Refetch balance to show updated amount in profile immediately
         await refetchBalance();
       } else {
-        // Mock for other methods for now
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setRefCode(`VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       }
@@ -368,8 +336,7 @@ function SendPanel() {
       setStatus("success");
       toast.success("Transfer completed successfully!");
     } catch (error: any) {
-      console.error("Transfer error:", error);
-      toast.error(error.message || "An unexpected error occurred during transfer");
+      toast.error(error.message || "Transfer failed");
       setStatus("idle");
     }
   };
@@ -407,7 +374,6 @@ function SendPanel() {
 
   return (
     <div className="space-y-8">
-      {/* Step 1: Provider Selection */}
       <div className="space-y-4">
         <h3 className="text-lg font-light tracking-tight">Step 1: Choose Financial Provider Type</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -453,7 +419,6 @@ function SendPanel() {
         </div>
       </div>
 
-      {/* Step 2: Dynamic Form */}
       {method && (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between">
@@ -583,7 +548,6 @@ function SendPanel() {
         </div>
       )}
 
-      {/* Header & Lists */}
       <div className="space-y-6">
         {(recentRecipients.length > 0 || isSearching) && (
           <div className="space-y-4">
@@ -638,7 +602,6 @@ function SendPanel() {
         )}
       </div>
 
-      {/* Confirmation Modal */}
       <Dialog open={status === "confirming"} onOpenChange={(open) => !open && setStatus("idle")}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -688,7 +651,6 @@ function SendPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Processing Overlay */}
       {status === "processing" && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex flex-col items-center justify-center">
           <div className="relative">
@@ -708,8 +670,8 @@ function TransactionHistory() {
   const { transactions, loading: txLoading } = useTransactions(!balanceLoading);
   const [profile] = useProfileSignal();
 
-  const getTransactionDetails = (t: any) => {
-    const isSender = t.sender_id === (profile as any)?.id;
+  const getTransactionDetails = (t: Transaction) => {
+    const isSender = t.sender_id === profile?.id;
     const userName = profile?.first_name 
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
       : (profile?.email?.split('@')[0] || "Vault User");
@@ -758,7 +720,7 @@ function TransactionHistory() {
       };
     }
     return {
-      title: t.description,
+      title: t.description || 'System Transaction',
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
       icon: '?',
@@ -888,7 +850,6 @@ function TransactionsPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Back Button */}
         <div className="mb-8">
           <Link
             to="/dashboard"
@@ -899,7 +860,6 @@ function TransactionsPage() {
           </Link>
         </div>
 
-        {/* Toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-full border border-border/50 bg-card/40 p-1 backdrop-blur-sm">
             {tabs.map((t) => (
@@ -932,7 +892,6 @@ function TransactionsPage() {
         {mode === "deposit" && <DepositPanel />}
         {mode === "withdraw" && <WithdrawPanel />}
 
-        {/* Transaction History Section */}
         <TransactionHistory />
       </main>
     </AppShell>
