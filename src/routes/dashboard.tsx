@@ -478,7 +478,7 @@ function DashboardPage() {
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
         icon: initials,
-        avatarUrl: null,
+        avatarUrl: t.sender?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
@@ -489,7 +489,7 @@ function DashboardPage() {
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: initials,
-        avatarUrl: null,
+        avatarUrl: t.receiver?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
       };
     }
