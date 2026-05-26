@@ -241,6 +241,10 @@ export function DepositPanel() {
         throw new Error(data?.errorMessage || data?.ResponseDescription || data?.CustomerMessage || "Payment initiation failed: No response from provider");
       }
 
+      // Store the checkout ID for later confirmation
+      const checkoutId = data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+      setRefCode(checkoutId);
+
       // Record pending transaction
       await supabase.from("transactions").insert({
         receiver_id: userId,
@@ -248,7 +252,7 @@ export function DepositPanel() {
         method: channel === 'mobile' ? 'mpesa' : (selectedSourceId === 'stripe-ach' ? 'bank' : 'bank'),
         amount: parseFloat(amount),
         status: "pending",
-        description: data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+        description: checkoutId,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
@@ -262,11 +266,63 @@ export function DepositPanel() {
 
   const handleConfirmDeposit = async () => {
     setStatus('processing');
-    // Simulate API webhook pipeline (STK Push or automated debit)
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setRefCode(`DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
-    setStatus('success');
-    toast.success("Deposit request initiated successfully!");
+    try {
+      const userId = profile?.id;
+      if (!userId) throw new Error("User session not found");
+
+      // 1. Read the amount from the pending transaction to ensure integrity
+      const { data: tx, error: txFetchError } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("description", refCode)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (txFetchError) throw txFetchError;
+      
+      // Use the amount from the DB if found, otherwise fallback to state
+      const depositAmount = tx?.amount || parseFloat(amount);
+
+      // 2. Update the actual ledger and wallet balance
+      const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
+        p_user_id: userId,
+        p_amount: depositAmount,
+        p_currency: currency,
+        p_type: "deposit",
+        p_reference: refCode,
+        p_description: `M-Pesa Deposit: ${refCode}`,
+        p_status: "completed",
+        p_metadata: { payment_method: 'mpesa', mpesa_checkout_id: refCode }
+      });
+
+      if (ledgerError) throw ledgerError;
+
+      // 3. Fetch the new balance to update the transaction record for UI consistency
+      const { data: wallet } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+
+      // 4. Update the pending transaction to completed
+      const { error: txUpdateError } = await supabase
+        .from("transactions")
+        .update({ 
+          status: "completed",
+          balance_after: wallet?.balance
+        })
+        .eq("description", refCode)
+        .eq("status", "pending");
+
+      if (txUpdateError) console.error("Error updating transaction status:", txUpdateError);
+
+      setStatus('success');
+      toast.success("Deposit confirmed and balance updated!");
+    } catch (err: any) {
+      console.error("M-Pesa confirmation error:", err);
+      toast.error("Failed to confirm deposit: " + err.message);
+      setStatus('idle');
+    }
   };
 
   const getSourceName = () => {
