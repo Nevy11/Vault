@@ -104,7 +104,7 @@ export function useTransactions(enabled = true) {
         return {
           id: l.id,
           sender_id: userId,
-          receiver_id: null,
+          receiver_id: userId,
           type: l.type || 'transfer',
           method: 'vault' as const,
           amount: Number(l.amount),
@@ -112,7 +112,19 @@ export function useTransactions(enabled = true) {
           description: l.description || '',
           created_at: l.created_at,
           balance_after: snapshot ? Number(snapshot.recorded_balance) : null,
-          source: 'ledger' as const
+          source: 'ledger' as const,
+        sender: {
+          first_name: profile?.first_name || 'Vault',
+          last_name: profile?.last_name || 'User',
+          kyc_tag: '',
+          profile_photo_url: profile?.profile_photo_url || null
+        },
+        receiver: {
+          first_name: profile?.first_name || 'Vault',
+          last_name: profile?.last_name || 'User',
+          kyc_tag: '',
+          profile_photo_url: profile?.profile_photo_url || null
+        }
         };
       });
 

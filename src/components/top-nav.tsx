@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, User, Settings, Bell, Search } from "lucide-react";
+import { Menu, X, LogOut, User, Settings, Bell, Sun, Moon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
+import { useTheme } from "@/hooks/use-theme";
+import { useNotifications } from "@/hooks/use-notifications";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -34,6 +37,8 @@ export function TopNav() {
   const [profile, setProfile] = useProfileSignal();
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   
   const location = useLocation();
   const isLandingPage = location.pathname === "/";
@@ -91,13 +96,76 @@ export function TopNav() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
-                  <Search size={16} className="group-hover:scale-110 transition-transform" />
+                <button 
+                  onClick={toggleTheme}
+                  className="h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group"
+                  aria-label="Toggle theme"
+                >
+                  {theme === "dark" ? (
+                    <Sun size={16} className="group-hover:scale-110 transition-transform text-yellow-500" />
+                  ) : (
+                    <Moon size={16} className="group-hover:scale-110 transition-transform text-slate-400" />
+                  )}
                 </button>
-                <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
-                  <Bell size={16} className="group-hover:scale-110 transition-transform" />
-                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-destructive rounded-full border border-background shadow-sm animate-pulse" />
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
+                      <Bell size={16} className="group-hover:scale-110 transition-transform" />
+                      {unreadCount > 0 && (
+                        <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-destructive rounded-full border border-background shadow-sm animate-pulse" />
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 border-border/50 shadow-xl overflow-hidden">
+                    <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
+                      <h3 className="font-semibold text-sm">Notifications</h3>
+                      {unreadCount > 0 && (
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            markAllAsRead();
+                          }}
+                          className="text-[10px] uppercase tracking-wider font-bold text-primary hover:text-primary/80 transition-colors"
+                        >
+                          Mark all as read
+                        </button>
+                      )}
+                    </div>
+                    <ScrollArea className="h-[350px]">
+                      {notifications.length === 0 ? (
+                        <div className="p-8 text-center text-muted-foreground">
+                          <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                          <p className="text-xs">No notifications yet</p>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          {notifications.map((n) => (
+                            <button
+                              key={n.id}
+                              onClick={() => !n.is_read && markAsRead(n.id)}
+                              className={`flex flex-col gap-1 p-4 text-left border-b border-border/40 last:border-0 transition-colors hover:bg-muted/50 relative ${!n.is_read ? 'bg-primary/5' : ''}`}
+                            >
+                              {!n.is_read && (
+                                <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full" />
+                              )}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className={`text-xs font-semibold ${!n.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                  {n.title}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  {new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {n.message}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           )}

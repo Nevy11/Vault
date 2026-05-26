@@ -188,25 +188,31 @@ export function WithdrawPanel() {
       const { error: txError } = await supabase.from('transactions').insert({
         sender_id: userId,
         type: 'withdrawal',
-        method: channel === 'bank' ? 'bank' : 'mpesa',
+        method: 'vault',
         amount: parseFloat(amount),
         status: 'completed',
         description: `Withdrawal to ${getRecipientName()}`,
         balance_after: newBalance
       });
 
-      if (txError) throw txError;
+      if (rpcError) throw rpcError;
+      
+      const result = Array.isArray(data) ? data[0] : data;
 
-      if (balance !== null) {
-        await updateBalance(newBalance);
+      if (!result?.success) {
+        throw new Error(result?.message || "Withdrawal failed");
+      }
+
+      if (result.new_balance !== undefined) {
+        await updateBalance(result.new_balance);
       }
       
-      setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setRefCode(result.reference || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       setStatus('success');
       toast.success("Withdrawal successful!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Withdrawal error:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
+      toast.error(err.message || "Failed to process withdrawal");
       setStatus('idle');
     }
   };

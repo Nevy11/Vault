@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { UserPlus, Lock as LockIcon, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp, Landmark } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -120,10 +120,12 @@ function AccountBadge({
 function QuickSend({
   avatars,
   withAdd,
+  onAvatarClick,
   title = "Quick Send (P2P)"
 }: {
-  avatars: { id?: string; initial: string; color: string; name: string }[];
+  avatars: { id?: string; initial: string; color: string; name: string; tag?: string; avatarUrl?: string | null }[];
   withAdd?: boolean;
+  onAvatarClick?: (tag: string) => void;
   title?: string;
 }) {
   return (
@@ -139,13 +141,25 @@ function QuickSend({
           </button>
         )}
         {avatars.map((a, index) => (
-          <div key={a.id ?? `${a.name}-${index}`} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
+          <div 
+            key={a.id ?? `${a.name}-${index}`} 
+            className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0"
+            onClick={() => a.tag && onAvatarClick?.(a.tag)}
+          >
             <div className="relative">
-              <div
-                className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
-              >
-                {a.initial}
-              </div>
+              {a.avatarUrl ? (
+                <img
+                  src={a.avatarUrl}
+                  alt={a.name}
+                  className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
+                />
+              ) : (
+                <div
+                  className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
+                >
+                  {a.initial}
+                </div>
+              )}
               <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
             </div>
             <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{a.name}</span>
@@ -380,6 +394,7 @@ function SecurityStatus() {
 const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
@@ -402,7 +417,7 @@ function DashboardPage() {
 
   const frequentRecipients = useMemo(() => {
     const seenIds = new Set();
-    const uniqueRecipients: { id: string; initial: string; color: string; name: string }[] = [];
+    const uniqueRecipients: { id: string; initial: string; color: string; name: string; tag?: string; avatarUrl?: string | null }[] = [];
     const currentUserId = (profile as any)?.id;
 
     if (!currentUserId) return [];
@@ -416,6 +431,8 @@ function DashboardPage() {
             initial: tx.receiver?.first_name?.[0] ?? "V",
             color: "bg-emerald-500",
             name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
+            tag: tx.receiver?.kyc_tag,
+            avatarUrl: tx.receiver?.profile_photo_url,
           });
         }
       }
@@ -423,6 +440,13 @@ function DashboardPage() {
     }
     return uniqueRecipients;
   }, [transactions, profile]);
+
+  const handleQuickSend = (tag: string) => {
+    navigate({
+      to: "/transactions",
+      search: { mode: "send", to: tag.replace("@", "") }
+    });
+  };
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
@@ -482,7 +506,7 @@ function DashboardPage() {
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
         icon: initials,
-        avatarUrl: null,
+        avatarUrl: t.sender?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
@@ -493,7 +517,7 @@ function DashboardPage() {
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: initials,
-        avatarUrl: null,
+        avatarUrl: t.receiver?.profile_photo_url || profile?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
       };
     }
@@ -637,11 +661,12 @@ function DashboardPage() {
             </div>
           </Link>
           <QuickSend
+            onAvatarClick={handleQuickSend}
             avatars={frequentRecipients.length > 0 ? frequentRecipients : [
-              { initial: "M", color: "bg-emerald-500", name: "Maria C" },
-              { initial: "J", color: "bg-blue-500", name: "John L" },
-              { initial: "L", color: "bg-pink-500", name: "Lisa M" },
-              { initial: "A", color: "bg-red-500", name: "Ben A" },
+              { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
+              { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
+              { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
+              { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
             ]}
           />
           <div className="hidden lg:block lg:col-span-1">
