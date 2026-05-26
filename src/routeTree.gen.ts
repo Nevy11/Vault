@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as KycRouteImport } from './routes/kyc'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as FinanceHubRouteImport } from './routes/finance-hub'
 import { Route as FinanceAdvisorRouteImport } from './routes/finance-advisor'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -61,6 +62,11 @@ const HelpRoute = HelpRouteImport.update({
   path: '/help',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinanceHubRoute = FinanceHubRouteImport.update({
+  id: '/finance-hub',
+  path: '/finance-hub',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FinanceAdvisorRoute = FinanceAdvisorRouteImport.update({
   id: '/finance-advisor',
   path: '/finance-advisor',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
+  '/finance-hub': typeof FinanceHubRoute
   '/help': typeof HelpRoute
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
+  '/finance-hub': typeof FinanceHubRoute
   '/help': typeof HelpRoute
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
+  '/finance-hub': typeof FinanceHubRoute
   '/help': typeof HelpRoute
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/finance-advisor'
+    | '/finance-hub'
     | '/help'
     | '/kyc'
     | '/loans'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/finance-advisor'
+    | '/finance-hub'
     | '/help'
     | '/kyc'
     | '/loans'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/finance-advisor'
+    | '/finance-hub'
     | '/help'
     | '/kyc'
     | '/loans'
@@ -163,6 +175,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   FinanceAdvisorRoute: typeof FinanceAdvisorRoute
+  FinanceHubRoute: typeof FinanceHubRoute
   HelpRoute: typeof HelpRoute
   KycRoute: typeof KycRoute
   LoansRoute: typeof LoansRoute
@@ -231,6 +244,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HelpRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance-hub': {
+      id: '/finance-hub'
+      path: '/finance-hub'
+      fullPath: '/finance-hub'
+      preLoaderRoute: typeof FinanceHubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/finance-advisor': {
       id: '/finance-advisor'
       path: '/finance-advisor'
@@ -259,6 +279,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   FinanceAdvisorRoute: FinanceAdvisorRoute,
+  FinanceHubRoute: FinanceHubRoute,
   HelpRoute: HelpRoute,
   KycRoute: KycRoute,
   LoansRoute: LoansRoute,

@@ -67,7 +67,7 @@ VITE_SUPABASE_ANON_KEY=your_public_key
 pnpm dev
 ```
 
-Then open `http://localhost:8080`.
+Then open `http://localhost:8081`.
 
 ## Build & preview
 
