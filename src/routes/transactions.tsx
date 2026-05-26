@@ -1,27 +1,27 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
 import { 
-  Search, Lock as LockIcon, Check, Smartphone, Loader2, CheckCircle2, 
+  Search, Lock, Settings, HelpCircle, Info, Check, RefreshCw, 
+  Smartphone, Loader2, CheckCircle2, Building2, UserCircle, 
   ArrowRight, Landmark, CreditCard, User, History, Zap, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { useTransactions, type Transaction } from "@/hooks/use-transactions";
-import { useProfileSignal } from "@/lib/profile-signal";
 import { supabase } from "@/api/supabase";
+import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
 import { z } from "zod";
-import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
+  DialogFooter,/
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -33,17 +33,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { cn, hashPin, calculateTransactionFee } from "@/lib/utils";
+import { cn, hashPin } from "@/lib/utils";
+import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
-  to: z.string().optional(),
 });
 
-type Mode = "send" | "deposit" | "withdraw";
-
 export const Route = createFileRoute("/transactions")({
-  validateSearch: (search: Record<string, unknown>) => transactionsSearchSchema.parse(search),
+  validateSearch: (search) => transactionsSearchSchema.parse(search),
   head: () => ({
     meta: [
       { title: "Transactions — Vault OS" },
@@ -56,11 +54,14 @@ export const Route = createFileRoute("/transactions")({
   component: TransactionsPage,
 });
 
+type Mode = "send" | "deposit" | "withdraw";
+
 function WalletCard() {
   const { balance, currency, loading } = useWalletBalance();
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-6 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
+      {/* Decorative glass reflection */}
       <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
       
       <div className="relative z-10">
@@ -73,7 +74,7 @@ function WalletCard() {
               Vault {currency} Wallet
             </div>
           </div>
-          <LockIcon className="w-3.5 h-3.5 text-muted-foreground/40" />
+          <Lock className="w-3.5 h-3.5 text-muted-foreground/40" />
         </div>
         
         <div className="flex flex-col">
@@ -104,12 +105,13 @@ const BANKS = [
   "I&M Bank",
   "DTB (Diamond Trust Bank)",
   "Family Bank",
+  "Equity Bank Kenya",
 ];
 
 const MOBILE_PROVIDERS = ["M-Pesa", "Airtel Money", "T-Kash"];
 
 interface Recipient {
-  id: string | number;
+  id: number;
   name: string;
   type: "vault" | "bank" | "mobile";
   identifier: string;
@@ -120,27 +122,36 @@ interface Recipient {
   provider?: string;
 }
 
+const RECENT_TRANSACTIONS: Recipient[] = [
+  { id: 1, name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
+  { id: 2, name: "KCB Bank", type: "bank", identifier: "1234567890", avatar: "KCB", color: "bg-blue-600", bank: "KCB Bank (Kenya Commercial Bank)" },
+  { id: 3, name: "John L.", type: "mobile", identifier: "+254712345678", avatar: "JL", color: "bg-amber-500", provider: "M-Pesa" },
+  { id: 4, name: "Lisa M.", type: "vault", identifier: "@lisa", avatar: "LM", color: "bg-pink-500" },
+];
+
+const FREQUENT_TRANSACTIONS: Recipient[] = [
+  { id: 1, name: "Maria C.", type: "vault", identifier: "@maria", avatar: "MC", color: "bg-emerald-500" },
+  { id: 5, name: "Ben A.", type: "vault", identifier: "@ben", avatar: "BA", color: "bg-teal-500" },
+  { id: 6, name: "Absa Bank", type: "bank", identifier: "0987654321", avatar: "Absa", color: "bg-red-600", bank: "Absa Bank Kenya" },
+  { id: 7, name: "M-Pesa", type: "mobile", identifier: "+254722222222", avatar: "MP", color: "bg-green-600", provider: "M-Pesa" },
+];
+
 function SendPanel() {
-  const { to } = Route.useSearch();
   const { currency, refetch: refetchBalance } = useWalletBalance();
-  const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(to ? "vault" : null);
+  const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
-  const [identifier, setIdentifier] = useState(to || "");
+  const [identifier, setIdentifier] = useState("");
   const [bank, setBank] = useState("");
   const [provider, setProvider] = useState("M-Pesa");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
-
-  useEffect(() => {
-    if (to) {
-      setIdentifier(to);
-      setMethod("vault");
-    }
-  }, [to]);
   
+  // Recipient Lists State
   const [recentRecipients, setRecentRecipients] = useState<Recipient[]>([]);
   const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
+
+  // Recipient Verification
   const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -150,105 +161,109 @@ function SendPanel() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        // Fetch Recent: Get last 10 unique receivers
         const { data: recentData } = await supabase
           .from("transactions")
           .select(`
             receiver_id,
             profiles:receiver_id (
-              id,
-              first_name,
-              last_name,
-              kyc_tag,
-              profile_photo_url
+            id,
+            first_name,
+            last_name,
+            kyc_tag,
+            profile_photo_url
             )
-          `)
-          .eq("sender_id", user.id)
-          .eq("type", "transfer")
-          .order("created_at", { ascending: false })
-          .limit(20);
+            `)
+            .eq("sender_id", user.id)
+            .eq("type", "transfer")
+            .order("created_at", { ascending: false })
+            .limit(20);
 
-        if (recentData) {
-          const uniqueRecipients: Recipient[] = [];
-          const seenIds = new Set();
+            if (recentData) {
+            const uniqueRecipients: Recipient[] = [];
+            const seenIds = new Set();
 
-          recentData.forEach((tx: any) => {
+            recentData.forEach((tx: any) => {
             if (tx.profiles && !seenIds.has(tx.receiver_id)) {
-              seenIds.add(tx.receiver_id);
-              uniqueRecipients.push({
-                id: tx.receiver_id,
-                name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
-                type: "vault",
-                identifier: tx.profiles.kyc_tag || "",
-                avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
-                avatarUrl: tx.profiles.profile_photo_url,
-                color: "bg-primary/20",
-              });
+            seenIds.add(tx.receiver_id);
+            uniqueRecipients.push({
+              id: tx.receiver_id,
+              name: `${tx.profiles.first_name} ${tx.profiles.last_name.charAt(0)}.`,
+              type: "vault",
+              identifier: tx.profiles.kyc_tag || "",
+              avatar: tx.profiles.first_name.charAt(0) + tx.profiles.last_name.charAt(0),
+              avatarUrl: tx.profiles.profile_photo_url,
+              color: "bg-primary/20", // Could randomize this
+            });
             }
-          });
-          setRecentRecipients(uniqueRecipients.slice(0, 5));
-        }
+            });
+            setRecentRecipients(uniqueRecipients.slice(0, 5));
+            }
 
-        const { data: freqData } = await supabase
-          .from("transactions")
-          .select(`
+            // Fetch Frequent: Get top recipients by frequency
+            const { data: freqData } = await supabase
+            .from("transactions")
+            .select(`
             receiver_id,
             profiles:receiver_id (
-              id,
-              first_name,
-              last_name,
-              kyc_tag,
-              profile_photo_url
+            id,
+            first_name,
+            last_name,
+            kyc_tag,
+            profile_photo_url
             )
-          `)
-          .eq("sender_id", user.id)
-          .eq("type", "transfer");
+            `)
+            .eq("sender_id", user.id)
+            .eq("type", "transfer");
 
-        if (freqData) {
-          const counts: Record<string, number> = {};
-          const profileMap: Record<string, any> = {};
+            if (freqData) {
+            const counts: Record<string, number> = {};
+            const profileMap: Record<string, any> = {};
 
-          freqData.forEach((tx: any) => {
+            freqData.forEach((tx: any) => {
             if (tx.profiles) {
-              const rid = tx.receiver_id;
-              counts[rid] = (counts[rid] || 0) + 1;
-              profileMap[rid] = tx.profiles;
+            const rid = tx.receiver_id;
+            counts[rid] = (counts[rid] || 0) + 1;
+            profileMap[rid] = tx.profiles;
             }
-          });
+            });
 
-          const sortedRecipients = Object.entries(counts)
+            const sortedRecipients = Object.entries(counts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([id]) => {
-              const p = profileMap[id];
-              return {
-                id: id,
-                name: `${p.first_name} ${p.last_name.charAt(0)}.`,
-                type: "vault" as const,
-                identifier: p.kyc_tag || "",
-                avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
-                avatarUrl: p.profile_photo_url,
-                color: "bg-primary/20",
-              };
+            const p = profileMap[id];
+            return {
+              id: parseInt(id),
+              name: `${p.first_name} ${p.last_name.charAt(0)}.`,
+              type: "vault" as const,
+              identifier: p.kyc_tag || "",
+              avatar: p.first_name.charAt(0) + p.last_name.charAt(0),
+              avatarUrl: p.profile_photo_url,
+              color: "bg-primary/20",
+            };
             });
-          setFrequentRecipients(sortedRecipients);
-        }
-      } catch (err) {
+            setFrequentRecipients(sortedRecipients);
+            }      } catch (err) {
         console.error("Error fetching recipients:", err);
+        toast.error("Unable to load recipient suggestions. Please try again.");
       }
     };
 
     fetchRecipients();
-  }, [status === "success"]);
+  }, [status === "success"]); // Refresh lists when a new transfer succeeds
 
   useEffect(() => {
     const searchRecipient = async () => {
+      // Remove any existing @ then add one to match DB format
       const searchTag = identifier.trim() ? `@${identifier.replace("@", "").toLowerCase()}` : "";
-      if (method === "vault" && searchTag.length >= 4) {
+      
+      if (method === "vault" && searchTag.length >= 4) { // @ + at least 3 chars
         setIsSearching(true);
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
-          .eq("kyc_tag", searchTag)
+          .eq("kyc_tag", searchTag) // DB tags start with @ and are lowercase
           .maybeSingle();
         
         if (data) {
@@ -266,7 +281,7 @@ function SendPanel() {
     return () => clearTimeout(timer);
   }, [identifier, method]);
 
-  const fee = method === "vault" ? 0.0 : calculateTransactionFee(parseFloat(amount || "0"), currency || "USD");
+  const fee = method === "vault" ? 0.0 : 15.0;
   const total = parseFloat(amount || "0") + fee;
 
   const handleSelectRecipient = (r: Recipient) => {
@@ -288,16 +303,24 @@ function SendPanel() {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        toast.error("Authentication required");
+        return;
+      }
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("pin_hash")
         .eq("id", user.id)
         .single();
 
+      if (profileError || !profile) {
+        toast.error("Error verifying PIN");
+        return;
+      }
+
       const hashedPin = await hashPin(pin);
-      if (profile?.pin_hash !== hashedPin) {
+      if (profile.pin_hash !== hashedPin) {
         toast.error("Incorrect transaction PIN");
         return;
       }
@@ -305,6 +328,7 @@ function SendPanel() {
       setStatus("confirming");
     } catch (error) {
       console.error("PIN verification error:", error);
+      toast.error("An error occurred while verifying your PIN");
     }
   };
 
@@ -321,14 +345,23 @@ function SendPanel() {
           p_amount: parseFloat(amount)
         });
 
-        if (rpcError) throw new Error(rpcError.message || "Transfer failed");
+        if (rpcError) {
+          console.error("RPC Error Details:", rpcError);
+          throw new Error(rpcError.message || "Transfer failed at database level");
+        }
         
         const result = Array.isArray(data) ? data[0] : data;
-        if (!result?.success) throw new Error(result?.message || "Transfer failed");
+
+        if (!result?.success) {
+          throw new Error(result?.message || "Transfer failed");
+        }
 
         setRefCode(result.reference || `VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+        
+        // Refetch balance to show updated amount in profile immediately
         await refetchBalance();
       } else {
+        // Mock for other methods for now
         await new Promise((resolve) => setTimeout(resolve, 2000));
         setRefCode(`VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       }
@@ -336,7 +369,8 @@ function SendPanel() {
       setStatus("success");
       toast.success("Transfer completed successfully!");
     } catch (error: any) {
-      toast.error(error.message || "Transfer failed");
+      console.error("Transfer error:", error);
+      toast.error(error.message || "An unexpected error occurred during transfer");
       setStatus("idle");
     }
   };
@@ -374,6 +408,7 @@ function SendPanel() {
 
   return (
     <div className="space-y-8">
+      {/* Step 1: Provider Selection */}
       <div className="space-y-4">
         <h3 className="text-lg font-light tracking-tight">Step 1: Choose Financial Provider Type</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -419,6 +454,7 @@ function SendPanel() {
         </div>
       </div>
 
+      {/* Step 2: Dynamic Form */}
       {method && (
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between">
@@ -548,6 +584,7 @@ function SendPanel() {
         </div>
       )}
 
+      {/* Header & Lists */}
       <div className="space-y-6">
         {(recentRecipients.length > 0 || isSearching) && (
           <div className="space-y-4">
@@ -562,7 +599,7 @@ function SendPanel() {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl || undefined} />
+                    <AvatarImage src={r.avatarUrl} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>
@@ -588,7 +625,7 @@ function SendPanel() {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl || undefined} />
+                    <AvatarImage src={r.avatarUrl} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>
@@ -602,6 +639,7 @@ function SendPanel() {
         )}
       </div>
 
+      {/* Confirmation Modal */}
       <Dialog open={status === "confirming"} onOpenChange={(open) => !open && setStatus("idle")}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -651,6 +689,7 @@ function SendPanel() {
         </DialogContent>
       </Dialog>
 
+      {/* Processing Overlay */}
       {status === "processing" && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex flex-col items-center justify-center">
           <div className="relative">
@@ -665,158 +704,9 @@ function SendPanel() {
   );
 }
 
-function TransactionHistory() {
-  const { balance, currency, loading: balanceLoading } = useWalletBalance();
-  const { transactions, loading: txLoading } = useTransactions(!balanceLoading);
-  const [profile] = useProfileSignal();
-
-  const getTransactionDetails = (t: Transaction) => {
-    const isSender = t.sender_id === profile?.id;
-    const userName = profile?.first_name 
-      ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-      : (profile?.email?.split('@')[0] || "Vault User");
-    const symbol = currency === 'USD' ? '$' : currency + ' ';
-
-    if (t.type === 'transfer') {
-      if (isSender) {
-        return {
-          title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
-          amount: `-${symbol}${t.amount.toLocaleString()}`,
-          positive: false,
-          icon: t.receiver?.first_name?.[0] || 'V',
-          avatarUrl: t.receiver?.profile_photo_url,
-          color: "bg-primary/20 text-primary",
-        };
-      } else {
-        return {
-          title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
-          amount: `+${symbol}${t.amount.toLocaleString()}`,
-          positive: true,
-          icon: t.sender?.first_name?.[0] || 'V',
-          avatarUrl: t.sender?.profile_photo_url,
-          color: "bg-emerald-500/20 text-emerald-500",
-        };
-      }
-    } else if (t.type === 'deposit') {
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
-      const initials = bankName.substring(0, 2).toUpperCase();
-      return {
-        title: `${bankName} deposit to ${userName}`,
-        amount: `+${symbol}${t.amount.toLocaleString()}`,
-        positive: true,
-        icon: initials,
-        avatarUrl: null,
-        color: "bg-emerald-500/20 text-emerald-500",
-      };
-    } else if (t.type === 'withdrawal') {
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
-      return {
-        title: `Withdrawal to ${bankName}`,
-        amount: `-${symbol}${t.amount.toLocaleString()}`,
-        positive: false,
-        icon: bankName.substring(0, 2).toUpperCase(),
-        avatarUrl: null,
-        color: "bg-destructive/20 text-destructive",
-      };
-    }
-    return {
-      title: t.description || 'System Transaction',
-      amount: `${symbol}${t.amount.toLocaleString()}`,
-      positive: true,
-      icon: '?',
-      avatarUrl: null,
-      color: "bg-secondary text-secondary-foreground",
-    };
-  };
-
-  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
-
-  return (
-    <div className="mt-12 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-light tracking-tight flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" /> 
-          Detailed Ledger History
-        </h2>
-        <div className="text-[10px] uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/40">
-          Zero-Trust Immutable Records
-        </div>
-      </div>
-
-      <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-6 backdrop-blur-sm shadow-inner">
-        <ul className="divide-y divide-border/40">
-          {txLoading ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-              <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
-            </div>
-          ) : transactions.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <Search className="w-6 h-6 text-muted-foreground/40" />
-              </div>
-              <p className="text-sm text-muted-foreground font-medium">No activity found in your ledger history.</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase tracking-tighter">Initialize your first transaction to see records here.</p>
-            </div>
-          ) : (
-            transactions.map((t) => {
-              const details = getTransactionDetails(t);
-              return (
-                <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 transition-colors hover:bg-white/5 group px-2 rounded-lg -mx-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center justify-center w-12 shrink-0">
-                      <span className="text-[9px] font-bold uppercase text-muted-foreground/60 mb-1">
-                        {format(new Date(t.created_at), "MMM")}
-                      </span>
-                      <span className="text-lg font-serif leading-none">
-                        {format(new Date(t.created_at), "dd")}
-                      </span>
-                    </div>
-                    <Avatar className="w-10 h-10 border border-border/40 shrink-0 group-hover:scale-105 transition-transform">
-                      <AvatarImage src={details.avatarUrl || undefined} />
-                      <AvatarFallback className={cn("text-xs font-bold", details.color)}>
-                        {details.icon}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{details.title}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${
-                          t.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
-                          t.status === 'pending' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
-                          'bg-destructive/10 text-destructive'
-                        }`}>
-                          {t.status}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground/60">
-                          {format(new Date(t.created_at), "h:mm a")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto pl-16 sm:pl-0">
-                    <div
-                      className={`text-base font-semibold font-mono ${details.positive ? "text-primary" : "text-destructive"}`}
-                    >
-                      {details.amount}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
-                      Bal: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
-                    </div>
-                  </div>
-                </li>
-              );
-            })
-          )}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
 function TransactionsPage() {
   const { mode: initialMode } = Route.useSearch();
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate({ from: Route.fullPath });
   const [mode, setMode] = useState<Mode>(initialMode || "send");
 
   useEffect(() => {
@@ -827,12 +717,7 @@ function TransactionsPage() {
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
-    navigate({
-      search: (prev: any) => ({
-        ...prev,
-        mode: newMode,
-      }),
-    });
+    navigate({ search: { mode: newMode } });
   };
 
   const tabs: { id: Mode; label: string }[] = [
@@ -850,6 +735,7 @@ function TransactionsPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Back Button */}
         <div className="mb-8">
           <Link
             to="/dashboard"
@@ -860,6 +746,7 @@ function TransactionsPage() {
           </Link>
         </div>
 
+        {/* Toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-full border border-border/50 bg-card/40 p-1 backdrop-blur-sm">
             {tabs.map((t) => (
@@ -891,8 +778,6 @@ function TransactionsPage() {
         {mode === "send" && <SendPanel />}
         {mode === "deposit" && <DepositPanel />}
         {mode === "withdraw" && <WithdrawPanel />}
-
-        <TransactionHistory />
       </main>
     </AppShell>
   );
