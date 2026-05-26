@@ -1,6 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
-import { UserPlus, Lock as LockIcon, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp, Landmark } from "lucide-react";
+import {
+  UserPlus,
+  Lock as LockIcon,
+  MoreVertical,
+  Plus,
+  Settings,
+  HelpCircle,
+  RefreshCw,
+  ShieldCheck,
+  Shield,
+  Loader2,
+  ArrowRight,
+  TrendingUp,
+  Landmark,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
@@ -10,14 +24,14 @@ import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
 
@@ -55,7 +69,7 @@ function AccountBadge({
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm transition-all hover:bg-card/80 hover:border-primary/30">
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
-      
+
       <div className="relative z-10">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
@@ -78,11 +92,9 @@ function AccountBadge({
             <LockIcon className="w-4 h-4 text-muted-foreground/60" />
           )}
         </div>
-        
+
         <div className="mt-6">
-          <div className="text-3xl font-semibold tracking-tight text-primary">
-            {amount}
-          </div>
+          <div className="text-3xl font-semibold tracking-tight text-primary">{amount}</div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 opacity-60">
             Available Balance
           </div>
@@ -90,17 +102,31 @@ function AccountBadge({
 
         {primary ? (
           <div className="mt-6 flex gap-2">
-            <Button variant="secondary" size="sm" className="flex-1 h-9 rounded-xl font-medium shadow-sm active:scale-95 transition-transform" asChild>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1 h-9 rounded-xl font-medium shadow-sm active:scale-95 transition-transform"
+              asChild
+            >
               <Link to="/transactions" search={{ mode: "send" }}>
                 Send
               </Link>
             </Button>
-            <Button size="sm" className="flex-1 h-9 rounded-xl font-medium shadow-md active:scale-95 transition-transform" asChild>
+            <Button
+              size="sm"
+              className="flex-1 h-9 rounded-xl font-medium shadow-md active:scale-95 transition-transform"
+              asChild
+            >
               <Link to="/transactions" search={{ mode: "deposit" }}>
                 Deposit
               </Link>
             </Button>
-            <Button variant="outline" size="sm" className="flex-1 h-9 rounded-xl font-medium border-border/60 hover:bg-muted/50 active:scale-95 transition-transform" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-9 rounded-xl font-medium border-border/60 hover:bg-muted/50 active:scale-95 transition-transform"
+              asChild
+            >
               <Link to="/transactions" search={{ mode: "withdraw" }}>
                 Withdraw
               </Link>
@@ -121,9 +147,16 @@ function QuickSend({
   avatars,
   withAdd,
   onAvatarClick,
-  title = "Quick Send (P2P)"
+  title = "Quick Send (P2P)",
 }: {
-  avatars: { id?: string; initial: string; color: string; name: string; tag?: string; avatarUrl?: string | null }[];
+  avatars: {
+    id?: string;
+    initial: string;
+    color: string;
+    name: string;
+    tag?: string;
+    avatarUrl?: string | null;
+  }[];
   withAdd?: boolean;
   onAvatarClick?: (tag: string) => void;
   title?: string;
@@ -131,7 +164,9 @@ function QuickSend({
   return (
     <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm transition-all hover:border-border/60">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">{title}</div>
+        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">
+          {title}
+        </div>
         <ArrowRight className="w-3 h-3 text-muted-foreground/40" />
       </div>
       <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
@@ -141,8 +176,8 @@ function QuickSend({
           </button>
         )}
         {avatars.map((a, index) => (
-          <div 
-            key={a.id ?? `${a.name}-${index}`} 
+          <div
+            key={a.id ?? `${a.name}-${index}`}
             className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0"
             onClick={() => a.tag && onAvatarClick?.(a.tag)}
           >
@@ -162,7 +197,9 @@ function QuickSend({
               )}
               <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
             </div>
-            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{a.name}</span>
+            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+              {a.name}
+            </span>
           </div>
         ))}
       </div>
@@ -170,30 +207,32 @@ function QuickSend({
   );
 }
 
-function NetWorthChart({ 
+function NetWorthChart({
   entries,
   currencySymbol,
-  currentBalance
-}: { 
-  entries: LedgerEntry[], 
-  currencySymbol: string,
-  currentBalance: number
+  currentBalance,
+}: {
+  entries: LedgerEntry[];
+  currencySymbol: string;
+  currentBalance: number;
 }) {
   const [viewMode, setViewMode] = useState<"daily" | "transaction">("transaction");
 
   const chartData = useMemo(() => {
     if (!entries || entries.length === 0) {
-      return [{
-        name: "Now",
-        fullDate: "Current Balance",
-        value: currentBalance,
-        created_at: new Date().toISOString()
-      }];
+      return [
+        {
+          name: "Now",
+          fullDate: "Current Balance",
+          value: currentBalance,
+          created_at: new Date().toISOString(),
+        },
+      ];
     }
 
     // Sort entries chronologically (oldest first)
-    const sorted = [...entries].sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    const sorted = [...entries].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
     );
 
     let runningSum = 0;
@@ -203,7 +242,7 @@ function NetWorthChart({
         name: format(new Date(entry.created_at), "MMM dd"),
         fullDate: format(new Date(entry.created_at), "PPP p"),
         value: runningSum,
-        created_at: entry.created_at
+        created_at: entry.created_at,
       };
     });
 
@@ -212,14 +251,14 @@ function NetWorthChart({
       name: "Now",
       fullDate: "Current Balance",
       value: currentBalance,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     });
 
     if (viewMode === "transaction") {
       return history;
     } else {
       const dailyMap: Record<string, any> = {};
-      history.forEach(point => {
+      history.forEach((point) => {
         const day = format(new Date(point.created_at), "yyyy-MM-dd");
         dailyMap[day] = point;
       });
@@ -228,15 +267,17 @@ function NetWorthChart({
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([_, point]) => ({
           name: point.name === "Now" ? point.name : format(new Date(point.created_at), "MMM dd"),
-          fullDate: point.name === "Now" ? "Current Balance" : format(new Date(point.created_at), "PPP"),
-          value: point.value
+          fullDate:
+            point.name === "Now" ? "Current Balance" : format(new Date(point.created_at), "PPP"),
+          value: point.value,
         }));
     }
   }, [entries, viewMode, currentBalance]);
 
-  const minValue = Math.min(...chartData.map(d => d.value || 0));
-  const maxValue = Math.max(...chartData.map(d => d.value || 0));
-  const isPositive = chartData.length > 1 ? chartData[chartData.length - 1].value >= chartData[0].value : true;
+  const minValue = Math.min(...chartData.map((d) => d.value || 0));
+  const maxValue = Math.max(...chartData.map((d) => d.value || 0));
+  const isPositive =
+    chartData.length > 1 ? chartData[chartData.length - 1].value >= chartData[0].value : true;
 
   return (
     <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-full flex flex-col transition-all hover:border-border/60">
@@ -244,18 +285,21 @@ function NetWorthChart({
         <div>
           <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
             Net Worth Growth
-            <TrendingUp className={`w-3 h-3 ${isPositive ? "text-emerald-500" : "text-destructive"}`} />
+            <TrendingUp
+              className={`w-3 h-3 ${isPositive ? "text-emerald-500" : "text-destructive"}`}
+            />
           </div>
           <div className="text-[10px] text-muted-foreground mt-0.5 font-bold uppercase tracking-wider">
-            Latest: {currencySymbol}{currentBalance.toLocaleString()}
+            Latest: {currencySymbol}
+            {currentBalance.toLocaleString()}
           </div>
         </div>
         <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/20">
           <button
             onClick={() => setViewMode("transaction")}
             className={`px-2 py-1 text-[9px] font-black rounded-md transition-all ${
-              viewMode === "transaction" 
-                ? "bg-primary text-primary-foreground shadow-sm" 
+              viewMode === "transaction"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -264,8 +308,8 @@ function NetWorthChart({
           <button
             onClick={() => setViewMode("daily")}
             className={`px-2 py-1 text-[9px] font-black rounded-md transition-all ${
-              viewMode === "daily" 
-                ? "bg-primary text-primary-foreground shadow-sm" 
+              viewMode === "daily"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -273,7 +317,7 @@ function NetWorthChart({
           </button>
         </div>
       </div>
-      
+
       <div className="relative flex-1 min-h-[120px] mt-2">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData}>
@@ -283,20 +327,14 @@ function NetWorthChart({
                 <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              vertical={false} 
-              stroke="var(--border)" 
-              opacity={0.1} 
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="var(--border)"
+              opacity={0.1}
             />
-            <XAxis 
-              dataKey="name" 
-              hide 
-            />
-            <YAxis 
-              hide 
-              domain={[minValue * 0.9, maxValue * 1.1]}
-            />
+            <XAxis dataKey="name" hide />
+            <YAxis hide domain={[minValue * 0.9, maxValue * 1.1]} />
             <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
@@ -306,7 +344,8 @@ function NetWorthChart({
                         {payload[0].payload.fullDate}
                       </p>
                       <p className="text-sm font-black text-primary">
-                        {currencySymbol}{payload[0].value?.toLocaleString()}
+                        {currencySymbol}
+                        {payload[0].value?.toLocaleString()}
                       </p>
                     </div>
                   );
@@ -334,11 +373,17 @@ function NetWorthChart({
         <div className="flex gap-4">
           <div className="flex flex-col items-end">
             <span className="text-[8px] text-muted-foreground uppercase font-black">Low</span>
-            <span className="text-[10px] font-black">{currencySymbol}{minValue.toLocaleString()}</span>
+            <span className="text-[10px] font-black">
+              {currencySymbol}
+              {minValue.toLocaleString()}
+            </span>
           </div>
           <div className="flex flex-col items-end">
             <span className="text-[8px] text-muted-foreground uppercase font-black">High</span>
-            <span className="text-[10px] font-black text-emerald-500">{currencySymbol}{maxValue.toLocaleString()}</span>
+            <span className="text-[10px] font-black text-emerald-500">
+              {currencySymbol}
+              {maxValue.toLocaleString()}
+            </span>
           </div>
         </div>
       </div>
@@ -350,7 +395,7 @@ function SecurityStatus() {
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
       <div className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
-      
+
       <div className="relative z-10">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner group-hover:scale-110 transition-transform">
@@ -364,7 +409,7 @@ function SecurityStatus() {
             </div>
           </div>
         </div>
-        
+
         <div className="space-y-4">
           {[
             { label: "End-to-End Encryption", val: "AES-256", status: "active" },
@@ -373,8 +418,12 @@ function SecurityStatus() {
           ].map((item) => (
             <div key={item.label} className="group/item">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors">{item.label}</span>
-                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">{item.val}</span>
+                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors">
+                  {item.label}
+                </span>
+                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                  {item.val}
+                </span>
               </div>
               <div className="h-1 w-full bg-muted/30 rounded-full overflow-hidden">
                 <div className="h-full bg-primary/40 rounded-full w-full group-hover:bg-primary/60 transition-all duration-700" />
@@ -383,8 +432,12 @@ function SecurityStatus() {
           ))}
         </div>
       </div>
-      
-      <Button variant="ghost" size="sm" className="relative z-10 mt-8 w-full text-xs gap-2 h-9 rounded-xl border border-border/40 hover:bg-muted/50 hover:border-border transition-all">
+
+      <Button
+        variant="ghost"
+        size="sm"
+        className="relative z-10 mt-8 w-full text-xs gap-2 h-9 rounded-xl border border-border/40 hover:bg-muted/50 hover:border-border transition-all"
+      >
         <Shield className="w-3 h-3" /> Security Settings
       </Button>
     </div>
@@ -417,13 +470,25 @@ function DashboardPage() {
 
   const frequentRecipients = useMemo(() => {
     const seenIds = new Set();
-    const uniqueRecipients: { id: string; initial: string; color: string; name: string; tag?: string; avatarUrl?: string | null }[] = [];
+    const uniqueRecipients: {
+      id: string;
+      initial: string;
+      color: string;
+      name: string;
+      tag?: string;
+      avatarUrl?: string | null;
+    }[] = [];
     const currentUserId = (profile as any)?.id;
 
     if (!currentUserId) return [];
 
     for (const tx of transactions) {
-      if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver && tx.receiver_id) {
+      if (
+        tx.type === "transfer" &&
+        tx.sender_id === currentUserId &&
+        tx.receiver &&
+        tx.receiver_id
+      ) {
         if (!seenIds.has(tx.receiver_id)) {
           seenIds.add(tx.receiver_id);
           uniqueRecipients.push({
@@ -444,7 +509,7 @@ function DashboardPage() {
   const handleQuickSend = (tag: string) => {
     navigate({
       to: "/transactions",
-      search: { mode: "send", to: tag.replace("@", "") }
+      search: { mode: "send", to: tag.replace("@", "") },
     });
   };
 
@@ -458,48 +523,52 @@ function DashboardPage() {
   const filteredTransactions = useMemo(() => {
     if (activeFilter === "All") return transactions;
     const filter = activeFilter.toLowerCase();
-    
-    if (filter === "send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
-    if (filter === "received") return transactions.filter(t => 
-      (t.type === 'transfer' && t.receiver_id === (profile as any)?.id) || 
-      t.type === 'deposit'
-    );
-    if (filter === "deposit") return transactions.filter(t => t.type === 'deposit');
-    if (filter === "withdraw") return transactions.filter(t => t.type === 'withdrawal');
-    
+
+    if (filter === "send")
+      return transactions.filter(
+        (t) => t.type === "transfer" && t.sender_id === (profile as any)?.id,
+      );
+    if (filter === "received")
+      return transactions.filter(
+        (t) =>
+          (t.type === "transfer" && t.receiver_id === (profile as any)?.id) || t.type === "deposit",
+      );
+    if (filter === "deposit") return transactions.filter((t) => t.type === "deposit");
+    if (filter === "withdraw") return transactions.filter((t) => t.type === "withdrawal");
+
     return transactions;
   }, [transactions, activeFilter, profile]);
 
   const getTransactionDetails = (t: any) => {
     const isSender = t.sender_id === (profile as any)?.id;
-    const userName = profile?.first_name 
+    const userName = profile?.first_name
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-      : (profile?.email?.split('@')[0] || "Vault User");
-    const symbol = currency === 'USD' ? '$' : currency + ' ';
-    const isLedger = t.source === 'ledger';
+      : profile?.email?.split("@")[0] || "Vault User";
+    const symbol = currency === "USD" ? "$" : currency + " ";
+    const isLedger = t.source === "ledger";
 
-    if (t.type === 'transfer') {
+    if (t.type === "transfer") {
       if (isSender) {
         return {
-          title: `Transfer to ${t.receiver?.first_name || 'User'}`,
+          title: `Transfer to ${t.receiver?.first_name || "User"}`,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: t.receiver?.first_name?.[0] || 'T',
+          icon: t.receiver?.first_name?.[0] || "T",
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
         return {
-          title: `Received from ${t.sender?.first_name || 'User'}`,
+          title: `Received from ${t.sender?.first_name || "User"}`,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || 'R',
+          icon: t.sender?.first_name?.[0] || "R",
           avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
-    } else if (t.type === 'deposit') {
-      const bankName = isLedger ? 'Wallet Deposit' : (t.method || 'Deposit').toString();
+    } else if (t.type === "deposit") {
+      const bankName = isLedger ? "Wallet Deposit" : (t.method || "Deposit").toString();
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: `${bankName} to ${userName}`,
@@ -509,8 +578,8 @@ function DashboardPage() {
         avatarUrl: t.sender?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
-    } else if (t.type === 'withdrawal') {
-      const bankName = isLedger ? 'Wallet Withdrawal' : (t.method || 'Withdrawal').toString();
+    } else if (t.type === "withdrawal") {
+      const bankName = isLedger ? "Wallet Withdrawal" : (t.method || "Withdrawal").toString();
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: `${bankName} to ${userName}`,
@@ -525,13 +594,13 @@ function DashboardPage() {
       title: t.description,
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
-      icon: '?',
+      icon: "?",
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
     };
   };
 
-  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
+  const currencySymbol = currency === "USD" ? "$" : currency + " ";
 
   return (
     <AppShell>
@@ -555,10 +624,17 @@ function DashboardPage() {
 
         {/* Total net worth */}
         <div className="group relative overflow-hidden rounded-3xl bg-card/40 border border-border/40 p-8 sm:p-10 mb-8 backdrop-blur-md transition-all hover:bg-card/50 hover:border-primary/20 shadow-xl">
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, var(--primary) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+          <div
+            className="absolute inset-0 opacity-[0.03] pointer-events-none"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 2px 2px, var(--primary) 1px, transparent 0)",
+              backgroundSize: "24px 24px",
+            }}
+          />
           <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/5 blur-[100px] transition-all group-hover:bg-primary/10" />
           <div className="absolute -left-24 -bottom-24 h-64 w-64 rounded-full bg-primary/5 blur-[80px] transition-all group-hover:bg-primary/10" />
-          
+
           <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-2">
@@ -571,18 +647,23 @@ function DashboardPage() {
                 {balanceLoading ? (
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                    <span className="text-xl text-muted-foreground font-light">Analyzing portfolio...</span>
+                    <span className="text-xl text-muted-foreground font-light">
+                      Analyzing portfolio...
+                    </span>
                   </div>
                 ) : balanceError ? (
                   <span className="text-5xl sm:text-6xl font-light text-destructive">Error</span>
                 ) : (
                   <>
                     <span className="text-5xl sm:text-6xl font-bold tracking-tight">
-                      {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol}
+                      {balance?.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-semibold">
-                      <TrendingUp className="w-3.5 h-3.5" />
-                      + 5.25%
+                      <TrendingUp className="w-3.5 h-3.5" />+ 5.25%
                     </div>
                   </>
                 )}
@@ -595,8 +676,8 @@ function DashboardPage() {
               <Button className="h-12 px-6 rounded-2xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95">
                 <UserPlus className="w-4 h-4 mr-2" /> Add External Account
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="h-12 px-6 rounded-2xl font-semibold border-border/60 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95"
                 onClick={() => setShowReport(true)}
               >
@@ -607,10 +688,10 @@ function DashboardPage() {
         </div>
 
         {/* Report Modal */}
-        <FinancialHealthReport 
-          open={showReport} 
-          onOpenChange={setShowReport} 
-          currencySymbol={currencySymbol} 
+        <FinancialHealthReport
+          open={showReport}
+          onOpenChange={setShowReport}
+          currencySymbol={currencySymbol}
         />
 
         {/* Accounts grid */}
@@ -631,7 +712,13 @@ function DashboardPage() {
               }
               name="Vault: Digital Wallet OS"
               type="Verified Account"
-              amount={balanceLoading ? "Loading..." : balanceError ? "Error" : `${currencySymbol}${balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+              amount={
+                balanceLoading
+                  ? "Loading..."
+                  : balanceError
+                    ? "Error"
+                    : `${currencySymbol}${balance?.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              }
             />
           </div>
           <div className="md:col-span-1">
@@ -641,13 +728,15 @@ function DashboardPage() {
 
         {/* Quick actions + Finance Hub */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <Link 
+          <Link
             to="/finance-hub"
             className="lg:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 backdrop-blur-sm transition-all hover:bg-primary/20 hover:border-primary/40 shadow-lg"
           >
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
             <div className="flex items-center justify-between mb-4">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Finance & Credit</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                Finance & Credit
+              </div>
               <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
             </div>
             <div className="flex items-center gap-4">
@@ -662,17 +751,21 @@ function DashboardPage() {
           </Link>
           <QuickSend
             onAvatarClick={handleQuickSend}
-            avatars={frequentRecipients.length > 0 ? frequentRecipients : [
-              { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
-              { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
-              { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
-              { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
-            ]}
+            avatars={
+              frequentRecipients.length > 0
+                ? frequentRecipients
+                : [
+                    { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
+                    { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
+                    { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
+                    { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
+                  ]
+            }
           />
           <div className="hidden lg:block lg:col-span-1">
-            <NetWorthChart 
-              entries={ledgerEntries} 
-              currencySymbol={currencySymbol} 
+            <NetWorthChart
+              entries={ledgerEntries}
+              currencySymbol={currencySymbol}
               currentBalance={balance || 0}
             />
           </div>
@@ -680,7 +773,9 @@ function DashboardPage() {
 
         {/* Recent Transactions Heading */}
         <div className="mb-4">
-          <h2 className="text-lg font-light tracking-tight text-foreground/90">Recent transactions</h2>
+          <h2 className="text-lg font-light tracking-tight text-foreground/90">
+            Recent transactions
+          </h2>
         </div>
 
         {/* Transactions list */}
@@ -702,7 +797,7 @@ function DashboardPage() {
               ))}
             </div>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <RefreshCw className={`w-3 h-3 ${txLoading ? 'animate-spin' : ''}`} /> {syncTime}
+              <RefreshCw className={`w-3 h-3 ${txLoading ? "animate-spin" : ""}`} /> {syncTime}
             </div>
           </div>
 
@@ -724,10 +819,13 @@ function DashboardPage() {
                 const displayBalance = t.balance_after || balance || 0;
 
                 return (
-                  <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
+                  <li
+                    key={t.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3"
+                  >
                     <div className="flex items-center gap-4">
                       <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                        {t.type === 'transfer' ? 'P2P' : t.type.substring(0, 3)}
+                        {t.type === "transfer" ? "P2P" : t.type.substring(0, 3)}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
                         <AvatarImage src={details.avatarUrl || undefined} />

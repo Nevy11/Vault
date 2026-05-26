@@ -1,32 +1,32 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Building2, 
-  Smartphone, 
-  Plus, 
-  Check, 
-  Info, 
-  ArrowRight, 
-  Loader2, 
+import React, { useState, useMemo } from "react";
+import {
+  Building2,
+  Smartphone,
+  Plus,
+  Check,
+  Info,
+  ArrowRight,
+  Loader2,
   CheckCircle2,
   Lock as LockIcon,
   ChevronDown,
   Search,
   CreditCard,
   History,
-  Zap
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription, 
-  DialogFooter 
-} from '@/components/ui/dialog';
+  Zap,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -34,25 +34,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from 'sonner';
-import { Link } from '@tanstack/react-router';
+import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 
-import { useProfileSignal } from '@/lib/profile-signal';
-import { supabase } from '@/api/supabase';
-import { hashPin } from '@/lib/utils';
-import { useWalletBalance } from '@/hooks/use-wallet-balance';
+import { useProfileSignal } from "@/lib/profile-signal";
+import { supabase } from "@/api/supabase";
+import { hashPin } from "@/lib/utils";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
-import { StripePayment } from './stripe-payment';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements } from '@stripe/react-stripe-js';
+import { StripePayment } from "./stripe-payment";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 
 // Initialize Stripe (use env variable in production)
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51Ro0ysE4K5QIsyl6tFrDH7oCDENuxy0P1iq7wWIvwiI5jyUtrf2Tsb0bizDjX0NIaTjiV1gzmGNVPj7GbqeyF4yX005RF2puYW');
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51Ro0ysE4K5QIsyl6tFrDH7oCDENuxy0P1iq7wWIvwiI5jyUtrf2Tsb0bizDjX0NIaTjiV1gzmGNVPj7GbqeyF4yX005RF2puYW",
+);
 
 // Mock Data
 const SAVED_BANK_ACCOUNTS = [
-  { id: 'b1', name: 'Equity Bank', accountNumber: '****5678', holder: 'John Doe', color: 'bg-orange-600' },
-  { id: 'b2', name: 'KCB Bank', accountNumber: '****1234', holder: 'John Doe', color: 'bg-green-700' },
+  {
+    id: "b1",
+    name: "Equity Bank",
+    accountNumber: "****5678",
+    holder: "John Doe",
+    color: "bg-orange-600",
+  },
+  {
+    id: "b2",
+    name: "KCB Bank",
+    accountNumber: "****1234",
+    holder: "John Doe",
+    color: "bg-green-700",
+  },
 ];
 
 const CARRIERS = ["M-Pesa", "Airtel Money", "T-Kash"];
@@ -67,50 +82,50 @@ const BANKS = [
   "I&M Bank",
 ];
 
-const EXCHANGE_RATE = 130.00;
+const EXCHANGE_RATE = 130.0;
 
-type SourceChannel = 'bank' | 'mobile' | 'stripe';
-type DepositStatus = 'idle' | 'confirming' | 'processing' | 'success' | 'stripe_pay';
+type SourceChannel = "bank" | "mobile" | "stripe";
+type DepositStatus = "idle" | "confirming" | "processing" | "success" | "stripe_pay";
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
   const { currency, balance: walletBalance } = useWalletBalance();
-  const [channel, setChannel] = useState<SourceChannel>('mobile');
+  const [channel, setChannel] = useState<SourceChannel>("mobile");
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
-  const [status, setStatus] = useState<DepositStatus>('idle');
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>('m1');
+  const [status, setStatus] = useState<DepositStatus>("idle");
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>("m1");
   const [newPhoneNumber, setNewPhoneNumber] = useState("");
   const [selectedCarrier, setSelectedCarrier] = useState<string>("M-Pesa");
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-  const currencySymbol = currency === 'USD' ? '$' : (currency === 'KSH' ? 'KES ' : currency + ' ');
+  const currencySymbol = currency === "USD" ? "$" : currency === "KSH" ? "KES " : currency + " ";
 
   const SAVED_NUMBERS = useMemo(() => {
     console.log("DEBUG: Current profile object:", profile);
-    const phoneNumber = profile?.phone_number || 'No number set';
+    const phoneNumber = profile?.phone_number || "No number set";
     return [
-      { 
-        id: 'm1', 
-        name: phoneNumber, 
-        phone: phoneNumber, 
-        carrier: 'M-Pesa', 
-        color: 'bg-emerald-600' 
+      {
+        id: "m1",
+        name: phoneNumber,
+        phone: phoneNumber,
+        carrier: "M-Pesa",
+        color: "bg-emerald-600",
       },
     ];
   }, [profile]);
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    if (currency === 'KSH') return val;
+    if (currency === "KSH") return val;
     return val * EXCHANGE_RATE;
   }, [amount, currency]);
 
   const usdEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    if (currency === 'USD') return val;
+    if (currency === "USD") return val;
     return val / EXCHANGE_RATE;
   }, [amount, currency]);
 
@@ -124,7 +139,7 @@ export function DepositPanel() {
       toast.error("Please enter your transaction PIN");
       return;
     }
-    
+
     const userId = profile?.id;
     if (!userId) {
       toast.error("User session not found. Please log in again.");
@@ -149,8 +164,8 @@ export function DepositPanel() {
       return;
     }
 
-    if (channel === 'stripe') {
-      setStatus('processing');
+    if (channel === "stripe") {
+      setStatus("processing");
       try {
         const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
           body: { amount: parseFloat(amount), user_id: userId },
@@ -159,19 +174,19 @@ export function DepositPanel() {
         if (error) throw error;
         if (data.clientSecret) {
           setStripeClientSecret(data.clientSecret);
-          setStatus('stripe_pay');
+          setStatus("stripe_pay");
         } else {
           throw new Error("No client secret returned");
         }
       } catch (err: any) {
         toast.error("Failed to initiate Stripe payment: " + err.message);
-        setStatus('idle');
+        setStatus("idle");
       }
       return;
     }
 
-    if (channel === 'bank' && selectedSourceId === 'stripe-ach') {
-      setStatus('processing');
+    if (channel === "bank" && selectedSourceId === "stripe-ach") {
+      setStatus("processing");
       try {
         const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
           body: { amount: parseFloat(amount), user_id: userId },
@@ -180,13 +195,13 @@ export function DepositPanel() {
         if (error) throw error;
         if (data.clientSecret) {
           setStripeClientSecret(data.clientSecret);
-          setStatus('stripe_pay');
+          setStatus("stripe_pay");
         } else {
           throw new Error("No client secret returned");
         }
       } catch (err: any) {
         toast.error("Failed to initiate Stripe payment: " + err.message);
-        setStatus('idle');
+        setStatus("idle");
       }
       return;
     }
@@ -194,19 +209,19 @@ export function DepositPanel() {
     // Determine the phone number to use for the STK push
     let phone = "";
     if (isAddingNew) {
-       if (!newPhoneNumber || newPhoneNumber.length < 9) {
-         toast.error("Please provide a valid phone number");
-         return;
-       }
-       phone = newPhoneNumber;
+      if (!newPhoneNumber || newPhoneNumber.length < 9) {
+        toast.error("Please provide a valid phone number");
+        return;
+      }
+      phone = newPhoneNumber;
     } else {
-       const source = SAVED_NUMBERS.find(n => n.id === selectedSourceId);
-       phone = source?.phone || "";
+      const source = SAVED_NUMBERS.find((n) => n.id === selectedSourceId);
+      phone = source?.phone || "";
     }
 
-    if (!phone || phone === 'No number set') {
-       toast.error("Please select or enter a valid mobile number");
-       return;
+    if (!phone || phone === "No number set") {
+      toast.error("Please select or enter a valid mobile number");
+      return;
     }
 
     // Standardize to 254... format
@@ -219,7 +234,7 @@ export function DepositPanel() {
       formattedPhone = "254" + formattedPhone;
     }
 
-    setStatus('processing');
+    setStatus("processing");
     try {
       const { data, error } = await supabase.functions.invoke("mpesa-deposit", {
         body: { phoneNumber: formattedPhone, amount: parseFloat(amount) * EXCHANGE_RATE },
@@ -230,19 +245,26 @@ export function DepositPanel() {
         try {
           // Try to get the error response body
           const errorResponse = await error.context?.json();
-          errorMessage = errorResponse?.error || errorResponse?.errorMessage || error.message || errorMessage;
+          errorMessage =
+            errorResponse?.error || errorResponse?.errorMessage || error.message || errorMessage;
         } catch (e) {
           errorMessage = error.message || errorMessage;
         }
         throw new Error(errorMessage);
       }
-      
+
       if (!data || (data.ResponseCode !== "0" && data.ResponseCode !== 0)) {
-        throw new Error(data?.errorMessage || data?.ResponseDescription || data?.CustomerMessage || "Payment initiation failed: No response from provider");
+        throw new Error(
+          data?.errorMessage ||
+            data?.ResponseDescription ||
+            data?.CustomerMessage ||
+            "Payment initiation failed: No response from provider",
+        );
       }
 
       // Store the checkout ID for later confirmation
-      const checkoutId = data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+      const checkoutId =
+        data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
       setRefCode(checkoutId);
 
       // Record pending transaction
@@ -250,23 +272,24 @@ export function DepositPanel() {
         sender_id: userId,
         receiver_id: userId,
         type: "deposit",
-        method: channel === 'mobile' ? 'mpesa' : (selectedSourceId === 'stripe-ach' ? 'bank' : 'bank'),
+        method:
+          channel === "mobile" ? "mpesa" : selectedSourceId === "stripe-ach" ? "bank" : "bank",
         amount: parseFloat(amount),
         status: "pending",
         description: checkoutId,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
-      setStatus('confirming');
+      setStatus("confirming");
     } catch (error: any) {
       console.error("M-Pesa trigger error:", error);
       toast.error(error.message);
-      setStatus('idle');
+      setStatus("idle");
     }
   };
 
   const handleConfirmDeposit = async () => {
-    setStatus('processing');
+    setStatus("processing");
     try {
       const userId = profile?.id;
       if (!userId) throw new Error("User session not found");
@@ -280,7 +303,7 @@ export function DepositPanel() {
         .maybeSingle();
 
       if (txFetchError) throw txFetchError;
-      
+
       // Use the amount from the DB if found, otherwise fallback to state
       const depositAmount = tx?.amount || parseFloat(amount);
 
@@ -294,7 +317,7 @@ export function DepositPanel() {
         p_reference: refCode,
         p_description: `M-Pesa Deposit: ${refCode}`,
         p_status: "completed",
-        p_metadata: { payment_method: 'mpesa', mpesa_checkout_id: refCode }
+        p_metadata: { payment_method: "mpesa", mpesa_checkout_id: refCode },
       });
 
       if (ledgerError) throw ledgerError;
@@ -302,42 +325,43 @@ export function DepositPanel() {
       // 3. Update local state balance (Realtime will handle the main sync, but this is for immediate feedback)
       // We don't need a manual transactions update here anymore as create_ledger_entry handles it
 
-      setStatus('success');
+      setStatus("success");
       toast.success("Deposit confirmed and balance updated!");
     } catch (err: any) {
       console.error("M-Pesa confirmation error:", err);
       toast.error("Failed to confirm deposit: " + err.message);
-      setStatus('idle');
+      setStatus("idle");
     }
   };
 
   const getSourceName = () => {
-    if (channel === 'stripe') return "Credit/Debit Card";
-    if (selectedSourceId === 'stripe-ach') return "Stripe Bank Transfer";
-    if (isAddingNew) return channel === 'mobile' ? selectedCarrier : "New Bank Account";
-    if (channel === 'mobile') return SAVED_NUMBERS.find(n => n.id === selectedSourceId)?.name || selectedCarrier;
-    return SAVED_BANK_ACCOUNTS.find(b => b.id === selectedSourceId)?.name || "Bank Account";
+    if (channel === "stripe") return "Credit/Debit Card";
+    if (selectedSourceId === "stripe-ach") return "Stripe Bank Transfer";
+    if (isAddingNew) return channel === "mobile" ? selectedCarrier : "New Bank Account";
+    if (channel === "mobile")
+      return SAVED_NUMBERS.find((n) => n.id === selectedSourceId)?.name || selectedCarrier;
+    return SAVED_BANK_ACCOUNTS.find((b) => b.id === selectedSourceId)?.name || "Bank Account";
   };
 
-  if (status === 'stripe_pay' && stripeClientSecret) {
+  if (status === "stripe_pay" && stripeClientSecret) {
     return (
       <div className="max-w-md mx-auto py-8">
         <h2 className="text-2xl font-light mb-6 text-center">Complete Deposit</h2>
         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
-          <StripePayment 
-            amount={parseFloat(amount)} 
+          <StripePayment
+            amount={parseFloat(amount)}
             onSuccess={(ref) => {
               setRefCode(ref);
-              setStatus('success');
-            }} 
-            onCancel={() => setStatus('idle')}
+              setStatus("success");
+            }}
+            onCancel={() => setStatus("idle")}
           />
         </Elements>
       </div>
     );
   }
 
-  if (status === 'success') {
+  if (status === "success") {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-500">
         <div className="relative mb-6">
@@ -346,21 +370,23 @@ export function DepositPanel() {
           </div>
           <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />
         </div>
-        
+
         <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Deposit Successful!</h2>
         <p className="text-muted-foreground mb-8 max-w-md">
           Funds have been credited to your Vault Wallet from your {getSourceName()} account.
         </p>
-        
+
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-8 w-full max-w-sm mb-8 backdrop-blur-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Zap className="w-20 h-20 text-emerald-500" />
           </div>
-          
+
           <div className="space-y-4 relative">
             <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
               <span className="text-muted-foreground">Credited Balance</span>
-              <span className="text-2xl font-light text-emerald-500 font-mono">${parseFloat(amount).toLocaleString()}</span>
+              <span className="text-2xl font-light text-emerald-500 font-mono">
+                ${parseFloat(amount).toLocaleString()}
+              </span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Transaction ID</span>
@@ -372,12 +398,18 @@ export function DepositPanel() {
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Status</span>
-              <span className="text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">Completed</span>
+              <span className="text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                Completed
+              </span>
             </div>
           </div>
         </div>
-        
-        <Button size="lg" className="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14" asChild>
+
+        <Button
+          size="lg"
+          className="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14"
+          asChild
+        >
           <Link to="/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
@@ -392,9 +424,9 @@ export function DepositPanel() {
           <h2 className="text-2xl font-light tracking-tight">Select Deposit Source</h2>
           <div className="flex p-1 bg-background/60 border border-border/60 rounded-2xl">
             {[
-              { id: 'mobile', label: 'Mobile Money', icon: Smartphone },
-              { id: 'bank', label: 'Bank Account', icon: Building2 },
-              { id: 'stripe', label: 'Credit Card', icon: CreditCard },
+              { id: "mobile", label: "Mobile Money", icon: Smartphone },
+              { id: "bank", label: "Bank Account", icon: Building2 },
+              { id: "stripe", label: "Credit Card", icon: CreditCard },
             ].map((t) => {
               const Icon = t.icon;
               return (
@@ -407,9 +439,9 @@ export function DepositPanel() {
                   }}
                   className={cn(
                     "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",
-                    channel === t.id 
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                      : "text-muted-foreground hover:text-foreground"
+                    channel === t.id
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      : "text-muted-foreground hover:text-foreground",
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -421,48 +453,71 @@ export function DepositPanel() {
         </div>
 
         <div className="min-h-[300px] animate-in slide-in-from-left-4 duration-500">
-          {channel === 'mobile' && (
+          {channel === "mobile" && (
             <div className="space-y-6">
               <div className="space-y-3">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Select Carrier</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+                  Select Carrier
+                </Label>
                 <Select value={selectedCarrier} onValueChange={setSelectedCarrier}>
                   <SelectTrigger className="h-14 bg-background/40 border-border/60 rounded-2xl text-base">
                     <SelectValue placeholder="Select provider" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
-                    {CARRIERS.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {CARRIERS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {SAVED_NUMBERS.filter(n => n.carrier === selectedCarrier).map((item) => (
+                {SAVED_NUMBERS.filter((n) => n.carrier === selectedCarrier).map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => { setSelectedSourceId(item.id); setIsAddingNew(false); }}
+                    onClick={() => {
+                      setSelectedSourceId(item.id);
+                      setIsAddingNew(false);
+                    }}
                     className={cn(
                       "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all w-full",
                       selectedSourceId === item.id && !isAddingNew
                         ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
-                        : "border-border/60 bg-background/20 hover:border-border"
+                        : "border-border/60 bg-background/20 hover:border-border",
                     )}
                   >
-                    <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold", item.color)}>
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
+                        item.color,
+                      )}
+                    >
                       MP
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Primary Number</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                        Primary Number
+                      </div>
                       <div className="text-sm font-semibold truncate">{item.name}</div>
                     </div>
-                    {selectedSourceId === item.id && !isAddingNew && <Check className="w-5 h-5 text-primary" />}
+                    {selectedSourceId === item.id && !isAddingNew && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
                   </button>
                 ))}
-                
+
                 <button
-                  onClick={() => { setIsAddingNew(true); setSelectedSourceId(null); }}
+                  onClick={() => {
+                    setIsAddingNew(true);
+                    setSelectedSourceId(null);
+                  }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl border border-dashed text-left transition-all hover:bg-background/40",
-                    isAddingNew ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60"
+                    isAddingNew
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border/60",
                   )}
                 >
                   <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
@@ -478,10 +533,12 @@ export function DepositPanel() {
                     <div className="space-y-2">
                       <Label>Phone Number</Label>
                       <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">+254</span>
-                        <Input 
-                          placeholder="7XX XXX XXX" 
-                          className="pl-16 h-12 bg-background/60 rounded-xl" 
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                          +254
+                        </span>
+                        <Input
+                          placeholder="7XX XXX XXX"
+                          className="pl-16 h-12 bg-background/60 rounded-xl"
                           value={newPhoneNumber}
                           onChange={(e) => setNewPhoneNumber(e.target.value)}
                         />
@@ -493,13 +550,18 @@ export function DepositPanel() {
             </div>
           )}
 
-          {channel === 'bank' && (
+          {channel === "bank" && (
             <div className="space-y-6">
               <div className="space-y-3">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Search Banks</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+                  Search Banks
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input placeholder="Search major Kenyan banks..." className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-base" />
+                  <Input
+                    placeholder="Search major Kenyan banks..."
+                    className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-base"
+                  />
                 </div>
               </div>
 
@@ -507,32 +569,47 @@ export function DepositPanel() {
                 {SAVED_BANK_ACCOUNTS.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => { setSelectedSourceId(item.id); setIsAddingNew(false); }}
+                    onClick={() => {
+                      setSelectedSourceId(item.id);
+                      setIsAddingNew(false);
+                    }}
                     className={cn(
                       "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
                       selectedSourceId === item.id && !isAddingNew
                         ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
-                        : "border-border/60 bg-background/20 hover:border-border"
+                        : "border-border/60 bg-background/20 hover:border-border",
                     )}
                   >
-                    <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white text-xs font-bold", item.color)}>
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-xs font-bold",
+                        item.color,
+                      )}
+                    >
                       {item.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold truncate">{item.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{item.accountNumber}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {item.accountNumber}
+                      </div>
                     </div>
-                    {selectedSourceId === item.id && !isAddingNew && <Check className="w-5 h-5 text-primary" />}
+                    {selectedSourceId === item.id && !isAddingNew && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
                   </button>
                 ))}
 
                 <button
-                  onClick={() => { setSelectedSourceId('stripe-ach'); setIsAddingNew(false); }}
+                  onClick={() => {
+                    setSelectedSourceId("stripe-ach");
+                    setIsAddingNew(false);
+                  }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
-                    selectedSourceId === 'stripe-ach' && !isAddingNew
+                    selectedSourceId === "stripe-ach" && !isAddingNew
                       ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
-                      : "border-border/60 bg-background/20 hover:border-border"
+                      : "border-border/60 bg-background/20 hover:border-border",
                   )}
                 >
                   <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white text-xs font-bold">
@@ -540,16 +617,25 @@ export function DepositPanel() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold truncate">Stripe Bank Transfer</div>
-                    <div className="text-xs text-muted-foreground truncate">US ACH / International</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      US ACH / International
+                    </div>
                   </div>
-                  {selectedSourceId === 'stripe-ach' && !isAddingNew && <Check className="w-5 h-5 text-primary" />}
+                  {selectedSourceId === "stripe-ach" && !isAddingNew && (
+                    <Check className="w-5 h-5 text-primary" />
+                  )}
                 </button>
-                
+
                 <button
-                  onClick={() => { setIsAddingNew(true); setSelectedSourceId(null); }}
+                  onClick={() => {
+                    setIsAddingNew(true);
+                    setSelectedSourceId(null);
+                  }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl border border-dashed text-left transition-all hover:bg-background/40",
-                    isAddingNew ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border/60"
+                    isAddingNew
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border/60",
                   )}
                 >
                   <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
@@ -561,7 +647,7 @@ export function DepositPanel() {
             </div>
           )}
 
-          {channel === 'stripe' && (
+          {channel === "stripe" && (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-6 animate-in fade-in zoom-in duration-500">
               <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
                 <CreditCard className="w-10 h-10" />
@@ -569,7 +655,8 @@ export function DepositPanel() {
               <div className="space-y-2 max-w-sm">
                 <h3 className="text-xl font-medium">Credit or Debit Card</h3>
                 <p className="text-sm text-muted-foreground">
-                  You will be securely redirected to Stripe to complete your deposit using any major credit or debit card.
+                  You will be securely redirected to Stripe to complete your deposit using any major
+                  credit or debit card.
                 </p>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest bg-muted/50 px-4 py-2 rounded-full">
@@ -584,20 +671,24 @@ export function DepositPanel() {
       <div className="space-y-6">
         <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-8">
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Deposit Amount ({currency})</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+              Deposit Amount ({currency})
+            </Label>
             <div className="relative">
-              <span className={cn(
-                "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-light",
-                currency === 'USD' ? "text-2xl" : "text-lg"
-              )}>
+              <span
+                className={cn(
+                  "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-light",
+                  currency === "USD" ? "text-2xl" : "text-lg",
+                )}
+              >
                 {currencySymbol}
               </span>
-              <Input 
-                type="number" 
-                placeholder="0.00" 
+              <Input
+                type="number"
+                placeholder="0.00"
                 className={cn(
                   "h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20",
-                  currency === 'USD' ? "pl-10" : "pl-16"
+                  currency === "USD" ? "pl-10" : "pl-16",
                 )}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -611,44 +702,51 @@ export function DepositPanel() {
             </div>
             <div className="flex justify-between items-center text-xs text-emerald-500/70 uppercase tracking-widest font-bold">
               <span>Conversion</span>
-              <span className="bg-emerald-500/20 px-2 py-0.5 rounded">1 USD = {EXCHANGE_RATE} KES</span>
+              <span className="bg-emerald-500/20 px-2 py-0.5 rounded">
+                1 USD = {EXCHANGE_RATE} KES
+              </span>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">
-                {currency === 'USD' ? 'Equivalent KES' : 'Equivalent USD'}
+                {currency === "USD" ? "Equivalent KES" : "Equivalent USD"}
               </div>
               <div className="text-2xl font-mono text-emerald-500 font-bold">
-                {currency === 'USD' ? 'KES ' : '$'}
-                {(currency === 'USD' ? kesEquivalent : usdEquivalent).toLocaleString(undefined, { 
-                  minimumFractionDigits: 2, 
-                  maximumFractionDigits: 2 
+                {currency === "USD" ? "KES " : "$"}
+                {(currency === "USD" ? kesEquivalent : usdEquivalent).toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
                 })}
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Vault Transaction PIN</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+              Vault Transaction PIN
+            </Label>
             <div className="relative">
               <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-              <Input 
-                type="password" 
-                maxLength={6} 
-                placeholder="******" 
+              <Input
+                type="password"
+                maxLength={6}
+                placeholder="******"
                 className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-center text-2xl tracking-[0.6em] focus:ring-primary/20"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
               />
             </div>
-            <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">Authorize Secure Deposit</p>
+            <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">
+              Authorize Secure Deposit
+            </p>
           </div>
 
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl text-lg font-medium shadow-xl shadow-primary/20 group"
             onClick={handleDepositClick}
           >
-            Deposit Funds <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            Deposit Funds{" "}
+            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
 
@@ -657,30 +755,38 @@ export function DepositPanel() {
             <Info className="w-5 h-5" />
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Deposits are processed instantly via our secure payment rails. A small network fee may apply based on your carrier or bank.
+            Deposits are processed instantly via our secure payment rails. A small network fee may
+            apply based on your carrier or bank.
           </p>
         </div>
       </div>
 
       {/* SECTION 4: THE CONFIRMATION MODAL & SUCCESS FLOW */}
-      <Dialog open={status === 'confirming'} onOpenChange={(o) => !o && setStatus('idle')}>
+      <Dialog open={status === "confirming"} onOpenChange={(o) => !o && setStatus("idle")}>
         <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/60 backdrop-blur-xl border-white/10 shadow-2xl">
           <div className="p-8 space-y-8">
             <div className="w-16 h-16 rounded-3xl bg-primary/20 flex items-center justify-center text-primary mx-auto">
               <Zap className="w-8 h-8" />
             </div>
-            
+
             <div className="text-center space-y-3">
               <DialogTitle className="text-2xl font-light">Confirm Deposit</DialogTitle>
               <DialogDescription className="text-base">
-                Are you sure you want to deposit <span className="text-primary font-semibold font-mono">${parseFloat(amount || "0").toLocaleString()}</span> from your <span className="font-semibold">{getSourceName()}</span> account into your Vault Wallet?
+                Are you sure you want to deposit{" "}
+                <span className="text-primary font-semibold font-mono">
+                  ${parseFloat(amount || "0").toLocaleString()}
+                </span>{" "}
+                from your <span className="font-semibold">{getSourceName()}</span> account into your
+                Vault Wallet?
               </DialogDescription>
             </div>
 
             <div className="bg-white/5 rounded-2xl p-6 space-y-4 border border-white/5">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Exchange Amount</span>
-                <span className="font-mono text-emerald-500">KES {kesEquivalent.toLocaleString()}</span>
+                <span className="font-mono text-emerald-500">
+                  KES {kesEquivalent.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Platform Fee</span>
@@ -688,20 +794,29 @@ export function DepositPanel() {
               </div>
               <div className="border-t border-white/5 pt-4 flex justify-between items-center">
                 <span className="text-sm font-medium">Total Credit</span>
-                <span className="text-2xl font-light font-mono text-primary">${parseFloat(amount || "0").toLocaleString()}</span>
+                <span className="text-2xl font-light font-mono text-primary">
+                  ${parseFloat(amount || "0").toLocaleString()}
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="ghost" className="h-14 rounded-2xl hover:bg-white/5" onClick={() => setStatus('idle')}>
+              <Button
+                variant="ghost"
+                className="h-14 rounded-2xl hover:bg-white/5"
+                onClick={() => setStatus("idle")}
+              >
                 NO, CANCEL
               </Button>
-              <Button className="h-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={handleConfirmDeposit}>
+              <Button
+                className="h-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                onClick={handleConfirmDeposit}
+              >
                 YES, DEPOSIT
               </Button>
             </div>
           </div>
-          
+
           <div className="bg-primary/5 p-4 text-center border-t border-white/5">
             <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-2 tracking-widest uppercase">
               <LockIcon className="w-3 h-3" /> PCI-DSS Compliant Gateway
@@ -711,7 +826,7 @@ export function DepositPanel() {
       </Dialog>
 
       {/* Processing Overlay */}
-      {status === 'processing' && (
+      {status === "processing" && (
         <div className="fixed inset-0 bg-background/40 backdrop-blur-2xl z-[100] flex flex-col items-center justify-center animate-in fade-in duration-500">
           <div className="relative">
             <div className="w-32 h-32 rounded-full border-4 border-primary/10 animate-pulse" />
@@ -720,13 +835,17 @@ export function DepositPanel() {
               <Zap className="w-10 h-10 text-primary/50 animate-pulse" />
             </div>
           </div>
-          <h2 className="text-3xl font-light mt-12 tracking-tight text-foreground animate-pulse">Requesting funds securely...</h2>
-          <p className="text-base text-muted-foreground mt-3">Triggering secure STK Push / Automated Debit Request</p>
-          
+          <h2 className="text-3xl font-light mt-12 tracking-tight text-foreground animate-pulse">
+            Requesting funds securely...
+          </h2>
+          <p className="text-base text-muted-foreground mt-3">
+            Triggering secure STK Push / Automated Debit Request
+          </p>
+
           <div className="mt-16 flex gap-6">
-             <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-             <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-             <div className="w-3 h-3 rounded-full bg-primary animate-bounce" />
+            <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+            <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+            <div className="w-3 h-3 rounded-full bg-primary animate-bounce" />
           </div>
         </div>
       )}

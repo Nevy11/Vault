@@ -4,13 +4,15 @@ const CONSUMER_KEY = Deno.env.get("VITE_DARAJA_CONSUMER_KEY")!;
 const CONSUMER_SECRET = Deno.env.get("VITE_DARAJA_CONSUMER_SECRET")!;
 const ENV = Deno.env.get("VITE_DARAJA_ENV") || "sandbox";
 
-const DARAJA_AUTH_URL = ENV === "sandbox"
-  ? "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-  : "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
+const DARAJA_AUTH_URL =
+  ENV === "sandbox"
+    ? "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+    : "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
 
-const DARAJA_STK_PUSH_URL = ENV === "sandbox"
-  ? "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
-  : "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+const DARAJA_STK_PUSH_URL =
+  ENV === "sandbox"
+    ? "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+    : "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
 
 async function getAccessToken() {
   const consumerKey = Deno.env.get("VITE_DARAJA_CONSUMER_KEY");
@@ -59,11 +61,16 @@ serve(async (req) => {
 
     const accessToken = await getAccessToken();
     console.log("Access Token retrieved successfully");
-    
-    const timestamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14);
-    
+
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[^0-9]/g, "")
+      .slice(0, 14);
+
     const shortCode = Deno.env.get("DARAJA_SHORTCODE") || "174379";
-    const passKey = Deno.env.get("DARAJA_PASSKEY") || "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
+    const passKey =
+      Deno.env.get("DARAJA_PASSKEY") ||
+      "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
     const password = btoa(`${shortCode}${passKey}${timestamp}`);
 
     const payload = {
@@ -93,7 +100,7 @@ serve(async (req) => {
 
     const data = await response.json();
     console.log("Daraja STK Push Response:", JSON.stringify(data));
-    
+
     return new Response(JSON.stringify(data), {
       status: response.ok ? 200 : 400,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },

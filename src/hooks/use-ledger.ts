@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/api/supabase';
-import { useProfileSignal } from '@/lib/profile-signal';
+import { useEffect, useState } from "react";
+import { supabase } from "@/api/supabase";
+import { useProfileSignal } from "@/lib/profile-signal";
 
 export type LedgerEntry = {
   id: string;
@@ -30,13 +30,13 @@ export function useLedger(enabled = true, currency?: string) {
       }
 
       let query = supabase
-        .from('ledger_entries')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .from("ledger_entries")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
       if (currency) {
-        query = query.eq('currency', currency);
+        query = query.eq("currency", currency);
       }
 
       const { data, error: fetchError } = await query;
@@ -47,7 +47,7 @@ export function useLedger(enabled = true, currency?: string) {
         setEntries(data || []);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -63,16 +63,16 @@ export function useLedger(enabled = true, currency?: string) {
     const channel = supabase
       .channel(`ledger_changes_${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'ledger_entries',
-          filter: `user_id=eq.${userId}`
+          event: "*",
+          schema: "public",
+          table: "ledger_entries",
+          filter: `user_id=eq.${userId}`,
         },
         () => {
           fetchLedger();
-        }
+        },
       )
       .subscribe();
 

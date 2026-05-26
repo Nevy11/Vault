@@ -17,7 +17,7 @@ function loadCachedMessagesRaw(userId: string) {
     const raw = localStorage.getItem(cacheKeyForUser(userId));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || !parsed.ts || (Date.now() - parsed.ts) > CACHE_TTL) return null;
+    if (!parsed || !parsed.ts || Date.now() - parsed.ts > CACHE_TTL) return null;
     return parsed.messages || null;
   } catch (e) {
     console.error("Failed to load cached messages:", e);
@@ -57,19 +57,28 @@ function MarkdownContent({ text }: { text: string }) {
     .trim();
 
   const lines = cleanText.split("\n");
-  
+
   return (
     <div className="space-y-3 leading-relaxed">
       {lines.map((line, i) => {
         if (!line.trim()) return <div key={i} className="h-2" />;
-        
+
         if (line.startsWith("#")) {
           const level = line.match(/^#+/)?.[0].length || 1;
           const content = line.replace(/^#+\s*/, "");
-          const className = level === 1 ? "text-xl font-bold text-foreground" : level === 2 ? "text-lg font-bold text-foreground" : "text-base font-bold text-foreground";
-          return <h3 key={i} className={className}>{content}</h3>;
+          const className =
+            level === 1
+              ? "text-xl font-bold text-foreground"
+              : level === 2
+                ? "text-lg font-bold text-foreground"
+                : "text-base font-bold text-foreground";
+          return (
+            <h3 key={i} className={className}>
+              {content}
+            </h3>
+          );
         }
-        
+
         if (line.match(/^[\*\-\d\.]+\s/)) {
           const content = line.replace(/^[\*\-\d\.]+\s/, "");
           return (
@@ -80,7 +89,11 @@ function MarkdownContent({ text }: { text: string }) {
           );
         }
 
-        return <p key={i} className="text-foreground/90">{formatBold(line)}</p>;
+        return (
+          <p key={i} className="text-foreground/90">
+            {formatBold(line)}
+          </p>
+        );
       })}
     </div>
   );
@@ -88,8 +101,8 @@ function MarkdownContent({ text }: { text: string }) {
 
 function SuggestionChips({ text, onSelect }: { text: string; onSelect: (val: string) => void }) {
   // Extract patterns like [Option Name] from the text
-  const options = text.match(/\[(.*?)\]/g)?.map(opt => opt.slice(1, -1)) || [];
-  
+  const options = text.match(/\[(.*?)\]/g)?.map((opt) => opt.slice(1, -1)) || [];
+
   if (options.length === 0) return null;
 
   return (
@@ -119,13 +132,15 @@ function Bubble({
   const isAdvisor = sender === "advisor";
   return (
     <div className={`flex w-full ${isAdvisor ? "justify-start" : "justify-end"} mb-6`}>
-      <div className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isAdvisor ? "items-start" : "items-end"}`}>
+      <div
+        className={`flex flex-col max-w-[85%] sm:max-w-[75%] ${isAdvisor ? "items-start" : "items-end"}`}
+      >
         <div
           className={cn(
             "relative px-5 py-4 shadow-sm transition-all duration-300",
-            isAdvisor 
-              ? "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl rounded-tl-none text-foreground" 
-              : "bg-emerald-600 text-white rounded-2xl rounded-tr-none shadow-emerald-500/10"
+            isAdvisor
+              ? "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl rounded-tl-none text-foreground"
+              : "bg-emerald-600 text-white rounded-2xl rounded-tr-none shadow-emerald-500/10",
           )}
         >
           {isAdvisor && (
@@ -133,15 +148,21 @@ function Bubble({
               <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-600">
                 <Sparkles className="h-3.5 w-3.5" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Vault Advisor</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                Vault Advisor
+              </span>
             </div>
           )}
-          
+
           <div className="text-sm">
-            {isAdvisor ? <MarkdownContent text={text} /> : <p className="whitespace-pre-wrap leading-relaxed">{text}</p>}
+            {isAdvisor ? (
+              <MarkdownContent text={text} />
+            ) : (
+              <p className="whitespace-pre-wrap leading-relaxed">{text}</p>
+            )}
           </div>
         </div>
-        
+
         {isAdvisor && <SuggestionChips text={text} onSelect={onSuggestionSelect} />}
       </div>
     </div>
@@ -166,12 +187,13 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
 
   useEffect(() => {
     // Initialize Speech Recognition
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = 'en-US';
+      recognition.lang = "en-US";
 
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
@@ -182,7 +204,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       };
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
-        setDraft(prev => (prev ? `${prev} ${transcript}` : transcript));
+        setDraft((prev) => (prev ? `${prev} ${transcript}` : transcript));
       };
 
       recognitionRef.current = recognition;
@@ -222,10 +244,12 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       try {
         const cached = loadCachedMessagesRaw(userId);
         if (cached && cached.length > 0) {
-          setMessages(cached.map((m: any) => ({
-            sender: m.sender,
-            text: m.text,
-          })));
+          setMessages(
+            cached.map((m: any) => ({
+              sender: m.sender,
+              text: m.text,
+            })),
+          );
           setIsInitialLoading(false);
         }
 
@@ -240,20 +264,28 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
 
         if (history && history.length > 0) {
           const ordered = history.slice().reverse();
-          const mapped = ordered.map(m => ({
+          const mapped = ordered.map((m) => ({
             sender: m.sender,
             text: m.text,
           }));
-          
+
           setMessages(mapped);
-          saveCachedMessagesRaw(userId, mapped.map(({ sender, text }) => ({ sender, text })));
+          saveCachedMessagesRaw(
+            userId,
+            mapped.map(({ sender, text }) => ({ sender, text })),
+          );
         } else if (!cached || cached.length === 0) {
-          const greetingMsg = [{ 
-            sender: "advisor", 
-            text: defaultGreeting 
-          }];
+          const greetingMsg = [
+            {
+              sender: "advisor",
+              text: defaultGreeting,
+            },
+          ];
           setMessages(greetingMsg);
-          saveCachedMessagesRaw(userId, greetingMsg.map(({ sender, text }) => ({ sender, text })));
+          saveCachedMessagesRaw(
+            userId,
+            greetingMsg.map(({ sender, text }) => ({ sender, text })),
+          );
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -268,7 +300,10 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
 
   useEffect(() => {
     if (!userId) return;
-    saveCachedMessagesRaw(userId, messages.map(m => ({ sender: m.sender, text: m.text })));
+    saveCachedMessagesRaw(
+      userId,
+      messages.map((m) => ({ sender: m.sender, text: m.text })),
+    );
   }, [messages, userId]);
 
   useEffect(() => {
@@ -304,13 +339,13 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       await supabase.from("ai_chat_messages").insert({
         user_id: userId,
         sender: "user",
-        text: trimmed
+        text: trimmed,
       });
 
       const { data, error } = await supabase.functions.invoke("gemini-chat", {
         body: {
-          messages: messages.map(m => ({ sender: m.sender, text: m.text })),
-          userInput: trimmed
+          messages: messages.map((m) => ({ sender: m.sender, text: m.text })),
+          userInput: trimmed,
         },
       });
 
@@ -325,7 +360,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       await supabase.from("ai_chat_messages").insert({
         user_id: userId,
         sender: "advisor",
-        text: aiText
+        text: aiText,
       });
 
       setMessages((current) => [...current, newAiMessage]);
@@ -348,7 +383,9 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       <div className="flex h-full items-center justify-center py-10">
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Consulting Vault AI...</p>
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">
+            Consulting Vault AI...
+          </p>
         </div>
       </div>
     );
@@ -381,14 +418,18 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
               }}
             >
               {isSpeechEnabled ? (
-                <Volume2 className={`h-5 w-5 ${isSpeaking ? "text-emerald-500 animate-pulse" : "text-zinc-400"}`} />
+                <Volume2
+                  className={`h-5 w-5 ${isSpeaking ? "text-emerald-500 animate-pulse" : "text-zinc-400"}`}
+                />
               ) : (
                 <VolumeX className="h-5 w-5 text-zinc-300 dark:text-zinc-700" />
               )}
             </button>
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
               <Shield className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-tighter">Secure</span>
+              <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-tighter">
+                Secure
+              </span>
             </div>
           </div>
         </div>
@@ -443,7 +484,9 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
               disabled={isLoading}
               className={cn(
                 "rounded-full h-10 w-10 transition-all",
-                isListening ? "bg-red-500/10 text-red-500 animate-pulse" : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                isListening
+                  ? "bg-red-500/10 text-red-500 animate-pulse"
+                  : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800",
               )}
             >
               {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}

@@ -223,7 +223,7 @@ function SettingsPage() {
   const [devices, setDevices] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // New UI states
   const [showViewModal, setShowViewModal] = useState(false);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -355,7 +355,7 @@ function SettingsPage() {
     try {
       setShowPhotoOptions(false);
       setShowCamera(true);
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
@@ -369,7 +369,7 @@ function SettingsPage() {
   function stopCamera() {
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
     }
     setShowCamera(false);
   }
@@ -380,16 +380,20 @@ function SettingsPage() {
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       ctx?.drawImage(video, 0, 0);
-      
-      canvas.toBlob(async (blob) => {
-        if (blob) {
-          const file = new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' });
-          await handleImageUpload(file);
-          stopCamera();
-        }
-      }, 'image/jpeg', 0.8);
+
+      canvas.toBlob(
+        async (blob) => {
+          if (blob) {
+            const file = new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" });
+            await handleImageUpload(file);
+            stopCamera();
+          }
+        },
+        "image/jpeg",
+        0.8,
+      );
     }
   }
 
@@ -397,22 +401,22 @@ function SettingsPage() {
     try {
       setUploading(true);
       const fileExt = file.name.split(".").pop();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
       const filePath = `${user.id}-${Math.random()}.${fileExt}`;
 
       // Upload image to Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
       // Update profiles table
       const { error: updateError } = await supabase
@@ -561,7 +565,9 @@ function SettingsPage() {
                   <h3 className="text-lg font-medium">
                     {profile?.first_name} {profile?.last_name}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">Full Ledger-Verified Identity</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Full Ledger-Verified Identity
+                  </p>
                 </div>
               </DialogContent>
             </Dialog>
@@ -570,7 +576,9 @@ function SettingsPage() {
               <DialogContent className="sm:max-w-sm bg-card/95 backdrop-blur-xl border-border/40">
                 <DialogHeader>
                   <DialogTitle>Update Profile Photo</DialogTitle>
-                  <DialogDescription>Choose how you'd like to update your avatar.</DialogDescription>
+                  <DialogDescription>
+                    Choose how you'd like to update your avatar.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 gap-3 py-4">
                   <Button
@@ -583,7 +591,9 @@ function SettingsPage() {
                     </div>
                     <div className="text-left">
                       <div className="text-sm font-medium">Take Photo</div>
-                      <div className="text-[10px] text-muted-foreground">Use your device camera</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Use your device camera
+                      </div>
                     </div>
                   </Button>
                   <Button
@@ -596,7 +606,9 @@ function SettingsPage() {
                     </div>
                     <div className="text-left">
                       <div className="text-sm font-medium">Browse Gallery</div>
-                      <div className="text-[10px] text-muted-foreground">Select from your files</div>
+                      <div className="text-[10px] text-muted-foreground">
+                        Select from your files
+                      </div>
                     </div>
                   </Button>
                 </div>

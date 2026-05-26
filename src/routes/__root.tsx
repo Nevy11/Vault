@@ -53,9 +53,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           This page didn't load
         </h1>
         <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-left overflow-auto max-h-48">
-          <p className="text-sm font-mono text-destructive">
-            {error.message || "Unknown error"}
-          </p>
+          <p className="text-sm font-mono text-destructive">{error.message || "Unknown error"}</p>
           {error.stack && (
             <pre className="mt-2 text-[10px] text-muted-foreground opacity-50 whitespace-pre-wrap">
               {error.stack}
@@ -158,21 +156,22 @@ function RootComponent() {
 
     async function fetchProfile(userId: string) {
       if (!userId) return;
-      
+
       try {
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", userId)
           .maybeSingle();
-        
+
         if (error) throw error;
-        
+
         if (data) {
           const current = profileSignal.get();
           // Deep compare relevant fields to prevent unnecessary re-renders
-          const hasChanged = !current || 
-            current.id !== data.id || 
+          const hasChanged =
+            !current ||
+            current.id !== data.id ||
             current.kyc_status !== data.kyc_status ||
             current.profile_photo_url !== data.profile_photo_url ||
             current.first_name !== data.first_name ||
@@ -199,11 +198,13 @@ function RootComponent() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state change:", event);
       if (session?.user) {
         fetchProfile(session.user.id);
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === "SIGNED_OUT") {
         setProfile(null);
       }
     });

@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/api/supabase';
-import { useProfileSignal } from '@/lib/profile-signal';
+import { useEffect, useState } from "react";
+import { supabase } from "@/api/supabase";
+import { useProfileSignal } from "@/lib/profile-signal";
 
 export type Transaction = {
   id: string;
   sender_id: string;
   receiver_id: string | null;
-  type: 'transfer' | 'deposit' | 'withdrawal';
-  method: 'vault' | 'mpesa' | 'bank';
+  type: "transfer" | "deposit" | "withdrawal";
+  method: "vault" | "mpesa" | "bank";
   amount: number;
-  status: 'pending' | 'completed' | 'failed';
+  status: "pending" | "completed" | "failed";
   description: string;
   created_at: string;
   balance_after: number | null;
@@ -38,7 +38,9 @@ export function useTransactions(enabled = true) {
       return profile.id;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     return user?.id ?? null;
   };
 
@@ -58,12 +60,14 @@ export function useTransactions(enabled = true) {
         { data: historyData, error: historyError }
       ] = await Promise.all([
         supabase
-          .from('transactions')
-          .select(`
+          .from("transactions")
+          .select(
+            `
             *,
             sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
             receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
-          `)
+          `,
+          )
           .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`),
         supabase
           .from('ledger_entries')
@@ -130,7 +134,7 @@ export function useTransactions(enabled = true) {
 
       // merge and sort newest -> oldest
       const merged = [...mappedTransactions, ...mappedLedger].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
       // Try to fill missing balance_after values by deriving a running balance
@@ -189,7 +193,7 @@ export function useTransactions(enabled = true) {
         setTransactions(merged as any);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -208,19 +212,19 @@ export function useTransactions(enabled = true) {
     const channel = supabase
       .channel(`transaction_changes_${userId}`)
       .on(
-        'postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'transactions'
-        }, 
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+        },
         (payload) => {
           // Manually check if the updated transaction involves the current user
           const record = payload.new || payload.old;
           if (record && (record.sender_id === userId || record.receiver_id === userId)) {
             fetchTransactions();
           }
-        }
+        },
       )
       .subscribe();
 
