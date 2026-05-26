@@ -310,16 +310,29 @@ function DashboardPage() {
   };
 
   const frequentRecipients = useMemo(() => {
-    return transactions
-      .filter((tx) => tx.type === "transfer" && tx.receiver)
-      .slice(0, 4)
-      .map((tx) => ({
-        id: tx.id,
-        initial: tx.receiver?.first_name?.[0] ?? "V",
-        color: "bg-emerald-500",
-        name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? "User"}`.trim(),
-      }));
-  }, [transactions]);
+    const seenIds = new Set();
+    const uniqueRecipients: { id: string; initial: string; color: string; name: string }[] = [];
+    const currentUserId = (profile as any)?.id;
+
+    if (!currentUserId) return [];
+
+    for (const tx of transactions) {
+      // Only care about transfers where the current user is the SENDER
+      if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver && tx.receiver_id) {
+        if (!seenIds.has(tx.receiver_id)) {
+          seenIds.add(tx.receiver_id);
+          uniqueRecipients.push({
+            id: tx.receiver_id,
+            initial: tx.receiver?.first_name?.[0] ?? "V",
+            color: "bg-emerald-500",
+            name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
+          });
+        }
+      }
+      if (uniqueRecipients.length >= 4) break;
+    }
+    return uniqueRecipients;
+  }, [transactions, profile]);
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
