@@ -149,6 +149,9 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
 
     const fetchData = async () => {
       try {
+        console.log("Fetching chat history for user:", userId);
+        
+        // 1. Try loading from cache first for instant feedback
         const cached = loadCachedMessagesRaw(userId);
         if (cached && cached.length > 0) {
           setMessages(cached.map((m: any) => ({
@@ -159,6 +162,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
           setIsInitialLoading(false);
         }
 
+        // 2. Fetch from Supabase
         const { data: history, error: historyError } = await supabase
           .from("ai_chat_messages")
           .select("*")
@@ -166,25 +170,37 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
           .order("created_at", { ascending: false })
           .limit(200);
 
-        if (historyError) throw historyError;
+        if (historyError) {
+          console.error("Supabase fetch error:", historyError);
+          throw historyError;
+        }
 
-        const ordered = (history || []).slice().reverse();
-        if (ordered && ordered.length > 0) {
+        console.log(`Found ${history?.length || 0} messages in database.`);
+
+        if (history && history.length > 0) {
+          const ordered = history.slice().reverse();
           const mapped = ordered.map(m => ({
             sender: m.sender,
             text: m.text,
             avatar: m.sender === "advisor" ? <Sparkles className="h-4 w-4" /> : undefined,
           }));
+          
           setMessages(mapped);
           saveCachedMessagesRaw(userId, mapped.map(({ sender, text }) => ({ sender, text })));
         } else if (!cached || cached.length === 0) {
-          const greetingMsg = [{ sender: "advisor", avatar: <Sparkles className="h-4 w-4" />, text: defaultGreeting }];
+          // 3. If no history in DB AND no cache, show greeting
+          console.log("No history found. Initializing with greeting.");
+          const greetingMsg = [{ 
+            sender: "advisor", 
+            avatar: <Sparkles className="h-4 w-4" />, 
+            text: defaultGreeting 
+          }];
           setMessages(greetingMsg);
           saveCachedMessagesRaw(userId, greetingMsg.map(({ sender, text }) => ({ sender, text })));
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Unable to load advisor data.");
+        toast.error("Unable to load advisor history.");
       } finally {
         setIsInitialLoading(false);
       }
