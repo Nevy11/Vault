@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/api/supabase";
 import {
   PiggyBank,
   Target,
@@ -98,26 +99,40 @@ function SavingsPage() {
 
   const today = format(new Date(), "yyyy-MM-dd");
 
-  // Mock Savings Data
-  const savingsGoal = {
-    title: "New MacBook Pro M4",
-    target: 250000,
-    current: 175000,
-    deadline: "2026-12-25",
-    lockUntil: "2026-12-25",
-  };
+  const [savingsGoal, setSavingsGoal] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const progress = (savingsGoal.current / savingsGoal.target) * 100;
-  const rewardAmount = savingsGoal.target * 0.02;
+  useEffect(() => {
+    const fetchGoal = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-  const chartData = [
-    { name: "Saved", value: savingsGoal.current, color: "var(--primary)" },
+      const { data, error } = await supabase
+        .from("savings_goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
+
+      console.log("Fetched savings goal data:", data);
+      if (data) setSavingsGoal(data);
+      else console.log("No active savings goal found for user");
+      setLoading(false);
+    };
+    fetchGoal();
+  }, []);
+
+  const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
+  const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
+
+  const chartData = savingsGoal ? [
+    { name: "Saved", value: savingsGoal.current_amount, color: "var(--primary)" },
     {
       name: "Remaining",
-      value: savingsGoal.target - savingsGoal.current,
+      value: savingsGoal.target_amount - savingsGoal.current_amount,
       color: "hsl(var(--muted))",
     },
-  ];
+  ] : [];
 
   const barData = [
     { month: "Jan", amount: 12000 },
@@ -232,8 +247,9 @@ function SavingsPage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-2xl font-black text-slate-950 dark:text-white">
-                        {savingsGoal.title}
+                        {savingsGoal?.title || "Savings Goal"}
                       </CardTitle>
+
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -249,7 +265,7 @@ function SavingsPage() {
                       </div>
                     </div>
                     <CardDescription className="font-bold text-slate-700 dark:text-slate-300">
-                      Target: KES {savingsGoal.target.toLocaleString()}
+                      Target: KES {savingsGoal?.target_amount?.toLocaleString() || "0"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -275,7 +291,7 @@ function SavingsPage() {
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                           <span className="text-3xl font-black text-slate-950 dark:text-white">
-                            KES {savingsGoal.current.toLocaleString()}
+                            KES {savingsGoal?.current_amount?.toLocaleString() || "0"}
                           </span>
                           <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] mt-1 font-black">
                             Current Saved
@@ -303,7 +319,8 @@ function SavingsPage() {
                           <p className="text-xs text-slate-900 dark:text-slate-100 font-bold leading-relaxed">
                             Your funds are locked until{" "}
                             <span className="text-primary font-black">
-                              {format(new Date(savingsGoal.lockUntil), "PPP")}
+                              {savingsGoal?.lockUntil ? format(new Date(savingsGoal.lockUntil), "PPP") : "N/A"}
+
                             </span>
                             . Achieve your goal to unlock the 2% reward!
                           </p>
@@ -637,7 +654,7 @@ function SavingsPage() {
               className="focus-visible:outline-none animate-in zoom-in-95 duration-500"
             >
               <div className="max-w-4xl mx-auto text-center py-12">
-                {savingsGoal.current < savingsGoal.target ? (
+                {savingsGoal?.current_amount < savingsGoal?.target_amount ? (
                   <>
                     <div className="relative inline-block mb-8">
                       <div className="absolute inset-0 bg-primary blur-3xl opacity-20 animate-pulse" />
@@ -652,7 +669,7 @@ function SavingsPage() {
                     <p className="text-xl text-slate-900 dark:text-slate-100 font-bold mb-12 max-w-2xl mx-auto leading-relaxed">
                       You are KES{" "}
                       <span className="text-primary">
-                        {(savingsGoal.target - savingsGoal.current).toLocaleString()}
+                        {(savingsGoal.target_amount - savingsGoal.current_amount).toLocaleString()}
                       </span>{" "}
                       away from your goal. Complete it to receive the rewards.
                     </p>
@@ -663,7 +680,7 @@ function SavingsPage() {
                           Left Amount
                         </h4>
                         <p className="text-4xl font-black text-slate-950 dark:text-white uppercase">
-                          KES {(savingsGoal.target - savingsGoal.current).toLocaleString()}
+                          KES {(savingsGoal.target_amount - savingsGoal.current_amount).toLocaleString()}
                         </p>
                       </Card>
                       <Card className="rounded-[2.5rem] border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-xl p-8 shadow-xl">
@@ -708,10 +725,9 @@ function SavingsPage() {
                     </h2>
                     <p className="text-xl text-slate-900 dark:text-slate-100 font-bold mb-12 max-w-2xl mx-auto leading-relaxed">
                       Congratulations! You have successfully completed your savings goal:{" "}
-                      <span className="text-emerald-600">"{savingsGoal.title}"</span>. Your
+                      <span className="text-emerald-600">"{savingsGoal?.title}"</span>. Your
                       discipline has earned you a special reward.
                     </p>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                       <Card className="rounded-[2.5rem] border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-xl p-8 shadow-xl relative overflow-hidden group">
                         <Sparkles className="w-10 h-10 text-emerald-600 mb-4 mx-auto relative z-10" />
@@ -728,7 +744,7 @@ function SavingsPage() {
                           Total Value
                         </h4>
                         <p className="text-4xl font-black text-slate-950 dark:text-white">
-                          KES {(savingsGoal.target + rewardAmount).toLocaleString()}
+                          KES {((savingsGoal?.target_amount || 0) + rewardAmount).toLocaleString()}
                         </p>
                       </Card>
                     </div>
