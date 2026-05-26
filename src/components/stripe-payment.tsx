@@ -54,19 +54,8 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("User session not found");
 
-        // 1. Record the transaction in the UI table
-        const { error: txError } = await supabase.from("transactions").insert({
-          receiver_id: user.id,
-          type: "deposit",
-          method: "bank",
-          amount: amount,
-          status: "completed",
-          description: `Stripe Deposit: ${paymentIntent.id}`,
-        });
-
-        if (txError) console.error("Error recording transaction:", txError);
-
-        // 2. Update the actual ledger and wallet balance
+        // Update the actual ledger and wallet balance
+        // The RPC now automatically updates or inserts the transaction record for UI visibility
         const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
           p_user_id: user.id,
           p_amount: amount,
@@ -74,7 +63,8 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
           p_type: "deposit",
           p_reference: paymentIntent.id,
           p_description: `Stripe Deposit: ${paymentIntent.id}`,
-          p_status: "completed"
+          p_status: "completed",
+          p_metadata: { payment_method: 'bank', stripe_payment_intent_id: paymentIntent.id }
         });
 
         if (ledgerError) {

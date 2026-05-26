@@ -181,32 +181,32 @@ export function WithdrawPanel() {
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error("User not found");
 
-      // Update the wallet balance
-      const newBalance = balance !== null ? Math.max(0, balance - totalDeduction) : 0;
-      
-      // Record transaction
-      const { error: txError } = await supabase.from('transactions').insert({
-        sender_id: userId,
-        type: 'withdrawal',
-        method: channel === 'bank' ? 'bank' : 'mpesa',
-        amount: parseFloat(amount),
-        status: 'completed',
-        description: `Withdrawal to ${getRecipientName()}`,
-        balance_after: newBalance
+      // Use the secure RPC function for atomic withdrawal
+      const { data, error: rpcError } = await supabase.rpc('process_secure_withdrawal', {
+        p_user_id: userId,
+        p_amount: totalDeduction, // Deduct principal + fee
+        p_method: channel === 'bank' ? 'bank' : 'mpesa',
+        p_description: `Withdrawal to ${getRecipientName()} (Principal: ${currency} ${parseFloat(amount).toLocaleString()}, Fee: ${currency} ${fee.toLocaleString()})`
       });
 
-      if (txError) throw txError;
+      if (rpcError) throw rpcError;
+      
+      const result = Array.isArray(data) ? data[0] : data;
 
-      if (balance !== null) {
-        await updateBalance(newBalance);
+      if (!result?.success) {
+        throw new Error(result?.message || "Withdrawal failed");
+      }
+
+      if (result.new_balance !== undefined) {
+        await updateBalance(result.new_balance);
       }
       
-      setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setRefCode(result.reference || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       setStatus('success');
       toast.success("Withdrawal successful!");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Withdrawal error:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
+      toast.error(err.message || "Failed to process withdrawal");
       setStatus('idle');
     }
   };

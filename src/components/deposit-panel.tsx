@@ -284,6 +284,7 @@ export function DepositPanel() {
       const depositAmount = tx?.amount || parseFloat(amount);
 
       // 2. Update the actual ledger and wallet balance
+      // The RPC now automatically updates the transaction status and logs it to public.transactions
       const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
         p_user_id: userId,
         p_amount: depositAmount,
@@ -297,24 +298,8 @@ export function DepositPanel() {
 
       if (ledgerError) throw ledgerError;
 
-      // 3. Fetch the new balance to update the transaction record for UI consistency
-      const { data: wallet } = await supabase
-        .from("wallets")
-        .select("balance")
-        .eq("user_id", userId)
-        .single();
-
-      // 4. Update the pending transaction to completed
-      const { error: txUpdateError } = await supabase
-        .from("transactions")
-        .update({ 
-          status: "completed",
-          balance_after: wallet?.balance
-        })
-        .eq("description", refCode)
-        .eq("status", "pending");
-
-      if (txUpdateError) console.error("Error updating transaction status:", txUpdateError);
+      // 3. Update local state balance (Realtime will handle the main sync, but this is for immediate feedback)
+      // We don't need a manual transactions update here anymore as create_ledger_entry handles it
 
       setStatus('success');
       toast.success("Deposit confirmed and balance updated!");
