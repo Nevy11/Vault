@@ -184,18 +184,17 @@ export function WithdrawPanel() {
       // Update the wallet balance
       const newBalance = balance !== null ? Math.max(0, balance - totalDeduction) : 0;
       
-      // Record transaction
-      const { error: txError } = await supabase.from('transactions').insert({
-        sender_id: userId,
-        type: 'withdrawal',
-        method: 'vault',
-        amount: parseFloat(amount),
-        status: 'completed',
-        description: `Withdrawal to ${getRecipientName()}`,
-        balance_after: newBalance
+      // Generate transaction ID
+      const txId = `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+
+      // Call the RPC function
+      const { data, error: txError } = await supabase.rpc('process_withdrawal', {
+        p_user_id: userId,
+        p_amount: parseFloat(amount),
+        p_tx_id: txId
       });
 
-      if (rpcError) throw rpcError;
+      if (txError) throw txError;
       
       const result = Array.isArray(data) ? data[0] : data;
 
@@ -207,7 +206,7 @@ export function WithdrawPanel() {
         await updateBalance(result.new_balance);
       }
       
-      setRefCode(result.reference || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+      setRefCode(txId);
       setStatus('success');
       toast.success("Withdrawal successful!");
     } catch (err: any) {
