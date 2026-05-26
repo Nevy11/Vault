@@ -404,19 +404,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">
         <nav>
-          <ul className="flex justify-around items-center">
+          <ul className="grid grid-cols-5 items-center">
             {mobileNavItems.map(({ label, to, icon: Icon, isActive }) => {
               const active = isActive(currentPath);
               const isTransact = label === "Transact";
               
               return (
-                <li key={to} className={isTransact ? "relative -top-4" : ""}>
+                <li key={to} className={`flex justify-center ${isTransact ? "relative -top-4" : ""}`}>
                   <Link
                     to={to}
                     className={`flex flex-col items-center transition-all duration-300 ${
                       isTransact
                         ? "bg-primary text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-primary/40 h-[52px] w-[52px] justify-center rounded-full scale-110 p-0"
-                        : `gap-1 px-3 py-1 rounded-lg ${
+                        : `gap-1 px-1 py-1 rounded-lg w-full max-w-[80px] ${
                             active
                               ? "text-primary"
                               : "text-muted-foreground hover:text-foreground"
@@ -426,7 +426,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <Icon className={`${isTransact ? "h-6 w-6 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
                       active && !isTransact ? "text-primary" : ""
                     }`} />
-                    <span className={`text-[10px] font-medium ${
+                    <span className={`text-[10px] font-medium text-center truncate w-full ${
                       isTransact ? "hidden" : active ? "text-primary" : ""
                     }`}>{label}</span>
                   </Link>
