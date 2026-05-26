@@ -84,11 +84,11 @@ function FinanceHubPage() {
                 </div>
 
                 <div className="mt-8">
-                  <button className="w-full rounded-2xl h-14 text-base font-black shadow-2xl shadow-primary/30 bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <Link to="/savings" search={{ tab: "setup" }} className="flex items-center gap-2">
-                      Setup Savings Goal <ArrowRight className="w-5 h-5" />
+                  <Button size="lg" asChild className="w-full rounded-2xl h-14 text-base font-black shadow-2xl shadow-primary/30 bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95">
+                    <Link to="/savings" search={{ tab: "setup" }}>
+                      Setup Savings Goal <ArrowRight className="ml-2 w-5 h-5" />
                     </Link>
-                  </button>
+                  </Button>
                 </div>
               </div>
               
@@ -130,8 +130,8 @@ function FinanceHubPage() {
                   
                   <ul className="space-y-3">
                     {[
-                      { icon: ShieldCheck, text: "Age-Based Eligibility (&#62; 6 Years)" },
-                      { icon: Wallet, text: "Min. Avg. Deposits (&#62; KES 2,000)" },
+                      { icon: ShieldCheck, text: "Age-Based Eligibility (> 6 Years)" },
+                      { icon: Wallet, text: "Min. Avg. Deposits (> KES 2,000)" },
                       { icon: TrendingUp, text: "Dynamic Credit Limit Growth" },
                       { icon: History, text: "Seamless Repayment Tracker" },
                     ].map((item, i) => (
@@ -146,11 +146,11 @@ function FinanceHubPage() {
                 </div>
 
                 <div className="mt-8">
-                  <button className="w-full rounded-2xl h-14 text-base font-black shadow-2xl shadow-emerald-500/30 bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <Link to="/loans" className="flex items-center gap-2">
-                      Request Instant Loan <ArrowRight className="w-5 h-5" />
+                  <Button size="lg" asChild className="w-full rounded-2xl h-14 text-base font-black shadow-2xl shadow-emerald-500/30 bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-95">
+                    <Link to="/loans">
+                      Request Instant Loan <ArrowRight className="ml-2 w-5 h-5" />
                     </Link>
-                  </button>
+                  </Button>
                 </div>
               </div>
               

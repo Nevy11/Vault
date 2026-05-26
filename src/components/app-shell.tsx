@@ -9,7 +9,12 @@ import {
   LogOut, 
   MessageCircle, 
   PiggyBank, 
-  Landmark 
+  Landmark,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  Zap
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -133,6 +138,91 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
+              
+              {/* Notifications Hub */}
+              {mounted && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="relative p-2 rounded-full hover:bg-accent transition-colors focus:outline-none group">
+                      <Bell className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary border-2 border-background rounded-full animate-pulse" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl overflow-hidden border-border/40 shadow-2xl animate-in zoom-in-95 duration-200">
+                    <div className="bg-primary p-4 text-primary-foreground">
+                      <h3 className="font-bold text-lg">Weekly Reminders</h3>
+                      <p className="text-[10px] opacity-80 uppercase tracking-widest font-black">7 Days Since Last Alert</p>
+                    </div>
+                    <div className="max-h-[400px] overflow-y-auto">
+                      {/* Loan Reminder */}
+                      <div className="p-4 focus:bg-accent border-b border-border/10">
+                        <div className="flex gap-3 items-start">
+                          <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center text-destructive shrink-0 shadow-sm border border-destructive/10">
+                            <AlertCircle className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-destructive tracking-wider">Loan Repayment</p>
+                            <p className="text-sm font-black text-slate-950 dark:text-white">KES 8,500 Outstanding</p>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed font-bold">
+                              Your repayment is due in <span className="text-foreground font-black">12 days</span>. 
+                              Pay fully today to boost your future limit!
+                            </p>
+                            <div className="pt-2">
+                              <Button size="sm" variant="outline" className="h-7 text-[10px] font-black rounded-lg border-destructive/20 text-destructive hover:bg-destructive/5 active:scale-95 transition-all" asChild>
+                                <Link to="/loans">Settle Now</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Savings Reminder */}
+                      <div className="p-4 focus:bg-accent border-b border-border/10">
+                        <div className="flex gap-3 items-start">
+                          <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 shadow-sm border border-emerald-500/10">
+                            <TrendingUp className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-emerald-600 tracking-wider">Savings Goal</p>
+                            <p className="text-sm font-black text-slate-950 dark:text-white">KES 175,000 Saved</p>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed font-bold">
+                              You've reached <span className="text-emerald-600 font-black">70%</span> of your target. 
+                              Only <span className="text-primary font-black">KES 75K</span> left to unlock your 2% reward!
+                            </p>
+                            <div className="pt-2">
+                              <Button size="sm" variant="outline" className="h-7 text-[10px] font-black rounded-lg border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 active:scale-95 transition-all" asChild>
+                                <Link to="/savings">View Progress</Link>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Automated Deduction Alert */}
+                      <div className="p-4 focus:bg-accent border-b border-border/10 bg-primary/5">
+                        <div className="flex gap-3 items-start">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-sm border border-primary/10">
+                            <Zap className="w-4 h-4" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black uppercase text-primary tracking-wider">Automation Engine</p>
+                            <p className="text-sm font-black text-slate-950 dark:text-white">KES 2,500 Deducted</p>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed font-bold">
+                              Your <span className="text-primary font-black">weekly</span> specification was processed successfully via <span className="font-black text-slate-950 dark:text-white">M-Pesa</span>. 
+                              Wealth building in progress!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-muted/20 text-center">
+                        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">End of weekly updates</p>
+                      </div>
+                    </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
               {mounted && profile && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
