@@ -263,27 +263,39 @@ function SavingsPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-3">
+                      <Label htmlFor="start" className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Start Date</Label>
+                      <div className="relative">
+                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input id="start" type="date" defaultValue={format(new Date(), "yyyy-MM-dd")} className="h-14 pl-12 rounded-2xl bg-muted/20 border-border/40 focus:bg-muted/40 transition-all" required />
+                      </div>
+                    </div>
+                    <div className="space-y-3">
                       <Label htmlFor="deadline" className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Deadline Date</Label>
                       <div className="relative">
                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input id="deadline" type="date" className="h-14 pl-12 rounded-2xl bg-muted/20 border-border/40 focus:bg-muted/40 transition-all" required />
                       </div>
                     </div>
-                    <div className="space-y-3">
-                      <Label htmlFor="source" className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Funding Source</Label>
-                      <Select>
-                        <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-border/40">
-                          <SelectValue placeholder="Select Account" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-2xl">
-                          <SelectItem value="mpesa">Mobile: M-Pesa</SelectItem>
-                          <SelectItem value="airtel">Mobile: Airtel Money</SelectItem>
-                          <SelectItem value="kcb">Bank: KCB Group</SelectItem>
-                          <SelectItem value="equity">Bank: Equity Bank</SelectItem>
-                          <SelectItem value="ncba">Bank: NCBA</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label htmlFor="source" className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Funding Source</Label>
+                    <Select>
+                      <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-border/40">
+                        <SelectValue placeholder="Select Funding Account" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-2xl max-h-[300px] overflow-y-auto">
+                        <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mobile Money</div>
+                        <SelectItem value="mpesa">M-Pesa (Safaricom)</SelectItem>
+                        <SelectItem value="airtel">Airtel Money</SelectItem>
+                        <div className="px-3 py-2 mt-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t border-border/20">Banks</div>
+                        <SelectItem value="kcb">KCB Group</SelectItem>
+                        <SelectItem value="equity">Equity Bank</SelectItem>
+                        <SelectItem value="ncba">NCBA Bank</SelectItem>
+                        <SelectItem value="abs">Absa Kenya</SelectItem>
+                        <SelectItem value="stanchart">Standard Chartered</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="p-6 rounded-[2rem] bg-primary/5 border border-primary/10 space-y-6">

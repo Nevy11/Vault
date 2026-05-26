@@ -60,9 +60,15 @@ function LoansPage() {
       return;
     }
     toast.success("Loan Approved!", {
-      description: `KES ${requestedAmountNum.toLocaleString()} has been credited to your ledger.`,
+      description: `KES ${requestedAmountNum.toLocaleString()} has been credited to your ledger. Disbursement Date: ${format(new Date(), 'PPP')}`,
     });
     setActiveTab("tracker");
+  };
+
+  const handleFullRepayment = () => {
+    toast.success("Loan Fully Repaid!", {
+      description: "Congratulations! Your credit limit has been increased by 15% due to your excellent repayment record.",
+    });
   };
 
   return (
@@ -148,10 +154,10 @@ function LoansPage() {
                         </Select>
                       </div>
                       <div className="space-y-3">
-                        <Label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Repayment Date</Label>
+                        <Label className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Borrow Date</Label>
                         <div className="h-14 flex items-center px-4 rounded-2xl bg-muted/10 border border-dashed border-border/40 text-muted-foreground font-medium">
                           <Calendar className="w-4 h-4 mr-2" />
-                          {format(addMonths(new Date(), parseInt(period)), "PPP")}
+                          {format(new Date(), "PPP")}
                         </div>
                       </div>
                     </div>
@@ -277,8 +283,8 @@ function LoansPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="p-8 border-t border-border/20 flex gap-4">
-                  <Button className="flex-1 rounded-xl h-12 font-bold">Repay Amount</Button>
-                  <Button variant="outline" className="flex-1 rounded-xl h-12 border-border/40">Full Settlement</Button>
+                  <Button className="flex-1 rounded-xl h-12 font-bold" onClick={() => toast.info("Partial repayment feature coming soon!")}>Repay Amount</Button>
+                  <Button variant="outline" className="flex-1 rounded-xl h-12 border-border/40" onClick={handleFullRepayment}>Full Settlement</Button>
                 </CardFooter>
               </Card>
 
