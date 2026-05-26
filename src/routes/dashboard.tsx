@@ -122,7 +122,7 @@ function QuickSend({
   withAdd,
   title = "Quick Send (P2P)"
 }: {
-  avatars: { id?: string; initial: string; color: string; name: string }[];
+  avatars: { id?: string; initial: string; color: string; name: string; avatarUrl?: string | null }[];
   withAdd?: boolean;
   title?: string;
 }) {
@@ -141,11 +141,19 @@ function QuickSend({
         {avatars.map((a, index) => (
           <div key={a.id ?? `${a.name}-${index}`} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
             <div className="relative">
-              <div
-                className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
-              >
-                {a.initial}
-              </div>
+              {a.avatarUrl ? (
+                <img
+                  src={a.avatarUrl}
+                  alt={a.name}
+                  className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
+                />
+              ) : (
+                <div
+                  className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
+                >
+                  {a.initial}
+                </div>
+              )}
               <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
             </div>
             <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">{a.name}</span>
@@ -389,7 +397,7 @@ function DashboardPage() {
 
   const frequentRecipients = useMemo(() => {
     const seenIds = new Set();
-    const uniqueRecipients: { id: string; initial: string; color: string; name: string }[] = [];
+    const uniqueRecipients: { id: string; initial: string; color: string; name: string; avatarUrl?: string | null }[] = [];
     const currentUserId = (profile as any)?.id;
 
     if (!currentUserId) return [];
@@ -403,6 +411,7 @@ function DashboardPage() {
             initial: tx.receiver?.first_name?.[0] ?? "V",
             color: "bg-emerald-500",
             name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
+            avatarUrl: tx.receiver?.profile_photo_url,
           });
         }
       }
