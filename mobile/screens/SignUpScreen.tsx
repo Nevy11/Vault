@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,10 @@ import {
   Platform,
   ScrollView,
   Alert,
-} from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { supabase } from '../lib/supabase';
-import { hashPin } from '../lib/utils';
+} from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { supabase } from "../lib/supabase";
+import { hashPin } from "../lib/utils";
 
 type RootStackParamList = {
   Login: undefined;
@@ -21,27 +21,29 @@ type RootStackParamList = {
   Dashboard: undefined;
 };
 
-export default function SignUpScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'SignUp'>) {
-  const [email, setEmail] = useState('');
-  const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState<'signUp' | 'verify'>('signUp');
+export default function SignUpScreen({
+  navigation,
+}: NativeStackScreenProps<RootStackParamList, "SignUp">) {
+  const [email, setEmail] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"signUp" | "verify">("signUp");
   const [loading, setLoading] = useState(false);
 
-  const showError = (message: string) => Alert.alert('Sign Up Error', message);
+  const showError = (message: string) => Alert.alert("Sign Up Error", message);
 
   const handleSignUp = async () => {
     if (!email || !pin || !confirmPin) {
-      showError('Please fill in all fields.');
+      showError("Please fill in all fields.");
       return;
     }
     if (pin.length !== 6 || confirmPin.length !== 6) {
-      showError('PIN must be exactly 6 digits.');
+      showError("PIN must be exactly 6 digits.");
       return;
     }
     if (pin !== confirmPin) {
-      showError('PINs do not match.');
+      showError("PINs do not match.");
       return;
     }
 
@@ -54,10 +56,10 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
       });
       if (error) throw error;
 
-      setStep('verify');
-      Alert.alert('Verification Sent', 'A sign-up verification code was sent to your email.');
+      setStep("verify");
+      Alert.alert("Verification Sent", "A sign-up verification code was sent to your email.");
     } catch (error: any) {
-      showError(error?.message || 'Sign-up failed.');
+      showError(error?.message || "Sign-up failed.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +67,7 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
 
   const handleVerify = async () => {
     if (code.length !== 6) {
-      showError('Enter the 6-digit code.');
+      showError("Enter the 6-digit code.");
       return;
     }
 
@@ -77,28 +79,28 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
       } = await supabase.auth.verifyOtp({
         email,
         token: code,
-        type: 'signup',
+        type: "signup",
       });
 
       if (error) throw error;
-      if (!user) throw new Error('Verification failed.');
+      if (!user) throw new Error("Verification failed.");
 
       const hashedPin = await hashPin(pin);
-      const { error: profileError } = await supabase.from('profiles').upsert(
+      const { error: profileError } = await supabase.from("profiles").upsert(
         {
           id: user.id,
           email,
           pin_hash: hashedPin,
         },
-        { onConflict: 'id' }
+        { onConflict: "id" },
       );
       if (profileError) throw profileError;
 
-      Alert.alert('Welcome', 'Your account is ready.');
-      navigation.replace('Dashboard');
+      Alert.alert("Welcome", "Your account is ready.");
+      navigation.replace("Dashboard");
     } catch (error: any) {
-      showError(error?.message || 'Verification failed.');
-      setStep('signUp');
+      showError(error?.message || "Verification failed.");
+      setStep("signUp");
     } finally {
       setLoading(false);
     }
@@ -107,7 +109,7 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Create your Vault account</Text>
@@ -125,7 +127,7 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
           />
         </View>
 
-        {step === 'signUp' && (
+        {step === "signUp" && (
           <>
             <View style={styles.field}>
               <Text style={styles.label}>PIN</Text>
@@ -154,7 +156,7 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
           </>
         )}
 
-        {step === 'verify' && (
+        {step === "verify" && (
           <View style={styles.field}>
             <Text style={styles.label}>Verification Code</Text>
             <TextInput
@@ -170,19 +172,21 @@ export default function SignUpScreen({ navigation }: NativeStackScreenProps<Root
 
         <TouchableOpacity
           style={styles.button}
-          onPress={step === 'signUp' ? handleSignUp : handleVerify}
+          onPress={step === "signUp" ? handleSignUp : handleVerify}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>{step === 'signUp' ? 'Create account' : 'Verify code'}</Text>
+            <Text style={styles.buttonText}>
+              {step === "signUp" ? "Create account" : "Verify code"}
+            </Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Already have an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => navigation.navigate("Login")}>
             <Text style={styles.link}>Log in</Text>
           </TouchableOpacity>
         </View>
@@ -195,19 +199,19 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
-    backgroundColor: '#0B1220',
+    backgroundColor: "#0B1220",
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#94A3B8',
+    color: "#94A3B8",
     marginBottom: 24,
   },
   field: {
@@ -215,39 +219,39 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 8,
-    color: '#E2E8F0',
-    fontWeight: '600',
+    color: "#E2E8F0",
+    fontWeight: "600",
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
     borderRadius: 12,
     padding: 14,
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
     borderRadius: 14,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
     fontSize: 16,
   },
   footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginTop: 24,
   },
   footerText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
   },
   link: {
-    color: '#38BDF8',
-    fontWeight: '700',
+    color: "#38BDF8",
+    fontWeight: "700",
   },
 });

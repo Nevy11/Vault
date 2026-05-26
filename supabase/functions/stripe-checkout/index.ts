@@ -22,7 +22,9 @@ serve(async (req) => {
     stripeKey = stripeKey.replace(/^["'\[]+|["'\]]+$/g, "");
 
     console.log(`Stripe Key Length: ${stripeKey.length} characters`);
-    console.log(`Key Check: Starts with ${stripeKey.substring(0, 8)} and ends with ${stripeKey.substring(stripeKey.length - 4)}`);
+    console.log(
+      `Key Check: Starts with ${stripeKey.substring(0, 8)} and ends with ${stripeKey.substring(stripeKey.length - 4)}`,
+    );
 
     const stripe = new Stripe(stripeKey, {
       apiVersion: "2023-10-16",
@@ -36,7 +38,7 @@ serve(async (req) => {
 
     const body = await req.json();
     console.log("Received request body:", JSON.stringify(body));
-    
+
     const { amount, currency = "usd", user_id } = body;
 
     if (!amount || isNaN(Number(amount))) {
@@ -96,14 +98,14 @@ serve(async (req) => {
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
-      }
+      },
     );
   } catch (error: any) {
     console.error("Stripe Checkout Error Detail:", error);
-    
+
     // Attempt to extract the most descriptive error message
     const message = error.raw?.message || error.message || "An unexpected error occurred";
-    
+
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,

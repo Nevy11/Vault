@@ -1,20 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { 
-  HelpCircle, 
-  Home, 
-  Send, 
-  Settings, 
-  User, 
-  LogOut, 
-  MessageCircle, 
-  PiggyBank, 
+import {
+  HelpCircle,
+  Home,
+  Send,
+  Settings,
+  User,
+  LogOut,
+  MessageCircle,
+  PiggyBank,
   Landmark,
   Bell,
   CheckCircle2,
   AlertCircle,
   TrendingUp,
-  Zap
+  Zap,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -29,12 +29,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -57,9 +52,9 @@ const sidebarNavItems = [
   },
   {
     label: "Savings & Loans",
-    to: "/dashboard",
+    to: "/finance-hub",
     icon: Landmark,
-    isActive: (path: string) => path.startsWith("/savings") || path.startsWith("/loans"),
+    isActive: (path: string) => path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
   },
   {
     label: "Transact",
@@ -90,9 +85,9 @@ const mobileNavItems = [
   },
   {
     label: "Savings & Loans",
-    to: "/dashboard",
+    to: "/finance-hub",
     icon: Landmark,
-    isActive: (path: string) => path.startsWith("/savings") || path.startsWith("/loans"),
+    isActive: (path: string) => path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
   },
   {
     label: "Transact",
@@ -134,7 +129,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen w-full text-foreground overflow-x-hidden" style={{ background: "var(--gradient-bg)" }}>
+    <div
+      className="min-h-screen w-full text-foreground overflow-x-hidden"
+      style={{ background: "var(--gradient-bg)" }}
+    >
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
         <div className="flex h-16 items-center px-4 border-b border-border/40">
@@ -178,15 +176,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Advisor Drawer */}
       <Sheet open={isAdvisorOpen} onOpenChange={setIsAdvisorOpen}>
-        <SheetContent 
-          side="bottom" 
+        <SheetContent
+          side="bottom"
           className="h-[85vh] md:h-[80vh] w-[98vw] md:w-[calc(100%-4rem)] max-w-[850px] left-1/2 -translate-x-1/2 bottom-2 md:bottom-6 p-0 bg-background/60 backdrop-blur-3xl border border-border/40 rounded-[24px] md:rounded-[32px] overflow-hidden shadow-2xl transition-all duration-300"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Finance Advisor</SheetTitle>
-            <SheetDescription>
-              Your personal AI-powered financial strategist.
-            </SheetDescription>
+            <SheetDescription>Your personal AI-powered financial strategist.</SheetDescription>
           </SheetHeader>
           <div className="p-3 md:p-4 h-full">
             <FinanceAdvisorContent isModal />
@@ -195,9 +191,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* Advisor FAB */}
-      <FloatingAdvisor 
-        onClick={() => setIsAdvisorOpen(true)} 
-        className={isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : ""}
+      <FloatingAdvisor
+        onClick={() => setIsAdvisorOpen(true)}
+        className={
+          isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : ""
+        }
       />
 
       {/* Mobile Nav */}
@@ -207,27 +205,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {mobileNavItems.map(({ label, to, icon: Icon, isActive }) => {
               const active = isActive(currentPath);
               const isTransact = label === "Transact";
-              
+
               return (
-                <li key={to} className={`flex justify-center ${isTransact ? "relative -top-4" : ""}`}>
+                <li
+                  key={to}
+                  className={`flex justify-center ${isTransact ? "relative -top-4" : ""}`}
+                >
                   <Link
                     to={to}
                     className={`flex flex-col items-center transition-all duration-300 ${
                       isTransact
                         ? "bg-primary text-primary-foreground shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-primary/40 h-[52px] w-[52px] justify-center rounded-full scale-110 p-0"
                         : `gap-1 px-1 py-1 rounded-lg w-full max-w-[80px] ${
-                            active
-                              ? "text-primary"
-                              : "text-muted-foreground hover:text-foreground"
+                            active ? "text-primary" : "text-muted-foreground hover:text-foreground"
                           }`
                     }`}
                   >
-                    <Icon className={`${isTransact ? "h-6 w-6 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
-                      active && !isTransact ? "text-primary" : ""
-                    }`} />
-                    <span className={`text-[10px] font-medium text-center truncate w-full ${
-                      isTransact ? "hidden" : active ? "text-primary" : ""
-                    }`}>{label}</span>
+                    <Icon
+                      className={`${isTransact ? "h-6 w-6 animate-[spin_8s_linear_infinite]" : "h-5 w-5"} ${
+                        active && !isTransact ? "text-primary" : ""
+                      }`}
+                    />
+                    <span
+                      className={`text-[10px] font-medium text-center truncate w-full ${
+                        isTransact ? "hidden" : active ? "text-primary" : ""
+                      }`}
+                    >
+                      {label}
+                    </span>
                   </Link>
                 </li>
               );

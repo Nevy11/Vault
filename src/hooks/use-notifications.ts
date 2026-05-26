@@ -62,7 +62,7 @@ export function useNotifications() {
         },
         () => {
           fetchNotifications();
-        }
+        },
       )
       .subscribe();
 
@@ -77,17 +77,12 @@ export function useNotifications() {
 
   const markAsRead = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("id", id);
+      const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
 
       if (error) throw error;
-      
+
       // Optimistic update
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
     } catch (err: any) {
       setError(err.message);
     }
@@ -103,7 +98,7 @@ export function useNotifications() {
         .eq("is_read", false);
 
       if (error) throw error;
-      
+
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (err: any) {
       setError(err.message);

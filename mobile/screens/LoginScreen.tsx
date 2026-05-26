@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,10 @@ import {
   Platform,
   ScrollView,
   Alert,
-} from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { supabase } from '../lib/supabase';
-import { hashPin } from '../lib/utils';
+} from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { supabase } from "../lib/supabase";
+import { hashPin } from "../lib/utils";
 
 type RootStackParamList = {
   Login: undefined;
@@ -21,36 +21,38 @@ type RootStackParamList = {
   Dashboard: undefined;
 };
 
-export default function LoginScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Login'>) {
-  const [email, setEmail] = useState('');
-  const [pin, setPin] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState<'signIn' | 'verify'>('signIn');
+export default function LoginScreen({
+  navigation,
+}: NativeStackScreenProps<RootStackParamList, "Login">) {
+  const [email, setEmail] = useState("");
+  const [pin, setPin] = useState("");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"signIn" | "verify">("signIn");
   const [loading, setLoading] = useState(false);
 
-  const showError = (message: string) => Alert.alert('Login Error', message);
+  const showError = (message: string) => Alert.alert("Login Error", message);
 
   const handleSendCode = async () => {
     if (!email || !pin) {
-      showError('Please enter both email and PIN.');
+      showError("Please enter both email and PIN.");
       return;
     }
     if (pin.length !== 6) {
-      showError('PIN must be exactly 6 digits.');
+      showError("PIN must be exactly 6 digits.");
       return;
     }
 
     setLoading(true);
     try {
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
         .maybeSingle();
 
       if (profileError) throw profileError;
       if (!profile) {
-        throw new Error('No account found with this email. Please sign up.');
+        throw new Error("No account found with this email. Please sign up.");
       }
 
       const { error } = await supabase.auth.signInWithOtp({
@@ -59,10 +61,10 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
       });
 
       if (error) throw error;
-      setStep('verify');
-      Alert.alert('Code Sent', 'A verification code was sent to your email.');
+      setStep("verify");
+      Alert.alert("Code Sent", "A verification code was sent to your email.");
     } catch (error: any) {
-      showError(error?.message || 'Failed to send verification code.');
+      showError(error?.message || "Failed to send verification code.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +72,7 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
 
   const handleVerify = async () => {
     if (code.length !== 6) {
-      showError('Enter the 6-digit verification code.');
+      showError("Enter the 6-digit verification code.");
       return;
     }
 
@@ -82,16 +84,16 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
       } = await supabase.auth.verifyOtp({
         email,
         token: code,
-        type: 'magiclink',
+        type: "magiclink",
       });
 
       if (error) throw error;
-      if (!user) throw new Error('Verification failed.');
+      if (!user) throw new Error("Verification failed.");
 
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('pin_hash')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("pin_hash")
+        .eq("id", user.id)
         .single();
 
       if (profileError) {
@@ -102,13 +104,13 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
       const hashedPin = await hashPin(pin);
       if (profile.pin_hash !== hashedPin) {
         await supabase.auth.signOut();
-        throw new Error('Incorrect PIN. Please try again.');
+        throw new Error("Incorrect PIN. Please try again.");
       }
 
-      navigation.replace('Dashboard');
+      navigation.replace("Dashboard");
     } catch (error: any) {
-      showError(error?.message || 'Verification failed.');
-      setStep('signIn');
+      showError(error?.message || "Verification failed.");
+      setStep("signIn");
     } finally {
       setLoading(false);
     }
@@ -117,7 +119,7 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Vault Mobile</Text>
@@ -148,7 +150,7 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
           />
         </View>
 
-        {step === 'verify' && (
+        {step === "verify" && (
           <View style={styles.field}>
             <Text style={styles.label}>Verification Code</Text>
             <TextInput
@@ -164,19 +166,19 @@ export default function LoginScreen({ navigation }: NativeStackScreenProps<RootS
 
         <TouchableOpacity
           style={styles.button}
-          onPress={step === 'signIn' ? handleSendCode : handleVerify}
+          onPress={step === "signIn" ? handleSendCode : handleVerify}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>{step === 'signIn' ? 'Send Code' : 'Verify Code'}</Text>
+            <Text style={styles.buttonText}>{step === "signIn" ? "Send Code" : "Verify Code"}</Text>
           )}
         </TouchableOpacity>
 
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Need an account?</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+          <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
             <Text style={styles.link}>Sign up</Text>
           </TouchableOpacity>
         </View>
@@ -189,19 +191,19 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
     padding: 24,
-    backgroundColor: '#0B1220',
+    backgroundColor: "#0B1220",
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
-    color: '#fff',
+    fontWeight: "700",
+    color: "#fff",
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#CBD5E1',
+    color: "#CBD5E1",
     marginBottom: 24,
   },
   field: {
@@ -209,39 +211,39 @@ const styles = StyleSheet.create({
   },
   label: {
     marginBottom: 8,
-    color: '#E2E8F0',
-    fontWeight: '600',
+    color: "#E2E8F0",
+    fontWeight: "600",
   },
   input: {
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
     borderRadius: 12,
     padding: 14,
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#2563EB',
+    backgroundColor: "#2563EB",
     borderRadius: 14,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: "#fff",
+    fontWeight: "700",
     fontSize: 16,
   },
   footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     gap: 8,
     marginTop: 24,
   },
   footerText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
   },
   link: {
-    color: '#38BDF8',
-    fontWeight: '700',
+    color: "#38BDF8",
+    fontWeight: "700",
   },
 });

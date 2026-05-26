@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 serve(async (req) => {
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY")?.trim();
   const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET")?.trim();
-  
+
   if (!stripeKey) {
     console.error("CRITICAL: STRIPE_SECRET_KEY is not set");
     return new Response("Configuration Error", { status: 500 });
@@ -30,13 +30,9 @@ serve(async (req) => {
   try {
     const body = await req.text();
     let event;
-    
+
     try {
-      event = await stripe.webhooks.constructEventAsync(
-        body,
-        signature,
-        webhookSecret || ""
-      );
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret || "");
     } catch (err: any) {
       console.error(`Webhook signature verification failed: ${err.message}`);
       return new Response(`Webhook Error: ${err.message}`, { status: 400 });
@@ -48,7 +44,7 @@ serve(async (req) => {
     let amount: number | undefined;
     let currency: string | undefined;
     let reference: string | undefined;
-    let payment_method: string = 'bank';
+    const payment_method: string = "bank";
 
     if (event.type === "payment_intent.succeeded") {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -57,13 +53,12 @@ serve(async (req) => {
       currency = paymentIntent.currency.toUpperCase();
       reference = paymentIntent.id;
       console.log(`Processing PaymentIntent ${reference} for user ${user_id}`);
-    } 
-    else if (event.type === "checkout.session.completed") {
+    } else if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       user_id = session.metadata?.user_id;
       amount = (session.amount_total || 0) / 100;
-      currency = (session.currency || 'USD').toUpperCase();
-      reference = session.payment_intent as string || session.id;
+      currency = (session.currency || "USD").toUpperCase();
+      reference = (session.payment_intent as string) || session.id;
       console.log(`Processing Checkout Session ${session.id} for user ${user_id}`);
     }
 
@@ -80,15 +75,15 @@ serve(async (req) => {
       const { data, error: rpcError } = await supabase.rpc("create_ledger_entry", {
         p_user_id: user_id,
         p_amount: amount,
-        p_currency: currency || 'USD',
+        p_currency: currency || "USD",
         p_type: "deposit",
         p_reference: reference,
         p_description: `Stripe Deposit: ${reference}`,
-        p_metadata: { 
+        p_metadata: {
           stripe_event_type: event.type,
-          payment_method: payment_method
+          payment_method: payment_method,
         },
-        p_status: "completed"
+        p_status: "completed",
       });
 
       if (rpcError) {
@@ -98,7 +93,9 @@ serve(async (req) => {
 
       console.log(`✅ Transaction recorded successfully. Ledger ID: ${data}`);
     } else {
-      console.warn(`⚠️ Skipped processing event ${event.type}: Missing or unknown user_id/amount. (User: ${user_id}, Amount: ${amount})`);
+      console.warn(
+        `⚠️ Skipped processing event ${event.type}: Missing or unknown user_id/amount. (User: ${user_id}, Amount: ${amount})`,
+      );
     }
 
     return new Response(JSON.stringify({ received: true }), {

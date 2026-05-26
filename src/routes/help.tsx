@@ -42,7 +42,7 @@ function SectionCard({
   return (
     <section className="group relative overflow-hidden rounded-3xl border border-border/50 bg-card/60 backdrop-blur-md p-8 sm:p-10 shadow-xl transition-all hover:bg-card/70 hover:border-primary/20">
       <div className="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
-      
+
       <header className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between pb-8 mb-10 border-b border-border/20">
         <div className="flex items-center gap-5">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 shadow-inner group-hover:scale-110 transition-transform">
@@ -56,9 +56,7 @@ function SectionCard({
           </div>
         </div>
       </header>
-      <div className="relative z-10">
-        {children}
-      </div>
+      <div className="relative z-10">{children}</div>
     </section>
   );
 }

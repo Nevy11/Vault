@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -8,24 +8,24 @@ import {
   Dimensions,
   SafeAreaView,
   StatusBar,
-} from 'react-native';
-import { 
-  Bell, 
-  Search, 
-  Eye, 
-  EyeOff, 
-  Send, 
-  PlusCircle, 
-  ArrowDownCircle, 
-  CreditCard, 
-  PieChart, 
-  Lock, 
-  TrendingUp, 
+} from "react-native";
+import {
+  Bell,
+  Search,
+  Eye,
+  EyeOff,
+  Send,
+  PlusCircle,
+  ArrowDownCircle,
+  CreditCard,
+  PieChart,
+  Lock,
+  TrendingUp,
   ShieldAlert,
-  ChevronRight
-} from 'lucide-react-native';
+  ChevronRight,
+} from "lucide-react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 /**
  * 1. TYPES & INTERFACES
@@ -51,12 +51,15 @@ interface SubAccount {
  */
 
 // A. Time-Aware Header
-const DashboardHeader: React.FC<{ userName: string; initials: string }> = ({ userName, initials }) => {
+const DashboardHeader: React.FC<{ userName: string; initials: string }> = ({
+  userName,
+  initials,
+}) => {
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return { text: 'Good morning', emoji: '🌅' };
-    if (hour >= 12 && hour < 17) return { text: 'Good afternoon', emoji: '☀️' };
-    return { text: 'Good evening', emoji: '🌙' };
+    if (hour >= 5 && hour < 12) return { text: "Good morning", emoji: "🌅" };
+    if (hour >= 12 && hour < 17) return { text: "Good afternoon", emoji: "☀️" };
+    return { text: "Good evening", emoji: "🌙" };
   }, []);
 
   return (
@@ -66,7 +69,9 @@ const DashboardHeader: React.FC<{ userName: string; initials: string }> = ({ use
           <Text style={styles.initialsText}>{initials}</Text>
         </View>
         <View style={styles.greetingTextContainer}>
-          <Text style={styles.greetingSubText}>{greeting.text}, {greeting.emoji}</Text>
+          <Text style={styles.greetingSubText}>
+            {greeting.text}, {greeting.emoji}
+          </Text>
           <Text style={styles.greetingMainText}>{userName}</Text>
         </View>
       </View>
@@ -98,9 +103,9 @@ const BalanceCard: React.FC<{ balance: number; currency: string }> = ({ balance,
           {isHidden ? <EyeOff size={20} color="#94A3B8" /> : <Eye size={20} color="#94A3B8" />}
         </TouchableOpacity>
       </View>
-      
+
       <Text style={styles.balanceValue}>
-        {isHidden ? '••••••••••' : `${currency} ${balance.toLocaleString()}`}
+        {isHidden ? "••••••••••" : `${currency} ${balance.toLocaleString()}`}
       </Text>
 
       <TouchableOpacity style={styles.viewStatementsBtn}>
@@ -116,38 +121,38 @@ const BalanceCard: React.FC<{ balance: number; currency: string }> = ({ balance,
  */
 export const VaultDashboard: React.FC = () => {
   const quickActions: QuickAction[] = [
-    { id: '1', label: 'Send Money', icon: Send, route: 'Send', color: '#3B82F6' },
-    { id: '2', label: 'Deposit', icon: PlusCircle, route: 'Deposit', color: '#10B981' },
-    { id: '3', label: 'Withdraw', icon: ArrowDownCircle, route: 'Withdraw', color: '#F59E0B' },
-    { id: '4', label: 'Pay Vendor', icon: CreditCard, route: 'Pay', color: '#8B5CF6' },
-    { id: '5', label: 'Analytics', icon: PieChart, route: 'Analytics', color: '#EC4899' },
-    { id: '6', label: 'Crypto', icon: Lock, route: 'Crypto', color: '#F97316' },
-    { id: '7', label: 'Invest', icon: TrendingUp, route: 'Invest', color: '#06B6D4' },
-    { id: '8', label: 'Security', icon: ShieldAlert, route: 'Security', color: '#EF4444' },
+    { id: "1", label: "Send Money", icon: Send, route: "Send", color: "#3B82F6" },
+    { id: "2", label: "Deposit", icon: PlusCircle, route: "Deposit", color: "#10B981" },
+    { id: "3", label: "Withdraw", icon: ArrowDownCircle, route: "Withdraw", color: "#F59E0B" },
+    { id: "4", label: "Pay Vendor", icon: CreditCard, route: "Pay", color: "#8B5CF6" },
+    { id: "5", label: "Analytics", icon: PieChart, route: "Analytics", color: "#EC4899" },
+    { id: "6", label: "Crypto", icon: Lock, route: "Crypto", color: "#F97316" },
+    { id: "7", label: "Invest", icon: TrendingUp, route: "Invest", color: "#06B6D4" },
+    { id: "8", label: "Security", icon: ShieldAlert, route: "Security", color: "#EF4444" },
   ];
 
   const subAccounts: SubAccount[] = [
-    { id: 's1', name: 'Vault Trade', balance: 12400.50, icon: '📈', color: '#1E293B' },
-    { id: 's2', name: 'Fixed Yield', balance: 50000.00, icon: '🏦', color: '#1E293B' },
-    { id: 's3', name: 'Emergencies', balance: 2500.00, icon: '🚨', color: '#1E293B' },
-    { id: 's4', name: 'Crypto Lock', balance: 0.45, icon: '₿', color: '#1E293B' },
+    { id: "s1", name: "Vault Trade", balance: 12400.5, icon: "📈", color: "#1E293B" },
+    { id: "s2", name: "Fixed Yield", balance: 50000.0, icon: "🏦", color: "#1E293B" },
+    { id: "s3", name: "Emergencies", balance: 2500.0, icon: "🚨", color: "#1E293B" },
+    { id: "s4", name: "Crypto Lock", balance: 0.45, icon: "₿", color: "#1E293B" },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <DashboardHeader userName="Maxwell" initials="MN" />
-      
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Balance Carousel Section */}
-        <ScrollView 
-          horizontal 
-          pagingEnabled 
+        <ScrollView
+          horizontal
+          pagingEnabled
           showsHorizontalScrollIndicator={false}
           style={styles.carouselContainer}
         >
-          <BalanceCard balance={245800.00} currency="KES" />
-          <BalanceCard balance={1890.50} currency="USD" />
+          <BalanceCard balance={245800.0} currency="KES" />
+          <BalanceCard balance={1890.5} currency="USD" />
         </ScrollView>
 
         {/* Quick Actions Grid */}
@@ -175,9 +180,7 @@ export const VaultDashboard: React.FC = () => {
                   <Text style={{ fontSize: 24 }}>{sub.icon}</Text>
                 </View>
                 <Text style={styles.subAccountName}>{sub.name}</Text>
-                <Text style={styles.subAccountBalance}>
-                  {sub.balance.toLocaleString()}
-                </Text>
+                <Text style={styles.subAccountBalance}>{sub.balance.toLocaleString()}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -190,110 +193,110 @@ export const VaultDashboard: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: "#0F172A",
   },
   headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingVertical: 15,
   },
   headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   initialsBadge: {
     width: 45,
     height: 45,
     borderRadius: 22.5,
-    backgroundColor: '#3B82F6',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#3B82F6",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: "rgba(255,255,255,0.1)",
   },
   initialsText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: "#FFFFFF",
+    fontWeight: "700",
     fontSize: 16,
   },
   greetingTextContainer: {
     marginLeft: 12,
   },
   greetingSubText: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 12,
   },
   greetingMainText: {
-    color: '#F8FAFC',
+    color: "#F8FAFC",
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   headerRight: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   headerIcon: {
     marginLeft: 15,
     padding: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
     borderRadius: 12,
   },
   notificationDot: {
-    position: 'absolute',
+    position: "absolute",
     top: 8,
     right: 8,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: "#EF4444",
     zIndex: 1,
     borderWidth: 1,
-    borderColor: '#1E293B',
+    borderColor: "#1E293B",
   },
   carouselContainer: {
     marginTop: 10,
   },
   balanceCard: {
     width: width - 40,
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
     borderRadius: 24,
     padding: 24,
     marginHorizontal: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: "rgba(255,255,255,0.05)",
   },
   balanceHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 15,
   },
   balanceLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   balanceLabel: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   balanceValue: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.5,
   },
   viewStatementsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 20,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   viewStatementsText: {
-    color: '#10B981',
-    fontWeight: '600',
+    color: "#10B981",
+    fontWeight: "600",
     fontSize: 14,
     marginRight: 4,
   },
@@ -302,34 +305,34 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   sectionTitle: {
-    color: '#F8FAFC',
+    color: "#F8FAFC",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: 20,
   },
   grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
   },
   gridItem: {
     width: (width - 60) / 4,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 25,
   },
   gridIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 8,
   },
   gridLabel: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 11,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontWeight: "500",
+    textAlign: "center",
   },
   ecosystemContainer: {
     marginTop: 10,
@@ -340,32 +343,32 @@ const styles = StyleSheet.create({
   },
   subAccountCard: {
     width: 130,
-    backgroundColor: '#1E293B',
+    backgroundColor: "#1E293B",
     borderRadius: 20,
     padding: 16,
     marginRight: 15,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: "rgba(255,255,255,0.05)",
   },
   subAccountIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#0F172A',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#0F172A",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 12,
   },
   subAccountName: {
-    color: '#94A3B8',
+    color: "#94A3B8",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   subAccountBalance: {
-    color: '#F8FAFC',
+    color: "#F8FAFC",
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });

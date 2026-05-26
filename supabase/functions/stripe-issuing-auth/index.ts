@@ -46,7 +46,7 @@ serve(async (req) => {
       if (currentBalance >= amount) {
         // APPROVE
         console.log(`Approving auth for user ${userId}: ${amount} ${currency}`);
-        
+
         // Create a PENDING ledger entry to "reserve" the funds
         await supabase.rpc("create_ledger_entry", {
           p_user_id: userId,
@@ -55,12 +55,12 @@ serve(async (req) => {
           p_type: "issuing_auth",
           p_reference: auth.id,
           p_description: `Card Auth: ${auth.merchant_data.name}`,
-          p_status: "pending"
+          p_status: "pending",
         });
 
         // Respond to Stripe to approve
-        // Note: In some webhook implementations, you respond with a JSON body 
-        // that Stripe expects for real-time auth. 
+        // Note: In some webhook implementations, you respond with a JSON body
+        // that Stripe expects for real-time auth.
         // For Stripe Issuing, you usually respond with status 200 and a specific payload
         // if you are using 'control_all_authorizations'.
         return new Response(JSON.stringify({ approve: true }), {
@@ -69,7 +69,9 @@ serve(async (req) => {
         });
       } else {
         // DECLINE
-        console.log(`Declining auth for user ${userId}: Insufficient funds (${currentBalance} < ${amount})`);
+        console.log(
+          `Declining auth for user ${userId}: Insufficient funds (${currentBalance} < ${amount})`,
+        );
         return new Response(JSON.stringify({ approve: false }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
@@ -80,7 +82,7 @@ serve(async (req) => {
     if (event.type === "issuing_transaction.created") {
       const transaction = event.data.object as Stripe.Issuing.Transaction;
       const authId = transaction.authorization as string;
-      
+
       // Finalize the ledger entry: Move from pending to completed
       const { error } = await supabase
         .from("ledger_entries")

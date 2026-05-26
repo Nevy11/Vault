@@ -19,9 +19,9 @@ export async function initiateStkPush(params: {
 
     // Call Edge Function
     const { data, error } = await supabase.functions.invoke("mpesa-deposit", {
-      body: { 
-        phoneNumber: phone, 
-        amount: Math.round(params.amount) 
+      body: {
+        phoneNumber: phone,
+        amount: Math.round(params.amount),
       },
     });
 
