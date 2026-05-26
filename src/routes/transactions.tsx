@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { cn, hashPin } from "@/lib/utils";
+import { cn, hashPin, calculateTransactionFee } from "@/lib/utils";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
@@ -277,7 +277,7 @@ function SendPanel() {
     return () => clearTimeout(timer);
   }, [identifier, method]);
 
-  const fee = method === "vault" ? 0.0 : 15.0;
+  const fee = method === "vault" ? 0.0 : calculateTransactionFee(parseFloat(amount || "0"), currency || "USD");
   const total = parseFloat(amount || "0") + fee;
 
   const handleSelectRecipient = (r: Recipient) => {
