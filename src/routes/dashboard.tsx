@@ -1,24 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { UserPlus, Lock as LockIcon, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp, Landmark } from "lucide-react";
-import { supabase } from "@/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { useTransactions, type Transaction } from "@/hooks/use-transactions";
+import { useTransactions } from "@/hooks/use-transactions";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { FinancialHealthReport } from "@/components/financial-health-report";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -53,7 +44,6 @@ function AccountBadge({
 }) {
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm transition-all hover:bg-card/80 hover:border-primary/30">
-      {/* Decorative background element */}
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
       
       <div className="relative z-10">
@@ -156,50 +146,166 @@ function QuickSend({
   );
 }
 
-function NetWorthChart() {
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from "recharts";
+
+// ... rest of imports ...
+
+function NetWorthChart({ 
+  transactions, 
+  currencySymbol 
+}: { 
+  transactions: Transaction[], 
+  currencySymbol: string 
+}) {
+  const [viewMode, setViewMode] = useState<"daily" | "transaction">("transaction");
+
+  const chartData = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+
+    // Sort transactions by date ascending to calculate running balance
+    const sorted = [...transactions].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    if (viewMode === "transaction") {
+      return sorted.map((t, index) => ({
+        name: format(new Date(t.created_at), "MMM dd"),
+        fullDate: format(new Date(t.created_at), "PPP p"),
+        value: Number(t.balance_after || 0),
+        index: index + 1
+      }));
+    } else {
+      // Daily mode: aggregate by day
+      const dailyMap: Record<string, number> = {};
+      sorted.forEach(t => {
+        const day = format(new Date(t.created_at), "yyyy-MM-dd");
+        dailyMap[day] = Number(t.balance_after || 0);
+      });
+
+      return Object.entries(dailyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([day, value]) => ({
+          name: format(new Date(day), "MMM dd"),
+          fullDate: format(new Date(day), "PPP"),
+          value
+        }));
+    }
+  }, [transactions, viewMode]);
+
+  const latestValue = chartData.length > 0 ? chartData[chartData.length - 1].value : 0;
+  const initialValue = chartData.length > 0 ? chartData[0].value : 0;
+  const isPositive = latestValue >= initialValue;
+
   return (
     <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-full flex flex-col transition-all hover:border-border/60">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">Net Worth Growth</div>
-        <TrendingUp className="w-3 h-3 text-emerald-500" />
+        <div>
+          <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
+            Net Worth Growth
+            <TrendingUp className={`w-3 h-3 ${isPositive ? "text-emerald-500" : "text-destructive"}`} />
+          </div>
+          <div className="text-[10px] text-muted-foreground mt-0.5">
+            {viewMode === "daily" ? "Daily closing balance" : "Per transaction history"}
+          </div>
+        </div>
+        <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/20">
+          <button
+            onClick={() => setViewMode("transaction")}
+            className={`px-2 py-1 text-[9px] font-black rounded-md transition-all ${
+              viewMode === "transaction" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            TX
+          </button>
+          <button
+            onClick={() => setViewMode("daily")}
+            className={`px-2 py-1 text-[9px] font-black rounded-md transition-all ${
+              viewMode === "daily" 
+                ? "bg-primary text-primary-foreground shadow-sm" 
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            DAY
+          </button>
+        </div>
       </div>
-      <div className="relative flex-1 min-h-[100px] mt-2">
-        <div className="absolute left-0 top-0 text-[10px] text-muted-foreground/40 font-mono">35K</div>
-        <div className="absolute left-0 bottom-6 text-[10px] text-muted-foreground/40 font-mono">0</div>
-        <svg
-          viewBox="0 0 300 100"
-          className="absolute inset-0 w-full h-full pr-2"
-          preserveAspectRatio="none"
-        >
-          <defs>
-            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="var(--primary)" stopOpacity="0" />
-            </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-          <path
-            d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10 L300,100 L0,100 Z"
-            fill="url(#chartFill)"
-          />
-          <path
-            d="M0,80 L40,70 L80,75 L120,55 L160,45 L200,35 L240,25 L300,10"
-            stroke="var(--primary)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-            style={{ filter: "drop-shadow(0 0 4px var(--primary-foreground))" }}
-          />
-        </svg>
-        <div className="absolute bottom-0 left-6 right-0 flex justify-between text-[10px] text-muted-foreground/60 font-medium pt-2 border-t border-border/10">
-          <span>JAN</span>
-          <span>FEB</span>
-          <span>MAR</span>
-          <span>APR</span>
+      
+      <div className="relative flex-1 min-h-[120px] mt-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid 
+              strokeDasharray="3 3" 
+              vertical={false} 
+              stroke="var(--border)" 
+              opacity={0.1} 
+            />
+            <XAxis 
+              dataKey="name" 
+              hide 
+            />
+            <YAxis 
+              hide 
+              domain={['dataMin - 100', 'dataMax + 100']}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  return (
+                    <div className="rounded-xl bg-card/95 border border-border/40 p-3 shadow-xl backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
+                      <p className="text-[10px] font-black uppercase text-muted-foreground mb-1 tracking-widest">
+                        {payload[0].payload.fullDate}
+                      </p>
+                      <p className="text-sm font-black text-primary">
+                        {currencySymbol}{payload[0].value?.toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="var(--primary)"
+              strokeWidth={2}
+              fillOpacity={1}
+              fill="url(#colorValue)"
+              animationDuration={1500}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-border/10 flex justify-between items-center">
+        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+          {chartData.length} data points
+        </div>
+        <div className="flex gap-4">
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] text-muted-foreground uppercase font-black">Low</span>
+            <span className="text-[10px] font-black">{currencySymbol}{Math.min(...chartData.map(d => d.value || 0)).toLocaleString()}</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[8px] text-muted-foreground uppercase font-black">High</span>
+            <span className="text-[10px] font-black text-emerald-500">{currencySymbol}{Math.max(...chartData.map(d => d.value || 0)).toLocaleString()}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -260,55 +366,6 @@ function DashboardPage() {
   const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
 
-  const reportMetrics = useMemo(() => {
-    if (!transactions.length) return null;
-
-    const totalInflow = transactions.reduce((sum, tx) => {
-      if (tx.type === "deposit") return sum + Number(tx.amount);
-      if (tx.type === "transfer" && tx.receiver_id === (profile as any)?.id) return sum + Number(tx.amount);
-      return sum;
-    }, 0);
-
-    const totalOutflow = transactions.reduce((sum, tx) => {
-      if (tx.type === "withdrawal") return sum + Number(tx.amount);
-      if (tx.type === "transfer" && tx.sender_id === (profile as any)?.id) return sum + Number(tx.amount);
-      return sum;
-    }, 0);
-
-    return {
-      totalInflow,
-      totalOutflow,
-      netChange: totalInflow - totalOutflow,
-      count: transactions.length,
-    };
-  }, [transactions, profile]);
-
-  const handleDownloadReport = () => {
-    if (!transactions.length) return;
-
-    const csvRows = [
-      ["Date", "Type", "Amount", "Balance After", "Description"],
-      ...transactions.map((tx) => [
-        format(new Date(tx.created_at), "yyyy-MM-dd HH:mm:ss"),
-        tx.type,
-        tx.amount,
-        tx.balance_after ?? "",
-        tx.description ?? "",
-      ]),
-    ];
-
-    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "vault-financial-report.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const frequentRecipients = useMemo(() => {
     const seenIds = new Set();
     const uniqueRecipients: { id: string; initial: string; color: string; name: string }[] = [];
@@ -317,7 +374,6 @@ function DashboardPage() {
     if (!currentUserId) return [];
 
     for (const tx of transactions) {
-      // Only care about transfers where the current user is the SENDER
       if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver && tx.receiver_id) {
         if (!seenIds.has(tx.receiver_id)) {
           seenIds.add(tx.receiver_id);
@@ -422,10 +478,12 @@ function DashboardPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Unified Portfolio Balance</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+            Unified Portfolio
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Integrates a renew Accounts of multiple finance accounts.
+            Real-time aggregate of your Vault financial ecosystem.
           </p>
         </div>
 
@@ -439,7 +497,6 @@ function DashboardPage() {
 
         {/* Total net worth */}
         <div className="group relative overflow-hidden rounded-3xl bg-card/40 border border-border/40 p-8 sm:p-10 mb-8 backdrop-blur-md transition-all hover:bg-card/50 hover:border-primary/20 shadow-xl">
-          {/* Large decorative background pattern */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, var(--primary) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
           <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/5 blur-[100px] transition-all group-hover:bg-primary/10" />
           <div className="absolute -left-24 -bottom-24 h-64 w-64 rounded-full bg-primary/5 blur-[80px] transition-all group-hover:bg-primary/10" />
@@ -492,78 +549,14 @@ function DashboardPage() {
         </div>
 
         {/* Report Modal */}
-        <Dialog open={showReport} onOpenChange={setShowReport}>
-          <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-2xl border-border/40">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">Financial Health Report</DialogTitle>
-              <DialogDescription>
-                A comprehensive breakdown of your Vault OS ledger activity.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-6 space-y-6">
-              {reportMetrics ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Inflow</div>
-                    <div className="text-xl font-semibold text-emerald-500">
-                      +{currencySymbol}{reportMetrics.totalInflow.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Outflow</div>
-                    <div className="text-xl font-semibold text-destructive">
-                      -{currencySymbol}{reportMetrics.totalOutflow.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Net Position</div>
-                    <div className={cn(
-                      "text-xl font-semibold",
-                      reportMetrics.netChange >= 0 ? "text-primary" : "text-destructive"
-                    )}>
-                      {reportMetrics.netChange >= 0 ? '+' : ''}{currencySymbol}{reportMetrics.netChange.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Activity Volume</div>
-                    <div className="text-xl font-semibold text-foreground">
-                      {reportMetrics.count} <span className="text-xs font-normal text-muted-foreground">Transactions</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground italic">
-                  No transaction history available to generate report.
-                </div>
-              )}
-
-              <div className="rounded-2xl border border-border/40 bg-muted/30 p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wider mb-2">Ledger Insights</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your current balance of {currencySymbol}{balance?.toLocaleString()} is derived from {reportMetrics?.count || 0} cryptographically signed ledger entries. 
-                  Vault OS maintains a zero-trust immutable record of every fractional change.
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="flex flex-col sm:flex-row gap-3">
-              <Button variant="ghost" onClick={() => setShowReport(false)} className="flex-1">
-                Close
-              </Button>
-              <Button 
-                onClick={handleDownloadReport} 
-                disabled={!transactions.length}
-                className="flex-1 gap-2"
-              >
-                <RefreshCw className="w-4 h-4" /> Download CSV Statement
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <FinancialHealthReport 
+          open={showReport} 
+          onOpenChange={setShowReport} 
+          currencySymbol={currencySymbol} 
+        />
 
         {/* Accounts grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="md:col-span-2">
             <AccountBadge
               primary
@@ -618,7 +611,10 @@ function DashboardPage() {
             ]}
           />
           <div className="hidden lg:block lg:col-span-1">
-            <NetWorthChart />
+            <NetWorthChart 
+              transactions={transactions} 
+              currencySymbol={currencySymbol} 
+            />
           </div>
         </div>
 
@@ -627,11 +623,11 @@ function DashboardPage() {
           <h2 className="text-lg font-light tracking-tight text-foreground/90">Recent transactions</h2>
         </div>
 
-        {/* Transactions */}
+        {/* Transactions list */}
         <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-5 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex flex-wrap gap-2">
-              {filters.map((f, i) => (
+              {filters.map((f) => (
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
@@ -669,7 +665,7 @@ function DashboardPage() {
                         {t.type === 'transfer' ? 'P2P' : t.type.substring(0, 3)}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.avatarUrl} />
+                        <AvatarImage src={details.avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>

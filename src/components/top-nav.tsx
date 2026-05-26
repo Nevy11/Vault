@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { Link } from "@tanstack/react-router";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, User, Settings } from "lucide-react";
+import { Menu, X, LogOut, User, Settings, Bell, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
@@ -34,10 +34,22 @@ export function TopNav() {
   const [profile, setProfile] = useProfileSignal();
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  const location = useLocation();
+  const isLandingPage = location.pathname === "/";
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return { text: "Good morning", emoji: "🌅" };
+    if (hour >= 12 && hour < 17) return { text: "Good afternoon", emoji: "☀️" };
+    return { text: "Good evening", emoji: "🌙" };
+  }, []);
+
+  const userName = profile?.first_name || profile?.email?.split('@')[0] || "User";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -47,56 +59,89 @@ export function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl transition-all duration-300">
       <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-6">
-        <Logo />
+        <Logo to={isLandingPage ? "/" : "/dashboard"} />
 
-        <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-          {navLinks.map((link) => (
-            <a key={link.href} href={link.href} className="hover:text-foreground transition-colors">
-              {link.label}
-            </a>
-          ))}
-        </nav>
+        {/* Conditional Center Nav: Show Links on Landing Page only */}
+        {isLandingPage ? (
+          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
+            {navLinks.map((link) => (
+              <a key={link.href} href={link.href} className="hover:text-foreground transition-colors font-medium">
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        ) : (
+          <div className="hidden md:block flex-1" /> /* Spacer for non-landing pages */
+        )}
 
+        {/* Right Section */}
         <div className="flex items-center gap-2">
-          {mounted && !profile && (
-            <Link
-              to="/login"
-              className="hidden rounded-full px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex"
-            >
-              Sign In
-            </Link>
+          
+          {/* Conditional Greeting: Show on Internal App Pages if Logged In */}
+          {!isLandingPage && mounted && profile && (
+            <div className="hidden sm:flex items-center gap-4 mr-2 border-r border-border/60 pr-4">
+              <div className="text-right animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold leading-tight">
+                  {greeting.text}, {greeting.emoji}
+                </div>
+                <div className="text-sm font-semibold text-foreground leading-tight">
+                  {userName}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
+                  <Search size={16} className="group-hover:scale-110 transition-transform" />
+                </button>
+                <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
+                  <Bell size={16} className="group-hover:scale-110 transition-transform" />
+                  <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-destructive rounded-full border border-background shadow-sm animate-pulse" />
+                </button>
+              </div>
+            </div>
           )}
-          {mounted && !profile && (
-            <Button
-              asChild
-              size="sm"
-              className="h-9 bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Link to="/sign-up">Get Started</Link>
-            </Button>
+
+          {/* Landing Page Auth Buttons */}
+          {isLandingPage && mounted && !profile && (
+            <>
+              <Link
+                to="/login"
+                className="hidden rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex hover:bg-primary/5"
+              >
+                Sign In
+              </Link>
+              <Button
+                asChild
+                size="sm"
+                className="h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
+              >
+                <Link to="/sign-up">Get Started</Link>
+              </Button>
+            </>
           )}
+
+          {/* Profile Dropdown */}
           {mounted && profile && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="ml-2 rounded-full transition-opacity hover:opacity-75 focus:outline-none flex">
-                  <Avatar>
-                    <AvatarImage src={profile?.profile_photo_url || undefined} />
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                <button className="ml-2 rounded-full transition-all hover:ring-4 hover:ring-primary/10 focus:outline-none flex p-0.5 border border-primary/20 bg-primary/5">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-xs font-bold">
+                      {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 border-border/50 shadow-xl">
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1 py-1 px-1">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9 border border-border/40">
-                        <AvatarImage src={profile?.profile_photo_url || undefined} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                          {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                      <Avatar className="h-10 w-10 border border-border/40">
+                        <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                          {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col space-y-0.5 min-w-0">
@@ -104,28 +149,28 @@ export function TopNav() {
                           {profile?.first_name} {profile?.last_name}
                         </p>
                         <p className="text-xs leading-none text-muted-foreground truncate">
-                          Personal Account
+                          Vault User
                         </p>
                       </div>
                     </div>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-border/50" />
                 <DropdownMenuItem 
                   onSelect={() => setShowPhotoPreview(true)}
-                  className="cursor-pointer"
+                  className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
                 >
-                  <User className="w-4 h-4 mr-2" />
+                  <User className="w-4 h-4 mr-2 text-muted-foreground" />
                   View Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer">
-                    <Settings className="w-4 h-4 mr-2" />
+                  <Link to="/settings" className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5">
+                    <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+                <DropdownMenuSeparator className="bg-border/50" />
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-2.5">
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign out
                 </DropdownMenuItem>
@@ -189,14 +234,14 @@ export function TopNav() {
         </div>
       </div>
 
-      {open && (
-        <div className="border-t border-border/60 bg-background/95 md:hidden">
+      {open && isLandingPage && (
+        <div className="border-t border-border/60 bg-background/95 md:hidden animate-in slide-in-from-top-2 duration-200">
           <div className="mx-auto flex max-w-screen-2xl flex-col gap-1 px-4 py-3">
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="rounded-xl px-3 py-2 text-sm text-foreground hover:bg-accent/40 transition-colors"
+                className="rounded-xl px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/40 transition-colors"
                 onClick={() => setOpen(false)}
               >
                 {link.label}
@@ -205,10 +250,10 @@ export function TopNav() {
             {mounted && !profile && (
               <Link
                 to="/login"
-                className="rounded-xl px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/40 transition-colors"
+                className="rounded-xl px-3 py-2 text-sm font-bold text-primary hover:bg-primary/5 transition-colors mt-2"
                 onClick={() => setOpen(false)}
               >
-                Sign In
+                Sign In to Vault
               </Link>
             )}
           </div>
