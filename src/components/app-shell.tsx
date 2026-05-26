@@ -283,14 +283,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Advisor Drawer */}
       <Sheet open={isAdvisorOpen} onOpenChange={setIsAdvisorOpen}>
-        <SheetContent side="bottom" className="h-[85vh] w-[calc(100%-2rem)] max-w-[600px] left-1/2 -translate-x-1/2 bottom-4 p-0 bg-background/60 backdrop-blur-3xl border border-border/40 rounded-[32px] overflow-hidden shadow-2xl">
+        <SheetContent 
+          side="bottom" 
+          className="h-[85vh] md:h-[80vh] w-[98vw] md:w-[calc(100%-4rem)] max-w-[850px] left-1/2 -translate-x-1/2 bottom-2 md:bottom-6 p-0 bg-background/60 backdrop-blur-3xl border border-border/40 rounded-[24px] md:rounded-[32px] overflow-hidden shadow-2xl transition-all duration-300"
+        >
           <SheetHeader className="sr-only">
             <SheetTitle>Finance Advisor</SheetTitle>
             <SheetDescription>
               Your personal AI-powered financial strategist.
             </SheetDescription>
           </SheetHeader>
-          <div className="p-4 h-full">
+          <div className="p-3 md:p-4 h-full">
             <FinanceAdvisorContent isModal />
           </div>
         </SheetContent>
