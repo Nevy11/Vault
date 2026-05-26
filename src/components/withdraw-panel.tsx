@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Building2, 
   Smartphone, 
@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn, hashPin } from '@/lib/utils';
+import { cn, hashPin, calculateTransactionFee } from '@/lib/utils';
 import { supabase } from '@/api/supabase';
 import { 
   Dialog, 
@@ -61,7 +61,10 @@ const BANKS_LIST = [
 ];
 
 const EXCHANGE_RATE = 130.00;
-const PLATFORM_FEE = 1.50; // USD
+
+const calculateFee = (amount: number, currency: string) => {
+  return calculateTransactionFee(amount, currency);
+};
 
 type Channel = 'bank' | 'mobile';
 type WithdrawalStatus = 'idle' | 'confirming' | 'processing' | 'success';
@@ -75,6 +78,9 @@ export function WithdrawPanel() {
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<WithdrawalStatus>('idle');
   const [refCode, setRefCode] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const [selectedMobileId, setSelectedMobileId] = useState<string | null>('m1');
   const [newMobile, setNewMobile] = useState({ provider: "M-Pesa", phone: "" });
@@ -96,12 +102,16 @@ export function WithdrawPanel() {
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    return val * EXCHANGE_RATE;
-  }, [amount]);
+    return currency === 'KSH' ? val : val * EXCHANGE_RATE;
+  }, [amount, currency]);
+
+  const fee = useMemo(() => {
+    return calculateFee(parseFloat(amount || "0"), currency || 'USD');
+  }, [amount, currency]);
 
   const totalDeduction = useMemo(() => {
-    return parseFloat(amount || "0") + PLATFORM_FEE;
-  }, [amount]);
+    return parseFloat(amount || "0") + fee;
+  }, [amount, fee]);
 
   const handleWithdrawClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -109,8 +119,8 @@ export function WithdrawPanel() {
       return;
     }
 
-    if (balance !== null && parseFloat(amount) > balance) {
-      toast.error("Insufficient balance");
+    if (balance !== null && totalDeduction > balance) {
+      toast.error(`Insufficient balance. You need ${currency === 'KSH' ? 'KSH' : '$'}${totalDeduction.toFixed(2)} total (including fee).`);
       return;
     }
 
@@ -132,7 +142,6 @@ export function WithdrawPanel() {
     }
 
     try {
-      // Get User ID (either from profile signal or directly from auth)
       let userId = profile?.id;
       if (!userId) {
         const { data: { user } } = await supabase.auth.getUser();
@@ -143,7 +152,6 @@ export function WithdrawPanel() {
         throw new Error("User session not found. Please log in again.");
       }
 
-      // Verify Vault PIN
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("pin_hash")
@@ -170,9 +178,6 @@ export function WithdrawPanel() {
   const handleConfirmWithdraw = async () => {
     setStatus('processing');
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error("User not found");
 
@@ -198,8 +203,9 @@ export function WithdrawPanel() {
       
       setRefCode(`WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
       setStatus('success');
-      toast.success("Withdrawal request authorized successfully!");
+      toast.success("Withdrawal successful!");
     } catch (err) {
+      console.error("Withdrawal error:", err);
       toast.error(err instanceof Error ? err.message : "Failed to process withdrawal");
       setStatus('idle');
     }
@@ -229,11 +235,11 @@ export function WithdrawPanel() {
           </div>
           <div className="flex justify-between mb-3 text-sm">
             <span className="text-muted-foreground">Amount Withdrawn</span>
-            <span className="font-medium">${parseFloat(amount).toLocaleString()}</span>
+            <span className="font-medium">{currency === 'KSH' ? 'KSH' : '$'}{parseFloat(amount).toLocaleString()}</span>
           </div>
           <div className="flex justify-between mb-3 text-sm">
-            <span className="text-muted-foreground">KES Equivalent</span>
-            <span className="font-medium">KES {kesEquivalent.toLocaleString()}</span>
+            <span className="text-muted-foreground">Equivalent</span>
+            <span className="font-medium">{kesEquivalent.toLocaleString()}</span>
           </div>
           <div className="flex justify-between mb-3 text-sm">
             <span className="text-muted-foreground">Destination</span>
@@ -254,7 +260,6 @@ export function WithdrawPanel() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-      {/* LEFT PANEL: RECIPIENT SELECTION */}
       <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-light tracking-tight">
@@ -290,7 +295,6 @@ export function WithdrawPanel() {
         </div>
 
         <div className="min-h-[300px] animate-in slide-in-from-left-4 duration-500">
-          {/* Conditional Content */}
           {channel === 'bank' && (
             <div className="space-y-8">
               <div className="space-y-3">
@@ -445,7 +449,7 @@ export function WithdrawPanel() {
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-                Vault {loading ? "" : currency} Balance
+                Vault {mounted ? (currency || 'USD') : ''} Balance
               </Label>
               <LockIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
             </div>
@@ -463,14 +467,14 @@ export function WithdrawPanel() {
 
           <div className="space-y-4">
             <Label htmlFor="amount" className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-              Withdrawal Amount (USD)
+              Withdrawal Amount ({currency || 'USD'})
             </Label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-light">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-light">{currency === 'KSH' ? 'KSH' : '$'}</span>
               <Input 
                 id="amount"
                 type="number"
-                className="pl-10 h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20" 
+                className="pl-16 h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20" 
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -540,29 +544,15 @@ export function WithdrawPanel() {
               <div className="bg-card/60 border border-border/50 rounded-2xl p-5 space-y-4 backdrop-blur-sm">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">You are withdrawing</span>
-                  <span className="font-semibold text-foreground text-lg">${parseFloat(amount || "0").toLocaleString()}</span>
+                  <span className="font-semibold text-foreground text-lg">{currency === 'KSH' ? 'KSH' : '$'}{parseFloat(amount || "0").toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Recipient receives</span>
-                  <span className="font-semibold text-primary text-lg">KES {kesEquivalent.toLocaleString()}</span>
-                </div>
-                <div className="border-t border-border/40 pt-4 space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Destination</span>
-                    <span className="font-medium">{getRecipientName()}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Platform Fee</span>
-                    <span className="text-destructive font-medium">${PLATFORM_FEE.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Clearing Time</span>
-                    <span className="font-medium">{channel === 'mobile' ? 'Instant' : '1-3 Business Days'}</span>
-                  </div>
+                  <span className="text-muted-foreground">Platform Fee</span>
+                  <span className="text-destructive font-medium">{currency === 'KSH' ? 'KSH ' : '$'}{fee.toLocaleString()}</span>
                 </div>
                 <div className="border-t border-primary/20 pt-4 flex justify-between items-center">
                   <span className="text-sm font-medium">Total Deduction</span>
-                  <span className="text-xl font-mono text-primary font-bold">${totalDeduction.toLocaleString()}</span>
+                  <span className="text-xl font-mono text-primary font-bold">{currency === 'KSH' ? 'KSH' : '$'}{totalDeduction.toLocaleString()}</span>
                 </div>
               </div>
             </div>

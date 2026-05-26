@@ -21,12 +21,19 @@ class ProfileSignal {
   private subscribers: Set<() => void> = new Set();
 
   constructor() {
-    // Try to hydrate from localStorage on initialization
+    // Initial value is always null for hydration safety
+  }
+
+  // Allow manual hydration from outside (e.g. in a useEffect)
+  hydrate() {
     if (typeof window !== "undefined") {
       const cached = localStorage.getItem(PROFILE_CACHE_KEY);
       if (cached) {
         try {
-          this.value = JSON.parse(cached);
+          const parsed = JSON.parse(cached);
+          if (parsed && !this.value) {
+            this.set(parsed);
+          }
         } catch (e) {
           console.error("Failed to parse cached profile", e);
         }

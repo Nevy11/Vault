@@ -35,3 +35,32 @@ export function getCurrencyForNationality(nationality?: string | null): string {
   if (norm.includes("kenya") || norm.includes("kenyan")) return "KSH";
   return "USD";
 }
+
+export function calculateTransactionFee(amount: number, currency: string): number {
+  if (currency === "KSH") {
+    // M-Pesa Withdrawal from Agent Rates
+    if (amount < 1) return 0;
+    if (amount <= 100) return 10;
+    if (amount <= 500) return 27;
+    if (amount <= 1000) return 28;
+    if (amount <= 1500) return 34;
+    if (amount <= 2500) return 34;
+    if (amount <= 3500) return 49;
+    if (amount <= 5000) return 67;
+    if (amount <= 7500) return 82;
+    if (amount <= 10000) return 110;
+    if (amount <= 15000) return 159;
+    if (amount <= 20000) return 176;
+    if (amount <= 35000) return 187;
+    if (amount <= 50000) return 270;
+    return 300; // Cap for standard mobile withdrawals
+  }
+
+  // USD Tiered Rates
+  if (amount <= 0) return 0;
+  if (amount <= 10) return 0.5;
+  if (amount <= 50) return 1.0;
+  if (amount <= 100) return 2.0;
+  if (amount <= 500) return 5.0;
+  return amount * 0.01; // 1% for larger amounts
+}

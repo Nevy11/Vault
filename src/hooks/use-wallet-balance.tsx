@@ -128,13 +128,9 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         return;
       }
 
-      // We'll use the currency defined in the wallet record itself as the primary
-      // instead of trying to resolve it from logs every time.
       const nativeCurrency = walletData.currency || 'USD';
       const nativeAmount = Number(walletData.balance ?? 0);
       
-      // Determine if we should show a secondary balance (e.g. KES for USD wallets or vice-versa)
-      // For now, we'll assume the native wallet currency is what the user wants to see primary.
       setDisplayBalance(nativeAmount);
       setDisplayCurrency(nativeCurrency);
 
@@ -167,13 +163,12 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
-        .eq('user_id', currentUserId)
+        .eq("user_id", currentUserId)
         .maybeSingle();
 
       if (fetchError) {
         setError(fetchError.message);
       } else if (!data) {
-        // Only create if it definitely doesn't exist and we aren't in a loop
         const { data: newWallet, error: createError } = await supabase
           .from('wallets')
           .insert([
@@ -197,7 +192,6 @@ export function useWalletBalance(): UseWalletBalanceReturn {
           await computeBalances(newWallet, currentUserId);
         }
       } else {
-        // Update local state only if data actually changed
         const prev = walletRef.current;
         const changed = !prev || prev.id !== data.id || prev.balance !== data.balance || prev.currency !== data.currency;
         
@@ -219,6 +213,16 @@ export function useWalletBalance(): UseWalletBalanceReturn {
   }, [computeBalances, profile?.id]);
 
   useEffect(() => {
+    // 1. Try loading from cache first (Safe after mount)
+    const cached = getCachedWallet();
+    if (cached) {
+      setWallet(cached);
+      walletRef.current = cached;
+      setDisplayBalance(cached.balance);
+      setDisplayCurrency(cached.currency);
+      setLoading(false);
+    }
+    // 2. Then fetch fresh data
     fetchWallet();
   }, [fetchWallet]);
 
@@ -236,7 +240,6 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         channelRef.current = null;
       }
 
-      // Use a unique suffix to prevent channel name collisions
       const uniqueSuffix = Math.random().toString(36).substring(7);
       channel = supabase
         .channel(`wallet-balance-updates-${profile.id}-${uniqueSuffix}`)
@@ -252,14 +255,6 @@ export function useWalletBalance(): UseWalletBalanceReturn {
             if (!mounted) return;
             console.log("Real-time wallet update detected, refetching...");
             await fetchWallet(true);
-          },
-        )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'balances', filter: `user_id=eq.${profile.id}` },
-          async () => {
-            if (!mounted) return;
-            await fetchWallet();
           },
         )
         .subscribe((status: string) => {
@@ -308,9 +303,8 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         const updatedWallet = { ...wallet, balance: newBalance, updated_at: new Date().toISOString() };
         setWallet(updatedWallet);
         walletRef.current = updatedWallet;
-        const userId = await getUserId();
-        if (userId) {
-          await computeBalances(updatedWallet, userId);
+        if (profile?.id) {
+          await computeBalances(updatedWallet, profile.id);
         }
       }
     } catch (err) {
