@@ -47,16 +47,39 @@ type UseWalletBalanceReturn = {
 
 export function useWalletBalance(): UseWalletBalanceReturn {
   const [profile] = useProfileSignal();
-  const [wallet, setWallet] = useState<WalletBalance>(getCachedWallet());
-  const walletRef = useRef<WalletBalance>(wallet);
-  const [displayBalance, setDisplayBalance] = useState<number | null>(wallet?.balance ?? null);
-  const [displayCurrency, setDisplayCurrency] = useState(wallet?.currency ?? 'USD');
+  const [wallet, setWallet] = useState<WalletBalance>(null);
+  const walletRef = useRef<WalletBalance>(null);
+  const [displayBalance, setDisplayBalance] = useState<number | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState('USD');
   const [secondaryBalance, setSecondaryBalance] = useState<BalanceBreakdown | undefined>(undefined);
-  const [loading, setLoading] = useState(!wallet);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const channelRef = useRef<any>(null);
+
+  // Initialize from cache on mount to avoid hydration mismatch
+  useEffect(() => {
+    const cached = getCachedWallet();
+    if (cached) {
+      setWallet(cached);
+      walletRef.current = cached;
+      setDisplayBalance(cached.balance);
+      setDisplayCurrency(cached.currency);
+      setLoading(false);
+      
+      const alternateCurrency = cached.currency === 'USD' ? 'KSH' : 'USD';
+      const alternateAmount = cached.currency === 'USD'
+        ? cached.balance * KES_USD_RATE
+        : cached.balance / KES_USD_RATE;
+
+      setSecondaryBalance({
+        amount: Number(alternateAmount.toFixed(2)),
+        currency: alternateCurrency,
+        label: alternateCurrency === 'USD' ? 'USD equivalent' : 'KES equivalent',
+      });
+    }
+  }, []);
 
   const resolvePreferredCurrency = useCallback(
     async (userId: string) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
 
 export type Profile = {
   id?: string;
@@ -18,7 +18,7 @@ const PROFILE_CACHE_KEY = "vault_profile_cache";
 
 class ProfileSignal {
   private value: Profile = null;
-  private subscribers: Set<(value: Profile) => void> = new Set();
+  private subscribers: Set<() => void> = new Set();
 
   constructor() {
     // Try to hydrate from localStorage on initialization
@@ -43,32 +43,35 @@ class ProfileSignal {
         localStorage.removeItem(PROFILE_CACHE_KEY);
       }
     }
-    this.subscribers.forEach((callback) => callback(newValue));
+    this.notify();
   }
 
   get() {
     return this.value;
   }
 
-  subscribe(callback: (value: Profile) => void) {
+  private notify() {
+    this.subscribers.forEach((callback) => callback());
+  }
+
+  subscribe = (callback: () => void) => {
     this.subscribers.add(callback);
     return () => this.subscribers.delete(callback);
-  }
+  };
+
+  getSnapshot = () => {
+    return this.value;
+  };
 }
 
 export const profileSignal = new ProfileSignal();
 
 export function useProfileSignal() {
-  const [profile, setProfile] = useState<Profile>(profileSignal.get());
-
-  useEffect(() => {
-    const unsubscribe = profileSignal.subscribe((newProfile) => {
-      setProfile(newProfile);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  const profile = useSyncExternalStore(
+    profileSignal.subscribe,
+    profileSignal.getSnapshot,
+    profileSignal.getSnapshot // Server snapshot
+  );
 
   const setter = useCallback((newValue: Profile) => {
     profileSignal.set(newValue);
