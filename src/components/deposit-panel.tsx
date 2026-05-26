@@ -247,6 +247,7 @@ export function DepositPanel() {
 
       // Record pending transaction
       await supabase.from("transactions").insert({
+        sender_id: userId,
         receiver_id: userId,
         type: "deposit",
         method: channel === 'mobile' ? 'mpesa' : (selectedSourceId === 'stripe-ach' ? 'bank' : 'bank'),

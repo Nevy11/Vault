@@ -51,21 +51,53 @@ export function useTransactions(enabled = true) {
         return;
       }
 
-      const { data, error: fetchError } = await supabase
-        .from('transactions')
-        .select(`
-          *,
-          sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
-          receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
-        `)
-        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-        .order('created_at', { ascending: false });
+      // Fetch both simultaneously
+      const [
+        { data: transactionsData, error: transactionsError },
+        { data: ledgerData, error: ledgerError }
+      ] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select(`
+            *,
+            sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
+            receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
+          `)
+          .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`),
+        supabase
+          .from('ledger_entries')
+          .select('*')
+          .eq('user_id', userId)
+      ]);
 
-      if (fetchError) {
-        setError(fetchError.message);
-      } else {
-        setTransactions(data || []);
-      }
+      if (transactionsError) throw transactionsError;
+      if (ledgerError) throw ledgerError;
+
+      // Map and merge
+      const mappedTransactions = (transactionsData || []).map(t => ({
+        ...t,
+        source: 'transactions' as const
+      }));
+
+      const mappedLedger = (ledgerData || []).map(l => ({
+        id: l.id,
+        sender_id: userId,
+        receiver_id: null,
+        type: (l.type === 'deposit' || l.type === 'withdrawal') ? l.type : 'transfer',
+        method: 'vault' as const,
+        amount: Math.abs(Number(l.amount)),
+        status: l.status === 'completed' ? 'completed' : 'pending',
+        description: l.description || '',
+        created_at: l.created_at,
+        balance_after: null,
+        source: 'ledger' as const
+      }));
+
+      const merged = [...mappedTransactions, ...mappedLedger].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setTransactions(merged as any);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -90,11 +122,14 @@ export function useTransactions(enabled = true) {
         { 
           event: '*', 
           schema: 'public', 
-          table: 'transactions',
-          filter: `or(sender_id.eq.${userId},receiver_id.eq.${userId})`
+          table: 'transactions'
         }, 
-        () => {
-          fetchTransactions();
+        (payload) => {
+          // Manually check if the updated transaction involves the current user
+          const record = payload.new || payload.old;
+          if (record && (record.sender_id === userId || record.receiver_id === userId)) {
+            fetchTransactions();
+          }
         }
       )
       .subscribe();

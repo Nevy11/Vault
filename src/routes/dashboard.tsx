@@ -343,13 +343,16 @@ function DashboardPage() {
 
   const filteredTransactions = useMemo(() => {
     if (activeFilter === "All") return transactions;
-    if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
-    if (activeFilter === "Received") return transactions.filter(t => 
+    const filter = activeFilter.toLowerCase();
+    
+    if (filter === "send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
+    if (filter === "received") return transactions.filter(t => 
       (t.type === 'transfer' && t.receiver_id === (profile as any)?.id) || 
       t.type === 'deposit'
     );
-    if (activeFilter === "Deposit") return transactions.filter(t => t.type === 'deposit');
-    if (activeFilter === "Withdraw") return transactions.filter(t => t.type === 'withdrawal');
+    if (filter === "deposit") return transactions.filter(t => t.type === 'deposit');
+    if (filter === "withdraw") return transactions.filter(t => t.type === 'withdrawal');
+    
     return transactions;
   }, [transactions, activeFilter, profile]);
 
@@ -359,29 +362,30 @@ function DashboardPage() {
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
       : (profile?.email?.split('@')[0] || "Vault User");
     const symbol = currency === 'USD' ? '$' : currency + ' ';
+    const isLedger = t.source === 'ledger';
 
     if (t.type === 'transfer') {
       if (isSender) {
         return {
-          title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
+          title: `Transfer to ${t.receiver?.first_name || 'User'}`,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: t.receiver?.first_name?.[0] || 'V',
+          icon: t.receiver?.first_name?.[0] || 'T',
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
         return {
-          title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
+          title: `Received from ${t.sender?.first_name || 'User'}`,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || 'V',
+          icon: t.sender?.first_name?.[0] || 'R',
           avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
     } else if (t.type === 'deposit') {
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const bankName = isLedger ? 'Wallet Deposit' : (t.method || 'Deposit').toString();
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: `${bankName} to ${userName}`,
@@ -392,12 +396,13 @@ function DashboardPage() {
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const bankName = isLedger ? 'Wallet Withdrawal' : (t.method || 'Withdrawal').toString();
+      const initials = bankName.substring(0, 2).toUpperCase();
       return {
-        title: `Withdrawal to ${bankName}`,
+        title: `${bankName} to ${userName}`,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: bankName.substring(0, 2).toUpperCase(),
+        icon: initials,
         avatarUrl: null,
         color: "bg-destructive/20 text-destructive",
       };
