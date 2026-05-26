@@ -62,7 +62,7 @@ BEGIN
     SET balance = balance - p_amount,
         updated_at = NOW()
     WHERE user_id = p_sender_id;
-    
+
     -- Update recipient balance
     INSERT INTO public.wallets (user_id, balance, currency)
     VALUES (v_recipient_id, p_amount, 'USD')
@@ -79,7 +79,8 @@ BEGIN
         method, 
         amount, 
         status, 
-        description
+        description,
+        balance_after
     )
     VALUES (
         p_sender_id, 
@@ -88,7 +89,8 @@ BEGIN
         'vault'::transaction_method, 
         p_amount, 
         'completed'::transaction_status,
-        'Vault Transfer Ref: ' || v_reference
+        'Vault Transfer Ref: ' || v_reference,
+        (v_sender_balance - p_amount)
     );
     
     RETURN QUERY SELECT true, 'Transfer successful'::TEXT, (v_sender_balance - p_amount), v_reference;

@@ -386,6 +386,19 @@ function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
+  const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBalanceHistory = async () => {
+      if (!profile?.id) return;
+      const { data } = await supabase
+        .from('balance_history')
+        .select('*')
+        .order('recorded_at', { ascending: false });
+      setBalanceHistory(data || []);
+    };
+    fetchBalanceHistory();
+  }, [profile?.id, transactions]); // Refetch when transactions change
 
   const frequentRecipients = useMemo(() => {
     const seenIds = new Set();
@@ -669,7 +682,7 @@ function DashboardPage() {
           </div>
 
           <ul className="divide-y divide-border/40">
-            {txLoading ? (
+            {txLoading || ledgerLoading ? (
               <div className="py-8 flex justify-center">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
@@ -680,6 +693,11 @@ function DashboardPage() {
             ) : (
               filteredTransactions.map((t) => {
                 const details = getTransactionDetails(t);
+                
+                // Trust the balance_after provided by the useTransactions hook
+                // This value is already the 'Ultimate Truth' (combined DB snapshots + anchored calculation)
+                const displayBalance = t.balance_after || balance || 0;
+
                 return (
                   <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
                     <div className="flex items-center gap-4">
@@ -706,7 +724,7 @@ function DashboardPage() {
                         {details.amount}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Balance: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                        Balance: {currencySymbol}{displayBalance.toLocaleString()}
                       </div>
                     </div>
                   </li>
