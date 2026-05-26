@@ -30,10 +30,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 
 import { Logo } from "@/components/logo";
+import { FinanceAdvisorContent } from "./finance-advisor-content";
 
-const navItems = [
+const sidebarNavItems = [
   {
     label: "Dashboard",
     to: "/dashboard",
@@ -41,10 +49,10 @@ const navItems = [
     isActive: (path: string) => path === "/dashboard",
   },
   {
-    label: "Advisor",
-    to: "/finance-advisor",
-    icon: MessageCircle,
-    isActive: (path: string) => path.startsWith("/finance-advisor"),
+    label: "Savings & Loans",
+    to: "/finance-hub",
+    icon: Landmark,
+    isActive: (path: string) => path.startsWith("/finance-hub") || path.startsWith("/savings") || path.startsWith("/loans"),
   },
   {
     label: "Transact",
@@ -53,10 +61,37 @@ const navItems = [
     isActive: (path: string) => path.startsWith("/transactions"),
   },
   {
+    label: "Settings",
+    to: "/settings",
+    icon: Settings,
+    isActive: (path: string) => path.startsWith("/settings"),
+  },
+  {
+    label: "Help",
+    to: "/help",
+    icon: HelpCircle,
+    isActive: (path: string) => path.startsWith("/help"),
+  },
+];
+
+const mobileNavItems = [
+  {
+    label: "Dashboard",
+    to: "/dashboard",
+    icon: Home,
+    isActive: (path: string) => path === "/dashboard",
+  },
+  {
     label: "Savings & Loans",
     to: "/finance-hub",
     icon: Landmark,
     isActive: (path: string) => path.startsWith("/finance-hub") || path.startsWith("/savings") || path.startsWith("/loans"),
+  },
+  {
+    label: "Transact",
+    to: "/transactions",
+    icon: Send,
+    isActive: (path: string) => path.startsWith("/transactions"),
   },
   {
     label: "Settings",
@@ -78,6 +113,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const currentPath = location.pathname;
   const [profile, setProfile] = useProfileSignal();
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
+  const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -99,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="p-4">
           <ul className="space-y-1">
-            {navItems.map(({ label, to, icon: Icon, isActive }) => (
+            {sidebarNavItems.map(({ label, to, icon: Icon, isActive }) => (
               <li key={to}>
                 <Link
                   to={to}
@@ -126,6 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <div className="md:ml-64 pb-28 pt-16 md:pb-0">
+        {/* ... header ... */}
         <header className="fixed top-0 left-0 right-0 md:left-64 z-40 border-b border-border/40 bg-background/80 backdrop-blur-md">
           <div className="max-w-screen-2xl mx-auto w-full px-4 sm:px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -239,17 +276,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-
         <main className="max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in duration-500">
           {children}
         </main>
+      </div>
+
+      {/* Advisor Drawer */}
+      <Sheet open={isAdvisorOpen} onOpenChange={setIsAdvisorOpen}>
+        <SheetContent side="bottom" className="h-[85vh] w-[calc(100%-2rem)] max-w-[600px] left-1/2 -translate-x-1/2 bottom-4 p-0 bg-background/60 backdrop-blur-3xl border border-border/40 rounded-[32px] overflow-hidden shadow-2xl">
+          <SheetHeader className="sr-only">
+            <SheetTitle>Finance Advisor</SheetTitle>
+            <SheetDescription>
+              Your personal AI-powered financial strategist.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="p-4 h-full">
+            <FinanceAdvisorContent isModal />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Advisor FAB */}
+      <div className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-50">
+        <button
+          onClick={() => setIsAdvisorOpen(true)}
+          className={`flex items-center justify-center bg-primary text-primary-foreground shadow-2xl rounded-full h-14 w-14 md:h-16 md:w-16 transition-transform hover:scale-110 active:scale-95 ${
+            isAdvisorOpen ? "ring-4 ring-primary ring-offset-4 ring-offset-background" : ""
+          }`}
+        >
+          <MessageCircle className="h-6 w-6 md:h-8 md:w-8" />
+        </button>
       </div>
 
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">
         <nav>
           <ul className="flex justify-around items-center">
-            {navItems.map(({ label, to, icon: Icon, isActive }) => {
+            {mobileNavItems.map(({ label, to, icon: Icon, isActive }) => {
               const active = isActive(currentPath);
               const isTransact = label === "Transact";
               
