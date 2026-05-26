@@ -16,6 +16,8 @@ import {
   Upload,
   LogOut,
   Loader2,
+  X,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -132,13 +141,14 @@ function ToggleRow({
   );
 }
 
-function ActivityLogDrawer({ logs, children }: { logs: any[], children: React.ReactNode }) {
+function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.ReactNode }) {
   return (
     <Sheet>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0">
+      <SheetTrigger asChild>{children}</SheetTrigger>
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0"
+      >
         <SheetHeader className="p-8 border-b border-border/20">
           <SheetTitle className="font-serif text-2xl">Session History</SheetTitle>
           <SheetDescription className="text-muted-foreground">
@@ -150,23 +160,33 @@ function ActivityLogDrawer({ logs, children }: { logs: any[], children: React.Re
             <div className="relative border-l border-border/40 ml-2 pl-6 space-y-8">
               {logs.map((log) => (
                 <div key={log.id} className="relative">
-                  <div className={`absolute -left-[31px] top-0 h-2 w-2 rounded-full border-2 border-card ${
-                    log.is_suspicious ? 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-primary'
-                  }`} />
+                  <div
+                    className={`absolute -left-[31px] top-0 h-2 w-2 rounded-full border-2 border-card ${
+                      log.is_suspicious
+                        ? "bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]"
+                        : "bg-primary"
+                    }`}
+                  />
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-foreground capitalize">
-                        {log.action_type.replace('_', ' ')}
+                        {log.action_type.replace("_", " ")}
                       </span>
                       <span className="text-[10px] text-muted-foreground bg-input/50 px-2 py-0.5 rounded-full">
-                        {log.location || 'Unknown'}
+                        {log.location || "Unknown"}
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground leading-relaxed">
-                      Successfully authenticated via <span className="text-foreground/80">{log.device_info || 'Unknown Device'}</span>
+                      Successfully authenticated via{" "}
+                      <span className="text-foreground/80">
+                        {log.device_info || "Unknown Device"}
+                      </span>
                     </div>
                     <div className="text-[10px] text-muted-foreground/60 mt-1">
-                      {new Date(log.created_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
+                      {new Date(log.created_at).toLocaleString([], {
+                        dateStyle: "full",
+                        timeStyle: "short",
+                      })}
                     </div>
                     {log.is_suspicious && (
                       <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20 text-[10px] text-destructive flex items-center gap-2">
@@ -203,6 +223,13 @@ function SettingsPage() {
   const [devices, setDevices] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // New UI states
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Local state for name to make input controlled and smooth
   const [fullName, setFullName] = useState("");
@@ -218,7 +245,9 @@ function SettingsPage() {
 
   async function fetchDevices() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -238,7 +267,9 @@ function SettingsPage() {
 
   async function fetchLogs() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -259,7 +290,9 @@ function SettingsPage() {
   async function handleSave() {
     try {
       setSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
       const nameParts = fullName.trim().split(/\s+/);
@@ -279,7 +312,7 @@ function SettingsPage() {
       const usedTags = new Set(
         (existingTags || [])
           .map((row: any) => row.kyc_tag)
-          .filter((tag: any): tag is string => Boolean(tag))
+          .filter((tag: any): tag is string => Boolean(tag)),
       );
 
       let kycTag = baseKycTag;
@@ -300,14 +333,16 @@ function SettingsPage() {
         updates.kyc_tag = kycTag;
       }
 
-      const { error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", user.id);
+      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, first_name: firstName, last_name: lastName, kyc_tag: profile?.kyc_tag || kycTag });
+      setProfile({
+        ...profile,
+        first_name: firstName,
+        last_name: lastName,
+        kyc_tag: profile?.kyc_tag || kycTag,
+      });
       toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error(error.message || "Error updating profile");
@@ -316,15 +351,51 @@ function SettingsPage() {
     }
   }
 
-  async function uploadAvatar(event: React.ChangeEvent<HTMLInputElement>) {
+  async function startCamera() {
+    try {
+      setShowPhotoOptions(false);
+      setShowCamera(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Camera error:", err);
+      toast.error("Unable to access camera. Please check permissions.");
+      setShowCamera(false);
+    }
+  }
+
+  function stopCamera() {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setShowCamera(false);
+  }
+
+  async function capturePhoto() {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(video, 0, 0);
+      
+      canvas.toBlob(async (blob) => {
+        if (blob) {
+          const file = new File([blob], `avatar-${Date.now()}.jpg`, { type: 'image/jpeg' });
+          await handleImageUpload(file);
+          stopCamera();
+        }
+      }, 'image/jpeg', 0.8);
+    }
+  }
+
+  async function handleImageUpload(file: File) {
     try {
       setUploading(true);
-
-      if (!event.target.files || event.target.files.length === 0) {
-        throw new Error("You must select an image to upload.");
-      }
-
-      const file = event.target.files[0];
       const fileExt = file.name.split(".").pop();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
@@ -360,10 +431,18 @@ function SettingsPage() {
     }
   }
 
+  async function uploadAvatar(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!event.target.files || event.target.files.length === 0) return;
+    await handleImageUpload(event.target.files[0]);
+    setShowPhotoOptions(false);
+  }
+
   async function removeAvatar() {
     try {
       setUploading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
       const { error } = await supabase
@@ -409,68 +488,167 @@ function SettingsPage() {
           <SectionCard icon={User} title="Account Profile & KYC">
             <Row label="Profile Picture">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                <div className="relative">
-                  <Avatar className="w-16 h-16 rounded-full border-2 border-border/40">
-                    <AvatarImage src={profile?.profile_photo_url ?? undefined} alt="Profile" />
-                    <AvatarFallback className="bg-muted text-muted-foreground">
-                      {profile?.first_name?.[0] || <User className="w-8 h-8" />}
-                    </AvatarFallback>
-                  </Avatar>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50"
+                <div className="relative group/avatar">
+                  <button
+                    onClick={() => profile?.profile_photo_url && setShowViewModal(true)}
+                    className="relative block rounded-full border-2 border-border/40 overflow-hidden hover:border-primary/60 transition-all active:scale-95"
+                    title={profile?.profile_photo_url ? "View photo" : "No photo set"}
                   >
-                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                    <Avatar className="w-16 h-16 rounded-full">
+                      <AvatarImage src={profile?.profile_photo_url ?? undefined} alt="Profile" />
+                      <AvatarFallback className="bg-muted text-muted-foreground">
+                        {profile?.first_name?.[0] || <User className="w-8 h-8" />}
+                      </AvatarFallback>
+                    </Avatar>
+                    {profile?.profile_photo_url && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity">
+                        <Search className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={uploadAvatar}
-                    accept="image/*"
-                    className="hidden"
-                  />
+
+                  <button
+                    onClick={() => setShowPhotoOptions(true)}
+                    disabled={uploading}
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-md border border-background z-10"
+                    title="Update photo"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Camera className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {profile?.profile_photo_url && (
+                    <button
+                      onClick={removeAvatar}
+                      disabled={uploading}
+                      className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90 transition-colors shadow-md border border-background z-10"
+                      title="Remove photo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
+
                 <div className="flex flex-col gap-2">
                   <div className="text-sm text-muted-foreground">
                     Upload a profile picture to personalize your account
                   </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="gap-2"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploading}
-                    >
-                      <Upload className="w-4 h-4" />
-                      Upload Photo
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={removeAvatar}
-                      disabled={uploading || !profile?.profile_photo_url}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    JPG, PNG or GIF. Max size 5MB.
-                  </div>
+                  <div className="text-xs text-muted-foreground">JPG, PNG or GIF. Max 5MB.</div>
                 </div>
               </div>
             </Row>
+
+            {/* Modals for Profile Picture */}
+            <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+              <DialogContent className="max-w-md bg-card/95 backdrop-blur-xl border-border/40 p-0 overflow-hidden">
+                <div className="relative aspect-square w-full">
+                  <img
+                    src={profile?.profile_photo_url || ""}
+                    alt="Profile"
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    onClick={() => setShowViewModal(false)}
+                    className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="p-6 text-center">
+                  <h3 className="text-lg font-medium">
+                    {profile?.first_name} {profile?.last_name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">Full Ledger-Verified Identity</p>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showPhotoOptions} onOpenChange={setShowPhotoOptions}>
+              <DialogContent className="sm:max-w-sm bg-card/95 backdrop-blur-xl border-border/40">
+                <DialogHeader>
+                  <DialogTitle>Update Profile Photo</DialogTitle>
+                  <DialogDescription>Choose how you'd like to update your avatar.</DialogDescription>
+                </DialogHeader>
+                <div className="grid grid-cols-1 gap-3 py-4">
+                  <Button
+                    variant="outline"
+                    className="h-14 justify-start gap-4 rounded-xl border-border/40 hover:bg-primary/5 hover:border-primary/40 transition-all"
+                    onClick={startCamera}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Camera className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium">Take Photo</div>
+                      <div className="text-[10px] text-muted-foreground">Use your device camera</div>
+                    </div>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-14 justify-start gap-4 rounded-xl border-border/40 hover:bg-primary/5 hover:border-primary/40 transition-all"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-medium">Browse Gallery</div>
+                      <div className="text-[10px] text-muted-foreground">Select from your files</div>
+                    </div>
+                  </Button>
+                </div>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={uploadAvatar}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCamera} onOpenChange={(open) => !open && stopCamera()}>
+              <DialogContent className="sm:max-w-md bg-black border-white/10 p-0 overflow-hidden">
+                <div className="relative aspect-square bg-black">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    className="h-full w-full object-cover scale-x-[-1]"
+                  />
+                  <div className="absolute inset-0 border-[2px] border-white/20 rounded-full m-8 pointer-events-none" />
+                </div>
+                <div className="p-6 bg-card flex items-center justify-between gap-4">
+                  <Button variant="ghost" onClick={stopCamera} className="text-muted-foreground">
+                    Cancel
+                  </Button>
+                  <button
+                    onClick={capturePhoto}
+                    className="h-16 w-16 rounded-full border-4 border-primary/20 p-1 hover:scale-105 transition-transform"
+                  >
+                    <div className="h-full w-full rounded-full bg-primary flex items-center justify-center text-white shadow-lg">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                  </button>
+                  <div className="w-20" /> {/* Spacer */}
+                </div>
+                <canvas ref={canvasRef} className="hidden" />
+              </DialogContent>
+            </Dialog>
             <Row label="Verification Status">
               <div className="flex flex-wrap items-center gap-3">
-                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
-                  profile?.kyc_status === 'verified' 
-                    ? 'border-primary/40 bg-primary/10 text-primary'
-                    : 'border-amber-500/40 bg-amber-500/10 text-amber-500'
-                }`}>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
+                    profile?.kyc_status === "verified"
+                      ? "border-primary/40 bg-primary/10 text-primary"
+                      : "border-amber-500/40 bg-amber-500/10 text-amber-500"
+                  }`}
+                >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  {profile?.kyc_status === 'verified' ? 'Verified · Level 2' : 'Unverified'}
+                  {profile?.kyc_status === "verified" ? "Verified · Level 2" : "Unverified"}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
                   <Info className="h-3.5 w-3.5" />
@@ -479,27 +657,38 @@ function SettingsPage() {
               </div>
             </Row>
             <Row label="Full Name">
-              <Input 
+              <Input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
-                className="bg-input/40 border-border/60 h-11" 
+                className="bg-input/40 border-border/60 h-11"
               />
             </Row>
             <Row label="Email Address">
-              <Input 
-                value={profile?.email || ""} 
+              <Input
+                value={profile?.email || ""}
                 disabled
-                className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed" 
+                className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed"
               />
             </Row>
             <Row label="KYC Tag">
-              <Input 
-                value={profile?.kyc_tag || ""} 
+              <Input
+                value={profile?.kyc_tag || ""}
                 disabled
-                className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed font-mono text-sm" 
+                className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed font-mono text-sm"
               />
             </Row>
+
+            <div className="pt-6 border-t border-border/40 flex justify-end">
+              <Button
+                className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 rounded-xl h-11 transition-all active:scale-95"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Save Profile Changes
+              </Button>
+            </div>
           </SectionCard>
 
           {/* Security Center */}
@@ -547,9 +736,15 @@ function SettingsPage() {
                             <Smartphone className="h-4 w-4" />
                           </div>
                           <div>
-                            <div className="text-xs font-medium text-foreground">{device.device_name}</div>
+                            <div className="text-xs font-medium text-foreground">
+                              {device.device_name}
+                            </div>
                             <div className="text-[10px] text-muted-foreground">
-                              Last login: {new Date(device.last_login).toLocaleDateString()} at {new Date(device.last_login).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              Last login: {new Date(device.last_login).toLocaleDateString()} at{" "}
+                              {new Date(device.last_login).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </div>
                           </div>
                         </div>
@@ -557,7 +752,9 @@ function SettingsPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-muted-foreground italic">No authorized devices detected.</div>
+                    <div className="text-xs text-muted-foreground italic">
+                      No authorized devices detected.
+                    </div>
                   )}
                 </div>
               </div>
@@ -574,18 +771,22 @@ function SettingsPage() {
                     <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   </button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0">
+                <SheetContent
+                  side="right"
+                  className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0"
+                >
                   <SheetHeader className="p-8 border-b border-border/20">
                     <SheetTitle className="font-serif text-2xl">Device Management</SheetTitle>
                     <SheetDescription className="text-muted-foreground">
-                      Review and manage all devices currently authorized to access your Vault OS account.
+                      Review and manage all devices currently authorized to access your Vault OS
+                      account.
                     </SheetDescription>
                   </SheetHeader>
                   <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
                     {devices.length > 0 ? (
                       devices.map((device) => (
-                        <div 
-                          key={device.id} 
+                        <div
+                          key={device.id}
                           className="flex flex-col gap-3 p-4 rounded-xl border border-border/40 bg-input/10 hover:bg-input/20 transition-all group"
                         >
                           <div className="flex items-center justify-between">
@@ -594,8 +795,12 @@ function SettingsPage() {
                                 <Smartphone className="h-5 w-5" />
                               </div>
                               <div>
-                                <div className="text-sm font-medium text-foreground">{device.device_name}</div>
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-tight">Active Session</div>
+                                <div className="text-sm font-medium text-foreground">
+                                  {device.device_name}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground uppercase tracking-tight">
+                                  Active Session
+                                </div>
                               </div>
                             </div>
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-500">
@@ -603,26 +808,33 @@ function SettingsPage() {
                               Live
                             </span>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/10">
                             <div>
-                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">First Seen</div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+                                First Seen
+                              </div>
                               <div className="text-xs text-foreground/80">
                                 {new Date(device.created_at).toLocaleDateString()}
                               </div>
                             </div>
                             <div>
-                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">Last Activity</div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
+                                Last Activity
+                              </div>
                               <div className="text-xs text-foreground/80">
-                                {new Date(device.last_login).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                {new Date(device.last_login).toLocaleString([], {
+                                  dateStyle: "short",
+                                  timeStyle: "short",
+                                })}
                               </div>
                             </div>
                           </div>
 
                           <div className="pt-2 flex justify-end">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-8 text-[11px] text-destructive hover:text-white hover:bg-destructive transition-all"
                             >
                               Revoke Access
@@ -638,7 +850,8 @@ function SettingsPage() {
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-card to-transparent pt-10">
                     <p className="text-[10px] text-center text-muted-foreground leading-relaxed">
-                      Revoking a device will immediately sign it out and require a new secure PIN verification to re-authorize.
+                      Revoking a device will immediately sign it out and require a new secure PIN
+                      verification to re-authorize.
                     </p>
                   </div>
                 </SheetContent>
@@ -661,7 +874,7 @@ function SettingsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">Theme</label>
-                <select 
+                <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as any)}
                   className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
@@ -699,52 +912,41 @@ function SettingsPage() {
             <ul className="divide-y divide-border/40">
               {logs.length > 0 ? (
                 logs.slice(0, 4).map((item) => (
-                  <li key={item.id} className="flex items-center justify-between py-4 first:pt-0 last:pb-0">
+                  <li
+                    key={item.id}
+                    className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+                  >
                     <div>
                       <div className="text-sm text-foreground capitalize">
-                        {item.action_type.replace('_', ' ')}
-                        {item.device_info && <span className="text-muted-foreground/60 text-xs ml-2">via {item.device_info}</span>}
+                        {item.action_type.replace("_", " ")}
+                        {item.device_info && (
+                          <span className="text-muted-foreground/60 text-xs ml-2">
+                            via {item.device_info}
+                          </span>
+                        )}
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground/70">
-                        {new Date(item.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                        {new Date(item.created_at).toLocaleString([], {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
                       </div>
                     </div>
                   </li>
                 ))
               ) : (
-                <div className="py-4 text-sm text-muted-foreground italic">No recent activity recorded.</div>
+                <div className="py-4 text-sm text-muted-foreground italic">
+                  No recent activity recorded.
+                </div>
               )}
             </ul>
-            
+
             <ActivityLogDrawer logs={logs}>
               <button className="w-full text-center text-xs text-primary hover:text-primary/80 pt-4 transition-colors">
                 View full activity log →
               </button>
             </ActivityLogDrawer>
           </SectionCard>
-        </div>
-
-        {/* Footer actions */}
-        <div className="mt-12 lg:mt-16 flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-border/40">
-          <div className="text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-              Vault OS synced — all ledger records current
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" className="text-muted-foreground">
-              Discard
-            </Button>
-            <Button 
-              className="bg-primary text-primary-foreground hover:bg-primary/90 px-6"
-              onClick={handleSave}
-              disabled={saving}
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Apply & Save Changes
-            </Button>
-          </div>
         </div>
       </main>
     </AppShell>

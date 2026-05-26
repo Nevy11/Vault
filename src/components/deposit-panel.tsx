@@ -8,7 +8,7 @@ import {
   ArrowRight, 
   Loader2, 
   CheckCircle2,
-  Lock,
+  Lock as LockIcon,
   ChevronDown,
   Search,
   CreditCard,
@@ -40,6 +40,7 @@ import { Link } from '@tanstack/react-router';
 import { useProfileSignal } from '@/lib/profile-signal';
 import { supabase } from '@/api/supabase';
 import { hashPin } from '@/lib/utils';
+import { useWalletBalance } from '@/hooks/use-wallet-balance';
 
 import { StripePayment } from './stripe-payment';
 import { loadStripe } from '@stripe/stripe-js';
@@ -73,6 +74,7 @@ type DepositStatus = 'idle' | 'confirming' | 'processing' | 'success' | 'stripe_
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
+  const { currency, balance: walletBalance } = useWalletBalance();
   const [channel, setChannel] = useState<SourceChannel>('mobile');
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
@@ -83,6 +85,8 @@ export function DepositPanel() {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+
+  const currencySymbol = currency === 'USD' ? '$' : (currency === 'KSH' ? 'KES ' : currency + ' ');
 
   const SAVED_NUMBERS = useMemo(() => {
     console.log("DEBUG: Current profile object:", profile);
@@ -100,8 +104,15 @@ export function DepositPanel() {
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
+    if (currency === 'KSH') return val;
     return val * EXCHANGE_RATE;
-  }, [amount]);
+  }, [amount, currency]);
+
+  const usdEquivalent = useMemo(() => {
+    const val = parseFloat(amount || "0");
+    if (currency === 'USD') return val;
+    return val / EXCHANGE_RATE;
+  }, [amount, currency]);
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -141,18 +152,19 @@ export function DepositPanel() {
     if (channel === 'stripe') {
       setStatus('processing');
       try {
-        const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+        const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
           body: { amount: parseFloat(amount), user_id: userId },
         });
 
         if (error) throw error;
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.clientSecret) {
+          setStripeClientSecret(data.clientSecret);
+          setStatus('stripe_pay');
         } else {
-          throw new Error("No checkout URL returned");
+          throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe checkout: " + err.message);
+        toast.error("Failed to initiate Stripe payment: " + err.message);
         setStatus('idle');
       }
       return;
@@ -161,18 +173,19 @@ export function DepositPanel() {
     if (channel === 'bank' && selectedSourceId === 'stripe-ach') {
       setStatus('processing');
       try {
-        const { data, error } = await supabase.functions.invoke("stripe-checkout", {
+        const { data, error } = await supabase.functions.invoke("stripe-create-intent", {
           body: { amount: parseFloat(amount), user_id: userId },
         });
 
         if (error) throw error;
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.clientSecret) {
+          setStripeClientSecret(data.clientSecret);
+          setStatus('stripe_pay');
         } else {
-          throw new Error("No checkout URL returned");
+          throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe checkout: " + err.message);
+        toast.error("Failed to initiate Stripe payment: " + err.message);
         setStatus('idle');
       }
       return;
@@ -228,14 +241,18 @@ export function DepositPanel() {
         throw new Error(data?.errorMessage || data?.ResponseDescription || data?.CustomerMessage || "Payment initiation failed: No response from provider");
       }
 
+      // Store the checkout ID for later confirmation
+      const checkoutId = data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+      setRefCode(checkoutId);
+
       // Record pending transaction
       await supabase.from("transactions").insert({
-        sender_id: userId,
+        receiver_id: userId,
         type: "deposit",
-        method: channel === 'mobile' ? 'mpesa' : 'bank',
+        method: channel === 'mobile' ? 'mpesa' : (selectedSourceId === 'stripe-ach' ? 'bank' : 'bank'),
         amount: parseFloat(amount),
         status: "pending",
-        description: data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+        description: checkoutId,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
@@ -249,11 +266,63 @@ export function DepositPanel() {
 
   const handleConfirmDeposit = async () => {
     setStatus('processing');
-    // Simulate API webhook pipeline (STK Push or automated debit)
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setRefCode(`DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
-    setStatus('success');
-    toast.success("Deposit request initiated successfully!");
+    try {
+      const userId = profile?.id;
+      if (!userId) throw new Error("User session not found");
+
+      // 1. Read the amount from the pending transaction to ensure integrity
+      const { data: tx, error: txFetchError } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("description", refCode)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (txFetchError) throw txFetchError;
+      
+      // Use the amount from the DB if found, otherwise fallback to state
+      const depositAmount = tx?.amount || parseFloat(amount);
+
+      // 2. Update the actual ledger and wallet balance
+      const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
+        p_user_id: userId,
+        p_amount: depositAmount,
+        p_currency: currency,
+        p_type: "deposit",
+        p_reference: refCode,
+        p_description: `M-Pesa Deposit: ${refCode}`,
+        p_status: "completed",
+        p_metadata: { payment_method: 'mpesa', mpesa_checkout_id: refCode }
+      });
+
+      if (ledgerError) throw ledgerError;
+
+      // 3. Fetch the new balance to update the transaction record for UI consistency
+      const { data: wallet } = await supabase
+        .from("wallets")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+
+      // 4. Update the pending transaction to completed
+      const { error: txUpdateError } = await supabase
+        .from("transactions")
+        .update({ 
+          status: "completed",
+          balance_after: wallet?.balance
+        })
+        .eq("description", refCode)
+        .eq("status", "pending");
+
+      if (txUpdateError) console.error("Error updating transaction status:", txUpdateError);
+
+      setStatus('success');
+      toast.success("Deposit confirmed and balance updated!");
+    } catch (err: any) {
+      console.error("M-Pesa confirmation error:", err);
+      toast.error("Failed to confirm deposit: " + err.message);
+      setStatus('idle');
+    }
   };
 
   const getSourceName = () => {
@@ -271,7 +340,10 @@ export function DepositPanel() {
         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
           <StripePayment 
             amount={parseFloat(amount)} 
-            onSuccess={() => setStatus('success')} 
+            onSuccess={(ref) => {
+              setRefCode(ref);
+              setStatus('success');
+            }} 
             onCancel={() => setStatus('idle')}
           />
         </Elements>
@@ -515,7 +587,7 @@ export function DepositPanel() {
                 </p>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest bg-muted/50 px-4 py-2 rounded-full">
-                <Lock className="w-3 h-3" /> Encrypted by Stripe
+                <LockIcon className="w-3 h-3" /> Encrypted by Stripe
               </div>
             </div>
           )}
@@ -526,13 +598,21 @@ export function DepositPanel() {
       <div className="space-y-6">
         <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-8">
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Deposit Amount (USD)</Label>
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Deposit Amount ({currency})</Label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-light">$</span>
+              <span className={cn(
+                "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-light",
+                currency === 'USD' ? "text-2xl" : "text-lg"
+              )}>
+                {currencySymbol}
+              </span>
               <Input 
                 type="number" 
                 placeholder="0.00" 
-                className="pl-10 h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20"
+                className={cn(
+                  "h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20",
+                  currency === 'USD' ? "pl-10" : "pl-16"
+                )}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
@@ -548,9 +628,15 @@ export function DepositPanel() {
               <span className="bg-emerald-500/20 px-2 py-0.5 rounded">1 USD = {EXCHANGE_RATE} KES</span>
             </div>
             <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Equivalent KES</div>
+              <div className="text-xs text-muted-foreground">
+                {currency === 'USD' ? 'Equivalent KES' : 'Equivalent USD'}
+              </div>
               <div className="text-2xl font-mono text-emerald-500 font-bold">
-                KES {kesEquivalent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {currency === 'USD' ? 'KES ' : '$'}
+                {(currency === 'USD' ? kesEquivalent : usdEquivalent).toLocaleString(undefined, { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+                })}
               </div>
             </div>
           </div>
@@ -558,7 +644,7 @@ export function DepositPanel() {
           <div className="space-y-4">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Vault Transaction PIN</Label>
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input 
                 type="password" 
                 maxLength={6} 
@@ -632,7 +718,7 @@ export function DepositPanel() {
           
           <div className="bg-primary/5 p-4 text-center border-t border-white/5">
             <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-2 tracking-widest uppercase">
-              <Lock className="w-3 h-3" /> PCI-DSS Compliant Gateway
+              <LockIcon className="w-3 h-3" /> PCI-DSS Compliant Gateway
             </p>
           </div>
         </DialogContent>

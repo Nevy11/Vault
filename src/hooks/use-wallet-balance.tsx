@@ -47,54 +47,16 @@ type UseWalletBalanceReturn = {
 
 export function useWalletBalance(): UseWalletBalanceReturn {
   const [profile] = useProfileSignal();
-  const [wallet, setWallet] = useState<WalletBalance>(getCachedWallet());
-  const walletRef = useRef<WalletBalance>(wallet);
-  const [displayBalance, setDisplayBalance] = useState<number | null>(wallet?.balance ?? null);
-  const [displayCurrency, setDisplayCurrency] = useState(wallet?.currency ?? 'USD');
+  const [wallet, setWallet] = useState<WalletBalance>(null);
+  const walletRef = useRef<WalletBalance>(null);
+  const [displayBalance, setDisplayBalance] = useState<number | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState('USD');
   const [secondaryBalance, setSecondaryBalance] = useState<BalanceBreakdown | undefined>(undefined);
-  const [loading, setLoading] = useState(!wallet);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const channelRef = useRef<any>(null);
-
-  const resolvePreferredCurrency = useCallback(
-    async (userId: string) => {
-      const profileNationality = (profile as any)?.nationality || (profile as any)?.country || '';
-
-      const { data: latestLog, error: logError } = await supabase
-        .from('activity_logs')
-        .select('location')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (logError) {
-        console.warn(
-          'Unable to load latest activity log for currency resolution:',
-          logError.message || logError,
-        );
-      }
-
-      const rawNationality = profileNationality || latestLog?.location || '';
-      return getCurrencyForNationality(rawNationality);
-    },
-    [profile],
-  );
-
-  const getUserId = useCallback(async (): Promise<string | null> => {
-    if (profile?.id) {
-      return profile.id;
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError) {
-      throw authError;
-    }
-
-    return user?.id ?? null;
-  }, [profile]);
 
   const computeBalances = useCallback(
     async (walletData: WalletBalance, userId: string) => {
@@ -105,13 +67,9 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         return;
       }
 
-      // We'll use the currency defined in the wallet record itself as the primary
-      // instead of trying to resolve it from logs every time.
       const nativeCurrency = walletData.currency || 'USD';
       const nativeAmount = Number(walletData.balance ?? 0);
       
-      // Determine if we should show a secondary balance (e.g. KES for USD wallets or vice-versa)
-      // For now, we'll assume the native wallet currency is what the user wants to see primary.
       setDisplayBalance(nativeAmount);
       setDisplayCurrency(nativeCurrency);
 
@@ -144,13 +102,12 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
-        .eq('user_id', currentUserId)
+        .eq("user_id", currentUserId)
         .maybeSingle();
 
       if (fetchError) {
         setError(fetchError.message);
       } else if (!data) {
-        // Only create if it definitely doesn't exist and we aren't in a loop
         const { data: newWallet, error: createError } = await supabase
           .from('wallets')
           .insert([
@@ -174,7 +131,6 @@ export function useWalletBalance(): UseWalletBalanceReturn {
           await computeBalances(newWallet, currentUserId);
         }
       } else {
-        // Update local state only if data actually changed
         const prev = walletRef.current;
         const changed = !prev || prev.id !== data.id || prev.balance !== data.balance || prev.currency !== data.currency;
         
@@ -196,6 +152,16 @@ export function useWalletBalance(): UseWalletBalanceReturn {
   }, [computeBalances, profile?.id]);
 
   useEffect(() => {
+    // 1. Try loading from cache first (Safe after mount)
+    const cached = getCachedWallet();
+    if (cached) {
+      setWallet(cached);
+      walletRef.current = cached;
+      setDisplayBalance(cached.balance);
+      setDisplayCurrency(cached.currency);
+      setLoading(false);
+    }
+    // 2. Then fetch fresh data
     fetchWallet();
   }, [fetchWallet]);
 
@@ -213,24 +179,21 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         channelRef.current = null;
       }
 
-      // Use a unique suffix to prevent channel name collisions
       const uniqueSuffix = Math.random().toString(36).substring(7);
       channel = supabase
         .channel(`wallet-balance-updates-${profile.id}-${uniqueSuffix}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'wallets', filter: `user_id=eq.${profile.id}` },
-          async () => {
-            if (!mounted) return;
-            await fetchWallet();
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'wallets', 
+            filter: `user_id=eq.${profile.id}` 
           },
-        )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'balances', filter: `user_id=eq.${profile.id}` },
           async () => {
             if (!mounted) return;
-            await fetchWallet();
+            console.log("Real-time wallet update detected, refetching...");
+            await fetchWallet(true);
           },
         )
         .subscribe((status: string) => {
@@ -279,9 +242,8 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         const updatedWallet = { ...wallet, balance: newBalance, updated_at: new Date().toISOString() };
         setWallet(updatedWallet);
         walletRef.current = updatedWallet;
-        const userId = await getUserId();
-        if (userId) {
-          await computeBalances(updatedWallet, userId);
+        if (profile?.id) {
+          await computeBalances(updatedWallet, profile.id);
         }
       }
     } catch (err) {

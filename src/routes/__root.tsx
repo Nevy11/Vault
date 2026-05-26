@@ -16,6 +16,7 @@ import { useEffect } from "react";
 import appCss from "../styles.css?url";
 
 import { TopNav } from "@/components/top-nav";
+import { FloatingAdvisor } from "@/components/floating-advisor";
 
 function NotFoundComponent() {
   return (
@@ -153,6 +154,9 @@ function RootComponent() {
   const [profile, setProfile] = useProfileSignal();
 
   useEffect(() => {
+    // Hydrate profile from localStorage on client mount
+    profileSignal.hydrate();
+
     async function fetchProfile(userId: string) {
       if (!userId) return;
       

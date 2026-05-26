@@ -1,13 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
-import { UserPlus, Lock, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp } from "lucide-react";
+import { UserPlus, Lock as LockIcon, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp, Landmark } from "lucide-react";
 import { supabase } from "@/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { useTransactions } from "@/hooks/use-transactions";
+import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -67,7 +75,7 @@ function AccountBadge({
               <MoreVertical className="w-4 h-4 text-muted-foreground" />
             </div>
           ) : (
-            <Lock className="w-4 h-4 text-muted-foreground/60" />
+            <LockIcon className="w-4 h-4 text-muted-foreground/60" />
           )}
         </div>
         
@@ -114,7 +122,7 @@ function QuickSend({
   withAdd,
   title = "Quick Send (P2P)"
 }: {
-  avatars: { initial: string; color: string; name: string }[];
+  avatars: { id?: string; initial: string; color: string; name: string }[];
   withAdd?: boolean;
   title?: string;
 }) {
@@ -130,8 +138,8 @@ function QuickSend({
             <Plus className="w-5 h-5" />
           </button>
         )}
-        {avatars.map((a) => (
-          <div key={a.name} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
+        {avatars.map((a, index) => (
+          <div key={a.id ?? `${a.name}-${index}`} className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0">
             <div className="relative">
               <div
                 className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
@@ -249,42 +257,82 @@ function DashboardPage() {
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
-  const [frequentRecipients, setFrequentRecipients] = useState<{initial: string, color: string, name: string}[]>([]);
 
-  useEffect(() => {
-    const fetchFrequent = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  const reportMetrics = useMemo(() => {
+    if (!transactions.length) return null;
 
-      const { data: freqData } = await supabase
-        .from("transactions")
-        .select("receiver_id")
-        .eq("sender_id", user.id)
-        .eq("type", "transfer");
+    const totalInflow = transactions.reduce((sum, tx) => {
+      if (tx.type === "deposit") return sum + Number(tx.amount);
+      if (tx.type === "transfer" && tx.receiver_id === (profile as any)?.id) return sum + Number(tx.amount);
+      return sum;
+    }, 0);
 
-      if (freqData) {
-        const counts: Record<string, number> = {};
-        freqData.forEach((tx: any) => {
-            const rid = tx.receiver_id;
-            if(rid) {
-                counts[rid] = (counts[rid] || 0) + 1;
-            }
-        });
+    const totalOutflow = transactions.reduce((sum, tx) => {
+      if (tx.type === "withdrawal") return sum + Number(tx.amount);
+      if (tx.type === "transfer" && tx.sender_id === (profile as any)?.id) return sum + Number(tx.amount);
+      return sum;
+    }, 0);
 
-        const sorted = Object.entries(counts)
-          .sort(([, a], [, b]) => (b as number) - (a as number))
-          .slice(0, 5)
-          .map(([id]) => ({
-              initial: "U",
-              color: "bg-primary/20",
-              name: `User ${id.substring(0, 4)}`
-          }));
-        setFrequentRecipients(sorted);
-      }
+    return {
+      totalInflow,
+      totalOutflow,
+      netChange: totalInflow - totalOutflow,
+      count: transactions.length,
     };
-    fetchFrequent();
-  }, []);
+  }, [transactions, profile]);
+
+  const handleDownloadReport = () => {
+    if (!transactions.length) return;
+
+    const csvRows = [
+      ["Date", "Type", "Amount", "Balance After", "Description"],
+      ...transactions.map((tx) => [
+        format(new Date(tx.created_at), "yyyy-MM-dd HH:mm:ss"),
+        tx.type,
+        tx.amount,
+        tx.balance_after ?? "",
+        tx.description ?? "",
+      ]),
+    ];
+
+    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "vault-financial-report.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const frequentRecipients = useMemo(() => {
+    const seenIds = new Set();
+    const uniqueRecipients: { id: string; initial: string; color: string; name: string }[] = [];
+    const currentUserId = (profile as any)?.id;
+
+    if (!currentUserId) return [];
+
+    for (const tx of transactions) {
+      // Only care about transfers where the current user is the SENDER
+      if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver && tx.receiver_id) {
+        if (!seenIds.has(tx.receiver_id)) {
+          seenIds.add(tx.receiver_id);
+          uniqueRecipients.push({
+            id: tx.receiver_id,
+            initial: tx.receiver?.first_name?.[0] ?? "V",
+            color: "bg-emerald-500",
+            name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
+          });
+        }
+      }
+      if (uniqueRecipients.length >= 4) break;
+    }
+    return uniqueRecipients;
+  }, [transactions, profile]);
 
   const syncTime = useMemo(() => {
     if (txLoading) return "Syncing...";
@@ -370,7 +418,7 @@ function DashboardPage() {
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
         <div className="mb-6">
-          <h1 className="text-3xl sm:text-4xl font-light tracking-tight">Unified Portfolio Balance</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Unified Portfolio Balance</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Integrates a renew Accounts of multiple finance accounts.
           </p>
@@ -409,7 +457,7 @@ function DashboardPage() {
                   <span className="text-5xl sm:text-6xl font-light text-destructive">Error</span>
                 ) : (
                   <>
-                    <span className="text-5xl sm:text-6xl font-light tracking-tight">
+                    <span className="text-5xl sm:text-6xl font-bold tracking-tight">
                       {currencySymbol}{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs font-semibold">
@@ -427,12 +475,87 @@ function DashboardPage() {
               <Button className="h-12 px-6 rounded-2xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95">
                 <UserPlus className="w-4 h-4 mr-2" /> Add External Account
               </Button>
-              <Button variant="outline" className="h-12 px-6 rounded-2xl font-semibold border-border/60 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95">
+              <Button 
+                variant="outline" 
+                className="h-12 px-6 rounded-2xl font-semibold border-border/60 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95"
+                onClick={() => setShowReport(true)}
+              >
                 Detailed Report
               </Button>
             </div>
           </div>
         </div>
+
+        {/* Report Modal */}
+        <Dialog open={showReport} onOpenChange={setShowReport}>
+          <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-2xl border-border/40">
+            <DialogHeader>
+              <DialogTitle className="font-serif text-2xl">Financial Health Report</DialogTitle>
+              <DialogDescription>
+                A comprehensive breakdown of your Vault OS ledger activity.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-6 space-y-6">
+              {reportMetrics ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Inflow</div>
+                    <div className="text-xl font-semibold text-emerald-500">
+                      +{currencySymbol}{reportMetrics.totalInflow.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Outflow</div>
+                    <div className="text-xl font-semibold text-destructive">
+                      -{currencySymbol}{reportMetrics.totalOutflow.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Net Position</div>
+                    <div className={cn(
+                      "text-xl font-semibold",
+                      reportMetrics.netChange >= 0 ? "text-primary" : "text-destructive"
+                    )}>
+                      {reportMetrics.netChange >= 0 ? '+' : ''}{currencySymbol}{reportMetrics.netChange.toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Activity Volume</div>
+                    <div className="text-xl font-semibold text-foreground">
+                      {reportMetrics.count} <span className="text-xs font-normal text-muted-foreground">Transactions</span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground italic">
+                  No transaction history available to generate report.
+                </div>
+              )}
+
+              <div className="rounded-2xl border border-border/40 bg-muted/30 p-4">
+                <h4 className="text-xs font-semibold uppercase tracking-wider mb-2">Ledger Insights</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Your current balance of {currencySymbol}{balance?.toLocaleString()} is derived from {reportMetrics?.count || 0} cryptographically signed ledger entries. 
+                  Vault OS maintains a zero-trust immutable record of every fractional change.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="flex flex-col sm:flex-row gap-3">
+              <Button variant="ghost" onClick={() => setShowReport(false)} className="flex-1">
+                Close
+              </Button>
+              <Button 
+                onClick={handleDownloadReport} 
+                disabled={!transactions.length}
+                className="flex-1 gap-2"
+              >
+                <RefreshCw className="w-4 h-4" /> Download CSV Statement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Accounts grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -460,8 +583,27 @@ function DashboardPage() {
           </div>
         </div>
 
-        {/* Quick send + chart */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+        {/* Quick actions + Finance Hub */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <Link 
+            to="/finance-hub"
+            className="lg:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 backdrop-blur-sm transition-all hover:bg-primary/20 hover:border-primary/40 shadow-lg"
+          >
+            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Finance & Credit</div>
+              <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <Landmark className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Savings & Loans</h3>
+                <p className="text-xs text-muted-foreground">Unlock 2% rewards & instant credit</p>
+              </div>
+            </div>
+          </Link>
           <QuickSend
             avatars={frequentRecipients.length > 0 ? frequentRecipients : [
               { initial: "M", color: "bg-emerald-500", name: "Maria C" },
@@ -470,14 +612,7 @@ function DashboardPage() {
               { initial: "A", color: "bg-red-500", name: "Ben A" },
             ]}
           />
-          <QuickSend
-            withAdd
-            avatars={[
-              { initial: "M", color: "bg-emerald-500", name: "Maria C" },
-              { initial: "J", color: "bg-blue-500", name: "John L" },
-            ]}
-          />
-          <div className="sm:col-span-2 lg:col-span-1">
+          <div className="hidden lg:block lg:col-span-1">
             <NetWorthChart />
           </div>
         </div>
