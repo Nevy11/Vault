@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabase";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
 interface StripePaymentProps {
   amount: number;
@@ -17,8 +18,11 @@ interface StripePaymentProps {
 export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProps) {
   const stripe = useStripe();
   const elements = useElements();
+  const { currency } = useWalletBalance();
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+
+  const currencySymbol = currency === 'USD' ? '$' : (currency === 'KSH' ? 'KES ' : currency + ' ');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +56,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
 
         // 1. Record the transaction in the UI table
         const { error: txError } = await supabase.from("transactions").insert({
-          sender_id: user.id,
+          receiver_id: user.id,
           type: "deposit",
           method: "bank",
           amount: amount,
@@ -66,7 +70,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
         const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
           p_user_id: user.id,
           p_amount: amount,
-          p_currency: "USD",
+          p_currency: currency,
           p_type: "deposit",
           p_reference: paymentIntent.id,
           p_description: `Stripe Deposit: ${paymentIntent.id}`,
@@ -119,7 +123,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
           className="flex-1"
         >
           <span id="button-text">
-            {isProcessing ? "Processing..." : `Pay $${amount.toFixed(2)}`}
+            {isProcessing ? "Processing..." : `Pay ${currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
           </span>
         </Button>
       </div>
