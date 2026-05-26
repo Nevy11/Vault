@@ -16,9 +16,19 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
+import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  Tooltip, 
+  CartesianGrid 
+} from "recharts";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -156,63 +166,73 @@ function QuickSend({
   );
 }
 
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  CartesianGrid 
-} from "recharts";
-
-// ... rest of imports ...
-
 function NetWorthChart({ 
-  transactions, 
-  currencySymbol 
+  entries,
+  currencySymbol,
+  currentBalance
 }: { 
-  transactions: Transaction[], 
-  currencySymbol: string 
+  entries: LedgerEntry[], 
+  currencySymbol: string,
+  currentBalance: number
 }) {
   const [viewMode, setViewMode] = useState<"daily" | "transaction">("transaction");
 
   const chartData = useMemo(() => {
-    if (!transactions || transactions.length === 0) return [];
+    if (!entries || entries.length === 0) {
+      return [{
+        name: "Now",
+        fullDate: "Current Balance",
+        value: currentBalance,
+        created_at: new Date().toISOString()
+      }];
+    }
 
-    // Sort transactions by date ascending to calculate running balance
-    const sorted = [...transactions].sort((a, b) => 
+    // Sort entries chronologically (oldest first)
+    const sorted = [...entries].sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
 
+    let runningSum = 0;
+    const history = sorted.map((entry) => {
+      runningSum += Number(entry.amount);
+      return {
+        name: format(new Date(entry.created_at), "MMM dd"),
+        fullDate: format(new Date(entry.created_at), "PPP p"),
+        value: runningSum,
+        created_at: entry.created_at
+      };
+    });
+
+    // Add final "Now" point to match the wallets table exactly
+    history.push({
+      name: "Now",
+      fullDate: "Current Balance",
+      value: currentBalance,
+      created_at: new Date().toISOString()
+    });
+
     if (viewMode === "transaction") {
-      return sorted.map((t, index) => ({
-        name: format(new Date(t.created_at), "MMM dd"),
-        fullDate: format(new Date(t.created_at), "PPP p"),
-        value: Number(t.balance_after || 0),
-        index: index + 1
-      }));
+      return history;
     } else {
-      // Daily mode: aggregate by day
-      const dailyMap: Record<string, number> = {};
-      sorted.forEach(t => {
-        const day = format(new Date(t.created_at), "yyyy-MM-dd");
-        dailyMap[day] = Number(t.balance_after || 0);
+      const dailyMap: Record<string, any> = {};
+      history.forEach(point => {
+        const day = format(new Date(point.created_at), "yyyy-MM-dd");
+        dailyMap[day] = point;
       });
 
       return Object.entries(dailyMap)
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([day, value]) => ({
-          name: format(new Date(day), "MMM dd"),
-          fullDate: format(new Date(day), "PPP"),
-          value
+        .map(([_, point]) => ({
+          name: point.name === "Now" ? point.name : format(new Date(point.created_at), "MMM dd"),
+          fullDate: point.name === "Now" ? "Current Balance" : format(new Date(point.created_at), "PPP"),
+          value: point.value
         }));
     }
-  }, [transactions, viewMode]);
+  }, [entries, viewMode, currentBalance]);
 
-  const latestValue = chartData.length > 0 ? chartData[chartData.length - 1].value : 0;
-  const initialValue = chartData.length > 0 ? chartData[0].value : 0;
-  const isPositive = latestValue >= initialValue;
+  const minValue = Math.min(...chartData.map(d => d.value || 0));
+  const maxValue = Math.max(...chartData.map(d => d.value || 0));
+  const isPositive = chartData.length > 1 ? chartData[chartData.length - 1].value >= chartData[0].value : true;
 
   return (
     <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-full flex flex-col transition-all hover:border-border/60">
@@ -222,8 +242,8 @@ function NetWorthChart({
             Net Worth Growth
             <TrendingUp className={`w-3 h-3 ${isPositive ? "text-emerald-500" : "text-destructive"}`} />
           </div>
-          <div className="text-[10px] text-muted-foreground mt-0.5">
-            {viewMode === "daily" ? "Daily closing balance" : "Per transaction history"}
+          <div className="text-[10px] text-muted-foreground mt-0.5 font-bold uppercase tracking-wider">
+            Latest: {currencySymbol}{currentBalance.toLocaleString()}
           </div>
         </div>
         <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/20">
@@ -271,7 +291,7 @@ function NetWorthChart({
             />
             <YAxis 
               hide 
-              domain={['dataMin - 100', 'dataMax + 100']}
+              domain={[minValue * 0.9, maxValue * 1.1]}
             />
             <Tooltip
               content={({ active, payload }) => {
@@ -310,11 +330,11 @@ function NetWorthChart({
         <div className="flex gap-4">
           <div className="flex flex-col items-end">
             <span className="text-[8px] text-muted-foreground uppercase font-black">Low</span>
-            <span className="text-[10px] font-black">{currencySymbol}{Math.min(...chartData.map(d => d.value || 0)).toLocaleString()}</span>
+            <span className="text-[10px] font-black">{currencySymbol}{minValue.toLocaleString()}</span>
           </div>
           <div className="flex flex-col items-end">
             <span className="text-[8px] text-muted-foreground uppercase font-black">High</span>
-            <span className="text-[10px] font-black text-emerald-500">{currencySymbol}{Math.max(...chartData.map(d => d.value || 0)).toLocaleString()}</span>
+            <span className="text-[10px] font-black text-emerald-500">{currencySymbol}{maxValue.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -372,6 +392,7 @@ const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 function DashboardPage() {
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
+  const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
   const [activeFilter, setActiveFilter] = useState("All");
   const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
@@ -730,8 +751,9 @@ function DashboardPage() {
           />
           <div className="hidden lg:block lg:col-span-1">
             <NetWorthChart 
-              transactions={transactions} 
+              entries={ledgerEntries} 
               currencySymbol={currencySymbol} 
+              currentBalance={balance || 0}
             />
           </div>
         </div>
