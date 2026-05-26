@@ -42,7 +42,7 @@ serve(async (req) => {
     // 2. Update wallet balance
     const { data: wallet, error: walletError } = await supabase
       .from("wallets")
-      .select("balance")
+      .select("id, balance")
       .eq("user_id", userId)
       .single();
 
