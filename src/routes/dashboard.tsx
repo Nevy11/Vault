@@ -1,18 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { UserPlus, Lock as LockIcon, MoreVertical, Plus, Settings, HelpCircle, RefreshCw, ShieldCheck, Shield, Loader2, ArrowRight, TrendingUp, Landmark } from "lucide-react";
-import { supabase } from "@/api/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
@@ -29,6 +19,7 @@ import {
   Tooltip, 
   CartesianGrid 
 } from "recharts";
+import { FinancialHealthReport } from "@/components/financial-health-report";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -63,7 +54,6 @@ function AccountBadge({
 }) {
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm transition-all hover:bg-card/80 hover:border-primary/30">
-      {/* Decorative background element */}
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
       
       <div className="relative z-10">
@@ -397,55 +387,6 @@ function DashboardPage() {
   const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
 
-  const reportMetrics = useMemo(() => {
-    if (!transactions.length) return null;
-
-    const totalInflow = transactions.reduce((sum, tx) => {
-      if (tx.type === "deposit") return sum + Number(tx.amount);
-      if (tx.type === "transfer" && tx.receiver_id === (profile as any)?.id) return sum + Number(tx.amount);
-      return sum;
-    }, 0);
-
-    const totalOutflow = transactions.reduce((sum, tx) => {
-      if (tx.type === "withdrawal") return sum + Number(tx.amount);
-      if (tx.type === "transfer" && tx.sender_id === (profile as any)?.id) return sum + Number(tx.amount);
-      return sum;
-    }, 0);
-
-    return {
-      totalInflow,
-      totalOutflow,
-      netChange: totalInflow - totalOutflow,
-      count: transactions.length,
-    };
-  }, [transactions, profile]);
-
-  const handleDownloadReport = () => {
-    if (!transactions.length) return;
-
-    const csvRows = [
-      ["Date", "Type", "Amount", "Balance After", "Description"],
-      ...transactions.map((tx) => [
-        format(new Date(tx.created_at), "yyyy-MM-dd HH:mm:ss"),
-        tx.type,
-        tx.amount,
-        tx.balance_after ?? "",
-        tx.description ?? "",
-      ]),
-    ];
-
-    const csvContent = csvRows.map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "vault-financial-report.csv";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   const frequentRecipients = useMemo(() => {
     const seenIds = new Set();
     const uniqueRecipients: { id: string; initial: string; color: string; name: string }[] = [];
@@ -454,7 +395,6 @@ function DashboardPage() {
     if (!currentUserId) return [];
 
     for (const tx of transactions) {
-      // Only care about transfers where the current user is the SENDER
       if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver && tx.receiver_id) {
         if (!seenIds.has(tx.receiver_id)) {
           seenIds.add(tx.receiver_id);
@@ -480,13 +420,16 @@ function DashboardPage() {
 
   const filteredTransactions = useMemo(() => {
     if (activeFilter === "All") return transactions;
-    if (activeFilter === "Send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
-    if (activeFilter === "Received") return transactions.filter(t => 
+    const filter = activeFilter.toLowerCase();
+    
+    if (filter === "send") return transactions.filter(t => t.type === 'transfer' && t.sender_id === (profile as any)?.id);
+    if (filter === "received") return transactions.filter(t => 
       (t.type === 'transfer' && t.receiver_id === (profile as any)?.id) || 
       t.type === 'deposit'
     );
-    if (activeFilter === "Deposit") return transactions.filter(t => t.type === 'deposit');
-    if (activeFilter === "Withdraw") return transactions.filter(t => t.type === 'withdrawal');
+    if (filter === "deposit") return transactions.filter(t => t.type === 'deposit');
+    if (filter === "withdraw") return transactions.filter(t => t.type === 'withdrawal');
+    
     return transactions;
   }, [transactions, activeFilter, profile]);
 
@@ -496,29 +439,30 @@ function DashboardPage() {
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
       : (profile?.email?.split('@')[0] || "Vault User");
     const symbol = currency === 'USD' ? '$' : currency + ' ';
+    const isLedger = t.source === 'ledger';
 
     if (t.type === 'transfer') {
       if (isSender) {
         return {
-          title: `Transfer to ${t.receiver?.first_name} ${t.receiver?.last_name}`,
+          title: `Transfer to ${t.receiver?.first_name || 'User'}`,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: t.receiver?.first_name?.[0] || 'V',
+          icon: t.receiver?.first_name?.[0] || 'T',
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
         return {
-          title: `Received from ${t.sender?.first_name} ${t.sender?.last_name}`,
+          title: `Received from ${t.sender?.first_name || 'User'}`,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || 'V',
+          icon: t.sender?.first_name?.[0] || 'R',
           avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
     } else if (t.type === 'deposit') {
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const bankName = isLedger ? 'Wallet Deposit' : (t.method || 'Deposit').toString();
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: `${bankName} to ${userName}`,
@@ -529,12 +473,13 @@ function DashboardPage() {
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const bankName = isLedger ? 'Wallet Withdrawal' : (t.method || 'Withdrawal').toString();
+      const initials = bankName.substring(0, 2).toUpperCase();
       return {
-        title: `Withdrawal to ${bankName}`,
+        title: `${bankName} to ${userName}`,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: bankName.substring(0, 2).toUpperCase(),
+        icon: initials,
         avatarUrl: null,
         color: "bg-destructive/20 text-destructive",
       };
@@ -554,10 +499,12 @@ function DashboardPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-        <div className="mb-6">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Unified Portfolio Balance</h1>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
+            Unified Portfolio
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Integrates a renew Accounts of multiple finance accounts.
+            Real-time aggregate of your Vault financial ecosystem.
           </p>
         </div>
 
@@ -571,7 +518,6 @@ function DashboardPage() {
 
         {/* Total net worth */}
         <div className="group relative overflow-hidden rounded-3xl bg-card/40 border border-border/40 p-8 sm:p-10 mb-8 backdrop-blur-md transition-all hover:bg-card/50 hover:border-primary/20 shadow-xl">
-          {/* Large decorative background pattern */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, var(--primary) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
           <div className="absolute -right-24 -top-24 h-96 w-96 rounded-full bg-primary/5 blur-[100px] transition-all group-hover:bg-primary/10" />
           <div className="absolute -left-24 -bottom-24 h-64 w-64 rounded-full bg-primary/5 blur-[80px] transition-all group-hover:bg-primary/10" />
@@ -624,78 +570,14 @@ function DashboardPage() {
         </div>
 
         {/* Report Modal */}
-        <Dialog open={showReport} onOpenChange={setShowReport}>
-          <DialogContent className="sm:max-w-xl bg-card/95 backdrop-blur-2xl border-border/40">
-            <DialogHeader>
-              <DialogTitle className="font-serif text-2xl">Financial Health Report</DialogTitle>
-              <DialogDescription>
-                A comprehensive breakdown of your Vault OS ledger activity.
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="py-6 space-y-6">
-              {reportMetrics ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Inflow</div>
-                    <div className="text-xl font-semibold text-emerald-500">
-                      +{currencySymbol}{reportMetrics.totalInflow.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Total Outflow</div>
-                    <div className="text-xl font-semibold text-destructive">
-                      -{currencySymbol}{reportMetrics.totalOutflow.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Net Position</div>
-                    <div className={cn(
-                      "text-xl font-semibold",
-                      reportMetrics.netChange >= 0 ? "text-primary" : "text-destructive"
-                    )}>
-                      {reportMetrics.netChange >= 0 ? '+' : ''}{currencySymbol}{reportMetrics.netChange.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
-                    <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Activity Volume</div>
-                    <div className="text-xl font-semibold text-foreground">
-                      {reportMetrics.count} <span className="text-xs font-normal text-muted-foreground">Transactions</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground italic">
-                  No transaction history available to generate report.
-                </div>
-              )}
-
-              <div className="rounded-2xl border border-border/40 bg-muted/30 p-4">
-                <h4 className="text-xs font-semibold uppercase tracking-wider mb-2">Ledger Insights</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Your current balance of {currencySymbol}{balance?.toLocaleString()} is derived from {reportMetrics?.count || 0} cryptographically signed ledger entries. 
-                  Vault OS maintains a zero-trust immutable record of every fractional change.
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="flex flex-col sm:flex-row gap-3">
-              <Button variant="ghost" onClick={() => setShowReport(false)} className="flex-1">
-                Close
-              </Button>
-              <Button 
-                onClick={handleDownloadReport} 
-                disabled={!transactions.length}
-                className="flex-1 gap-2"
-              >
-                <RefreshCw className="w-4 h-4" /> Download CSV Statement
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <FinancialHealthReport 
+          open={showReport} 
+          onOpenChange={setShowReport} 
+          currencySymbol={currencySymbol} 
+        />
 
         {/* Accounts grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="md:col-span-2">
             <AccountBadge
               primary
@@ -763,11 +645,11 @@ function DashboardPage() {
           <h2 className="text-lg font-light tracking-tight text-foreground/90">Recent transactions</h2>
         </div>
 
-        {/* Transactions */}
+        {/* Transactions list */}
         <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-5 backdrop-blur-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <div className="flex flex-wrap gap-2">
-              {filters.map((f, i) => (
+              {filters.map((f) => (
                 <button
                   key={f}
                   onClick={() => setActiveFilter(f)}
@@ -805,7 +687,7 @@ function DashboardPage() {
                         {t.type === 'transfer' ? 'P2P' : t.type.substring(0, 3)}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.avatarUrl} />
+                        <AvatarImage src={details.avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>
