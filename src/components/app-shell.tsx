@@ -1,6 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import { HelpCircle, Home, Send, Settings, User, LogOut, MessageCircle } from "lucide-react";
+import { 
+  HelpCircle, 
+  Home, 
+  Send, 
+  Settings, 
+  User, 
+  LogOut, 
+  MessageCircle, 
+  PiggyBank, 
+  Landmark 
+} from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -43,6 +53,12 @@ const navItems = [
     isActive: (path: string) => path.startsWith("/transactions"),
   },
   {
+    label: "Savings & Loans",
+    to: "/finance-hub",
+    icon: Landmark,
+    isActive: (path: string) => path.startsWith("/finance-hub") || path.startsWith("/savings") || path.startsWith("/loans"),
+  },
+  {
     label: "Settings",
     to: "/settings",
     icon: Settings,
@@ -62,6 +78,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const currentPath = location.pathname;
   const [profile, setProfile] = useProfileSignal();
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -112,104 +133,108 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                    <Avatar>
-                      <AvatarImage src={profile?.profile_photo_url || undefined} />
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {profile?.first_name?.[0] || <User className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1 py-1 px-1">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border border-border/40">
-                          <AvatarImage src={profile?.profile_photo_url || undefined} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {profile?.first_name?.[0] || <User className="h-4 w-4" />}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col space-y-0.5 min-w-0">
-                          <p className="text-sm font-medium leading-none truncate">
-                            {profile?.first_name 
-                              ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-                              : (profile?.email?.split('@')[0] || "Vault User")}
-                          </p>
-                          <p className="text-xs leading-none text-muted-foreground truncate">
-                            Personal Account
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onSelect={() => setShowPhotoPreview(true)}
-                    className="cursor-pointer"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    View Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="cursor-pointer">
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Dialog open={showPhotoPreview} onOpenChange={setShowPhotoPreview}>
-                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-2xl border-border/40">
-                  <DialogHeader>
-                    <DialogTitle className="text-center font-serif text-2xl">Profile Photo</DialogTitle>
-                  </DialogHeader>
-                  <div className="flex flex-col items-center justify-center p-4">
-                    <div className="relative group">
-                      <Avatar className="h-48 w-48 border-4 border-primary/20 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
-                        <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
-                        <AvatarFallback className="bg-primary/10 text-primary text-4xl">
-                          {profile?.first_name?.[0] || <User className="h-20 w-20" />}
+              {mounted && profile && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="rounded-full transition-opacity hover:opacity-75 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      <Avatar>
+                        <AvatarImage src={profile?.profile_photo_url || undefined} />
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          {profile?.first_name?.[0] || <User className="h-4 w-4" />}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1 py-1 px-1">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9 border border-border/40">
+                            <AvatarImage src={profile?.profile_photo_url || undefined} />
+                            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                              {profile?.first_name?.[0] || <User className="h-4 w-4" />}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col space-y-0.5 min-w-0">
+                            <p className="text-sm font-medium leading-none truncate">
+                              {profile?.first_name 
+                                ? `${profile.first_name} ${profile.last_name || ""}`.trim()
+                                : (profile?.email?.split('@')[0] || "Vault User")}
+                            </p>
+                            <p className="text-xs leading-none text-muted-foreground truncate">
+                              Personal Account
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onSelect={() => setShowPhotoPreview(true)}
+                      className="cursor-pointer"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      View Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/settings" className="cursor-pointer">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {mounted && (
+                <Dialog open={showPhotoPreview} onOpenChange={setShowPhotoPreview}>
+                  <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-2xl border-border/40">
+                    <DialogHeader>
+                      <DialogTitle className="text-center font-serif text-2xl">Profile Photo</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col items-center justify-center p-4">
+                      <div className="relative group">
+                        <Avatar className="h-48 w-48 border-4 border-primary/20 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
+                          <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
+                          <AvatarFallback className="bg-primary/10 text-primary text-4xl">
+                            {profile?.first_name?.[0] || <User className="h-20 w-20" />}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <div className="mt-6 text-center">
+                        <h3 className="text-xl font-medium text-foreground">
+                          {profile?.first_name} {profile?.last_name}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {profile?.email || "Vault OS User"}
+                        </p>
+                      </div>
+                      <div className="mt-8 flex gap-3 w-full">
+                        <Button 
+                          className="flex-1 rounded-xl h-11"
+                          onClick={() => setShowPhotoPreview(false)}
+                        >
+                          Close Preview
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1 rounded-xl h-11 border-border/60"
+                          asChild
+                          onClick={() => setShowPhotoPreview(false)}
+                        >
+                          <Link to="/settings">Edit Profile</Link>
+                        </Button>
+                      </div>
                     </div>
-                    <div className="mt-6 text-center">
-                      <h3 className="text-xl font-medium text-foreground">
-                        {profile?.first_name} {profile?.last_name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {profile?.email || "Vault OS User"}
-                      </p>
-                    </div>
-                    <div className="mt-8 flex gap-3 w-full">
-                      <Button 
-                        className="flex-1 rounded-xl h-11"
-                        onClick={() => setShowPhotoPreview(false)}
-                      >
-                        Close Preview
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 rounded-xl h-11 border-border/60"
-                        asChild
-                        onClick={() => setShowPhotoPreview(false)}
-                      >
-                        <Link to="/settings">Edit Profile</Link>
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </div>
         </header>

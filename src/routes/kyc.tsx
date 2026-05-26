@@ -76,7 +76,7 @@ function Confetti() {
 }
 
 // 4. Main Page Component
-export default function KYCPage() {
+function KYCPage() {
   const [step, setStep] = useState<KYCStep>("id-type");
   const [idType, setIdType] = useState<IDType>(null);
   const [fullName, setFullName] = useState("");

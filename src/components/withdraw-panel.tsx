@@ -8,7 +8,7 @@ import {
   ArrowRight, 
   Loader2, 
   CheckCircle2,
-  Lock,
+  Lock as LockIcon,
   ChevronDown,
   Search,
   Landmark,
@@ -447,7 +447,7 @@ export function WithdrawPanel() {
               <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
                 Vault {loading ? "" : currency} Balance
               </Label>
-              <Lock className="w-3.5 h-3.5 text-muted-foreground/60" />
+              <LockIcon className="w-3.5 h-3.5 text-muted-foreground/60" />
             </div>
             {loading ? (
               <div className="flex items-center gap-2">
@@ -495,7 +495,7 @@ export function WithdrawPanel() {
             <div className="space-y-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">Secure Transaction PIN</Label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60" />
+                <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground/60" />
                 <Input 
                   type="password" 
                   maxLength={6} 
@@ -578,7 +578,7 @@ export function WithdrawPanel() {
           </div>
           <div className="bg-primary/5 p-3 text-center border-t border-primary/10">
             <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1.5">
-              <Lock className="w-3 h-3" /> Secure end-to-end encrypted transaction
+              <LockIcon className="w-3 h-3" /> Secure end-to-end encrypted transaction
             </p>
           </div>
         </DialogContent>

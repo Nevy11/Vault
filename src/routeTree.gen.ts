@@ -12,9 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SavingsRouteImport } from './routes/savings'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LoansRouteImport } from './routes/loans'
 import { Route as KycRouteImport } from './routes/kyc'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as FinanceHubRouteImport } from './routes/finance-hub'
 import { Route as FinanceAdvisorRouteImport } from './routes/finance-advisor'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -34,9 +37,19 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SavingsRoute = SavingsRouteImport.update({
+  id: '/savings',
+  path: '/savings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoansRoute = LoansRouteImport.update({
+  id: '/loans',
+  path: '/loans',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KycRoute = KycRouteImport.update({
@@ -47,6 +60,11 @@ const KycRoute = KycRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceHubRoute = FinanceHubRouteImport.update({
+  id: '/finance-hub',
+  path: '/finance-hub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FinanceAdvisorRoute = FinanceAdvisorRouteImport.update({
@@ -69,9 +87,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
+  '/finance-hub': typeof FinanceHubRoute
   '/help': typeof HelpRoute
   '/kyc': typeof KycRoute
+  '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
   '/transactions': typeof TransactionsRoute
@@ -80,9 +101,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
+  '/finance-hub': typeof FinanceHubRoute
   '/help': typeof HelpRoute
   '/kyc': typeof KycRoute
+  '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
   '/transactions': typeof TransactionsRoute
@@ -92,9 +116,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
+  '/finance-hub': typeof FinanceHubRoute
   '/help': typeof HelpRoute
   '/kyc': typeof KycRoute
+  '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
   '/transactions': typeof TransactionsRoute
@@ -105,9 +132,12 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/finance-advisor'
+    | '/finance-hub'
     | '/help'
     | '/kyc'
+    | '/loans'
     | '/login'
+    | '/savings'
     | '/settings'
     | '/sign-up'
     | '/transactions'
@@ -116,9 +146,12 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/finance-advisor'
+    | '/finance-hub'
     | '/help'
     | '/kyc'
+    | '/loans'
     | '/login'
+    | '/savings'
     | '/settings'
     | '/sign-up'
     | '/transactions'
@@ -127,9 +160,12 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/finance-advisor'
+    | '/finance-hub'
     | '/help'
     | '/kyc'
+    | '/loans'
     | '/login'
+    | '/savings'
     | '/settings'
     | '/sign-up'
     | '/transactions'
@@ -139,9 +175,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   FinanceAdvisorRoute: typeof FinanceAdvisorRoute
+  FinanceHubRoute: typeof FinanceHubRoute
   HelpRoute: typeof HelpRoute
   KycRoute: typeof KycRoute
+  LoansRoute: typeof LoansRoute
   LoginRoute: typeof LoginRoute
+  SavingsRoute: typeof SavingsRoute
   SettingsRoute: typeof SettingsRoute
   SignUpRoute: typeof SignUpRoute
   TransactionsRoute: typeof TransactionsRoute
@@ -170,11 +209,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/savings': {
+      id: '/savings'
+      path: '/savings'
+      fullPath: '/savings'
+      preLoaderRoute: typeof SavingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/loans': {
+      id: '/loans'
+      path: '/loans'
+      fullPath: '/loans'
+      preLoaderRoute: typeof LoansRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kyc': {
@@ -189,6 +242,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance-hub': {
+      id: '/finance-hub'
+      path: '/finance-hub'
+      fullPath: '/finance-hub'
+      preLoaderRoute: typeof FinanceHubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/finance-advisor': {
@@ -219,9 +279,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   FinanceAdvisorRoute: FinanceAdvisorRoute,
+  FinanceHubRoute: FinanceHubRoute,
   HelpRoute: HelpRoute,
   KycRoute: KycRoute,
+  LoansRoute: LoansRoute,
   LoginRoute: LoginRoute,
+  SavingsRoute: SavingsRoute,
   SettingsRoute: SettingsRoute,
   SignUpRoute: SignUpRoute,
   TransactionsRoute: TransactionsRoute,
