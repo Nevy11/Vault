@@ -16,6 +16,7 @@ import { useEffect } from "react";
 import appCss from "../styles.css?url";
 
 import { TopNav } from "@/components/top-nav";
+import { FloatingAdvisor } from "@/components/floating-advisor";
 
 function NotFoundComponent() {
   return (
