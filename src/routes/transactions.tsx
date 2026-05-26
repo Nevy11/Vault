@@ -21,7 +21,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,/
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { cn, hashPin } from "@/lib/utils";
-import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
