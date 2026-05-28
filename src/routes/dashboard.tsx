@@ -637,11 +637,15 @@ function DashboardPage() {
       : profile?.email?.split("@")[0] || "Vault User";
     const symbol = currency === "USD" ? "$" : currency + " ";
     
-    // Method-specific icon helper
-    const getMethodIcon = (method: string) => {
-      if (method === 'mpesa') return { initials: 'MP', color: 'bg-emerald-600', isAvatar: false };
-      if (method === 'bank') return { initials: 'BB', color: 'bg-blue-600', isAvatar: false };
-      return { initials: 'V', color: 'bg-primary', isAvatar: false };
+    // Method-specific logo helper
+    const getMethodLogo = (method: string, description: string) => {
+      const desc = description.toLowerCase();
+      if (desc.includes('mpesa')) return '/logos/mpesa.svg';
+      if (desc.includes('airtel')) return '/logos/airtel.svg';
+      if (desc.includes('absa')) return '/logos/absa.svg';
+      if (desc.includes('tkash')) return '/logos/tkash.svg';
+      if (method === 'bank') return '/logos/bank.svg';
+      return null; // Fallback to initials
     };
 
     if (t.type === "transfer") {
@@ -651,7 +655,7 @@ function DashboardPage() {
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
           icon: "S",
-          avatarUrl: null,
+          logo: null,
           color: "bg-primary/20 text-primary",
         };
       }
@@ -661,7 +665,7 @@ function DashboardPage() {
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
           icon: t.receiver?.first_name?.[0] || "T",
-          avatarUrl: t.receiver?.profile_photo_url,
+          logo: t.receiver?.profile_photo_url || null,
           color: "bg-primary/20 text-primary",
         };
       } else {
@@ -670,28 +674,28 @@ function DashboardPage() {
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || "R",
-          avatarUrl: t.sender?.profile_photo_url,
+          logo: t.sender?.profile_photo_url || null,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
     } else if (t.type === "deposit") {
-      const methodInfo = getMethodIcon(t.method);
+      const logo = getMethodLogo(t.method, t.description);
       return {
         title: t.description,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
-        icon: methodInfo.initials,
-        avatarUrl: null,
-        color: `${methodInfo.color}/20 text-${methodInfo.color.replace('bg-', '')}`,
+        icon: logo ? null : 'D',
+        logo: logo,
+        color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === "withdrawal") {
-      const methodInfo = getMethodIcon(t.method);
+      const logo = getMethodLogo(t.method, t.description);
       return {
         title: t.description,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: methodInfo.initials,
-        avatarUrl: null,
+        icon: logo ? null : 'W',
+        logo: logo,
         color: "bg-destructive/20 text-destructive",
       };
     }
@@ -700,7 +704,7 @@ function DashboardPage() {
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
       icon: "?",
-      avatarUrl: null,
+      logo: null,
       color: "bg-secondary text-secondary-foreground",
     };
   };
