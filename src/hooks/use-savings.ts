@@ -110,23 +110,71 @@ export function useSavings() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Handle Vault Balance source
+      if (source === "vault_balance") {
+        // 1. Fetch current wallet balance
+        const { data: wallet, error: walletError } = await supabase
+          .from("wallets")
+          .select("balance, id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (walletError || !wallet) {
+          toast.error("Could not find your Vault wallet");
+          return;
+        }
+
+        if (Number(wallet.balance) < amount) {
+          toast.error("Insufficient Vault balance", {
+            description: `You have KES ${Number(wallet.balance).toLocaleString()} but tried to save KES ${amount.toLocaleString()}`
+          });
+          return;
+        }
+
+        const newWalletBalance = Number(wallet.balance) - amount;
+
+        // 2. Deduct from wallet
+        const { error: deductError } = await supabase
+          .from("wallets")
+          .update({ balance: newWalletBalance })
+          .eq("id", wallet.id);
+
+        if (deductError) throw deductError;
+
+        // 3. Log into transactions table
+        const { error: txError } = await supabase
+          .from("transactions")
+          .insert({
+            sender_id: user.id,
+            receiver_id: null, // Self-transfer to savings
+            type: "transfer",
+            method: "vault",
+            amount: amount,
+            status: "completed",
+            description: "Transferred to savings",
+            balance_after: newWalletBalance
+          });
+
+        if (txError) throw txError;
+      }
+
       const newCurrentAmount = Number(goal.current_amount) + Number(amount);
 
-      // 1. Insert into savings_ledger
+      // 4. Insert into savings_ledger
       const { error: ledgerError } = await supabase
         .from("savings_ledger")
         .insert({
           goal_id: goal.id,
           user_id: user.id,
           amount,
-          source,
+          source: source === "vault_balance" ? "Vault" : source,
           type,
           running_total: newCurrentAmount
         });
 
       if (ledgerError) throw ledgerError;
 
-      // 2. Update savings_goals current_amount
+      // 5. Update savings_goals current_amount
       const { error: goalUpdateError } = await supabase
         .from("savings_goals")
         .update({ current_amount: newCurrentAmount })
