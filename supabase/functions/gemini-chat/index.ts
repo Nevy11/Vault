@@ -43,7 +43,7 @@ serve(async (req) => {
     // Fetch wallet balance
     const { data: wallet } = await supabase
       .from("wallets")
-      .select("balance, currency")
+      .select("id, balance, currency")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -52,7 +52,7 @@ serve(async (req) => {
 
     const { messages, userInput } = await req.json();
 
-    // Create a personalized system instruction
+    // Create a personalized system instruction with comprehensive real-time financial data
     const firstName = profile?.first_name || "User";
     const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
 

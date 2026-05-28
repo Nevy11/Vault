@@ -141,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="p-4">
           <ul className="space-y-1">
             {sidebarNavItems.map(({ label, to, icon: Icon, isActive }) => (
-              <li key={to}>
+              <li key={`${to}-${label}`}>
                 <Link
                   to={to}
                   className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${

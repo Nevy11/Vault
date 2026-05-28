@@ -26,24 +26,25 @@ export function FloatingAdvisor({ onClick, className }: FloatingAdvisorProps) {
     <button
       onClick={onClick}
       className={cn(
-        "fixed bottom-6 right-6 z-50 group flex items-center bg-[#004D2C] hover:bg-[#00361E] text-white shadow-lg hover:shadow-xl transition-all duration-700 ease-in-out border border-white/10 h-14 rounded-full overflow-hidden",
-        showLabel ? "px-6 w-auto" : "w-14 justify-center",
+        "fixed bottom-24 right-4 md:bottom-6 md:right-6 z-50 group flex items-center bg-[#004D2C] hover:bg-[#00361E] text-white shadow-lg hover:shadow-xl transition-all duration-700 ease-in-out border border-white/10 h-14 rounded-full overflow-hidden",
+        showLabel ? "px-4 md:px-6 w-auto" : "w-14 justify-center",
         className,
       )}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3">
         {/* Animated Text Label Container */}
         <div
           className={cn(
             "flex items-center gap-2 transition-all duration-1000 ease-in-out overflow-hidden",
             showLabel
-              ? "opacity-100 translate-x-0 max-w-[240px]"
+              ? "opacity-100 translate-x-0 max-w-[200px] md:max-w-[240px]"
               : "opacity-0 translate-x-12 max-w-0 pointer-events-none",
           )}
         >
           <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse shrink-0" />
-          <span className="text-sm font-medium tracking-wide whitespace-nowrap">
-            Ask Vault AI Advisor
+          <span className="text-xs md:text-sm font-medium tracking-wide whitespace-nowrap">
+            <span className="hidden sm:inline">Ask Vault AI Advisor</span>
+            <span className="sm:hidden">AI Advisor</span>
           </span>
         </div>
 

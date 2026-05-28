@@ -19,7 +19,6 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const channelRef = useRef<any>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!profile?.id) {
@@ -51,8 +50,10 @@ export function useNotifications() {
   useEffect(() => {
     if (!profile?.id) return;
 
+    // Use a unique channel name per mount to avoid collisions and "already subscribed" errors
+    const channelId = Math.random().toString(36).slice(2, 9);
     const channel = supabase
-      .channel(`notifications-updates-${profile.id}`)
+      .channel(`notifications-updates-${profile.id}-${channelId}`)
       .on(
         "postgres_changes",
         {
@@ -67,12 +68,8 @@ export function useNotifications() {
       )
       .subscribe();
 
-    channelRef.current = channel;
-
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      supabase.removeChannel(channel);
     };
   }, [profile?.id, fetchNotifications]);
 

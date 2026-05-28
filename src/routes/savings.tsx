@@ -442,7 +442,7 @@ function SavingsPage() {
                       </div>
                       <div className="space-y-6">
                         <div className="space-y-2">
-                          <div className="text-sm">
+                          <div className="text-sm text-center">
                             <span className="text-slate-900 dark:text-slate-100 font-black uppercase tracking-tight">
                               Monthly Contributions
                             </span>

@@ -24,6 +24,7 @@ import {
   ShieldAlert,
   ChevronRight,
 } from "lucide-react-native";
+import { FloatingAdvisor } from "../components/FloatingAdvisor";
 
 const { width } = Dimensions.get("window");
 
@@ -119,7 +120,7 @@ const BalanceCard: React.FC<{ balance: number; currency: string }> = ({ balance,
 /**
  * 3. MAIN DASHBOARD SCREEN
  */
-export const VaultDashboard: React.FC = () => {
+const VaultDashboard: React.FC = () => {
   const quickActions: QuickAction[] = [
     { id: "1", label: "Send Money", icon: Send, route: "Send", color: "#3B82F6" },
     { id: "2", label: "Deposit", icon: PlusCircle, route: "Deposit", color: "#10B981" },
@@ -186,9 +187,14 @@ export const VaultDashboard: React.FC = () => {
           </ScrollView>
         </View>
       </ScrollView>
+
+      {/* Floating AI Advisor */}
+      <FloatingAdvisor onPress={() => {}} />
     </SafeAreaView>
   );
 };
+
+export default VaultDashboard;
 
 const styles = StyleSheet.create({
   container: {

@@ -33,8 +33,9 @@ export function useWallet(providerType?: "vault" | "bank" | "mobile") {
     const userId = currentProfile.id;
     fetchWallet(userId);
 
+    const channelId = Math.random().toString(36).slice(2, 9);
     const channel = supabase
-      .channel(`wallet_changes_${userId}`)
+      .channel(`wallet_changes_${userId}_${channelId}`)
       .on(
         "postgres_changes",
         {

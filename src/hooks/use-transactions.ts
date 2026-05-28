@@ -209,8 +209,9 @@ export function useTransactions(enabled = true) {
     const userId = profile?.id;
     if (!userId) return;
 
+    const channelId = Math.random().toString(36).slice(2, 9);
     const channel = supabase
-      .channel(`transaction_changes_${userId}`)
+      .channel(`transaction_changes_${userId}_${channelId}`)
       .on(
         "postgres_changes",
         {
@@ -220,8 +221,11 @@ export function useTransactions(enabled = true) {
         },
         (payload) => {
           // Manually check if the updated transaction involves the current user
-          const record = payload.new || payload.old;
-          if (record && (record.sender_id === userId || record.receiver_id === userId)) {
+          const record = (payload.new || payload.old) as any;
+          if (
+            record &&
+            (record.sender_id === userId || record.receiver_id === userId)
+          ) {
             fetchTransactions();
           }
         },

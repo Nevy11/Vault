@@ -60,8 +60,9 @@ export function useLedger(enabled = true, currency?: string) {
     const userId = profile?.id;
     if (!userId) return;
 
+    const channelId = Math.random().toString(36).slice(2, 9);
     const channel = supabase
-      .channel(`ledger_changes_${userId}`)
+      .channel(`ledger_changes_${userId}_${channelId}`)
       .on(
         "postgres_changes",
         {

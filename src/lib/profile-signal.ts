@@ -12,6 +12,11 @@ export type Profile = {
   pin_hash?: string;
   nationality?: string;
   created_at?: string;
+  notifications_transfer_received?: boolean;
+  notifications_transfer_sent?: boolean;
+  notifications_account_login?: boolean;
+  notifications_security_alerts?: boolean;
+  notifications_ai_insights?: boolean;
 } | null;
 
 const PROFILE_CACHE_KEY = "vault_profile_cache";

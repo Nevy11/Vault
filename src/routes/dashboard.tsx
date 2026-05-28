@@ -22,9 +22,11 @@ import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
 import { useProfileSignal } from "@/lib/profile-signal";
+import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/api/supabase";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -452,10 +454,16 @@ function DashboardPage() {
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
   const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
+  const { notifications, markAsRead } = useNotifications();
   const [activeFilter, setActiveFilter] = useState("All");
   const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
   const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
+
+  // Find unread warning notifications (like sharp drops from AI)
+  const warningNotifications = useMemo(() => 
+    notifications.filter(n => !n.is_read && n.type === "warning"),
+  [notifications]);
 
   useEffect(() => {
     const fetchBalanceHistory = async () => {
@@ -527,15 +535,15 @@ function DashboardPage() {
 
     if (filter === "send")
       return transactions.filter(
-        (t) => t.type === "transfer" && t.sender_id === (profile as any)?.id,
+        (t: any) => t.type === "transfer" && t.sender_id === (profile as any)?.id,
       );
     if (filter === "received")
       return transactions.filter(
-        (t) =>
+        (t: any) =>
           (t.type === "transfer" && t.receiver_id === (profile as any)?.id) || t.type === "deposit",
       );
-    if (filter === "deposit") return transactions.filter((t) => t.type === "deposit");
-    if (filter === "withdraw") return transactions.filter((t) => t.type === "withdrawal");
+    if (filter === "deposit") return transactions.filter((t: any) => t.type === "deposit");
+    if (filter === "withdraw") return transactions.filter((t: any) => t.type === "withdrawal");
 
     return transactions;
   }, [transactions, activeFilter, profile]);
@@ -549,6 +557,16 @@ function DashboardPage() {
     const isLedger = t.source === "ledger";
 
     if (t.type === "transfer") {
+      if (t.description === "Transferred to savings" || (isSender && !t.receiver_id)) {
+        return {
+          title: "Transferred to savings",
+          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          positive: false,
+          icon: "S",
+          avatarUrl: null,
+          color: "bg-primary/20 text-primary",
+        };
+      }
       if (isSender) {
         return {
           title: `Transfer to ${t.receiver?.first_name || "User"}`,
@@ -614,6 +632,29 @@ function DashboardPage() {
             Real-time aggregate of your Vault financial ecosystem.
           </p>
         </div>
+
+        {/* Warning Notifications (AI Insights) */}
+        {warningNotifications.length > 0 && (
+          <div className="mb-8 space-y-3">
+            {warningNotifications.map((n) => (
+              <Alert key={n.id} variant="destructive" className="bg-destructive/10 border-destructive/30 rounded-2xl animate-in slide-in-from-top-4 duration-500">
+                <Shield className="h-4 w-4" />
+                <AlertTitle className="font-bold">{n.title}</AlertTitle>
+                <AlertDescription className="flex items-center justify-between gap-4">
+                  <span>{n.message}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-7 text-[10px] uppercase font-bold hover:bg-destructive/20"
+                    onClick={() => markAsRead(n.id)}
+                  >
+                    Dismiss
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ))}
+          </div>
+        )}
 
         {(balanceError || txError) && (
           <div className="mb-4 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
