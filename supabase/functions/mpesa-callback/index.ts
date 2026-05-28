@@ -91,4 +91,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Callback processed" }), {
+    headers: { "Content-Type": "application/json" },
+  });
 });
