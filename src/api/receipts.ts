@@ -1,6 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
 import { supabase } from "@/api/supabase";
-import { z } from "zod";
 
 /**
  * Type Definition for Receipt Data
@@ -23,41 +21,46 @@ export interface Receipt {
 }
 
 /**
- * Server Function: Fetch Paginated Receipts
+ * Fetch Paginated Receipts (Client-side)
  */
-export const getReceipts = createServerFn({ method: "GET" })
-  .handler(async (payload: { data: { userId: string; page?: number; pageSize?: number } }) => {
-    const { userId, page = 0, pageSize = 10 } = payload.data;
-    const from = page * pageSize;
-    const to = from + pageSize - 1;
+export const getReceipts = async (payload: { data: { userId: string; page?: number; pageSize?: number } }) => {
+  const { userId, page = 0, pageSize = 10 } = payload.data;
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
-    const { data, error, count } = await supabase
-      .from("receipts")
-      .select("*", { count: "exact" })
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .range(from, to);
+  console.log(`Fetching receipts for user ${userId}, range: ${from}-${to}`);
 
-    if (error) throw new Error(error.message);
+  const { data, error, count } = await supabase
+    .from("receipts")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
-    return {
-      receipts: (data as Receipt[]) || [],
-      totalCount: count || 0,
-    };
-  });
+  if (error) {
+    console.error("Supabase error fetching receipts:", error);
+    throw new Error(error.message);
+  }
+
+  console.log(`Found ${data?.length || 0} receipts for user ${userId}`);
+
+  return {
+    receipts: (data as Receipt[]) || [],
+    totalCount: count || 0,
+  };
+};
 
 /**
- * Server Function: Fetch Single Receipt Details
+ * Fetch Single Receipt Details (Client-side)
  */
-export const getReceiptDetails = createServerFn({ method: "GET" })
-  .handler(async (payload: { data: { receiptId: string } }) => {
-    const { receiptId } = payload.data;
-    const { data, error } = await supabase
-      .from("receipts")
-      .select("*")
-      .eq("id", receiptId)
-      .single();
+export const getReceiptDetails = async (payload: { data: { receiptId: string } }) => {
+  const { receiptId } = payload.data;
+  const { data, error } = await supabase
+    .from("receipts")
+    .select("*")
+    .eq("id", receiptId)
+    .single();
 
-    if (error) throw new Error(error.message);
-    return data as Receipt;
-  });
+  if (error) throw new Error(error.message);
+  return data as Receipt;
+};

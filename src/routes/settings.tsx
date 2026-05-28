@@ -18,6 +18,10 @@ import {
   Loader2,
   X,
   Search,
+  Briefcase,
+  Store,
+  QrCode,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -228,6 +232,12 @@ function SettingsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Merchant State
+  const [merchantEnabled, setMerchantEnabled] = useState(false);
+  const [businessName, setBusinessName] = useState("");
+  const [businessCategory, setBusinessCategory] = useState("Retail");
+  const [isSavingMerchant, setIsSavingMerchant] = useState(false);
+
   // New UI states
   const [showViewModal, setShowViewModal] = useState(false);
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
@@ -242,10 +252,57 @@ function SettingsPage() {
     if (profile) {
       setFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
       setLoading(false);
+      fetchMerchantData();
     }
     fetchDevices();
     fetchLogs();
   }, [profile]);
+
+  async function fetchMerchantData() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("merchants")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        setMerchantEnabled(data.is_active);
+        setBusinessName(data.business_name);
+        setBusinessCategory(data.business_category);
+      }
+    } catch (err) {
+      console.error("Error fetching merchant data:", err);
+    }
+  }
+
+  async function handleSaveMerchant() {
+    try {
+      setIsSavingMerchant(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Unauthorized");
+
+      const { error } = await supabase
+        .from("merchants")
+        .upsert({
+          user_id: user.id,
+          business_name: businessName || `${profile?.first_name}'s Business`,
+          business_category: businessCategory,
+          is_active: merchantEnabled,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      toast.success("Merchant profile updated!");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save business profile");
+    } finally {
+      setIsSavingMerchant(false);
+    }
+  }
 
   async function fetchDevices() {
     try {
