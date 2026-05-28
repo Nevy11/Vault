@@ -78,7 +78,7 @@ BEGIN
                 'description', NEW.description,
                 'completed_at', NOW()
             ),
-            COALESCE(NEW.metadata, '{}'::jsonb)
+            '{}'::jsonb
         );
     END IF;
     RETURN NEW;
