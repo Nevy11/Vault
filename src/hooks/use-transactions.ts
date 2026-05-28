@@ -53,10 +53,9 @@ export function useTransactions(enabled = true) {
         return;
       }
 
-      // Fetch transactions, ledger, and balance history simultaneously
+      // Fetch transactions and balance history simultaneously
       const [
         { data: transactionsData, error: transactionsError },
-        { data: ledgerData, error: ledgerError },
         { data: historyData, error: historyError }
       ] = await Promise.all([
         supabase
@@ -70,20 +69,15 @@ export function useTransactions(enabled = true) {
           )
           .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`),
         supabase
-          .from('ledger_entries')
-          .select('*')
-          .eq('user_id', userId),
-        supabase
           .from('balance_history')
           .select('*')
           .order('recorded_at', { ascending: false })
       ]);
 
       if (transactionsError) throw transactionsError;
-      if (ledgerError) throw ledgerError;
       if (historyError) throw historyError;
 
-      // Map and merge
+      // Map transactions
       const mappedTransactions = (transactionsData || []).map(t => {
         // Try to find exact match in balance_history first
         const snapshot = (historyData || []).find(h => 
@@ -98,42 +92,8 @@ export function useTransactions(enabled = true) {
         };
       });
 
-      const mappedLedger = (ledgerData || []).map(l => {
-        // Try to find exact match in balance_history first
-        const snapshot = (historyData || []).find(h => 
-          new Date(h.recorded_at).getTime() >= new Date(l.created_at).getTime() - 2000 &&
-          new Date(h.recorded_at).getTime() <= new Date(l.created_at).getTime() + 2000
-        );
-
-        return {
-          id: l.id,
-          sender_id: userId,
-          receiver_id: userId,
-          type: l.type || 'transfer',
-          method: 'vault' as const,
-          amount: Number(l.amount),
-          status: l.status === 'completed' ? 'completed' : 'pending',
-          description: l.description || '',
-          created_at: l.created_at,
-          balance_after: snapshot ? Number(snapshot.recorded_balance) : null,
-          source: 'ledger' as const,
-        sender: {
-          first_name: profile?.first_name || 'Vault',
-          last_name: profile?.last_name || 'User',
-          kyc_tag: '',
-          profile_photo_url: profile?.profile_photo_url || null
-        },
-        receiver: {
-          first_name: profile?.first_name || 'Vault',
-          last_name: profile?.last_name || 'User',
-          kyc_tag: '',
-          profile_photo_url: profile?.profile_photo_url || null
-        }
-        };
-      });
-
-      // merge and sort newest -> oldest
-      const merged = [...mappedTransactions, ...mappedLedger].sort(
+      // Sort newest -> oldest
+      const merged = mappedTransactions.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
