@@ -678,10 +678,9 @@ function DashboardPage() {
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === "withdrawal") {
-      const bankName = isLedger ? "Wallet Withdrawal" : (t.method || "Withdrawal").toString();
-      const initials = bankName.substring(0, 2).toUpperCase();
+      const initials = t.description.substring(0, 2).toUpperCase();
       return {
-        title: `${bankName} to ${userName}`,
+        title: t.description,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
         icon: initials,
