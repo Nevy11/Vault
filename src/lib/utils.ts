@@ -18,14 +18,14 @@ export function normalizeKycNamePart(value: string) {
   return value
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '.')
-    .replace(/(^\.|\.$)/g, '')
-    .replace(/\.+/g, '.');
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/(^\.|\.$)/g, "")
+    .replace(/\.+/g, ".");
 }
 
 export function formatKycTag(firstName: string, lastName: string) {
-  const normalizedFirst = normalizeKycNamePart(firstName) || 'user';
-  const normalizedLast = normalizeKycNamePart(lastName) || 'customer';
+  const normalizedFirst = normalizeKycNamePart(firstName) || "user";
+  const normalizedLast = normalizeKycNamePart(lastName) || "customer";
   return `@${normalizedFirst}.${normalizedLast}`;
 }
 

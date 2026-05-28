@@ -55,7 +55,7 @@ function LoginPage() {
 
   const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    
+
     if (!email || !pin) {
       toast.error("Please enter both email and PIN");
       return;
@@ -86,7 +86,7 @@ function LoginPage() {
         email,
         options: {
           shouldCreateUser: false,
-        }
+        },
       });
 
       if (error) {
@@ -112,7 +112,10 @@ function LoginPage() {
       setStatus("verifying");
       try {
         // 1. Verify OTP using 'magiclink' type for token-based verification
-        const { data: { user }, error: verifyError } = await supabase.auth.verifyOtp({
+        const {
+          data: { user },
+          error: verifyError,
+        } = await supabase.auth.verifyOtp({
           email,
           token: code,
           type: "magiclink",
@@ -154,12 +157,15 @@ function LoginPage() {
         // 4. Record device login
         const deviceName = getDeviceName();
         try {
-          await supabase.from("user_devices").upsert({
-            user_id: user.id,
-            device_name: deviceName,
-            last_login: new Date().toISOString(),
-            is_active: true,
-          }, { onConflict: "user_id, device_name" });
+          await supabase.from("user_devices").upsert(
+            {
+              user_id: user.id,
+              device_name: deviceName,
+              last_login: new Date().toISOString(),
+              is_active: true,
+            },
+            { onConflict: "user_id, device_name" },
+          );
 
           // 5. Record activity log
           await supabase.from("activity_logs").insert({

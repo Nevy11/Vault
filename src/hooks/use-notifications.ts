@@ -19,7 +19,6 @@ export function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const channelRef = useRef<any>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!profile?.id) {
@@ -50,8 +49,10 @@ export function useNotifications() {
   useEffect(() => {
     if (!profile?.id) return;
 
+    // Use a unique channel name per mount to avoid collisions and "already subscribed" errors
+    const channelId = Math.random().toString(36).slice(2, 9);
     const channel = supabase
-      .channel(`notifications-updates-${profile.id}`)
+      .channel(`notifications-updates-${profile.id}-${channelId}`)
       .on(
         "postgres_changes",
         {
@@ -62,32 +63,23 @@ export function useNotifications() {
         },
         () => {
           fetchNotifications();
-        }
+        },
       )
       .subscribe();
 
-    channelRef.current = channel;
-
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      supabase.removeChannel(channel);
     };
   }, [profile?.id, fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("id", id);
+      const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
 
       if (error) throw error;
-      
+
       // Optimistic update
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-      );
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
     } catch (err: any) {
       setError(err.message);
     }
@@ -103,7 +95,7 @@ export function useNotifications() {
         .eq("is_read", false);
 
       if (error) throw error;
-      
+
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (err: any) {
       setError(err.message);

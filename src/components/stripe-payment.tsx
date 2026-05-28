@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
+import { PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabase";
@@ -22,7 +18,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const currencySymbol = currency === 'USD' ? '$' : (currency === 'KSH' ? 'KES ' : currency + ' ');
+  const currencySymbol = currency === "USD" ? "$" : currency === "KSH" ? "KES " : currency + " ";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +47,9 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
       toast.error(error.message || "Payment failed");
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) throw new Error("User session not found");
 
         // Update the actual ledger and wallet balance
@@ -64,7 +62,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
           p_reference: paymentIntent.id,
           p_description: `Stripe Deposit: ${paymentIntent.id}`,
           p_status: "completed",
-          p_metadata: { payment_method: 'bank', stripe_payment_intent_id: paymentIntent.id }
+          p_metadata: { payment_method: "bank", stripe_payment_intent_id: paymentIntent.id },
         });
 
         if (ledgerError) {
@@ -90,7 +88,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
       <div className="rounded-lg border bg-card p-4 shadow-sm">
         <PaymentElement id="payment-element" />
       </div>
-      
+
       {message && (
         <div id="payment-message" className="text-sm text-destructive text-center">
           {message}
@@ -107,13 +105,11 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
         >
           Cancel
         </Button>
-        <Button
-          disabled={isProcessing || !stripe || !elements}
-          id="submit"
-          className="flex-1"
-        >
+        <Button disabled={isProcessing || !stripe || !elements} id="submit" className="flex-1">
           <span id="button-text">
-            {isProcessing ? "Processing..." : `Pay ${currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+            {isProcessing
+              ? "Processing..."
+              : `Pay ${currencySymbol}${amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
           </span>
         </Button>
       </div>

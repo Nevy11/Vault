@@ -1,6 +1,15 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode, useEffect } from "react";
-import { Upload, CheckCircle2, User, Shield, Camera, UserCheck, ArrowRight, ArrowLeft } from "lucide-react";
+import {
+  Upload,
+  CheckCircle2,
+  User,
+  Shield,
+  Camera,
+  UserCheck,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/top-nav";
@@ -25,7 +34,17 @@ export const Route = createFileRoute("/kyc")({
 });
 
 // 3. Helper Components
-function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: ReactNode }) {
+function Field({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-sm text-foreground/90">
@@ -39,14 +58,16 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
 }
 
 function Confetti() {
-  const [confetti] = useState<Array<{ id: number; x: number; y: number; delay: number; duration: number }>>(
+  const [confetti] = useState<
+    Array<{ id: number; x: number; y: number; delay: number; duration: number }>
+  >(
     [...Array(50)].map((_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: -10,
       delay: Math.random() * 0.5,
       duration: 2 + Math.random() * 1,
-    }))
+    })),
   );
 
   return (
@@ -143,7 +164,9 @@ function KYCPage() {
             <>
               <div className="mt-6 text-center">
                 <h1 className="font-serif text-3xl text-foreground">Select ID Type</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Choose your document type for verification</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose your document type for verification
+                </p>
               </div>
 
               <div className="mt-7 space-y-3">
@@ -152,7 +175,9 @@ function KYCPage() {
                   className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
                 >
                   <p className="font-medium text-foreground">National ID</p>
-                  <p className="text-xs text-muted-foreground mt-1">Driver's License, Identity Card</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Driver's License, Identity Card
+                  </p>
                 </button>
 
                 <button
@@ -160,7 +185,9 @@ function KYCPage() {
                   className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
                 >
                   <p className="font-medium text-foreground">Passport</p>
-                  <p className="text-xs text-muted-foreground mt-1">International Travel Document</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    International Travel Document
+                  </p>
                 </button>
 
                 <button
@@ -268,7 +295,14 @@ function KYCPage() {
             <>
               <div className="mt-6 text-center">
                 <h1 className="font-serif text-3xl text-foreground">Upload Document</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Upload your {idType === "national-id" ? "ID" : idType === "passport" ? "passport" : "alien card"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Upload your{" "}
+                  {idType === "national-id"
+                    ? "ID"
+                    : idType === "passport"
+                      ? "passport"
+                      : "alien card"}
+                </p>
               </div>
 
               <form className="mt-7 space-y-4" onSubmit={handleDocumentUpload}>
@@ -305,7 +339,9 @@ function KYCPage() {
             <>
               <div className="mt-6 text-center">
                 <h1 className="font-serif text-3xl text-foreground">Biometric Verification</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Take a selfie to verify your identity</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Take a selfie to verify your identity
+                </p>
               </div>
 
               <div className="mt-7 space-y-4">
@@ -343,7 +379,9 @@ function KYCPage() {
                   <CheckCircle2 className="h-20 w-20 text-primary relative mx-auto mb-4" />
                 </div>
                 <h1 className="font-serif text-3xl text-foreground">Verification Successful!</h1>
-                <p className="mt-2 text-sm text-muted-foreground">Your digital wallet is active and secured with your PIN</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Your digital wallet is active and secured with your PIN
+                </p>
               </div>
 
               <Confetti />

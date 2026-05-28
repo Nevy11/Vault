@@ -82,7 +82,7 @@ export function useProfileSignal() {
   const profile = useSyncExternalStore(
     profileSignal.subscribe,
     profileSignal.getSnapshot,
-    profileSignal.getSnapshot // Server snapshot
+    profileSignal.getSnapshot, // Server snapshot
   );
 
   const setter = useCallback((newValue: Profile) => {

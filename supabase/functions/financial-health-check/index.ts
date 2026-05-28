@@ -88,8 +88,9 @@ serve(async (req) => {
         "should_notify": true,
         "title": "Short catchy title (e.g., 'Sharp Balance Drop Detected')",
         "message": "Direct, professional, and helpful message explaining the drop or risk",
-        "type": "info" | "warning" | "success"
+        "type": "warning"
       }
+      Note: Always use "warning" for sharp drops. For other minor insights, you can use "info".
       If everything looks normal and no immediate advice is needed, return:
       { "should_notify": false }
 

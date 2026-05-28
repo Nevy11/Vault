@@ -53,7 +53,7 @@ function SignUp() {
   const { step: initialStep } = Route.useSearch();
   const [agreed, setAgreed] = useState(false);
   const [step, setStep] = useState<"signUp" | "verify">(
-    initialStep === "verify" ? "verify" : "signUp"
+    initialStep === "verify" ? "verify" : "signUp",
   );
   const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
   const [fullName, setFullName] = useState("");
@@ -73,7 +73,7 @@ function SignUp() {
   const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log("handleSendCode triggered", { email, fullName, phone, pinLength: pin.length });
-    
+
     if (!agreed) {
       console.log("Terms not agreed");
       toast.error("You must agree to the Terms of Service and Privacy Policy");
@@ -96,7 +96,7 @@ function SignUp() {
     try {
       console.log("Hashing PIN...");
       const hashedPin = await hashPin(pin);
-      
+
       console.log("Attempting supabase.auth.signUp...");
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -113,7 +113,7 @@ function SignUp() {
         console.error("Supabase signUp error:", error);
         throw error;
       }
-      
+
       console.log("SignUp successful, data:", data);
       toast.success("Verification code sent to your email");
       navigate({ search: (prev: any) => ({ ...prev, step: "verify" }) });
@@ -129,15 +129,18 @@ function SignUp() {
   const handleVerify = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     console.log("handleVerify triggered", { email, codeLength: code.length });
-    
+
     if (code.length === 6) {
       setStatus("verifying");
       try {
         console.log("Attempting supabase.auth.verifyOtp with type 'signup'...");
-        const { data: { user }, error } = await supabase.auth.verifyOtp({
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.verifyOtp({
           email,
           token: code,
-          type: "signup"
+          type: "signup",
         });
 
         if (error) {
@@ -170,7 +173,7 @@ function SignUp() {
     const used = new Set(
       (existingTags || [])
         .map((row: any) => row.kyc_tag)
-        .filter((tag: any): tag is string => Boolean(tag))
+        .filter((tag: any): tag is string => Boolean(tag)),
     );
 
     if (!used.has(baseTag)) {
@@ -187,9 +190,9 @@ function SignUp() {
 
   const proceedWithVerifiedUser = async (user: any) => {
     if (!user) throw new Error("No user found after verification");
-    
+
     console.log("Proceeding with database operations for user:", user.id);
-    
+
     const nameParts = fullName.trim().split(/\s+/);
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || "";
@@ -198,7 +201,7 @@ function SignUp() {
     // 1. Create Profile
     console.log("Hashing PIN for storage...");
     const hashedPin = await hashPin(pin);
-    
+
     console.log("Upserting profile...");
     const { error: profileError } = await supabase.from("profiles").upsert({
       id: user.id,
@@ -220,8 +223,8 @@ function SignUp() {
     console.log("Initializing wallet...");
     const { error: walletError } = await supabase.from("wallets").insert({
       user_id: user.id,
-      balance: 0.00,
-      currency: "USD"
+      balance: 0.0,
+      currency: "USD",
     });
 
     if (walletError && walletError.code !== "23505") {
@@ -232,7 +235,7 @@ function SignUp() {
     console.log("Setting user preferences...");
     await supabase.from("user_preferences").upsert({
       user_id: user.id,
-      theme: "system"
+      theme: "system",
     });
 
     console.log("All database operations completed. Navigating to /kyc");

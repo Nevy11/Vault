@@ -33,9 +33,16 @@ const AvatarFallback = React.forwardRef<
 >(({ className, ...props }, ref) => {
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
-  
+
   if (!mounted) {
-    return <div className={cn("flex h-full w-full items-center justify-center rounded-full bg-muted", className)} />;
+    return (
+      <div
+        className={cn(
+          "flex h-full w-full items-center justify-center rounded-full bg-muted",
+          className,
+        )}
+      />
+    );
   }
 
   return (

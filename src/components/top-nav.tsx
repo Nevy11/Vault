@@ -16,12 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { Logo } from "@/components/logo";
 
@@ -39,7 +34,7 @@ export function TopNav() {
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  
+
   const location = useLocation();
   const isLandingPage = location.pathname === "/";
 
@@ -54,7 +49,7 @@ export function TopNav() {
     return { text: "Good evening", emoji: "🌙" };
   }, []);
 
-  const userName = profile?.first_name || profile?.email?.split('@')[0] || "User";
+  const userName = profile?.first_name || profile?.email?.split("@")[0] || "User";
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -72,7 +67,11 @@ export function TopNav() {
         {isLandingPage ? (
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
             {navLinks.map((link) => (
-              <a key={link.href} href={link.href} className="hover:text-foreground transition-colors font-medium">
+              <a
+                key={link.href}
+                href={link.href}
+                className="hover:text-foreground transition-colors font-medium"
+              >
                 {link.label}
               </a>
             ))}
@@ -83,7 +82,6 @@ export function TopNav() {
 
         {/* Right Section */}
         <div className="flex items-center gap-2">
-          
           {/* Conditional Greeting: Show on Internal App Pages if Logged In */}
           {!isLandingPage && mounted && profile && (
             <div className="hidden sm:flex items-center gap-4 mr-2 border-r border-border/60 pr-4">
@@ -96,15 +94,21 @@ export function TopNav() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={toggleTheme}
                   className="h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group"
                   aria-label="Toggle theme"
                 >
                   {theme === "dark" ? (
-                    <Sun size={16} className="group-hover:scale-110 transition-transform text-yellow-500" />
+                    <Sun
+                      size={16}
+                      className="group-hover:scale-110 transition-transform text-yellow-500"
+                    />
                   ) : (
-                    <Moon size={16} className="group-hover:scale-110 transition-transform text-slate-400" />
+                    <Moon
+                      size={16}
+                      className="group-hover:scale-110 transition-transform text-slate-400"
+                    />
                   )}
                 </button>
                 <DropdownMenu>
@@ -116,11 +120,14 @@ export function TopNav() {
                       )}
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-80 rounded-2xl p-0 border-border/50 shadow-xl overflow-hidden">
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-80 rounded-2xl p-0 border-border/50 shadow-xl overflow-hidden"
+                  >
                     <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
                       <h3 className="font-semibold text-sm">Notifications</h3>
                       {unreadCount > 0 && (
-                        <button 
+                        <button
                           onClick={(e) => {
                             e.preventDefault();
                             markAllAsRead();
@@ -143,17 +150,22 @@ export function TopNav() {
                             <button
                               key={n.id}
                               onClick={() => !n.is_read && markAsRead(n.id)}
-                              className={`flex flex-col gap-1 p-4 text-left border-b border-border/40 last:border-0 transition-colors hover:bg-muted/50 relative ${!n.is_read ? 'bg-primary/5' : ''}`}
+                              className={`flex flex-col gap-1 p-4 text-left border-b border-border/40 last:border-0 transition-colors hover:bg-muted/50 relative ${!n.is_read ? "bg-primary/5" : ""}`}
                             >
                               {!n.is_read && (
                                 <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full" />
                               )}
                               <div className="flex items-center justify-between gap-2">
-                                <span className={`text-xs font-semibold ${!n.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                <span
+                                  className={`text-xs font-semibold ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}
+                                >
                                   {n.title}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                  {new Date(n.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                  {new Date(n.created_at).toLocaleDateString([], {
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground line-clamp-2">
@@ -195,19 +207,28 @@ export function TopNav() {
               <DropdownMenuTrigger asChild>
                 <button className="ml-2 rounded-full transition-all hover:ring-4 hover:ring-primary/10 focus:outline-none flex p-0.5 border border-primary/20 bg-primary/5">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
+                    <AvatarImage
+                      src={profile?.profile_photo_url || undefined}
+                      className="object-cover"
+                    />
                     <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-xs font-bold">
                       {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 border-border/50 shadow-xl">
+              <DropdownMenuContent
+                align="end"
+                className="w-64 rounded-2xl p-2 border-border/50 shadow-xl"
+              >
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1 py-1 px-1">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 border border-border/40">
-                        <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
+                        <AvatarImage
+                          src={profile?.profile_photo_url || undefined}
+                          className="object-cover"
+                        />
                         <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                           {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
                         </AvatarFallback>
@@ -224,7 +245,7 @@ export function TopNav() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onSelect={() => setShowPhotoPreview(true)}
                   className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
                 >
@@ -232,13 +253,19 @@ export function TopNav() {
                   View Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/settings" className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5">
+                  <Link
+                    to="/settings"
+                    className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
+                  >
                     <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-2.5">
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-2.5"
+                >
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign out
                 </DropdownMenuItem>
@@ -250,12 +277,17 @@ export function TopNav() {
             <Dialog open={showPhotoPreview} onOpenChange={setShowPhotoPreview}>
               <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-2xl border-border/40">
                 <DialogHeader>
-                  <DialogTitle className="text-center font-serif text-2xl">Profile Photo</DialogTitle>
+                  <DialogTitle className="text-center font-serif text-2xl">
+                    Profile Photo
+                  </DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center justify-center p-4">
                   <div className="relative group">
                     <Avatar className="h-48 w-48 border-4 border-primary/20 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
-                      <AvatarImage src={profile?.profile_photo_url || undefined} className="object-cover" />
+                      <AvatarImage
+                        src={profile?.profile_photo_url || undefined}
+                        className="object-cover"
+                      />
                       <AvatarFallback className="bg-primary/10 text-primary text-4xl">
                         {profile?.first_name?.[0] || <User className="h-20 w-20" />}
                       </AvatarFallback>
@@ -271,14 +303,14 @@ export function TopNav() {
                     </p>
                   </div>
                   <div className="mt-8 flex gap-3 w-full">
-                    <Button 
+                    <Button
                       className="flex-1 rounded-xl h-11"
                       onClick={() => setShowPhotoPreview(false)}
                     >
                       Close Preview
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1 rounded-xl h-11 border-border/60"
                       asChild
                       onClick={() => setShowPhotoPreview(false)}

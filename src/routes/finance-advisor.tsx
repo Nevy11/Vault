@@ -21,9 +21,9 @@ function FinanceAdvisorPage() {
         <VisuallyHidden>
           <DialogTitle>Finance Advisor AI</DialogTitle>
         </VisuallyHidden>
-        
+
         {/* Custom Close Button - Positioned to prevent layout clipping */}
-        <button 
+        <button
           onClick={handleClose}
           className="absolute right-4 top-4 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 dark:bg-black/20 dark:hover:bg-black/40 text-foreground transition-all duration-200 group active:scale-90 border border-white/10"
           aria-label="Close advisor"
