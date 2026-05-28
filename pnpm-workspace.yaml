@@ -1,5 +1,4 @@
 packages:
-  - '.'
   - 'mobile'
 
 # Optional: Configuration for allowed builds in the workspace
