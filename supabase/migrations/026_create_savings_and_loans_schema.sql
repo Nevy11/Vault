@@ -1,6 +1,6 @@
 -- Create savings_goals table
 CREATE TABLE IF NOT EXISTS savings_goals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     target_amount DECIMAL(12, 2) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS savings_goals (
 
 -- Create loans table
 CREATE TABLE IF NOT EXISTS loans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     requested_amount DECIMAL(12, 2) NOT NULL,
     interest_rate DECIMAL(5, 2) NOT NULL,
@@ -36,20 +36,26 @@ CREATE TABLE IF NOT EXISTS loans (
 ALTER TABLE savings_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE loans ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own savings goals" ON savings_goals;
 CREATE POLICY "Users can view their own savings goals" ON savings_goals
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create their own savings goals" ON savings_goals;
 CREATE POLICY "Users can create their own savings goals" ON savings_goals
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own savings goals" ON savings_goals;
 CREATE POLICY "Users can update their own savings goals" ON savings_goals
     FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view their own loans" ON loans;
 CREATE POLICY "Users can view their own loans" ON loans
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can create their own loans" ON loans;
 CREATE POLICY "Users can create their own loans" ON loans
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own loans" ON loans;
 CREATE POLICY "Users can update their own loans" ON loans
     FOR UPDATE USING (auth.uid() = user_id);

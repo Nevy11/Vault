@@ -3,7 +3,7 @@
 
 -- 1. Savings Goals Table
 CREATE TABLE IF NOT EXISTS public.savings_goals (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     title TEXT NOT NULL,
     target_amount DECIMAL(15, 2) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS public.savings_goals (
 
 -- 2. Loans Table
 CREATE TABLE IF NOT EXISTS public.loans (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     amount DECIMAL(15, 2) NOT NULL,
     interest_rate DECIMAL(5, 2) NOT NULL DEFAULT 5.00,
@@ -33,9 +33,11 @@ CREATE TABLE IF NOT EXISTS public.loans (
 ALTER TABLE public.savings_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their own savings goals" ON public.savings_goals;
 CREATE POLICY "Users can manage their own savings goals" ON public.savings_goals
     FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can manage their own loans" ON public.loans;
 CREATE POLICY "Users can manage their own loans" ON public.loans
     FOR ALL USING (auth.uid() = user_id);
 

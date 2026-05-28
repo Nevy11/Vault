@@ -1,12 +1,36 @@
 -- 1. Create ENUMs for categorized data
-CREATE TYPE transaction_type AS ENUM ('deposit', 'withdrawal', 'transfer');
-CREATE TYPE transaction_method AS ENUM ('vault', 'mobile_money', 'bank_account', 'card_visa', 'card_mastercard');
-CREATE TYPE transaction_status AS ENUM ('pending', 'completed', 'failed', 'cancelled');
-CREATE TYPE kyc_status AS ENUM ('unverified', 'pending', 'verified', 'rejected');
-CREATE TYPE theme_preference AS ENUM ('light', 'dark', 'system');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_type') THEN
+        CREATE TYPE transaction_type AS ENUM ('deposit', 'withdrawal', 'transfer');
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_method') THEN
+        CREATE TYPE transaction_method AS ENUM ('vault', 'mobile_money', 'bank_account', 'card_visa', 'card_mastercard');
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_status') THEN
+        CREATE TYPE transaction_status AS ENUM ('pending', 'completed', 'failed', 'cancelled');
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'kyc_status') THEN
+        CREATE TYPE kyc_status AS ENUM ('unverified', 'pending', 'verified', 'rejected');
+    END IF;
+END $$;
+
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'theme_preference') THEN
+        CREATE TYPE theme_preference AS ENUM ('light', 'dark', 'system');
+    END IF;
+END $$;
 
 -- 2. Profiles Table (Extends Supabase Auth)
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
     id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
@@ -22,7 +46,7 @@ CREATE TABLE profiles (
 );
 
 -- 3. Wallets Table (Stores current user net worth/balance)
-CREATE TABLE wallets (
+CREATE TABLE IF NOT EXISTS wallets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
     balance NUMERIC(12, 2) DEFAULT 0.00,
@@ -32,7 +56,7 @@ CREATE TABLE wallets (
 );
 
 -- 4. Net Worth / Balance History (To plot the line graph over time)
-CREATE TABLE balance_history (
+CREATE TABLE IF NOT EXISTS balance_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wallet_id UUID REFERENCES wallets(id) ON DELETE CASCADE NOT NULL,
     recorded_balance NUMERIC(12, 2) NOT NULL,
@@ -40,7 +64,7 @@ CREATE TABLE balance_history (
 );
 
 -- 5. Registered Payment Methods (For Withdrawals & Deposits)
-CREATE TABLE payment_methods (
+CREATE TABLE IF NOT EXISTS payment_methods (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
     method_type transaction_method NOT NULL,
@@ -51,7 +75,7 @@ CREATE TABLE payment_methods (
 );
 
 -- 6. Transactions Table (Handles deposits, withdrawals, and P2P transfers)
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sender_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Null if external deposit
     receiver_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Null if external withdrawal
@@ -65,7 +89,7 @@ CREATE TABLE transactions (
 );
 
 -- 7. User Preferences & Notifications Table
-CREATE TABLE user_preferences (
+CREATE TABLE IF NOT EXISTS user_preferences (
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE PRIMARY KEY,
     theme theme_preference DEFAULT 'system',
     language TEXT DEFAULT 'en',
@@ -77,7 +101,7 @@ CREATE TABLE user_preferences (
 );
 
 -- 8. Activity & Security Logs (Session history, login notifications, etc.)
-CREATE TABLE activity_logs (
+CREATE TABLE IF NOT EXISTS activity_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
     action_type TEXT NOT NULL, -- e.g., 'login', 'transfer_initiated', 'pin_change'
@@ -89,7 +113,7 @@ CREATE TABLE activity_logs (
 );
 
 -- 9. Device Management Table
-CREATE TABLE user_devices (
+CREATE TABLE IF NOT EXISTS user_devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
     device_name TEXT NOT NULL, -- e.g., 'iPhone 13', 'Chrome on Windows'
@@ -99,7 +123,7 @@ CREATE TABLE user_devices (
 );
 
 -- 10. Support Tickets (Help Page & Contact Form)
-CREATE TABLE support_tickets (
+CREATE TABLE IF NOT EXISTS support_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES profiles(id) ON DELETE SET NULL, -- Nullable if they log out before asking
     first_name TEXT NOT NULL,
@@ -145,11 +169,14 @@ CREATE TABLE IF NOT EXISTS savings_ledger (
 ALTER TABLE savings_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE savings_ledger ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage their own savings goals" ON savings_goals;
 CREATE POLICY "Users can manage their own savings goals" ON savings_goals
     FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view their own savings ledger" ON savings_ledger;
 CREATE POLICY "Users can view their own savings ledger" ON savings_ledger
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert to their own savings ledger" ON savings_ledger;
 CREATE POLICY "Users can insert to their own savings ledger" ON savings_ledger
     FOR INSERT WITH CHECK (auth.uid() = user_id);
