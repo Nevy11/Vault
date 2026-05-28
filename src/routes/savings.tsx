@@ -22,6 +22,7 @@ import {
   Smartphone,
   Trophy,
   Sparkles,
+  Plus,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
@@ -54,7 +55,7 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { format, isBefore, startOfToday } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, formatWithCommas, parseFormattedNumber } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   PieChart,
@@ -67,7 +68,16 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  Defs,
+  LinearGradient,
+  Stop,
 } from "recharts";
+
+import { useSavings } from "@/hooks/use-savings";
 
 export const Route = createFileRoute("/savings")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -86,78 +96,158 @@ const FINANCIAL_JOKES = [
   "A budget is telling your money where to go instead of wondering where it went.",
 ];
 
+const SAVING_LINES = [
+  "Small drops make a mighty ocean. Start savings today!",
+  "A penny saved is a penny earned. Watch your wealth grow!",
+  "Your future self will thank you for the discipline you show now.",
+  "Financial freedom starts with a single coin in the vault.",
+  "Locking away a little now opens big doors later.",
+];
+
 function SavingsPage() {
   const { tab } = Route.useSearch();
   const [activeTab, setActiveTab] = useState(tab || "overview");
   const [isAutomated, setIsAutomated] = useState(false);
   const [showAutoPopup, setShowAutoPopup] = useState(false);
+  const [showContributionModal, setShowContributionModal] = useState(false);
+  const [contribAmount, setContribAmount] = useState("");
+  const [contribSource, setContribSource] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [goalTitle, setGoalTitle] = useState("");
 
   // Automation state
   const [autoFreq, setAutoFreq] = useState("weekly");
   const [autoAmount, setAutoAmount] = useState("");
   const [autoProvider, setAutoProvider] = useState("");
 
+  const [goalSource, setGoalSource] = useState("");
+
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const [savingsGoal, setSavingsGoal] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { 
+    goals, 
+    goal: savingsGoal, 
+    selectedGoalIndex, 
+    setSelectedGoalIndex, 
+    ledger, 
+    loading, 
+    addContribution, 
+    createGoal, 
+    updateGoal 
+  } = useSavings();
+
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    const fetchGoal = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("savings_goals")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      console.log("Fetched savings goal data:", data);
-      if (data) {
-        setSavingsGoal(data);
-        console.log("State updated with:", data);
+    if (activeTab === "setup" && isEditing && savingsGoal) {
+      setGoalTitle(savingsGoal.title || "");
+      setGoalSource(savingsGoal.funding_source || "");
+      setTargetAmount(formatWithCommas(savingsGoal.target_amount));
+      setIsAutomated(savingsGoal.is_automated || false);
+      if (savingsGoal.is_automated) {
+        setAutoFreq(savingsGoal.automation_frequency || "weekly");
+        setAutoAmount(formatWithCommas(savingsGoal.automation_amount || ""));
+        setAutoProvider(savingsGoal.automation_provider || "");
       }
-      else console.log("No active savings goal found for user");
-      setLoading(false);
-    };
-    fetchGoal();
-  }, []);
+    } else if (activeTab === "setup" && !isEditing) {
+      // Clear form for new goal
+      setGoalTitle("");
+      setGoalSource("");
+      setTargetAmount("");
+      setIsAutomated(false);
+      setAutoFreq("weekly");
+      setAutoAmount("");
+      setAutoProvider("");
+    }
+  }, [activeTab, isEditing, savingsGoal]);
 
   const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
   const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
 
   const chartData = savingsGoal ? [
-    { name: "Saved", value: savingsGoal.current_amount, color: "var(--primary)" },
+    { name: "Saved", value: Number(savingsGoal.current_amount), color: "var(--primary)" },
     {
       name: "Remaining",
-      value: savingsGoal.target_amount - savingsGoal.current_amount,
+      value: Math.max(0, Number(savingsGoal.target_amount) - Number(savingsGoal.current_amount)),
       color: "hsl(var(--muted))",
     },
   ] : [];
 
-  const barData = [
-    { month: "Jan", amount: 12000 },
-    { month: "Feb", amount: 15000 },
-    { month: "Mar", amount: 18000 },
-    { month: "Apr", amount: 22000 },
-    { month: "May", amount: 25000 },
-  ];
+  const barData = useMemo(() => {
+    if (!ledger.length) return [];
+    
+    // Group by month
+    const months: Record<string, number> = {};
+    [...ledger].reverse().forEach(entry => {
+      const month = format(new Date(entry.created_at), "MMM");
+      months[month] = (months[month] || 0) + Number(entry.amount);
+    });
+    
+    return Object.entries(months).map(([month, amount]) => ({ month, amount }));
+  }, [ledger]);
 
   const [jokeIndex, setJokeIndex] = useState(0);
   const joke = useMemo(() => FINANCIAL_JOKES[jokeIndex], [jokeIndex]);
+
+  const [lineIndex, setLineIndex] = useState(0);
+  const savingLine = useMemo(() => SAVING_LINES[lineIndex], [lineIndex]);
+
+  useEffect(() => {
+    if (showContributionModal) {
+      setLineIndex(Math.floor(Math.random() * SAVING_LINES.length));
+    }
+  }, [showContributionModal]);
 
   const nextJoke = () => {
     setJokeIndex((prev) => (prev + 1) % FINANCIAL_JOKES.length);
   };
 
-  const handleCreateGoal = (e: React.FormEvent) => {
+  const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Savings Goal Created!", {
-      description: "Your funds are now being locked for your goal. 2% reward pending!",
-    });
-    setActiveTab("overview");
+    
+    const goalData = {
+      title: goalTitle,
+      target_amount: parseFormattedNumber(targetAmount),
+      start_date: (e.target as any).start.value,
+      deadline_date: (e.target as any).deadline.value,
+      funding_source: goalSource,
+      is_automated: isAutomated,
+      automation_frequency: isAutomated ? autoFreq : null,
+      automation_amount: isAutomated ? parseFormattedNumber(autoAmount) : null,
+      automation_provider: isAutomated ? autoProvider : null,
+    };
+
+    let success = false;
+    if (isEditing && savingsGoal?.id) {
+      // Update existing goal
+      success = await updateGoal(savingsGoal.id, goalData);
+    } else {
+      // Create new goal
+      success = await createGoal(goalData);
+    }
+
+    if (success) {
+      setActiveTab("overview");
+    }
+  };
+
+  const handleRestrictedFieldClick = (fieldName: string) => {
+    if (isEditing && savingsGoal) {
+      toast.info(`${fieldName} is fixed`, {
+        description: "This field cannot be changed once the goal is active.",
+      });
+    }
+  };
+
+  const handleAddContribution = async () => {
+    if (!contribAmount || !contribSource) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    await addContribution(parseFormattedNumber(contribAmount), contribSource, "manual");
+    setShowContributionModal(false);
+    setContribAmount("");
+    setContribSource("");
   };
 
   const handleAutoToggle = (checked: boolean) => {
@@ -214,7 +304,10 @@ function SavingsPage() {
                 Cryptographically secured target-based savings.
               </p>
             </div>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+            <Tabs value={activeTab} onValueChange={(val) => {
+              setActiveTab(val);
+              if (val === "setup") setIsEditing(false);
+            }} className="w-full md:w-auto">
               <TabsList className="grid w-full grid-cols-3 h-12 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
                 <TabsTrigger
                   value="overview"
@@ -244,24 +337,70 @@ function SavingsPage() {
               value="overview"
               className="space-y-8 focus-visible:outline-none animate-in fade-in duration-500"
             >
+              {/* Goal Switcher Bar */}
+              {goals.length > 0 && (
+                <div className="flex items-center gap-4 p-3 rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 shadow-xl overflow-x-auto no-scrollbar">
+                   <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
+                      <Target className="w-5 h-5 text-primary" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">My Goals</span>
+                   </div>
+                   <div className="flex gap-3">
+                      {goals.map((g, index) => (
+                        <Button
+                          key={g.id}
+                          variant={selectedGoalIndex === index ? "default" : "outline"}
+                          className={cn(
+                            "h-12 rounded-2xl font-black transition-all duration-500",
+                            selectedGoalIndex === index 
+                              ? "px-6 bg-primary text-primary-foreground shadow-2xl scale-105 border-none" 
+                              : "w-12 p-0 bg-white/50 dark:bg-slate-800/50 border-white/10 hover:bg-primary/10 text-slate-700 dark:text-slate-300"
+                          )}
+                          onClick={() => {
+                            setSelectedGoalIndex(index);
+                            setActiveTab("overview");
+                          }}
+                        >
+                          {selectedGoalIndex === index ? (
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded bg-white/20 flex items-center justify-center text-[10px]">
+                                {index + 1}
+                              </span>
+                              {g.title}
+                            </div>
+                          ) : (
+                            index + 1
+                          )}
+                        </Button>
+                      ))}
+                      {goals.length < 2 && (
+                        <Button
+                          variant="outline"
+                          className="h-12 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary shrink-0 font-black flex items-center transition-all duration-300"
+                          onClick={() => {
+                            setIsEditing(false);
+                            setActiveTab("setup");
+                          }}
+                        >
+                           <span className="mr-2">{goals.length + 1}</span>
+                           <Plus className="w-4 h-4" />
+                        </Button>
+                      )}
+                   </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Progress Card */}
                 <Card className="lg:col-span-2 rounded-[2rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                   <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-2xl font-black text-slate-950 dark:text-white">
-                        {savingsGoal?.title || "Savings Goal"}
-                      </CardTitle>
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div className="space-y-1">
+                        <CardTitle className="text-2xl font-black text-slate-950 dark:text-white">
+                          {savingsGoal?.title || "Savings Goal"}
+                        </CardTitle>
+                      </div>
 
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-full h-8 text-[10px] font-black uppercase border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-                          onClick={() => setActiveTab("congrats")}
-                        >
-                          Simulate Hit
-                        </Button>
                         <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest flex items-center">
                           {progress.toFixed(0)}% Complete
                         </div>
@@ -303,17 +442,39 @@ function SavingsPage() {
                       </div>
                       <div className="space-y-6">
                         <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
+                          <div className="text-sm">
                             <span className="text-slate-900 dark:text-slate-100 font-black uppercase tracking-tight">
                               Monthly Contributions
                             </span>
-                            <span className="font-black text-primary">+15.2%</span>
                           </div>
                           <div className="h-[120px]">
                             <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={barData}>
-                                <Bar dataKey="amount" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                              </BarChart>
+                              <LineChart data={barData}>
+                                <defs>
+                                  <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <Tooltip 
+                                  contentStyle={{ 
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                                    borderRadius: '12px', 
+                                    border: 'none',
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    fontWeight: 'bold'
+                                  }}
+                                  labelStyle={{ color: 'var(--primary)' }}
+                                />
+                                <Line 
+                                  type="monotone" 
+                                  dataKey="amount" 
+                                  stroke="var(--primary)" 
+                                  strokeWidth={4}
+                                  dot={{ r: 4, fill: "var(--primary)", strokeWidth: 2, stroke: "#fff" }}
+                                  activeDot={{ r: 6, strokeWidth: 0 }}
+                                />
+                              </LineChart>
                             </ResponsiveContainer>
                           </div>
                         </div>
@@ -331,6 +492,22 @@ function SavingsPage() {
                       </div>
                     </div>
                   </CardContent>
+                  <CardFooter className="pt-0 pb-8 px-8 flex gap-4">
+                    <Button
+                      className="flex-1 h-14 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                      onClick={() => setShowContributionModal(true)}
+                    >
+                      <PiggyBank className="w-5 h-5 mr-2" />
+                      Add Savings
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="px-6 h-14 rounded-2xl font-black border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 transition-all duration-300"
+                      onClick={() => setActiveTab("congrats")}
+                    >
+                      Simulate Hit
+                    </Button>
+                  </CardFooter>
                 </Card>
 
                 {/* Wisdom & Jokes Card */}
@@ -390,59 +567,40 @@ function SavingsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/10 font-bold text-slate-900 dark:text-slate-100">
-                      {[
-                        {
-                          date: "May 24, 2026",
-                          source: "M-Pesa",
-                          type: "Contribution",
-                          amount: 5000,
-                          total: 175000,
-                        },
-                        {
-                          date: "May 10, 2026",
-                          source: "KCB Bank",
-                          type: "Automated",
-                          amount: 10000,
-                          total: 170000,
-                        },
-                        {
-                          date: "Apr 28, 2026",
-                          source: "M-Pesa",
-                          type: "Contribution",
-                          amount: 2500,
-                          total: 160000,
-                        },
-                        {
-                          date: "Apr 15, 2026",
-                          source: "Airtel Money",
-                          type: "Contribution",
-                          amount: 7500,
-                          total: 157500,
-                        },
-                      ].map((row, i) => (
-                        <tr key={i} className="hover:bg-primary/5 transition-colors">
-                          <td className="px-6 py-4 text-sm">{row.date}</td>
-                          <td className="px-6 py-4 text-sm">{row.source}</td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={cn(
-                                "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm",
-                                row.type === "Automated"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
-                              )}
-                            >
-                              {row.type}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm font-black text-emerald-600 dark:text-emerald-400">
-                            +KES {row.amount.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 text-sm font-mono text-right font-black">
-                            KES {row.total.toLocaleString()}
+                      {ledger.length > 0 ? (
+                        ledger.map((row) => (
+                          <tr key={row.id} className="hover:bg-primary/5 transition-colors">
+                            <td className="px-6 py-4 text-sm">
+                              {format(new Date(row.created_at), "MMM dd, yyyy")}
+                            </td>
+                            <td className="px-6 py-4 text-sm capitalize">{row.source}</td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={cn(
+                                  "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm",
+                                  row.type === "automated"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+                                )}
+                              >
+                                {row.type}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-sm font-black text-emerald-600 dark:text-emerald-400">
+                              +KES {Number(row.amount).toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-sm font-mono text-right font-black">
+                              KES {Number(row.running_total).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
+                            No contributions recorded yet. Start saving to see your ledger!
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -457,6 +615,18 @@ function SavingsPage() {
               <div className="max-w-3xl mx-auto">
                 <Card className="rounded-[2.5rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl p-8 sm:p-12 shadow-2xl overflow-hidden relative group transition-all duration-500">
                   <div className="absolute -top-24 -left-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-colors duration-1000" />
+
+                  {goals.length >= 2 && !isEditing && (
+                    <div className="relative z-20 mb-8 p-6 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 animate-in slide-in-from-top-4">
+                      <div className="flex items-center gap-3">
+                        <Info className="w-6 h-6 shrink-0" />
+                        <div>
+                          <p className="font-black uppercase text-sm">Goal Limit Reached</p>
+                          <p className="text-xs font-bold opacity-80">You already have 2 active savings goals. Please complete or remove one before starting a new one.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <form onSubmit={handleCreateGoal} className="space-y-8 relative z-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -476,7 +646,10 @@ function SavingsPage() {
                           <Target className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
                           <Input
                             id="title"
+                            name="title"
                             placeholder="Saving for..."
+                            value={goalTitle}
+                            onChange={(e) => setGoalTitle(e.target.value)}
                             className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black text-lg"
                             required
                           />
@@ -487,15 +660,23 @@ function SavingsPage() {
                           htmlFor="target"
                           className="text-sm font-black uppercase tracking-[0.1em]"
                         >
-                          Target (KES)
+                          Target (KES) {isEditing && savingsGoal && <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>}
                         </Label>
-                        <div className="relative">
+                        <div className="relative" onClick={() => handleRestrictedFieldClick("Target amount")}>
                           <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="target"
-                            type="number"
+                            name="target"
+                            type="text"
+                            inputMode="numeric"
                             placeholder="0.00"
-                            className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black"
+                            value={targetAmount}
+                            onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))}
+                            readOnly={isEditing && !!savingsGoal}
+                            className={cn(
+                              "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black",
+                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed"
+                            )}
                             required
                           />
                         </div>
@@ -508,16 +689,21 @@ function SavingsPage() {
                           htmlFor="start"
                           className="text-sm font-black uppercase tracking-[0.1em]"
                         >
-                          Start Date (Today+)
+                          Start Date {isEditing && savingsGoal && <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>}
                         </Label>
-                        <div className="relative">
+                        <div className="relative" onClick={() => handleRestrictedFieldClick("Start date")}>
                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="start"
+                            name="start"
                             type="date"
                             min={today}
-                            defaultValue={today}
-                            className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black"
+                            defaultValue={isEditing ? (savingsGoal?.start_date || today) : today}
+                            readOnly={isEditing && !!savingsGoal}
+                            className={cn(
+                              "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black",
+                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed"
+                            )}
                             required
                           />
                         </div>
@@ -527,15 +713,21 @@ function SavingsPage() {
                           htmlFor="deadline"
                           className="text-sm font-black uppercase tracking-[0.1em]"
                         >
-                          Deadline Date
+                          Deadline Date {isEditing && savingsGoal && <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>}
                         </Label>
-                        <div className="relative">
+                        <div className="relative" onClick={() => handleRestrictedFieldClick("Deadline date")}>
                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="deadline"
+                            name="deadline"
                             type="date"
                             min={today}
-                            className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black"
+                            defaultValue={isEditing ? savingsGoal?.deadline_date : ""}
+                            readOnly={isEditing && !!savingsGoal}
+                            className={cn(
+                              "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black",
+                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed"
+                            )}
                             required
                           />
                         </div>
@@ -549,7 +741,7 @@ function SavingsPage() {
                       >
                         Funding Source
                       </Label>
-                      <Select>
+                      <Select value={goalSource} onValueChange={setGoalSource}>
                         <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black">
                           <SelectValue placeholder="Select Source" />
                         </SelectTrigger>
@@ -644,7 +836,7 @@ function SavingsPage() {
                       type="submit"
                       className="w-full h-18 rounded-[1.5rem] text-xl font-black bg-gradient-to-r from-emerald-600 via-primary to-emerald-600"
                     >
-                      Initialize Savings Vault
+                      {isEditing ? "Update Savings Vault" : "Initialize Savings Vault"}
                     </Button>
                   </form>
                 </Card>
@@ -708,7 +900,10 @@ function SavingsPage() {
                         variant="outline"
                         size="lg"
                         className="h-18 px-12 rounded-[1.5rem] text-xl font-black border-white/40 backdrop-blur-md"
-                        onClick={() => setActiveTab("setup")}
+                        onClick={() => {
+                          setIsEditing(true);
+                          setActiveTab("setup");
+                        }}
                       >
                         Adjust Goal
                       </Button>
@@ -785,6 +980,77 @@ function SavingsPage() {
         </main>
       </div>
 
+      {/* CONTRIBUTION POPUP MODAL */}
+      <Dialog open={showContributionModal} onOpenChange={setShowContributionModal}>
+        <DialogContent className="max-w-md rounded-[2.5rem] border-white/30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl p-0 overflow-hidden shadow-2xl">
+          <div className="relative p-8">
+            <button
+              onClick={() => setShowContributionModal(false)}
+              className="absolute right-6 top-6 w-8 h-8 rounded-full bg-muted/20 flex items-center justify-center hover:bg-muted/40 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <DialogHeader className="mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-4 shadow-lg">
+                <PiggyBank className="w-7 h-7" />
+              </div>
+              <DialogTitle className="text-2xl font-black text-slate-950 dark:text-white">
+                Add Savings
+              </DialogTitle>
+              <DialogDescription className="font-bold text-emerald-600 dark:text-emerald-400 italic">
+                "{savingLine}"
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Contribution Amount (KES)
+                </Label>
+                <div className="relative">
+                  <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Enter amount to save"
+                    value={contribAmount}
+                    onChange={(e) => setContribAmount(formatWithCommas(e.target.value))}
+                    className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-black"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Funding Source
+                </Label>
+                <Select value={contribSource} onValueChange={setContribSource}>
+                  <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-black">
+                    <SelectValue placeholder="Where are you saving from?" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
+                    <SelectItem value="mpesa" className="font-bold">M-Pesa</SelectItem>
+                    <SelectItem value="airtel" className="font-bold">Airtel Money</SelectItem>
+                    <SelectItem value="bank" className="font-bold">Bank Account</SelectItem>
+                    <SelectItem value="vault_balance" className="font-bold">Vault Balance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="mt-10">
+              <Button
+                className="w-full h-16 rounded-2xl font-black shadow-xl bg-emerald-600 hover:bg-emerald-700 text-lg"
+                onClick={handleAddContribution}
+              >
+                Save Now <ArrowUpRight className="ml-2 w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* AUTOMATION POPUP MODAL */}
       <Dialog
         open={showAutoPopup}
@@ -853,10 +1119,11 @@ function SavingsPage() {
                 <div className="relative">
                   <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     placeholder="0.00"
                     value={autoAmount}
-                    onChange={(e) => setAutoAmount(e.target.value)}
+                    onChange={(e) => setAutoAmount(formatWithCommas(e.target.value))}
                     className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-black"
                   />
                 </div>
