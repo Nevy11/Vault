@@ -636,7 +636,13 @@ function DashboardPage() {
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
       : profile?.email?.split("@")[0] || "Vault User";
     const symbol = currency === "USD" ? "$" : currency + " ";
-    const isLedger = t.source === "ledger";
+    
+    // Method-specific icon helper
+    const getMethodIcon = (method: string) => {
+      if (method === 'mpesa') return { initials: 'MP', color: 'bg-emerald-600', isAvatar: false };
+      if (method === 'bank') return { initials: 'BB', color: 'bg-blue-600', isAvatar: false };
+      return { initials: 'V', color: 'bg-primary', isAvatar: false };
+    };
 
     if (t.type === "transfer") {
       if (t.description === "Transferred to savings") {
@@ -669,24 +675,23 @@ function DashboardPage() {
         };
       }
     } else if (t.type === "deposit") {
-      const bankName = isLedger ? "Wallet Deposit" : (t.method || "Deposit").toString();
-      const initials = bankName.substring(0, 2).toUpperCase();
+      const methodInfo = getMethodIcon(t.method);
       return {
-        title: `${bankName} to ${userName}`,
+        title: t.description,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
-        icon: initials,
-        avatarUrl: t.sender?.profile_photo_url || null,
-        color: "bg-emerald-500/20 text-emerald-500",
+        icon: methodInfo.initials,
+        avatarUrl: null,
+        color: `${methodInfo.color}/20 text-${methodInfo.color.replace('bg-', '')}`,
       };
     } else if (t.type === "withdrawal") {
-      const initials = t.description.substring(0, 2).toUpperCase();
+      const methodInfo = getMethodIcon(t.method);
       return {
         title: t.description,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: initials,
-        avatarUrl: t.receiver?.profile_photo_url || profile?.profile_photo_url || null,
+        icon: methodInfo.initials,
+        avatarUrl: null,
         color: "bg-destructive/20 text-destructive",
       };
     }
