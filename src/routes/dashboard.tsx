@@ -22,6 +22,7 @@ import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
 import { useProfileSignal } from "@/lib/profile-signal";
+import { supabase } from "@/api/supabase";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
