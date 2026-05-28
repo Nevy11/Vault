@@ -88,7 +88,27 @@ serve(async (req) => {
     });
 
     const aiData = await aiResponse.json();
-    const insightJson = JSON.parse(aiData.candidates[0].content.parts[0].text);
+    
+    if (!aiResponse.ok) {
+      throw new Error(`Gemini API Error: ${aiResponse.status} ${JSON.stringify(aiData)}`);
+    }
+
+    if (!aiData.candidates || !aiData.candidates[0]?.content?.parts?.[0]?.text) {
+      throw new Error("Invalid response format from Gemini API");
+    }
+
+    let rawText = aiData.candidates[0].content.parts[0].text;
+    
+    // Strip markdown formatting if Gemini returns it wrapped in ```json ... ```
+    rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    let insightJson;
+    try {
+      insightJson = JSON.parse(rawText);
+    } catch (parseError: any) {
+      console.error("Failed to parse Gemini output:", rawText);
+      throw new Error(`Failed to parse AI response: ${parseError.message}`);
+    }
 
     // 5. Store insight
     const { error: insertError } = await supabase

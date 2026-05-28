@@ -304,10 +304,6 @@ export function DepositPanel() {
         description={`Securely authorize your deposit of ${currencySymbol}${parseFloat(amount || "0").toLocaleString()} via ${getSourceName()}.`}
       />
 
-      {/* ... (Confirmation Modal and Processing Overlay remain same) */}
-    </div>
-  );
-}
       <Dialog open={status === "confirming"} onOpenChange={(o) => !o && setStatus("idle")}>
         <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/60 backdrop-blur-xl border-white/10 shadow-2xl">
           <div className="p-8 space-y-8">

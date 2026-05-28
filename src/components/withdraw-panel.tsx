@@ -39,6 +39,7 @@ import { Link } from "@tanstack/react-router";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
 import { useProfileSignal } from "@/lib/profile-signal";
+import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
 // Mock Data
 const SAVED_BANKS = [
@@ -89,7 +90,7 @@ export function WithdrawPanel() {
   const [amount, setAmount] = useState<string>("");
   const [channel, setChannel] = useState<Channel>("bank");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [status, setStatus] = useState<WithdrawalStatus>("idle");
   const [refCode, setRefCode] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -164,45 +165,11 @@ export function WithdrawPanel() {
       }
     }
 
-    if (pin.length < 4) {
-      toast.error("Please enter your transaction PIN");
-      return;
-    }
+    setIsPinModalOpen(true);
+  };
 
-    try {
-      let userId = profile?.id;
-      if (!userId) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        userId = user?.id;
-      }
-
-      if (!userId) {
-        throw new Error("User session not found. Please log in again.");
-      }
-
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("pin_hash")
-        .eq("id", userId)
-        .single();
-
-      if (profileError || !profileData) {
-        console.error("Profile fetch error:", profileError);
-        throw new Error("Could not verify your identity. Please try again.");
-      }
-
-      const hashedPin = await hashPin(pin);
-      if (profileData.pin_hash !== hashedPin) {
-        throw new Error("Incorrect transaction PIN");
-      }
-
-      setStatus("confirming");
-    } catch (error: any) {
-      console.error("Withdrawal verification error:", error);
-      toast.error(error.message || "An error occurred during verification");
-    }
+  const handlePinVerified = () => {
+    setStatus("confirming");
   };
 
   const handleConfirmWithdraw = async () => {
