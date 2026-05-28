@@ -122,11 +122,15 @@ function Row({
 function ToggleRow({
   label,
   description,
-  defaultOn,
+  checked,
+  onCheckedChange,
+  disabled,
 }: {
   label: string;
   description?: string;
-  defaultOn?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-start justify-between gap-6 py-1">
@@ -136,7 +140,7 @@ function ToggleRow({
           <div className="mt-1 text-xs text-muted-foreground/70 leading-relaxed">{description}</div>
         )}
       </div>
-      <Switch defaultChecked={defaultOn} />
+      <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
     </div>
   );
 }
@@ -284,6 +288,30 @@ function SettingsPage() {
     } catch (error: any) {
       console.error("Error loading logs:", error);
       toast.error(error.message || "Unable to load your activity logs.");
+    }
+  }
+
+  async function updatePreference(key: string, value: boolean) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ [key]: value })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setProfile({
+        ...profile,
+        [key]: value,
+      });
+      // Silent update for toggles to avoid toast spam
+    } catch (error: any) {
+      toast.error(error.message || "Error updating preference");
     }
   }
 
@@ -899,10 +927,32 @@ function SettingsPage() {
                 Notification Center
               </div>
               <div className="space-y-4">
-                <ToggleRow label="Transfer received" defaultOn />
-                <ToggleRow label="Account login" />
-                <ToggleRow label="Transfer sent" defaultOn />
-                <ToggleRow label="Security alerts" defaultOn />
+                <ToggleRow
+                  label="Transfer received"
+                  checked={profile?.notifications_transfer_received ?? true}
+                  onCheckedChange={(val) => updatePreference("notifications_transfer_received", val)}
+                />
+                <ToggleRow
+                  label="Account login"
+                  checked={profile?.notifications_account_login ?? true}
+                  onCheckedChange={(val) => updatePreference("notifications_account_login", val)}
+                />
+                <ToggleRow
+                  label="Transfer sent"
+                  checked={profile?.notifications_transfer_sent ?? true}
+                  onCheckedChange={(val) => updatePreference("notifications_transfer_sent", val)}
+                />
+                <ToggleRow
+                  label="Security alerts"
+                  checked={profile?.notifications_security_alerts ?? true}
+                  onCheckedChange={(val) => updatePreference("notifications_security_alerts", val)}
+                />
+                <ToggleRow
+                  label="AI Advisor insights"
+                  description="Receive proactive financial health alerts and advice."
+                  checked={profile?.notifications_ai_insights ?? true}
+                  onCheckedChange={(val) => updatePreference("notifications_ai_insights", val)}
+                />
               </div>
             </div>
           </SectionCard>

@@ -143,7 +143,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="p-4">
           <ul className="space-y-1">
             {sidebarNavItems.map(({ label, to, icon: Icon, isActive }) => (
-              <li key={to}>
+              <li key={`${to}-${label}`}>
                 <Link
                   to={to}
                   className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -209,7 +209,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               const isTransact = label === "Transact";
               
               return (
-                <li key={to} className={`flex justify-center ${isTransact ? "relative -top-4" : ""}`}>
+                <li key={`${to}-${label}`} className={`flex justify-center ${isTransact ? "relative -top-4" : ""}`}>
                   <Link
                     to={to}
                     className={`flex flex-col items-center transition-all duration-300 ${
