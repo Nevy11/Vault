@@ -549,7 +549,7 @@ function DashboardPage() {
     const isLedger = t.source === "ledger";
 
     if (t.type === "transfer") {
-      if (t.description === "Transferred to savings") {
+      if (t.description === "Transferred to savings" || (isSender && !t.receiver_id)) {
         return {
           title: "Transferred to savings",
           amount: `-${symbol}${t.amount.toLocaleString()}`,
