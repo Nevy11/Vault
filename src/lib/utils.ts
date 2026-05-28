@@ -1,6 +1,17 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+export function formatWithCommas(value: string | number): string {
+  const amount = String(value).replace(/[^0-9.]/g, "");
+  const parts = amount.split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return parts.join(".");
+}
+
+export function parseFormattedNumber(value: string): number {
+  return Number(value.replace(/,/g, ""));
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

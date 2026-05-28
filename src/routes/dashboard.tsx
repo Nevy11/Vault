@@ -557,6 +557,16 @@ function DashboardPage() {
     const isLedger = t.source === "ledger";
 
     if (t.type === "transfer") {
+      if (t.description === "Transferred to savings" || (isSender && !t.receiver_id)) {
+        return {
+          title: "Transferred to savings",
+          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          positive: false,
+          icon: "S",
+          avatarUrl: null,
+          color: "bg-primary/20 text-primary",
+        };
+      }
       if (isSender) {
         return {
           title: `Transfer to ${t.receiver?.first_name || "User"}`,

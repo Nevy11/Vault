@@ -211,17 +211,14 @@ export function WithdrawPanel() {
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error("User not found");
 
-      // Update the wallet balance
-      const newBalance = balance !== null ? Math.max(0, balance - totalDeduction) : 0;
-      
-      // Generate transaction ID
-      const txId = `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
-
       // Call the RPC function
-      const { data, error: txError } = await supabase.rpc('process_withdrawal', {
+      const { data, error: txError } = await supabase.rpc('process_secure_withdrawal', {
         p_user_id: userId,
-        p_amount: parseFloat(amount),
-        p_tx_id: txId
+        p_amount: totalDeduction,
+        p_method: channel === 'mobile' ? 'mpesa' : 'bank',
+        p_description: channel === 'mobile' 
+          ? `Withdrawal to ${getRecipientName()}` 
+          : `Withdrawal to ${selectedBank}: ${bankAccount}`
       });
 
       if (txError) throw txError;
@@ -237,7 +234,7 @@ export function WithdrawPanel() {
       }
 
       setRefCode(
-        txId,
+        result.reference || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
       );
       setStatus("success");
       toast.success("Withdrawal successful!");
