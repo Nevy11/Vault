@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
+import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
+
 /**
  * ReceiptActionIcon - The premium entry point for receipt history
  */
@@ -51,12 +53,30 @@ function ReceiptHistoryContent() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+  
+  // Realtime updates
+  const { latestReceipt } = useReceiptRealtime();
+
+  useEffect(() => {
+    if (latestReceipt) {
+      setReceipts(prev => {
+        if (prev.find(r => r.id === latestReceipt.id)) return prev;
+        return [latestReceipt, ...prev];
+      });
+    }
+  }, [latestReceipt]);
 
   useEffect(() => {
     async function fetch() {
-      if (!profile?.id) return;
+      if (!profile?.id) {
+        console.log("No profile ID found, skipping receipt fetch");
+        return;
+      }
+      
       try {
+        console.log("Fetching receipts for user:", profile.id);
         const data = await getReceipts({ data: { userId: profile.id, page: 0, pageSize: 20 } });
+        console.log("Fetched receipts data:", data);
         setReceipts(data.receipts);
       } catch (err) {
         console.error("Failed to fetch receipts:", err);

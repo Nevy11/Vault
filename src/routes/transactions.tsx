@@ -216,7 +216,7 @@ function SendPanel() {
   const [identifier, setIdentifier] = useState("");
   const [bank, setBank] = useState("");
   const [provider, setProvider] = useState("M-Pesa");
-  const [pin, setPin] = useState("");
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
 
@@ -372,47 +372,16 @@ function SendPanel() {
     if (r.provider) setProvider(r.provider);
   };
 
-  const handleSendClick = async () => {
-    if (!amount || !identifier || (method === "bank" && !bank) || !pin) {
+  const handleSendClick = () => {
+    if (!amount || !identifier || (method === "bank" && !bank)) {
       toast.error("Please fill all required fields");
       return;
     }
-    if (pin.length !== 6) {
-      toast.error("PIN must be 6 digits");
-      return;
-    }
+    setIsPinModalOpen(true);
+  };
 
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Authentication required");
-        return;
-      }
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("pin_hash")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError || !profile) {
-        toast.error("Error verifying PIN");
-        return;
-      }
-
-      const hashedPin = await hashPin(pin);
-      if (profile.pin_hash !== hashedPin) {
-        toast.error("Incorrect transaction PIN");
-        return;
-      }
-
-      setStatus("confirming");
-    } catch (error) {
-      console.error("PIN verification error:", error);
-      toast.error("An error occurred while verifying your PIN");
-    }
+  const handlePinVerified = () => {
+    setStatus("confirming");
   };
 
   const handleConfirm = async () => {
@@ -864,6 +833,14 @@ function SendPanel() {
           </p>
         </div>
       )}
+
+      <TransactionPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        onVerified={handlePinVerified}
+        title="Authorize Transfer"
+        description={`Securely confirm your transfer of ${currency} ${parseFloat(amount || "0").toLocaleString()} to ${identifier}.`}
+      />
     </div>
   );
 }
