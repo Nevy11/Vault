@@ -185,7 +185,7 @@ export function WithdrawPanel() {
         p_method: channel === 'mobile' ? 'mpesa' : 'bank',
         p_description: channel === 'mobile' 
           ? `Withdrawal to ${getRecipientName()}` 
-          : `Withdrawal to ${selectedBank}: ${bankAccount}`
+          : `V2B: ${selectedBank} - ****${bankAccount.slice(-4)}`
       });
 
       if (txError) throw txError;
