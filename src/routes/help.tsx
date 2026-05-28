@@ -13,10 +13,12 @@ import {
   LifeBuoy,
   Search,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
+import { supabase } from "@/api/supabase";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -105,6 +107,61 @@ function HelpPage() {
   const [selectedChannel, setSelectedChannel] = useState("call");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [agreed, setAgreed] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !message.trim()) {
+      toast.error("Please fill in all required fields before submitting the message.");
+      return;
+    }
+
+    if (!agreed) {
+      toast.error("You must agree to the terms before submitting.");
+      return;
+    }
+
+    setIsSending(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-support-email", {
+        body: {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          message: message.trim(),
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Our function returns structured JSON with { success: true } or { success: false, ... }
+      if (!data || (typeof data === "object" && (data as any).success === false)) {
+        const info = (data as any) || {};
+        const msg = info.error || info.body || "Failed to send support message.";
+        throw new Error(msg);
+      }
+
+      toast.success("Your message has been sent. We’ll get back to you soon.");
+      setFirstName("");
+      setLastName("");
+      setEmail("");
+      setMessage("");
+      setAgreed(false);
+    } catch (error: any) {
+      console.error("Help form error:", error);
+      toast.error(error?.message || "Unable to send your message. Please try again later.");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -232,15 +289,25 @@ function HelpPage() {
             title="Direct Contact Form"
             meta="Typical response within 4 hours"
           >
-            <form className="space-y-7" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-7" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">First name</label>
-                  <Input placeholder="Alex" className="h-11 bg-input/40 border-border/60" />
+                  <Input
+                    value={firstName}
+                    onChange={(event) => setFirstName(event.target.value)}
+                    placeholder="Alex"
+                    className="h-11 bg-input/40 border-border/60"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">Last name</label>
-                  <Input placeholder="Johnson" className="h-11 bg-input/40 border-border/60" />
+                  <Input
+                    value={lastName}
+                    onChange={(event) => setLastName(event.target.value)}
+                    placeholder="Johnson"
+                    className="h-11 bg-input/40 border-border/60"
+                  />
                 </div>
               </div>
 
@@ -248,6 +315,8 @@ function HelpPage() {
                 <label className="block text-sm text-muted-foreground mb-2">Email address</label>
                 <Input
                   type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   placeholder="alex@example.com"
                   className="h-11 bg-input/40 border-border/60"
                 />
@@ -256,10 +325,14 @@ function HelpPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm text-muted-foreground">Your message</label>
-                  <span className="text-xs text-muted-foreground/60">0 / 1000</span>
+                  <span className="text-xs text-muted-foreground/60">
+                    {message.length} / 1000
+                  </span>
                 </div>
                 <textarea
                   rows={6}
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
                   placeholder="Describe your issue in detail. The more context you share, the faster we can help."
                   className="w-full rounded-md border border-border/60 bg-input/40 px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                 />
@@ -281,11 +354,11 @@ function HelpPage() {
 
               <Button
                 type="submit"
-                disabled={!agreed}
+                disabled={!agreed || isSending || !firstName.trim() || !lastName.trim() || !email.trim() || !message.trim()}
                 className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed gap-2"
               >
                 <Send className="h-4 w-4" />
-                Submit message
+                {isSending ? "Sending…" : "Submit message"}
               </Button>
             </form>
           </SectionCard>
