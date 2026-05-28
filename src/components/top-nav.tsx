@@ -19,6 +19,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { Logo } from "@/components/logo";
+import { ReceiptActionIcon } from "@/components/receipt-history";
+import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
@@ -34,6 +36,9 @@ export function TopNav() {
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  
+  // Activate Realtime Receipt Listener
+  useReceiptRealtime();
 
   const location = useLocation();
   const isLandingPage = location.pathname === "/";
@@ -111,6 +116,7 @@ export function TopNav() {
                     />
                   )}
                 </button>
+                <ReceiptActionIcon />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
