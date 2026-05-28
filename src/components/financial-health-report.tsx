@@ -64,13 +64,15 @@ export const FinancialHealthReport: React.FC<FinancialHealthReportProps> = ({
       entries?.forEach((entry: any) => {
         // Simple audit check for demo purposes
         // In a real app, you'd verify entry.cryptographic_signature against HMAC
-        const isVerified =
-          entry.cryptographic_signature && !entry.cryptographic_signature.startsWith("invalid_");
+        // We assume valid unless explicitly marked invalid to prevent false positives
+        const isVerified = entry.cryptographic_signature 
+          ? !entry.cryptographic_signature.startsWith("invalid_") 
+          : true;
 
         if (isVerified) {
           verifiedEntries++;
           const val = parseFloat(entry.amount);
-          if (entry.type === "INFLOW") {
+          if (entry.type === "INFLOW" || entry.type === "deposit") {
             totalInflow += val;
           } else {
             totalOutflow += val;

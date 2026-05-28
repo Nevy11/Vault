@@ -447,6 +447,86 @@ function SecurityStatus() {
   );
 }
 
+function AIInsightsWidget({ profileId }: { profileId?: string }) {
+  const [insight, setInsight] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!profileId) return;
+    
+    // Check DB first for latest insight
+    async function loadLatestInsight() {
+      const { data } = await supabase
+        .from("financial_insights")
+        .select("*")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+      if (data) setInsight(data);
+    }
+    
+    loadLatestInsight();
+  }, [profileId]);
+
+  const generateNewInsight = async () => {
+    if (!profileId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("financial-health-check", {
+        body: { userId: profileId },
+      });
+      if (error) throw error;
+      if (data?.insight) {
+        setInsight(data.insight);
+      }
+    } catch (err: any) {
+      console.error("Failed to generate insight:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!profileId) return null;
+
+  return (
+    <div className="group relative overflow-hidden rounded-3xl bg-primary/5 border border-primary/20 p-6 sm:p-8 backdrop-blur-sm transition-all hover:bg-primary/10 mb-8 shadow-lg">
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-3xl transition-all group-hover:bg-primary/20" />
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary flex flex-shrink-0 items-center justify-center text-primary-foreground shadow-lg">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-foreground">AI Financial Insight</h3>
+            {insight ? (
+              <div className="mt-2 space-y-1">
+                <div className="text-sm font-semibold text-primary">{insight.title || insight.content}</div>
+                {insight.title && <div className="text-xs text-muted-foreground leading-relaxed">{insight.content}</div>}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">Click generate to analyze your spending and get AI predictions.</p>
+            )}
+          </div>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={generateNewInsight} 
+          disabled={loading}
+          className="shrink-0 rounded-2xl h-10 border-primary/30 text-primary hover:bg-primary/10 shadow-sm"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+          {insight ? "Update Analysis" : "Generate Insight"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 
 function DashboardPage() {
@@ -633,7 +713,10 @@ function DashboardPage() {
           </p>
         </div>
 
-        {/* Warning Notifications (AI Insights) */}
+        {/* AI Financial Insights Widget */}
+        <AIInsightsWidget profileId={profile?.id} />
+
+        {/* Warning Notifications */}
         {warningNotifications.length > 0 && (
           <div className="mb-8 space-y-3">
             {warningNotifications.map((n) => (
