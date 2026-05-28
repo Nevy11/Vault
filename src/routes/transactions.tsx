@@ -29,9 +29,12 @@ import { AppShell } from "@/components/app-shell";
 import { DepositPanel } from "@/components/deposit-panel";
 import { WithdrawPanel } from "@/components/withdraw-panel";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useTransactions } from "@/hooks/use-transactions";
+import { useProfileSignal } from "@/lib/profile-signal";
 import { supabase } from "@/api/supabase";
 import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { z } from "zod";
 import {
   Dialog,
@@ -445,9 +448,32 @@ function SendPanel() {
         // Refetch balance to show updated amount in profile immediately
         await refetchBalance();
       } else {
-        // Mock for other methods for now
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        setRefCode(`VT-${Math.random().toString(36).substring(2, 9).toUpperCase()}`);
+        const { data, error: rpcError } = await supabase.rpc("process_secure_withdrawal", {
+          p_user_id: user.id,
+          p_amount: total,
+          p_method: method === "mobile" ? "mpesa" : "bank",
+          p_description: method === "mobile" 
+            ? `Transfer to ${provider}: ${identifier}` 
+            : `Bank Transfer to ${bank}: ${identifier}`,
+        });
+
+        if (rpcError) {
+          console.error("RPC Error Details:", rpcError);
+          throw new Error(rpcError.message || "Transfer failed at database level");
+        }
+
+        const result = Array.isArray(data) ? data[0] : data;
+
+        if (!result?.success) {
+          throw new Error(result?.message || "Transfer failed");
+        }
+
+        setRefCode(
+          result.reference || `WTH-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
+        );
+
+        // Refetch balance to show updated amount in profile immediately
+        await refetchBalance();
       }
 
       setStatus("success");
