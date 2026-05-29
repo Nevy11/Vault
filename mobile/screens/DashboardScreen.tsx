@@ -120,7 +120,7 @@ const BalanceCard: React.FC<{ balance: number; currency: string }> = ({ balance,
 /**
  * 3. MAIN DASHBOARD SCREEN
  */
-const VaultDashboard: React.FC = () => {
+const VaultDashboard: React.FC<any> = (props) => {
   const quickActions: QuickAction[] = [
     { id: "1", label: "Send Money", icon: Send, route: "Send", color: "#3B82F6" },
     { id: "2", label: "Deposit", icon: PlusCircle, route: "Deposit", color: "#10B981" },
@@ -129,7 +129,7 @@ const VaultDashboard: React.FC = () => {
     { id: "5", label: "Analytics", icon: PieChart, route: "Analytics", color: "#EC4899" },
     { id: "6", label: "Crypto", icon: Lock, route: "Crypto", color: "#F97316" },
     { id: "7", label: "Invest", icon: TrendingUp, route: "Invest", color: "#06B6D4" },
-    { id: "8", label: "Security", icon: ShieldAlert, route: "Security", color: "#EF4444" },
+    { id: "8", label: "Security", icon: ShieldAlert, route: "ReceiptHistory", color: "#EF4444" },
   ];
 
   const subAccounts: SubAccount[] = [
@@ -161,7 +161,11 @@ const VaultDashboard: React.FC = () => {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.grid}>
             {quickActions.map((action) => (
-              <TouchableOpacity key={action.id} style={styles.gridItem}>
+              <TouchableOpacity 
+                key={action.id} 
+                style={styles.gridItem}
+                onPress={() => (action.route as any) === "ReceiptHistory" && (props as any).navigation.navigate("ReceiptHistory")}
+              >
                 <View style={[styles.gridIconContainer, { backgroundColor: `${action.color}20` }]}>
                   <action.icon size={24} color={action.color} />
                 </View>

@@ -17,12 +17,27 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
 import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
+import { create } from "zustand";
+
+interface ReceiptHistoryStore {
+  isOpen: boolean;
+  open: () => void;
+  close: () => void;
+  setIsOpen: (isOpen: boolean) => void;
+}
+
+export const useReceiptHistory = create<ReceiptHistoryStore>((set) => ({
+  isOpen: false,
+  open: () => set({ isOpen: true }),
+  close: () => set({ isOpen: false }),
+  setIsOpen: (isOpen) => set({ isOpen }),
+}));
 
 /**
  * ReceiptActionIcon - The premium entry point for receipt history
  */
 export function ReceiptActionIcon() {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, setIsOpen } = useReceiptHistory();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>

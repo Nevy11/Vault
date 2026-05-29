@@ -4,11 +4,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/SignUpScreen";
 import DashboardScreen from "./screens/DashboardScreen";
+import ReceiptHistoryScreen from "./screens/ReceiptHistoryScreen";
 
 type RootStackParamList = {
   Login: undefined;
   SignUp: undefined;
   Dashboard: undefined;
+  ReceiptHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -21,6 +23,15 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Log In" }} />
           <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: "Sign Up" }} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: "Vault" }} />
+          <Stack.Screen 
+            name="ReceiptHistory" 
+            component={ReceiptHistoryScreen} 
+            options={{ 
+              title: "Receipt History",
+              headerStyle: { backgroundColor: "#0F172A" },
+              headerTintColor: "#F8FAFC",
+            }} 
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

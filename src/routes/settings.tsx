@@ -18,7 +18,6 @@ import {
   Loader2,
   X,
   Search,
-  Briefcase,
   Store,
   QrCode,
   ExternalLink,
