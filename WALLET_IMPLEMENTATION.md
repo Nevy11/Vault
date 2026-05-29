@@ -1,9 +1,11 @@
 # Dynamic Wallet Balance Implementation
 
 ## Overview
+
 This implementation adds dynamic balance fetching from the Supabase `wallets` table and integrates it with the dashboard and withdraw panel components.
 
 ## Database Schema
+
 The `wallets` table stores user balance information:
 
 ```sql
@@ -20,20 +22,24 @@ wallets (
 ## Components
 
 ### 1. `useWalletBalance` Hook (`src/hooks/use-wallet-balance.tsx`)
+
 A custom React hook that manages wallet balance state and operations.
 
 **Features:**
+
 - Fetches wallet balance for authenticated user
 - Auto-creates wallet if it doesn't exist
 - Real-time balance updates
 - Error handling
 
 **Usage:**
+
 ```tsx
 const { balance, loading, error, refetch, updateBalance } = useWalletBalance();
 ```
 
 **Returns:**
+
 - `balance` (number | null): Current wallet balance
 - `currency` (string): Currency code (default: USD)
 - `loading` (boolean): Loading state
@@ -42,18 +48,22 @@ const { balance, loading, error, refetch, updateBalance } = useWalletBalance();
 - `updateBalance(newBalance)`: Update balance in Supabase
 
 ### 2. Dashboard Component (`src/routes/dashboard.tsx`)
+
 Updated to display dynamic balance instead of hardcoded value.
 
 **Changes:**
+
 - Imports `useWalletBalance` hook
 - Displays loading state while fetching
 - Shows error state if fetch fails
 - Updates total net worth and vault balance dynamically
 
 ### 3. Withdraw Panel Component (`src/components/withdraw-panel.tsx`)
+
 Updated to show current balance and update it after withdrawal.
 
 **Changes:**
+
 - Displays dynamic balance from hook
 - Validates withdrawal amount against available balance
 - Updates balance after successful withdrawal
@@ -63,12 +73,14 @@ Updated to show current balance and update it after withdrawal.
 ## Workflow
 
 ### Fetching Balance
+
 1. User loads dashboard or withdraw panel
 2. `useWalletBalance` hook fetches from `wallets` table
 3. If wallet doesn't exist, it's created with 0 balance
 4. Balance is displayed in UI
 
 ### Withdrawing Funds
+
 1. User enters amount on withdraw panel
 2. Amount is validated against current balance
 3. User confirms withdrawal
@@ -82,12 +94,14 @@ Updated to show current balance and update it after withdrawal.
 Two migration files are included:
 
 ### `002_create_wallets_table.sql`
+
 - Creates the wallets table
 - Sets up RLS (Row Level Security) policies
 - Creates indexes for performance
 - Sets up automatic `updated_at` timestamp
 
 ### `003_create_withdrawal_function.sql`
+
 - Creates a Supabase RPC function for secure withdrawals
 - Handles transaction-safe balance updates
 - Validates sufficient balance before withdrawal
@@ -113,6 +127,7 @@ Two migration files are included:
 ## Testing
 
 ### Manual Testing Steps
+
 1. Create a user account
 2. Navigate to dashboard - should show loading then $0.00 balance
 3. Update balance via database directly or API
@@ -123,6 +138,7 @@ Two migration files are included:
 8. Check dashboard - balance should reflect the withdrawal
 
 ### API Testing
+
 ```bash
 # Get current user
 curl -X GET https://your-project.supabase.co/auth/v1/user \
@@ -136,23 +152,27 @@ curl -X GET "https://your-project.supabase.co/rest/v1/wallets?select=*" \
 ## Troubleshooting
 
 ### Balance Not Loading
+
 - Check user authentication status
 - Verify Supabase URL and anon key in .env
 - Check RLS policies on wallets table
 - Check browser console for errors
 
 ### Withdrawal Not Updating Balance
+
 - Verify `updateBalance` is being called
 - Check database permissions
 - Verify wallet exists for user
 - Check for JavaScript errors
 
 ### Wallet Not Created Automatically
+
 - Verify auth.users table has the user
 - Check database constraints
 - Check RLS policies allow inserts
 
 ## References
+
 - [Supabase Docs](https://supabase.com/docs)
 - [React Hooks](https://react.dev/reference/react)
 - [PostgreSQL Constraints](https://www.postgresql.org/docs/current/ddl-constraints.html)

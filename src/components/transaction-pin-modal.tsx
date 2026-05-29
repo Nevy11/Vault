@@ -6,11 +6,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { Lock, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
 import { supabase } from "@/api/supabase";
@@ -38,12 +34,14 @@ export function TransactionPinModal({
 
   const handleVerify = async (value: string) => {
     if (value.length !== 6) return;
-    
+
     setIsVerifying(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Authentication required");
 
       const { data: profile, error: profileError } = await supabase
@@ -63,7 +61,7 @@ export function TransactionPinModal({
 
       // Success!
       toast.success("Identity verified securely", {
-        icon: <ShieldCheck className="w-4 h-4 text-emerald-500" />
+        icon: <ShieldCheck className="w-4 h-4 text-emerald-500" />,
       });
       onVerified();
       onClose();
@@ -83,7 +81,7 @@ export function TransactionPinModal({
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 shadow-inner ring-1 ring-primary/20">
             <Lock className="w-8 h-8" />
           </div>
-          
+
           <DialogHeader className="mb-8 space-y-2">
             <DialogTitle className="text-2xl font-bold tracking-tight">{title}</DialogTitle>
             <DialogDescription className="text-muted-foreground leading-relaxed">
@@ -138,7 +136,7 @@ export function TransactionPinModal({
             )}
           </div>
         </div>
-        
+
         <div className="bg-primary/5 p-4 text-center border-t border-primary/10 flex items-center justify-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
           Vault 256-bit AES Encryption Active

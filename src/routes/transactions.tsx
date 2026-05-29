@@ -870,13 +870,47 @@ function TransactionHistory() {
       : (profile?.email?.split('@')[0] || "Vault User");
     const symbol = currency === 'USD' ? '$' : currency + ' ';
 
+    // Method-specific logo helper - enhanced with all banks and mobile services
+    const getMethodLogo = (method: string, description: string) => {
+      const desc = (description || '').toLowerCase();
+      const meth = (method || '').toLowerCase();
+      
+      // Mobile money services
+      if (desc.includes('mpesa') || desc.includes('m-pesa') || meth.includes('mpesa')) return '/logos/mpesa.svg';
+      if (desc.includes('airtel') || meth.includes('airtel')) return '/logos/airtel.svg';
+      if (desc.includes('t-kash') || desc.includes('tkash') || meth.includes('tkash')) return '/logos/tkash.svg';
+      
+      // Banks
+      if (desc.includes('kcb') || meth.includes('kcb')) return '/logos/kcb.svg';
+      if (desc.includes('co-operative') || desc.includes('coop') || meth.includes('coop')) return '/logos/coop.svg';
+      if (desc.includes('ncba') || meth.includes('ncba')) return '/logos/ncba.svg';
+      if (desc.includes('absa') || meth.includes('absa')) return '/logos/absa.svg';
+      if (desc.includes('standard chartered') || meth.includes('standard')) return '/logos/standard-chartered.svg';
+      if (desc.includes('stanbic') || meth.includes('stanbic')) return '/logos/stanbic.svg';
+      if (desc.includes('i&m') || desc.includes('im bank') || meth.includes('im bank')) return '/logos/im-bank.svg';
+      if (desc.includes('dtb') || desc.includes('diamond trust') || meth.includes('dtb')) return '/logos/dtb.svg';
+      if (desc.includes('family bank') || meth.includes('family')) return '/logos/family-bank.svg';
+      if (desc.includes('chase bank') || meth.includes('chase')) return '/logos/chase.svg';
+      if (desc.includes('bank of america') || meth.includes('america')) return '/logos/bank-of-america.svg';
+      
+      // Fallback for generic bank method
+      if (meth === 'bank' || meth === 'mpesa' || meth === 'airtel') return '/logos/bank.svg';
+      return null; // Fallback to initials
+    };
+
     if (t.type === 'transfer') {
       if (isSender) {
+        // Check if this is a transfer to a mobile/bank service
+        const desc = (t.description || '').toLowerCase();
+        const logo = getMethodLogo(t.method || '', t.description || '');
+        const hasMobileOrBank = logo && desc.includes('transfer to');
+        
         return {
-          title: `Transfer to ${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`,
+          title: t.description || `Transfer to ${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: t.receiver?.first_name?.[0] || 'V',
+          icon: hasMobileOrBank ? null : (t.receiver?.first_name?.[0] || 'V'),
+          logo: hasMobileOrBank ? logo : t.receiver?.profile_photo_url,
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
@@ -886,28 +920,34 @@ function TransactionHistory() {
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || 'V',
+          logo: t.sender?.profile_photo_url,
           avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
     } else if (t.type === 'deposit') {
+      const logo = getMethodLogo(t.method, t.description);
       const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
-        title: `${bankName} deposit to ${userName}`,
+        title: t.description || `${bankName} deposit to ${userName}`,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
-        icon: initials,
+        icon: logo ? null : initials,
+        logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === 'withdrawal') {
+      const logo = getMethodLogo(t.method, t.description);
       const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const initials = bankName.substring(0, 2).toUpperCase();
       return {
-        title: `Withdrawal to ${bankName}`,
+        title: t.description || `Withdrawal to ${bankName}`,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: bankName.substring(0, 2).toUpperCase(),
+        icon: logo ? null : initials,
+        logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
       };
@@ -917,6 +957,7 @@ function TransactionHistory() {
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
       icon: '?',
+      logo: null,
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
     };
@@ -999,7 +1040,7 @@ function TransactionHistory() {
                         </span>
                       </div>
                       <Avatar className="w-10 h-10 border border-border/40 shrink-0 group-hover:scale-105 transition-transform">
-                        <AvatarImage src={details.avatarUrl || undefined} />
+                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-xs font-bold", details.color)}>
                           {details.icon}
                         </AvatarFallback>

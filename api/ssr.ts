@@ -1,13 +1,15 @@
+import { Request as ExpressRequest, Response as ExpressResponse } from "express";
+// @ts-expect-error -- server is generated during build
 import server from "../dist/server/index.js";
 
-function getRequestUrl(req: any) {
+function getRequestUrl(req: ExpressRequest) {
   const protocol = req.headers["x-forwarded-proto"] || "https";
   const host = req.headers.host;
   const url = `${protocol}://${host}${req.url}`;
   return url;
 }
 
-function toRequest(req: any) {
+function toRequest(req: ExpressRequest) {
   const url = getRequestUrl(req);
   const headers = new Headers();
 
@@ -24,11 +26,12 @@ function toRequest(req: any) {
   return new Request(url, {
     method: req.method,
     headers,
+    // @ts-expect-error -- req is compatible with BodyInit in this context
     body: req.method === "GET" || req.method === "HEAD" ? undefined : req,
   });
 }
 
-async function sendResponse(res: any, response: Response) {
+async function sendResponse(res: ExpressResponse, response: Response) {
   const body = await response.arrayBuffer();
 
   res.status(response.status);
@@ -47,12 +50,14 @@ async function sendResponse(res: any, response: Response) {
   }
 }
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: ExpressRequest, res: ExpressResponse) {
   try {
     const request = toRequest(req);
-    const response = await server.fetch(request, {}, {});
+    const response = await (
+      server as { fetch: (req: Request, env: unknown, ctx: unknown) => Promise<Response> }
+    ).fetch(request, {}, {});
     await sendResponse(res, response);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(error);
     res.status(500).send("Internal Server Error");
   }

@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Animated, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Animated,
   Dimensions,
-  Platform
-} from 'react-native';
-import { MessageCircle, Sparkles } from 'lucide-react-native';
+  Platform,
+} from "react-native";
+import { MessageCircle, Sparkles } from "lucide-react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 interface FloatingAdvisorProps {
   onPress: () => void;
@@ -54,22 +54,10 @@ export function FloatingAdvisor({ onPress }: FloatingAdvisorProps) {
   };
 
   return (
-    <Animated.View 
-      style={[
-        styles.container, 
-        { width: widthAnim }
-      ]}
-    >
-      <TouchableOpacity 
-        onPress={onPress}
-        activeOpacity={0.9}
-        style={styles.button}
-      >
-        <Animated.View 
-          style={[
-            styles.content, 
-            { opacity: opacityAnim, transform: [{ translateX: slideAnim }] }
-          ]}
+    <Animated.View style={[styles.container, { width: widthAnim }]}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.button}>
+        <Animated.View
+          style={[styles.content, { opacity: opacityAnim, transform: [{ translateX: slideAnim }] }]}
         >
           <Sparkles size={16} color="#6EE7B7" style={styles.sparkles} />
           <Text style={styles.label}>Ask Vault AI</Text>
@@ -86,16 +74,16 @@ export function FloatingAdvisor({ onPress }: FloatingAdvisorProps) {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 30,
     right: 20,
     height: 56,
-    backgroundColor: '#004D2C',
+    backgroundColor: "#004D2C",
     borderRadius: 28,
     zIndex: 1000,
     ...Platform.select({
       ios: {
-        shadowColor: '#000',
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 8,
@@ -107,40 +95,40 @@ const styles = StyleSheet.create({
   },
   button: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   content: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 12,
   },
   sparkles: {
     marginRight: 6,
   },
   label: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: -0.2,
   },
   iconContainer: {
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   indicator: {
-    position: 'absolute',
+    position: "absolute",
     top: -2,
     right: -2,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#10B981',
+    backgroundColor: "#10B981",
     borderWidth: 1.5,
-    borderColor: '#004D2C',
-  }
+    borderColor: "#004D2C",
+  },
 });

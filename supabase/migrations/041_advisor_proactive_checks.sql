@@ -1,6 +1,9 @@
 -- Migration: Setup Advisor Proactive Checks
 -- Date: 2026-05-28
 
+-- Enable pg_net for edge function triggers
+CREATE EXTENSION IF NOT EXISTS pg_net;
+
 -- 1. Advisor Checks Tracking Table
 CREATE TABLE IF NOT EXISTS public.advisor_checks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

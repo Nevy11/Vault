@@ -36,7 +36,7 @@ export function TopNav() {
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  
+
   // Activate Realtime Receipt Listener
   useReceiptRealtime();
 

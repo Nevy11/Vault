@@ -29,7 +29,7 @@ export function useReceiptRealtime() {
         (payload) => {
           const newReceipt = payload.new as Receipt;
           setLatestReceipt(newReceipt);
-          
+
           // Trigger high-end notification
           toast.success("New Receipt Generated", {
             description: `Receipt ${newReceipt.receipt_number} for $${newReceipt.amount.toLocaleString()} is now available.`,

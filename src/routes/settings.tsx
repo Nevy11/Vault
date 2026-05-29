@@ -263,7 +263,9 @@ function SettingsPage() {
 
   async function fetchMerchantData() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -285,18 +287,21 @@ function SettingsPage() {
   async function handleSaveMerchant() {
     try {
       setIsSavingMerchant(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Unauthorized");
 
-      const { error } = await supabase
-        .from("merchants")
-        .upsert({
+      const { error } = await supabase.from("merchants").upsert(
+        {
           user_id: user.id,
           business_name: businessName || `${profile?.first_name}'s Business`,
           business_category: businessCategory,
           is_active: merchantEnabled,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
 
       if (error) throw error;
       toast.success("Merchant profile updated!");
@@ -814,6 +819,91 @@ function SettingsPage() {
             </div>
           </SectionCard>
 
+          {/* Business Profile (Merchant Mode) */}
+          <SectionCard
+            icon={Store}
+            title="Business Profile"
+            meta="Merchant Mode & B2C Tools"
+            hint="Enable to receive public payments via QR"
+          >
+            <ToggleRow
+              label="Enable Merchant Mode"
+              description="Activate your public payment profile and generate your unique Vault QR code."
+              checked={merchantEnabled}
+              onCheckedChange={(val) => {
+                setMerchantEnabled(val);
+                // Auto-save toggle status
+                if (profile?.id) {
+                  supabase.from("merchants").upsert({
+                    user_id: profile.id,
+                    is_active: val,
+                    business_name: businessName || "My Business",
+                  });
+                }
+              }}
+            />
+
+            {merchantEnabled && (
+              <div className="space-y-6 pt-6 border-t border-border/40 animate-in fade-in slide-in-from-top-4 duration-500">
+                <Row label="Business Name" description="Displayed on your public payment portal.">
+                  <Input
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    placeholder="e.g. Acme Coffee Roasters"
+                    className="bg-input/40 border-border/60"
+                  />
+                </Row>
+                <Row label="Category">
+                  <select
+                    value={businessCategory}
+                    onChange={(e) => setBusinessCategory(e.target.value)}
+                    className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option>Retail</option>
+                    <option>Food & Beverage</option>
+                    <option>Services</option>
+                    <option>Technology</option>
+                    <option>Creative</option>
+                    <option>Other</option>
+                  </select>
+                </Row>
+
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <QrCode className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold uppercase tracking-widest">
+                        Public QR Code
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Ready for high-fidelity scanning
+                      </div>
+                    </div>
+                  </div>
+                  <Button asChild size="sm" variant="outline" className="rounded-xl">
+                    <Link to={`/pay/${profile?.kyc_tag}`} target="_blank">
+                      View Portal <ExternalLink className="ml-2 w-3 h-3" />
+                    </Link>
+                  </Button>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    className="rounded-xl h-10 px-6"
+                    onClick={handleSaveMerchant}
+                    disabled={isSavingMerchant}
+                  >
+                    {isSavingMerchant && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Update Business Profile
+                  </Button>
+                </div>
+              </div>
+            )}
+          </SectionCard>
+
           {/* Security Center */}
           <SectionCard
             icon={ShieldCheck}
@@ -846,7 +936,22 @@ function SettingsPage() {
               <ToggleRow
                 label="Face ID / Biometric Login"
                 description="Use device biometrics to unlock the vault."
-                checked={true}
+                checked={profile?.biometric_enabled}
+                onCheckedChange={(val) => {
+                  if (profile) {
+                    supabase
+                      .from("profiles")
+                      .update({ biometric_enabled: val })
+                      .eq("id", profile.id)
+                      .then(({ error }) => {
+                        if (error) toast.error("Failed to update biometric preference");
+                        else {
+                          toast.success(`Biometrics ${val ? "enabled" : "disabled"}`);
+                          profileSignal.set({ ...profile, biometric_enabled: val });
+                        }
+                      });
+                  }
+                }}
               />
               <div className="space-y-4">
                 <div className="text-sm text-foreground">Authorized Devices</div>
@@ -1065,7 +1170,9 @@ function SettingsPage() {
                 <ToggleRow
                   label="Transfer received"
                   checked={profile?.notifications_transfer_received ?? true}
-                  onCheckedChange={(val) => updatePreference("notifications_transfer_received", val)}
+                  onCheckedChange={(val) =>
+                    updatePreference("notifications_transfer_received", val)
+                  }
                 />
                 <ToggleRow
                   label="Account login"

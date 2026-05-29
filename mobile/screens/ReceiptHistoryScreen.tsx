@@ -54,19 +54,12 @@ export default function ReceiptHistoryScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item, index }) => (
-          <ReceiptItem
-            item={item}
-            index={index}
-            onPress={() => setSelectedReceipt(item)}
-          />
+          <ReceiptItem item={item} index={index} onPress={() => setSelectedReceipt(item)} />
         )}
       />
 
       {selectedReceipt && (
-        <ReceiptDetailOverlay
-          receipt={selectedReceipt}
-          onClose={() => setSelectedReceipt(null)}
-        />
+        <ReceiptDetailOverlay receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />
       )}
     </View>
   );
@@ -84,7 +77,9 @@ function ReceiptItem({ item, index, onPress }: any) {
           <Text style={styles.receiptMeta}>{item.receipt_number}</Text>
         </View>
         <View style={styles.receiptRight}>
-          <Text style={styles.receiptAmount}>{item.currency} {item.amount.toLocaleString()}</Text>
+          <Text style={styles.receiptAmount}>
+            {item.currency} {item.amount.toLocaleString()}
+          </Text>
           <ChevronRight size={16} color="#94A3B8" />
         </View>
       </TouchableOpacity>
@@ -115,18 +110,22 @@ function ReceiptDetailOverlay({ receipt, onClose }: any) {
       <TouchableOpacity style={styles.overlayCloseArea} onPress={handleClose} />
       <Animated.View style={[styles.detailSheet, animatedStyle]}>
         <View style={styles.dragIndicator} />
-        
+
         <View style={styles.detailHeader}>
           <Text style={styles.detailTitle}>Digital Receipt</Text>
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.circleAction}><Download size={20} color="#004D2C" /></TouchableOpacity>
-            <TouchableOpacity style={styles.circleAction}><Share2 size={20} color="#004D2C" /></TouchableOpacity>
+            <TouchableOpacity style={styles.circleAction}>
+              <Download size={20} color="#004D2C" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.circleAction}>
+              <Share2 size={20} color="#004D2C" />
+            </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.paperReceipt}>
           <View style={styles.receiptTopEdge} />
-          
+
           <View style={styles.receiptContent}>
             <View style={styles.vaultLogoSmall}>
               <View style={styles.vLogo} />
@@ -137,7 +136,9 @@ function ReceiptDetailOverlay({ receipt, onClose }: any) {
 
             <View style={styles.receiptSection}>
               <Text style={styles.sectionLabel}>Amount Deducted</Text>
-              <Text style={styles.sectionValueMain}>{receipt.currency} {receipt.amount.toLocaleString()}</Text>
+              <Text style={styles.sectionValueMain}>
+                {receipt.currency} {receipt.amount.toLocaleString()}
+              </Text>
             </View>
 
             <View style={styles.receiptGrid}>
@@ -147,7 +148,7 @@ function ReceiptDetailOverlay({ receipt, onClose }: any) {
               </View>
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>Status</Text>
-                <Text style={[styles.gridValue, { color: '#10B981' }]}>Completed</Text>
+                <Text style={[styles.gridValue, { color: "#10B981" }]}>Completed</Text>
               </View>
             </View>
 
@@ -157,16 +158,17 @@ function ReceiptDetailOverlay({ receipt, onClose }: any) {
             </View>
 
             <View style={styles.securityMessage}>
-               <Text style={styles.securityText}>
-                 Your transfer of {receipt.currency} {receipt.amount.toLocaleString()} has been processed securely.
-               </Text>
+              <Text style={styles.securityText}>
+                Your transfer of {receipt.currency} {receipt.amount.toLocaleString()} has been
+                processed securely.
+              </Text>
             </View>
 
             <View style={styles.dividerDashed} />
 
             <View style={styles.qrPlaceholder}>
-               <View style={styles.qrBox} />
-               <Text style={styles.qrText}>Verified by Vault Ledger</Text>
+              <View style={styles.qrBox} />
+              <Text style={styles.qrText}>Verified by Vault Ledger</Text>
             </View>
           </View>
         </View>

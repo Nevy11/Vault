@@ -15,7 +15,7 @@ export type SavingsGoal = {
   automation_frequency: string | null;
   automation_amount: number | null;
   automation_provider: string | null;
-  status: 'active' | 'completed' | 'missed';
+  status: "active" | "completed" | "missed";
   created_at: string;
   updated_at: string;
 };
@@ -26,7 +26,7 @@ export type SavingsLedgerEntry = {
   user_id: string;
   amount: number;
   source: string;
-  type: 'manual' | 'automated';
+  type: "manual" | "automated";
   running_total: number;
   created_at: string;
 };
@@ -42,7 +42,9 @@ export function useSavings() {
   const fetchSavingsData = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Fetch all active goals
@@ -82,14 +84,16 @@ export function useSavings() {
     fetchSavingsData();
 
     // Subscribe to changes
-    const goalChannel = supabase.channel('savings_goals_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_goals' }, () => {
+    const goalChannel = supabase
+      .channel("savings_goals_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "savings_goals" }, () => {
         fetchSavingsData();
       })
       .subscribe();
 
-    const ledgerChannel = supabase.channel('savings_ledger_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_ledger' }, () => {
+    const ledgerChannel = supabase
+      .channel("savings_ledger_changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "savings_ledger" }, () => {
         fetchSavingsData();
       })
       .subscribe();
@@ -100,14 +104,16 @@ export function useSavings() {
     };
   }, [selectedGoalIndex]);
 
-  const addContribution = async (amount: number, source: string, type: 'manual' | 'automated') => {
+  const addContribution = async (amount: number, source: string, type: "manual" | "automated") => {
     if (!goal) {
       toast.error("No active savings goal found");
       return;
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Handle Vault Balance source
@@ -126,7 +132,7 @@ export function useSavings() {
 
         if (Number(wallet.balance) < amount) {
           toast.error("Insufficient Vault balance", {
-            description: `You have KES ${Number(wallet.balance).toLocaleString()} but tried to save KES ${amount.toLocaleString()}`
+            description: `You have KES ${Number(wallet.balance).toLocaleString()} but tried to save KES ${amount.toLocaleString()}`,
           });
           return;
         }
@@ -142,18 +148,16 @@ export function useSavings() {
         if (deductError) throw deductError;
 
         // 3. Log into transactions table
-        const { error: txError } = await supabase
-          .from("transactions")
-          .insert({
-            sender_id: user.id,
-            receiver_id: null, // Self-transfer to savings
-            type: "transfer",
-            method: "vault",
-            amount: amount,
-            status: "completed",
-            description: "Transferred to savings",
-            balance_after: newWalletBalance
-          });
+        const { error: txError } = await supabase.from("transactions").insert({
+          sender_id: user.id,
+          receiver_id: null, // Self-transfer to savings
+          type: "transfer",
+          method: "vault",
+          amount: amount,
+          status: "completed",
+          description: "Transferred to savings",
+          balance_after: newWalletBalance,
+        });
 
         if (txError) throw txError;
       }
@@ -161,16 +165,14 @@ export function useSavings() {
       const newCurrentAmount = Number(goal.current_amount) + Number(amount);
 
       // 4. Insert into savings_ledger
-      const { error: ledgerError } = await supabase
-        .from("savings_ledger")
-        .insert({
-          goal_id: goal.id,
-          user_id: user.id,
-          amount,
-          source: source === "vault_balance" ? "Vault" : source,
-          type,
-          running_total: newCurrentAmount
-        });
+      const { error: ledgerError } = await supabase.from("savings_ledger").insert({
+        goal_id: goal.id,
+        user_id: user.id,
+        amount,
+        source: source === "vault_balance" ? "Vault" : source,
+        type,
+        running_total: newCurrentAmount,
+      });
 
       if (ledgerError) throw ledgerError;
 
@@ -191,7 +193,9 @@ export function useSavings() {
 
   const createGoal = async (goalData: Partial<SavingsGoal>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return false;
 
       // Check for maximum 2 goals
@@ -207,8 +211,8 @@ export function useSavings() {
         .insert({
           ...goalData,
           user_id: user.id,
-          status: 'active',
-          current_amount: 0
+          status: "active",
+          current_amount: 0,
         })
         .select()
         .single();
@@ -225,10 +229,7 @@ export function useSavings() {
 
   const updateGoal = async (id: string, goalData: Partial<SavingsGoal>) => {
     try {
-      const { error } = await supabase
-        .from("savings_goals")
-        .update(goalData)
-        .eq("id", id);
+      const { error } = await supabase.from("savings_goals").update(goalData).eq("id", id);
 
       if (error) throw error;
       toast.success("Savings goal updated!");
@@ -250,6 +251,6 @@ export function useSavings() {
     addContribution,
     createGoal,
     updateGoal,
-    refetch: fetchSavingsData
+    refetch: fetchSavingsData,
   };
 }

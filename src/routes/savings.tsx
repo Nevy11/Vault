@@ -124,16 +124,16 @@ function SavingsPage() {
 
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const { 
-    goals, 
-    goal: savingsGoal, 
-    selectedGoalIndex, 
-    setSelectedGoalIndex, 
-    ledger, 
-    loading, 
-    addContribution, 
-    createGoal, 
-    updateGoal 
+  const {
+    goals,
+    goal: savingsGoal,
+    selectedGoalIndex,
+    setSelectedGoalIndex,
+    ledger,
+    loading,
+    addContribution,
+    createGoal,
+    updateGoal,
   } = useSavings();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -164,25 +164,30 @@ function SavingsPage() {
   const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
   const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
 
-  const chartData = savingsGoal ? [
-    { name: "Saved", value: Number(savingsGoal.current_amount), color: "var(--primary)" },
-    {
-      name: "Remaining",
-      value: Math.max(0, Number(savingsGoal.target_amount) - Number(savingsGoal.current_amount)),
-      color: "hsl(var(--muted))",
-    },
-  ] : [];
+  const chartData = savingsGoal
+    ? [
+        { name: "Saved", value: Number(savingsGoal.current_amount), color: "var(--primary)" },
+        {
+          name: "Remaining",
+          value: Math.max(
+            0,
+            Number(savingsGoal.target_amount) - Number(savingsGoal.current_amount),
+          ),
+          color: "hsl(var(--muted))",
+        },
+      ]
+    : [];
 
   const barData = useMemo(() => {
     if (!ledger.length) return [];
-    
+
     // Group by month
     const months: Record<string, number> = {};
-    [...ledger].reverse().forEach(entry => {
+    [...ledger].reverse().forEach((entry) => {
       const month = format(new Date(entry.created_at), "MMM");
       months[month] = (months[month] || 0) + Number(entry.amount);
     });
-    
+
     return Object.entries(months).map(([month, amount]) => ({ month, amount }));
   }, [ledger]);
 
@@ -204,7 +209,7 @@ function SavingsPage() {
 
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const goalData = {
       title: goalTitle,
       target_amount: parseFormattedNumber(targetAmount),
@@ -304,10 +309,14 @@ function SavingsPage() {
                 Cryptographically secured target-based savings.
               </p>
             </div>
-            <Tabs value={activeTab} onValueChange={(val) => {
-              setActiveTab(val);
-              if (val === "setup") setIsEditing(false);
-            }} className="w-full md:w-auto">
+            <Tabs
+              value={activeTab}
+              onValueChange={(val) => {
+                setActiveTab(val);
+                if (val === "setup") setIsEditing(false);
+              }}
+              className="w-full md:w-auto"
+            >
               <TabsList className="grid w-full grid-cols-3 h-12 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
                 <TabsTrigger
                   value="overview"
@@ -340,52 +349,54 @@ function SavingsPage() {
               {/* Goal Switcher Bar */}
               {goals.length > 0 && (
                 <div className="flex items-center gap-4 p-3 rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 shadow-xl overflow-x-auto no-scrollbar">
-                   <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
-                      <Target className="w-5 h-5 text-primary" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">My Goals</span>
-                   </div>
-                   <div className="flex gap-3">
-                      {goals.map((g, index) => (
-                        <Button
-                          key={g.id}
-                          variant={selectedGoalIndex === index ? "default" : "outline"}
-                          className={cn(
-                            "h-12 rounded-2xl font-black transition-all duration-500",
-                            selectedGoalIndex === index 
-                              ? "px-6 bg-primary text-primary-foreground shadow-2xl scale-105 border-none" 
-                              : "w-12 p-0 bg-white/50 dark:bg-slate-800/50 border-white/10 hover:bg-primary/10 text-slate-700 dark:text-slate-300"
-                          )}
-                          onClick={() => {
-                            setSelectedGoalIndex(index);
-                            setActiveTab("overview");
-                          }}
-                        >
-                          {selectedGoalIndex === index ? (
-                            <div className="flex items-center gap-2">
-                              <span className="w-5 h-5 rounded bg-white/20 flex items-center justify-center text-[10px]">
-                                {index + 1}
-                              </span>
-                              {g.title}
-                            </div>
-                          ) : (
-                            index + 1
-                          )}
-                        </Button>
-                      ))}
-                      {goals.length < 2 && (
-                        <Button
-                          variant="outline"
-                          className="h-12 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary shrink-0 font-black flex items-center transition-all duration-300"
-                          onClick={() => {
-                            setIsEditing(false);
-                            setActiveTab("setup");
-                          }}
-                        >
-                           <span className="mr-2">{goals.length + 1}</span>
-                           <Plus className="w-4 h-4" />
-                        </Button>
-                      )}
-                   </div>
+                  <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
+                    <Target className="w-5 h-5 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                      My Goals
+                    </span>
+                  </div>
+                  <div className="flex gap-3">
+                    {goals.map((g, index) => (
+                      <Button
+                        key={g.id}
+                        variant={selectedGoalIndex === index ? "default" : "outline"}
+                        className={cn(
+                          "h-12 rounded-2xl font-black transition-all duration-500",
+                          selectedGoalIndex === index
+                            ? "px-6 bg-primary text-primary-foreground shadow-2xl scale-105 border-none"
+                            : "w-12 p-0 bg-white/50 dark:bg-slate-800/50 border-white/10 hover:bg-primary/10 text-slate-700 dark:text-slate-300",
+                        )}
+                        onClick={() => {
+                          setSelectedGoalIndex(index);
+                          setActiveTab("overview");
+                        }}
+                      >
+                        {selectedGoalIndex === index ? (
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded bg-white/20 flex items-center justify-center text-[10px]">
+                              {index + 1}
+                            </span>
+                            {g.title}
+                          </div>
+                        ) : (
+                          index + 1
+                        )}
+                      </Button>
+                    ))}
+                    {goals.length < 2 && (
+                      <Button
+                        variant="outline"
+                        className="h-12 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary shrink-0 font-black flex items-center transition-all duration-300"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setActiveTab("setup");
+                        }}
+                      >
+                        <span className="mr-2">{goals.length + 1}</span>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -452,26 +463,35 @@ function SavingsPage() {
                               <LineChart data={barData}>
                                 <defs>
                                   <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0}/>
+                                    <stop
+                                      offset="5%"
+                                      stopColor="var(--primary)"
+                                      stopOpacity={0.3}
+                                    />
+                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                                   </linearGradient>
                                 </defs>
-                                <Tooltip 
-                                  contentStyle={{ 
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)', 
-                                    borderRadius: '12px', 
-                                    border: 'none',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                    fontWeight: 'bold'
+                                <Tooltip
+                                  contentStyle={{
+                                    backgroundColor: "rgba(255, 255, 255, 0.8)",
+                                    borderRadius: "12px",
+                                    border: "none",
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                                    fontWeight: "bold",
                                   }}
-                                  labelStyle={{ color: 'var(--primary)' }}
+                                  labelStyle={{ color: "var(--primary)" }}
                                 />
-                                <Line 
-                                  type="monotone" 
-                                  dataKey="amount" 
-                                  stroke="var(--primary)" 
+                                <Line
+                                  type="monotone"
+                                  dataKey="amount"
+                                  stroke="var(--primary)"
                                   strokeWidth={4}
-                                  dot={{ r: 4, fill: "var(--primary)", strokeWidth: 2, stroke: "#fff" }}
+                                  dot={{
+                                    r: 4,
+                                    fill: "var(--primary)",
+                                    strokeWidth: 2,
+                                    stroke: "#fff",
+                                  }}
                                   activeDot={{ r: 6, strokeWidth: 0 }}
                                 />
                               </LineChart>
@@ -483,8 +503,9 @@ function SavingsPage() {
                           <p className="text-xs text-slate-900 dark:text-slate-100 font-bold leading-relaxed">
                             Your funds are locked until{" "}
                             <span className="text-primary font-black">
-                              {savingsGoal?.lockUntil ? format(new Date(savingsGoal.lockUntil), "PPP") : "N/A"}
-
+                              {savingsGoal?.lockUntil
+                                ? format(new Date(savingsGoal.lockUntil), "PPP")
+                                : "N/A"}
                             </span>
                             . Achieve your goal to unlock the 2% reward!
                           </p>
@@ -596,7 +617,10 @@ function SavingsPage() {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground font-medium">
+                          <td
+                            colSpan={5}
+                            className="px-6 py-12 text-center text-muted-foreground font-medium"
+                          >
                             No contributions recorded yet. Start saving to see your ledger!
                           </td>
                         </tr>
@@ -622,7 +646,10 @@ function SavingsPage() {
                         <Info className="w-6 h-6 shrink-0" />
                         <div>
                           <p className="font-black uppercase text-sm">Goal Limit Reached</p>
-                          <p className="text-xs font-bold opacity-80">You already have 2 active savings goals. Please complete or remove one before starting a new one.</p>
+                          <p className="text-xs font-bold opacity-80">
+                            You already have 2 active savings goals. Please complete or remove one
+                            before starting a new one.
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -660,9 +687,15 @@ function SavingsPage() {
                           htmlFor="target"
                           className="text-sm font-black uppercase tracking-[0.1em]"
                         >
-                          Target (KES) {isEditing && savingsGoal && <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>}
+                          Target (KES){" "}
+                          {isEditing && savingsGoal && (
+                            <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>
+                          )}
                         </Label>
-                        <div className="relative" onClick={() => handleRestrictedFieldClick("Target amount")}>
+                        <div
+                          className="relative"
+                          onClick={() => handleRestrictedFieldClick("Target amount")}
+                        >
                           <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="target"
@@ -675,7 +708,7 @@ function SavingsPage() {
                             readOnly={isEditing && !!savingsGoal}
                             className={cn(
                               "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black",
-                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed"
+                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                             )}
                             required
                           />
@@ -689,20 +722,26 @@ function SavingsPage() {
                           htmlFor="start"
                           className="text-sm font-black uppercase tracking-[0.1em]"
                         >
-                          Start Date {isEditing && savingsGoal && <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>}
+                          Start Date{" "}
+                          {isEditing && savingsGoal && (
+                            <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>
+                          )}
                         </Label>
-                        <div className="relative" onClick={() => handleRestrictedFieldClick("Start date")}>
+                        <div
+                          className="relative"
+                          onClick={() => handleRestrictedFieldClick("Start date")}
+                        >
                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="start"
                             name="start"
                             type="date"
                             min={today}
-                            defaultValue={isEditing ? (savingsGoal?.start_date || today) : today}
+                            defaultValue={isEditing ? savingsGoal?.start_date || today : today}
                             readOnly={isEditing && !!savingsGoal}
                             className={cn(
                               "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black",
-                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed"
+                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                             )}
                             required
                           />
@@ -713,9 +752,15 @@ function SavingsPage() {
                           htmlFor="deadline"
                           className="text-sm font-black uppercase tracking-[0.1em]"
                         >
-                          Deadline Date {isEditing && savingsGoal && <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>}
+                          Deadline Date{" "}
+                          {isEditing && savingsGoal && (
+                            <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>
+                          )}
                         </Label>
-                        <div className="relative" onClick={() => handleRestrictedFieldClick("Deadline date")}>
+                        <div
+                          className="relative"
+                          onClick={() => handleRestrictedFieldClick("Deadline date")}
+                        >
                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
                             id="deadline"
@@ -726,7 +771,7 @@ function SavingsPage() {
                             readOnly={isEditing && !!savingsGoal}
                             className={cn(
                               "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-black",
-                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed"
+                              isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                             )}
                             required
                           />
@@ -875,7 +920,10 @@ function SavingsPage() {
                           Left Amount
                         </h4>
                         <p className="text-4xl font-black text-slate-950 dark:text-white uppercase">
-                          KES {(savingsGoal.target_amount - savingsGoal.current_amount).toLocaleString()}
+                          KES{" "}
+                          {(
+                            savingsGoal.target_amount - savingsGoal.current_amount
+                          ).toLocaleString()}
                         </p>
                       </Card>
                       <Card className="rounded-[2.5rem] border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-xl p-8 shadow-xl">
@@ -1030,10 +1078,18 @@ function SavingsPage() {
                     <SelectValue placeholder="Where are you saving from?" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
-                    <SelectItem value="mpesa" className="font-bold">M-Pesa</SelectItem>
-                    <SelectItem value="airtel" className="font-bold">Airtel Money</SelectItem>
-                    <SelectItem value="bank" className="font-bold">Bank Account</SelectItem>
-                    <SelectItem value="vault_balance" className="font-bold">Vault Balance</SelectItem>
+                    <SelectItem value="mpesa" className="font-bold">
+                      M-Pesa
+                    </SelectItem>
+                    <SelectItem value="airtel" className="font-bold">
+                      Airtel Money
+                    </SelectItem>
+                    <SelectItem value="bank" className="font-bold">
+                      Bank Account
+                    </SelectItem>
+                    <SelectItem value="vault_balance" className="font-bold">
+                      Vault Balance
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -20,11 +20,19 @@ export interface LedgerInsightsResponse {
   };
 }
 
+interface LedgerEntry {
+  user_id: string;
+  type: string;
+  amount: number | string;
+  created_at: string;
+  cryptographic_signature: string;
+}
+
 /**
  * Audit Check Helper
  * Verifies that the cryptographic signature matches the entry data.
  */
-const verifyLedgerSignature = (entry: any): boolean => {
+const verifyLedgerSignature = (entry: LedgerEntry): boolean => {
   const secret = process.env.LEDGER_SIGNING_SECRET || "fallback-secret";
   const data = `${entry.user_id}${entry.type}${entry.amount}${entry.created_at}`;
   const expectedSignature = crypto.createHmac("sha256", secret).update(data).digest("hex");
@@ -39,7 +47,7 @@ const verifyLedgerSignature = (entry: any): boolean => {
 export const getLedgerInsights = async (req: Request, res: Response) => {
   try {
     // 1. Identification via Authenticated User (from JWT Middleware)
-    const userId = (req as any).user?.id;
+    const userId = (req as { user?: { id: string } }).user?.id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     // 2. Fetch all entries for audit and aggregation
@@ -57,14 +65,14 @@ export const getLedgerInsights = async (req: Request, res: Response) => {
     let totalOutflow = 0;
     let tamperedEntries = 0;
 
-    entries?.forEach((entry) => {
+    (entries as LedgerEntry[])?.forEach((entry) => {
       // Cryptographic Integrity Check
       if (!verifyLedgerSignature(entry)) {
         tamperedEntries++;
         return; // Skip tampered entries from financial totals
       }
 
-      const val = parseFloat(entry.amount);
+      const val = typeof entry.amount === "string" ? parseFloat(entry.amount) : entry.amount;
       if (entry.type === "INFLOW") {
         totalInflow += val;
       } else {
@@ -97,7 +105,7 @@ export const getLedgerInsights = async (req: Request, res: Response) => {
     };
 
     return res.status(200).json(response);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Ledger Insights Error:", err);
     return res.status(500).json({ error: "Internal server error calculating ledger insights" });
   }

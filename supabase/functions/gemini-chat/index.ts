@@ -48,11 +48,16 @@ serve(async (req) => {
       .maybeSingle();
 
     const GEMINI_API_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
-    const { messages, userInput } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { messages, userInput } = body;
 
-    // Create a personalized system instruction with comprehensive real-time financial data
+    if (!userInput && (!messages || messages.length === 0)) {
+      throw new Error("No conversation history or input provided.");
+    }
+
+    // Create a personalized system instruction
     const firstName = profile?.first_name || "User";
     const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
 
@@ -71,10 +76,11 @@ serve(async (req) => {
 
     let contents = [];
     const validMessages = (messages || []).filter(
-      (m: any) => m.sender === "user" || m.sender === "advisor",
+      (m: any) => (m.sender === "user" || m.sender === "advisor") && m.text,
     );
 
     if (validMessages.length > 0) {
+      // Gemini contents must alternate user/model and start with user
       const firstUserIndex = validMessages.findIndex((m: any) => m.sender === "user");
       if (firstUserIndex !== -1) {
         contents = validMessages.slice(firstUserIndex).map((msg: any) => ({
@@ -84,16 +90,24 @@ serve(async (req) => {
       }
     }
 
+    // Ensure the last role is 'user' before adding model response
     if (userInput) {
-      contents.push({
-        role: "user",
-        parts: [{ text: userInput }],
-      });
+      if (contents.length > 0 && contents[contents.length - 1].role === "user") {
+        // If the last message was already from user, append to it or just replace (Gemini requirement)
+        contents[contents.length - 1].parts[0].text += `\n${userInput}`;
+      } else {
+        contents.push({
+          role: "user",
+          parts: [{ text: userInput }],
+        });
+      }
     }
 
     if (contents.length === 0) {
-      throw new Error("No conversation history or input provided.");
+      throw new Error("Conversation must start with a user message.");
     }
+
+    console.log(`Calling Gemini with ${contents.length} messages for user ${user.id}`);
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",

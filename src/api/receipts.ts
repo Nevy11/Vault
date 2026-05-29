@@ -23,7 +23,9 @@ export interface Receipt {
 /**
  * Fetch Paginated Receipts (Client-side)
  */
-export const getReceipts = async (payload: { data: { userId: string; page?: number; pageSize?: number } }) => {
+export const getReceipts = async (payload: {
+  data: { userId: string; page?: number; pageSize?: number };
+}) => {
   const { userId, page = 0, pageSize = 10 } = payload.data;
   const from = page * pageSize;
   const to = from + pageSize - 1;
@@ -55,11 +57,7 @@ export const getReceipts = async (payload: { data: { userId: string; page?: numb
  */
 export const getReceiptDetails = async (payload: { data: { receiptId: string } }) => {
   const { receiptId } = payload.data;
-  const { data, error } = await supabase
-    .from("receipts")
-    .select("*")
-    .eq("id", receiptId)
-    .single();
+  const { data, error } = await supabase.from("receipts").select("*").eq("id", receiptId).single();
 
   if (error) throw new Error(error.message);
   return data as Receipt;

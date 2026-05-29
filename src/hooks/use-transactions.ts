@@ -82,7 +82,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
           sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
           receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
           `,
-          { count: "exact" }
+          { count: "exact" },
         )
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order("created_at", { ascending: false })
@@ -129,7 +129,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
       } else {
         setTransactions(prev => [...prev, ...(mappedTransactions as Transaction[] || [])]);
       }
-      
+
       setTotalCount(count || 0);
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
@@ -157,7 +157,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
           table: "transactions",
           filter: `sender_id=eq.${profile.id}`,
         },
-        () => fetchTransactions()
+        () => fetchTransactions(),
       )
       .on(
         "postgres_changes",
@@ -167,7 +167,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
           table: "transactions",
           filter: `receiver_id=eq.${profile.id}`,
         },
-        () => fetchTransactions()
+        () => fetchTransactions(),
       )
       .subscribe();
 
@@ -176,12 +176,12 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
     };
   }, [profile?.id, enabled]);
 
-  return { 
-    transactions, 
-    totalCount, 
-    loading, 
-    error, 
+  return {
+    transactions,
+    totalCount,
+    loading,
+    error,
     refetch: fetchTransactions,
-    hasMore: transactions.length < totalCount
+    hasMore: transactions.length < totalCount,
   };
 }
