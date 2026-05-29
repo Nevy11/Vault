@@ -42,20 +42,29 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { page = 0, pageSize = 10, search = "", type = "all", status = "all" } = options;
+  const {
+    page = 0,
+    pageSize = 10,
+    search = "",
+    type = "all",
+    status = "all"
+  } = options;
+
+  const getUserId = async (): Promise<string | null> => {
+    if (profile?.id) {
+      return profile.id;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return user?.id ?? null;
+  };
 
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-
-      let userId = profile?.id;
-      if (!userId) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        userId = user?.id;
-      }
-
+      const userId = await getUserId();
       if (!userId) {
         setLoading(false);
         return;
@@ -64,6 +73,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
       const from = page * pageSize;
       const to = from + pageSize - 1;
 
+      // 1. Fetch transactions (with pagination and filtering)
       let query = supabase
         .from("transactions")
         .select(
@@ -89,14 +99,35 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
         query = query.ilike("description", `%${search}%`);
       }
 
-      const { data, error: txError, count } = await query;
+      // 2. Fetch recent balance snapshots for balance_after mapping
+      const { data: historyData, error: historyError } = await supabase
+        .from('balance_history')
+        .select('*')
+        .order('recorded_at', { ascending: false })
+        .limit(50); // Fetch a reasonable number of history snapshots
 
+      const { data, error: txError, count } = await query;
       if (txError) throw txError;
+      if (historyError) throw historyError;
+
+      // Map transactions and inject balance_after from history
+      const mappedTransactions = (data || []).map(t => {
+        const snapshot = (historyData || []).find(h => 
+          new Date(h.recorded_at).getTime() >= new Date(t.created_at).getTime() - 2000 &&
+          new Date(h.recorded_at).getTime() <= new Date(t.created_at).getTime() + 2000
+        );
+
+        return {
+          ...t,
+          balance_after: snapshot ? Number(snapshot.recorded_balance) : t.balance_after,
+          source: 'transactions' as const
+        };
+      });
 
       if (page === 0) {
-        setTransactions((data as Transaction[]) || []);
+        setTransactions(mappedTransactions as Transaction[] || []);
       } else {
-        setTransactions((prev) => [...prev, ...((data as Transaction[]) || [])]);
+        setTransactions(prev => [...prev, ...(mappedTransactions as Transaction[] || [])]);
       }
 
       setTotalCount(count || 0);

@@ -42,44 +42,36 @@ import { supabase } from "@/api/supabase";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
-type SourceChannel = "bank" | "mobile" | "stripe";
+// Mobile Money & Banks Configuration
+const MOBILE_MONEY = [
+  { id: "mm-mpesa", name: "M-Pesa", logo: "/logos/mpesa.svg", color: "bg-emerald-600" },
+  { id: "mm-airtel", name: "Airtel Money", logo: "/logos/airtel.svg", color: "bg-red-500" },
+  { id: "mm-tkash", name: "T-Kash", logo: "/logos/tkash.svg", color: "bg-purple-600" },
+];
+
+const BANKS_WITH_LOGOS = [
+  { id: "b-kcb", name: "KCB Bank", logo: "/logos/kcb.svg", color: "bg-blue-700" },
+  { id: "b-coop", name: "Co-operative Bank", logo: "/logos/coop.svg", color: "bg-green-700" },
+  { id: "b-ncba", name: "NCBA Bank", logo: "/logos/ncba.svg", color: "bg-blue-800" },
+  { id: "b-absa", name: "Absa Bank", logo: "/logos/absa.svg", color: "bg-red-600" },
+];
+
+// Constants
+const EXCHANGE_RATE = 130; // 1 USD = 130 KES (approximate)
+const SAVED_NUMBERS = [
+  { id: "m1", phone: "+254712345678", carrier: "M-Pesa", logo: "/logos/mpesa.svg" },
+  { id: "m2", phone: "+254798765432", carrier: "M-Pesa", logo: "/logos/mpesa.svg" },
+];
+const SAVED_BANK_ACCOUNTS = [];
+const CARRIERS = [
+  { name: "M-Pesa", logo: "/logos/mpesa.svg" },
+  { name: "Airtel Money", logo: "/logos/airtel.svg" },
+  { name: "T-Kash", logo: "/logos/tkash.svg" },
+];
+const BANKS = ["Stripe ACH"];
+
+type SourceChannel = "mobile" | "bank" | "stripe";
 type DepositStatus = "idle" | "processing" | "confirming" | "stripe_pay" | "success";
-
-const SAVED_BANK_ACCOUNTS = [
-  {
-    id: "b1",
-    name: "Chase Bank",
-    accountNumber: "****6789",
-    holder: "John Doe",
-    logo: "CB",
-    color: "bg-blue-600",
-  },
-  {
-    id: "b2",
-    name: "Bank of America",
-    accountNumber: "****1234",
-    holder: "John Doe",
-    logo: "BA",
-    color: "bg-red-600",
-  },
-];
-
-const CARRIERS = ["M-Pesa", "Airtel Money", "T-Kash"];
-
-const BANKS_LIST = [
-  "KCB Bank (Kenya Commercial Bank)",
-  "Co-operative Bank of Kenya",
-  "NCBA Bank",
-  "Absa Bank Kenya",
-  "Standard Chartered Kenya",
-  "Stanbic Bank Kenya",
-  "I&M Bank",
-  "DTB (Diamond Trust Bank)",
-  "Family Bank",
-  "Equity Bank Kenya",
-];
-
-const EXCHANGE_RATE = 130.0;
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
@@ -255,7 +247,7 @@ export function DepositPanel() {
           channel === "mobile" ? "mpesa" : selectedSourceId === "stripe-ach" ? "bank" : "bank",
         amount: parseFloat(amount),
         status: "pending",
-        description: checkoutId,
+        description: channel === "mobile" ? `M-Pesa Deposit - ${checkoutId}` : `Bank Deposit - ${checkoutId}`,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
@@ -625,8 +617,8 @@ export function DepositPanel() {
             <Info className="w-5 h-5" />
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Deposits are processed instantly via our secure payment rails. A small network fee may
-            apply based on your carrier or bank.
+            Deposits are processed instantly via our secure payment rails. Network fee may apply
+            based on your carrier or bank.
           </p>
         </div>
       </div>

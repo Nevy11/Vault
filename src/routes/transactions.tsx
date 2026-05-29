@@ -880,11 +880,17 @@ function TransactionHistory() {
 
     if (t.type === "transfer") {
       if (isSender) {
+        // Check if this is a transfer to a mobile/bank service
+        const desc = (t.description || '').toLowerCase();
+        const logo = getMethodLogo(t.method || '', t.description || '');
+        const hasMobileOrBank = logo && desc.includes('transfer to');
+        
         return {
-          title: `Transfer to ${t.receiver?.first_name || "User"} ${t.receiver?.last_name || ""}`,
+          title: t.description || `Transfer to ${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: t.receiver?.first_name?.[0] || "V",
+          icon: hasMobileOrBank ? null : (t.receiver?.first_name?.[0] || 'V'),
+          logo: hasMobileOrBank ? logo : t.receiver?.profile_photo_url,
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
@@ -893,31 +899,35 @@ function TransactionHistory() {
           title: `Received from ${t.sender?.first_name || "User"} ${t.sender?.last_name || ""}`,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || "V",
+          icon: t.sender?.first_name?.[0] || 'V',
+          logo: t.sender?.profile_photo_url,
           avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
-    } else if (t.type === "deposit") {
-      const bankName =
-        t.method === "mpesa" ? "M-Pesa" : t.description?.includes("Ref:") ? "Bank" : t.method;
+    } else if (t.type === 'deposit') {
+      const logo = getMethodLogo(t.method, t.description);
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
-        title: `${bankName} deposit to ${userName}`,
+        title: t.description || `${bankName} deposit to ${userName}`,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
-        icon: initials,
+        icon: logo ? null : initials,
+        logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
-    } else if (t.type === "withdrawal") {
-      const bankName =
-        t.method === "mpesa" ? "M-Pesa" : t.description?.includes("Ref:") ? "Bank" : t.method;
+    } else if (t.type === 'withdrawal') {
+      const logo = getMethodLogo(t.method, t.description);
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
+      const initials = bankName.substring(0, 2).toUpperCase();
       return {
-        title: `Withdrawal to ${bankName}`,
+        title: t.description || `Withdrawal to ${bankName}`,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: bankName.substring(0, 2).toUpperCase(),
+        icon: logo ? null : initials,
+        logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
       };
@@ -926,7 +936,8 @@ function TransactionHistory() {
       title: t.description,
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
-      icon: "?",
+      icon: '?',
+      logo: null,
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
     };
@@ -1016,7 +1027,7 @@ function TransactionHistory() {
                         </span>
                       </div>
                       <Avatar className="w-10 h-10 border border-border/40 shrink-0 group-hover:scale-105 transition-transform">
-                        <AvatarImage src={details.avatarUrl || undefined} />
+                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-xs font-bold", details.color)}>
                           {details.icon}
                         </AvatarFallback>

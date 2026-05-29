@@ -152,6 +152,7 @@ function QuickSend({
   withAdd,
   onAvatarClick,
   title = "Quick Send (P2P)",
+  className,
 }: {
   avatars: {
     id?: string;
@@ -164,9 +165,10 @@ function QuickSend({
   withAdd?: boolean;
   onAvatarClick?: (tag: string) => void;
   title?: string;
+  className?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm transition-all hover:border-border/60">
+    <div className={cn("rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm transition-all hover:border-border/60", className)}>
       <div className="flex items-center justify-between mb-4">
         <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">
           {title}
@@ -679,26 +681,58 @@ function DashboardPage() {
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
       : profile?.email?.split("@")[0] || "Vault User";
     const symbol = currency === "USD" ? "$" : currency + " ";
-    const isLedger = t.source === "ledger";
+    
+    // Method-specific logo helper - enhanced with all banks
+    const getMethodLogo = (method: string, description: string) => {
+      const desc = (description || '').toLowerCase();
+      const meth = (method || '').toLowerCase();
+      
+      // Mobile money services
+      if (desc.includes('mpesa') || desc.includes('m-pesa') || meth.includes('mpesa')) return '/logos/mpesa.svg';
+      if (desc.includes('airtel') || meth.includes('airtel')) return '/logos/airtel.svg';
+      if (desc.includes('t-kash') || desc.includes('tkash') || meth.includes('tkash')) return '/logos/tkash.svg';
+      
+      // Banks
+      if (desc.includes('kcb') || meth.includes('kcb')) return '/logos/kcb.svg';
+      if (desc.includes('co-operative') || desc.includes('coop') || meth.includes('coop')) return '/logos/coop.svg';
+      if (desc.includes('ncba') || meth.includes('ncba')) return '/logos/ncba.svg';
+      if (desc.includes('absa') || meth.includes('absa')) return '/logos/absa.svg';
+      if (desc.includes('standard chartered') || meth.includes('standard')) return '/logos/standard-chartered.svg';
+      if (desc.includes('stanbic') || meth.includes('stanbic')) return '/logos/stanbic.svg';
+      if (desc.includes('i&m') || desc.includes('im bank') || meth.includes('im bank')) return '/logos/im-bank.svg';
+      if (desc.includes('dtb') || desc.includes('diamond trust') || meth.includes('dtb')) return '/logos/dtb.svg';
+      if (desc.includes('family bank') || meth.includes('family')) return '/logos/family-bank.svg';
+      if (desc.includes('chase bank') || meth.includes('chase')) return '/logos/chase.svg';
+      if (desc.includes('bank of america') || meth.includes('america')) return '/logos/bank-of-america.svg';
+      
+      // Fallback for generic bank method
+      if (meth === 'bank' || meth === 'mpesa' || meth === 'airtel') return '/logos/bank.svg';
+      return null; // Fallback to initials
+    };
 
     if (t.type === "transfer") {
-      if (t.description === "Transferred to savings" || (isSender && !t.receiver_id)) {
+      if (t.description === "Transferred to savings") {
         return {
           title: "Transferred to savings",
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
           icon: "S",
-          avatarUrl: null,
+          logo: null,
           color: "bg-primary/20 text-primary",
         };
       }
       if (isSender) {
+        // Check if this is a transfer to a mobile/bank service
+        const desc = (t.description || '').toLowerCase();
+        const logo = getMethodLogo(t.method || '', t.description || '');
+        const hasMobileOrBank = logo && desc.includes('transfer to');
+        
         return {
-          title: `Transfer to ${t.receiver?.first_name || "User"}`,
+          title: t.description || `Transfer to ${t.receiver?.first_name || "User"}`,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: t.receiver?.first_name?.[0] || "T",
-          avatarUrl: t.receiver?.profile_photo_url,
+          icon: hasMobileOrBank ? null : (t.receiver?.first_name?.[0] || "T"),
+          logo: hasMobileOrBank ? logo : (t.receiver?.profile_photo_url || null),
           color: "bg-primary/20 text-primary",
         };
       } else {
@@ -707,30 +741,28 @@ function DashboardPage() {
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || "R",
-          avatarUrl: t.sender?.profile_photo_url,
+          logo: t.sender?.profile_photo_url || null,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
     } else if (t.type === "deposit") {
-      const bankName = isLedger ? "Wallet Deposit" : (t.method || "Deposit").toString();
-      const initials = bankName.substring(0, 2).toUpperCase();
+      const logo = getMethodLogo(t.method, t.description);
       return {
-        title: `${bankName} to ${userName}`,
+        title: t.description,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
-        icon: initials,
-        avatarUrl: t.sender?.profile_photo_url || null,
+        icon: logo ? null : 'D',
+        logo: logo,
         color: "bg-emerald-500/20 text-emerald-500",
       };
     } else if (t.type === "withdrawal") {
-      const bankName = isLedger ? "Wallet Withdrawal" : (t.method || "Withdrawal").toString();
-      const initials = bankName.substring(0, 2).toUpperCase();
+      const logo = getMethodLogo(t.method, t.description);
       return {
-        title: `${bankName} to ${userName}`,
+        title: t.description,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: initials,
-        avatarUrl: t.receiver?.profile_photo_url || profile?.profile_photo_url || null,
+        icon: logo ? null : 'W',
+        logo: logo,
         color: "bg-destructive/20 text-destructive",
       };
     }
@@ -739,7 +771,7 @@ function DashboardPage() {
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
       icon: "?",
-      avatarUrl: null,
+      logo: null,
       color: "bg-secondary text-secondary-foreground",
     };
   };
@@ -901,29 +933,43 @@ function DashboardPage() {
         </div>
 
         {/* Quick actions + Finance Hub */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <Link
             to="/finance-hub"
-            className="lg:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 backdrop-blur-sm transition-all hover:bg-primary/20 hover:border-primary/40 shadow-lg"
+            className="col-span-1 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/25 p-6 sm:p-7 lg:p-8 backdrop-blur-md transition-all duration-300 hover:from-primary/20 hover:via-primary/10 hover:border-primary/40 hover:shadow-xl shadow-md min-h-[240px] flex flex-col justify-center"
           >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            {/* Decorative blur elements */}
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/8 rounded-full blur-3xl group-hover:bg-primary/12 transition-all duration-300" />
+            <div className="absolute -left-8 bottom-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/8 transition-all duration-300" />
+            
+            {/* Header with label and icon */}
+            <div className="relative flex items-center justify-between mb-6 sm:mb-8">
+              <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/70 group-hover:text-primary transition-colors">
                 Finance & Credit
               </div>
-              <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Landmark className="w-6 h-6" />
+              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold">Savings & Loans</h3>
-                <p className="text-xs text-muted-foreground">Unlock 2% rewards & instant credit</p>
+            </div>
+            
+            {/* Main content */}
+            <div className="relative flex items-center gap-4 sm:gap-5">
+              {/* Icon container */}
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                  <Landmark className="w-8 h-8" />
+                </div>
+              </div>
+              
+              {/* Text content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-foreground leading-tight mb-1.5">Savings & Loans</h3>
+                <p className="text-sm text-muted-foreground/85 leading-relaxed">Unlock 2% rewards & instant credit</p>
               </div>
             </div>
           </Link>
           <QuickSend
+            className="col-span-1"
             onAvatarClick={handleQuickSend}
             avatars={
               frequentRecipients.length > 0
@@ -936,7 +982,7 @@ function DashboardPage() {
                   ]
             }
           />
-          <div className="hidden lg:block lg:col-span-1">
+          <div className="hidden sm:block col-span-1">
             <NetWorthChart
               entries={ledgerEntries}
               currencySymbol={currencySymbol}
@@ -1002,7 +1048,7 @@ function DashboardPage() {
                         {t.type === "transfer" ? "P2P" : t.type.substring(0, 3)}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.avatarUrl || undefined} />
+                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>
