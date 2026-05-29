@@ -79,8 +79,9 @@ function MarkdownContent({ text }: { text: string }) {
           );
         }
 
-        if (line.match(/^[*-\d.]+\s/)) {
-          const content = line.replace(/^[*-\d.]+\s/, "");
+        const listMatch = line.match(/^[\s\u00A0]*([*+-]|\d+\.)[\s\u00A0]+/);
+        if (listMatch) {
+          const content = line.replace(/^[\s\u00A0]*([*+-]|\d+\.)[\s\u00A0]+/, "");
           return (
             <div key={i} className="flex gap-3 pl-2 group">
               <span className="text-emerald-500 font-bold mt-1 scale-125 select-none">•</span>
