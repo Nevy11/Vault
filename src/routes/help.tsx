@@ -84,7 +84,7 @@ const channels = [
     id: "email",
     icon: Mail,
     title: "Email Support",
-    detail: "support@vault.os",
+    detail: "alphine886@gmail.com",
     note: "Replies within 4 hours",
   },
 ];
@@ -241,39 +241,77 @@ function HelpPage() {
                 {channels.map((c) => {
                   const Icon = c.icon;
                   const active = selectedChannel === c.id;
+                  const isEmail = c.id === "email";
+                  
                   return (
-                    <button
+                    <div
                       key={c.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => {
                         setSelectedChannel(c.id);
-                        if (c.id === "call") setShowCallWorkflow(true);
+                        if (c.id === "call") {
+                          setShowCallWorkflow(true);
+                        } else if (c.id === "email") {
+                          window.location.href = "mailto:alphine886@gmail.com?subject=Vault.OS Support Request";
+                        }
                       }}
-                      className={`w-full flex items-center gap-4 rounded-xl border px-5 py-4 text-left transition-all ${
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelectedChannel(c.id);
+                          if (c.id === "call") setShowCallWorkflow(true);
+                          if (c.id === "email") {
+                            window.location.href = "mailto:alphine886@gmail.com?subject=Vault.OS Support Request";
+                          }
+                        }
+                      }}
+                      className={`w-full flex items-center gap-4 rounded-2xl border px-6 py-5 text-left transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50 ${
                         active
-                          ? "border-primary/50 bg-primary/5 shadow-[0_0_0_1px_oklch(0.82_0.16_165_/_0.2)]"
-                          : "border-border/40 bg-input/20 hover:border-border hover:bg-input/40"
+                          ? "border-emerald-600 bg-emerald-600/10 shadow-[0_0_25px_rgba(5,150,105,0.15)] ring-1 ring-emerald-600/50 scale-[1.02]"
+                          : "border-border/40 bg-input/10 opacity-50 grayscale-[0.4] hover:opacity-70 hover:grayscale-0"
                       }`}
                     >
                       <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
-                          active ? "border-primary" : "border-muted-foreground/40"
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+                          active 
+                            ? "border-emerald-600 bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.4)]" 
+                            : "border-muted-foreground/30 bg-transparent"
                         }`}
                       >
-                        {active && <span className="h-2 w-2 rounded-full bg-primary" />}
+                        {active && <span className="h-2.5 w-2.5 rounded-full bg-white shadow-sm" />}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground">{c.title}</div>
-                        <div className="mt-0.5 text-xs text-muted-foreground truncate">
-                          {c.detail}
+                        <div className={`text-sm font-bold tracking-tight transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                          {c.title}
+                        </div>
+                        <div className="mt-1 text-xs truncate">
+                          {isEmail ? (
+                            <a 
+                              href="mailto:alphine886@gmail.com?subject=Vault.OS Support Request"
+                              className={`transition-colors font-medium ${active ? "text-emerald-500 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4" : "text-muted-foreground"}`}
+                              onClick={(e) => {
+                                // We don't stop propagation because we still want the card to become active
+                                // but we want to ensure the link click works.
+                              }}
+                            >
+                              {c.detail}
+                            </a>
+                          ) : (
+                            <span className={active ? "text-foreground/90 font-medium" : "text-muted-foreground"}>
+                              {c.detail}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                      <div className="flex flex-col items-end gap-2">
+                        <div className={`p-2 rounded-lg transition-colors ${active ? "bg-emerald-600/20 text-emerald-500" : "bg-muted/10 text-muted-foreground/40"}`}>
+                          <Icon className="h-4.5 w-4.5" />
+                        </div>
+                        <span className={`text-[9px] uppercase tracking-widest font-black ${active ? "text-emerald-500/80" : "text-muted-foreground/40"}`}>
                           {c.note}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

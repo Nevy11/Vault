@@ -37,6 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
+import { useReceiptHistory } from "@/components/receipt-history";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -398,6 +399,8 @@ function NetWorthChart({
 }
 
 function SecurityStatus() {
+  const { open: openReceipts } = useReceiptHistory();
+  
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
       <div className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
@@ -443,8 +446,9 @@ function SecurityStatus() {
         variant="ghost"
         size="sm"
         className="relative z-10 mt-8 w-full text-xs gap-2 h-9 rounded-xl border border-border/40 hover:bg-muted/50 hover:border-border transition-all"
+        onClick={openReceipts}
       >
-        <Shield className="w-3 h-3" /> Security Settings
+        <Shield className="w-3 h-3" /> Security Transaction Logs
       </Button>
     </div>
   );
@@ -453,8 +457,10 @@ function SecurityStatus() {
 function AIInsightsWidget({ profileId }: { profileId?: string }) {
   const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (!profileId) return;
     
     // Check DB first for latest insight
@@ -506,7 +512,16 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
     }
   };
 
-  if (!profileId) return null;
+  if (!isMounted || !profileId) {
+    return (
+      <div className="rounded-3xl bg-muted/20 border border-border/40 p-8 mb-8 animate-pulse h-[160px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" />
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">Initializing AI Advisor...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-primary/5 border border-primary/20 p-6 sm:p-8 backdrop-blur-sm transition-all hover:bg-primary/10 mb-8 shadow-lg">
