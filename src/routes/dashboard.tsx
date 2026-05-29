@@ -37,6 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -479,12 +480,27 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
         body: { userId: profileId },
       });
-      if (error) throw error;
+      
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          // Attempt to extract the JSON error message from the Edge Function response
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json();
+            if (errorBody?.error) errorMessage = errorBody.error;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        throw new Error(errorMessage);
+      }
+      
       if (data?.insight) {
         setInsight(data.insight);
       }
     } catch (err: any) {
       console.error("Failed to generate insight:", err);
+      toast.error(`AI Insight Failed: ${err.message}`);
     } finally {
       setLoading(false);
     }

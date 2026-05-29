@@ -135,20 +135,42 @@ serve(async (req) => {
 
     // 4. Call Gemini
     const GEMINI_API_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent";
 
     const aiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { response_mime_type: "application/json" },
+        contents: [{ parts: [{ text: prompt + "\n\nIMPORTANT: Return ONLY valid raw JSON without markdown code blocks." }] }],
+        generationConfig: { 
+          temperature: 0.7
+        },
       }),
     });
 
     const aiData = await aiResponse.json();
 
     if (!aiResponse.ok) {
+      console.error("Gemini API Error:", aiData);
+
+      // If model is not found, try to list available models to help with debugging
+      if (aiResponse.status === 404 || (aiData.error?.message && aiData.error.message.includes("not found"))) {
+        try {
+          const listResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1/models?key=${GEMINI_API_KEY}`
+          );
+          const listData = await listResponse.json();
+          if (listResponse.ok) {
+            const availableModels = listData.models?.map((m: any) => m.name.replace("models/", "")).join(", ") || "None found";
+            throw new Error(`${aiData.error?.message || "Model not found"}. Available models for your key: ${availableModels}`);
+          } else {
+            throw new Error(`${aiData.error?.message || "Model not found"}. ListModels failed: ${listResponse.status} ${JSON.stringify(listData)}`);
+          }
+        } catch (listErr: any) {
+          throw new Error(`${aiData.error?.message || "Model not found"}. Diagnostic failed: ${listErr.message}`);
+        }
+      }
+
       throw new Error(`Gemini API Error: ${aiResponse.status} ${JSON.stringify(aiData)}`);
     }
 
@@ -173,23 +195,33 @@ serve(async (req) => {
     }
 
     // 5. Store insight
+    const validTypes = ["prediction", "alert", "tip", "milestone"];
+    const insightType = validTypes.includes(insightJson.type) ? insightJson.type : "tip";
+
     const { error: insertError } = await supabase.from("financial_insights").insert({
       user_id: userId,
-      type: insightJson.type,
-      title: insightJson.title,
-      content: insightJson.content,
-      metadata: { severity: insightJson.severity, generated_at: new Date().toISOString() },
+      type: insightType,
+      title: insightJson.title || "Financial Insight",
+      content: insightJson.content || "No detailed content provided.",
+      metadata: { 
+        severity: insightJson.severity || "low", 
+        generated_at: new Date().toISOString(),
+        original_type: insightJson.type 
+      },
     });
 
-    if (insertError) throw insertError;
+    if (insertError) {
+      console.error("Database Insert Error:", insertError);
+      throw new Error(`Failed to store insight: ${insertError.message}`);
+    }
 
-    return new Response(JSON.stringify({ success: true, insight: insightJson }), {
+    return new Response(JSON.stringify({ success: true, insight: { ...insightJson, type: insightType } }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
     console.error("Health Check Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
