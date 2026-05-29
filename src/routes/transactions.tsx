@@ -368,7 +368,7 @@ function SendPanel() {
 
   const handleSelectRecipient = (r: Recipient) => {
     setMethod(r.type);
-    setIdentifier(r.identifier);
+    setIdentifier(r.type === "vault" ? r.identifier.replace("@", "") : r.identifier);
     if (r.bank) setBank(r.bank);
     if (r.provider) setProvider(r.provider);
   };
@@ -394,9 +394,10 @@ function SendPanel() {
       if (!user) throw new Error("User not found");
 
       if (method === "vault") {
+        const fullTag = identifier.startsWith("@") ? identifier : `@${identifier}`;
         const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
           p_sender_id: user.id,
-          p_recipient_tag: identifier,
+          p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
         });
 
@@ -622,25 +623,21 @@ function SendPanel() {
                   {method === "mobile" && "Phone Number"}
                 </Label>
                 <div className="relative">
-                  {method === "vault" && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">
-                      @
-                    </span>
-                  )}
                   <Input
                     placeholder={
                       method === "vault"
-                        ? "username"
+                        ? "@username"
                         : method === "bank"
                           ? "0000000000"
                           : "+254 7XX XXX XXX"
                     }
-                    className={cn(
-                      "bg-background/40 h-12 border-border/60",
-                      method === "vault" && "pl-8",
-                    )}
+                    className="bg-background/40 h-12 border-border/60"
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Strip @ if method is vault
+                      setIdentifier(method === "vault" ? val.replace("@", "") : val);
+                    }}
                   />
                   {method === "vault" && identifier.length >= 3 && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
