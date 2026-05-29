@@ -80,7 +80,9 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset] ${className || ""}`}>
+    <section
+      className={`rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset] ${className || ""}`}
+    >
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between pb-6 mb-8 border-b border-border/40">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -1211,16 +1213,17 @@ function SettingsPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-medium text-foreground">Delete Account</h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                        Permanently delete your Vault OS account and all associated data. This action cannot be
-                        undone and will immediately revoke access to all authorized devices.
+                        Permanently delete your Vault OS account and all associated data. This
+                        action cannot be undone and will immediately revoke access to all authorized
+                        devices.
                       </p>
                     </div>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-card/40 p-4 flex items-start gap-3">
                     <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
                     <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">
-                      This is an irreversible action. Please ensure you have downloaded or backed up any
-                      important data before proceeding.
+                      This is an irreversible action. Please ensure you have downloaded or backed up
+                      any important data before proceeding.
                     </p>
                   </div>
                 </div>
@@ -1239,8 +1242,8 @@ function SettingsPage() {
                   <DialogHeader>
                     <DialogTitle className="text-xl font-serif">Delete Account?</DialogTitle>
                     <DialogDescription className="text-muted-foreground text-sm mt-2">
-                      This action is permanent and cannot be undone. Your account and all data will be
-                      deleted from our servers.
+                      This action is permanent and cannot be undone. Your account and all data will
+                      be deleted from our servers.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="rounded-xl border border-border/60 bg-input/20 p-4 my-4 flex items-start gap-3">
@@ -1270,4 +1273,3 @@ function SettingsPage() {
     </AppShell>
   );
 }
-

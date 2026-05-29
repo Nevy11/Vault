@@ -699,11 +699,10 @@ function LoansPage() {
                         <AlertCircle className="w-16 h-16" />
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <div>Loan Success State</div>
-                )}
-              </div>
+
+            {/* LOAN COMPLETION / STATUS VIEW (FINAL PAGE) */}
+            <TabsContent value="success">
+              <div>Success Placeholder</div>
             </TabsContent>
           </Tabs>
         </main>
