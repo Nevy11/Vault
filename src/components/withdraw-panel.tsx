@@ -41,14 +41,34 @@ import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
-// Mock Data
+// Mobile Money & Banks Configuration
+const MOBILE_MONEY = [
+  { id: "mm-mpesa", name: "M-Pesa", logo: "/logos/mpesa.svg", color: "bg-emerald-600" },
+  { id: "mm-airtel", name: "Airtel Money", logo: "/logos/airtel.svg", color: "bg-red-500" },
+  { id: "mm-tkash", name: "T-Kash", logo: "/logos/tkash.svg", color: "bg-purple-600" },
+];
+
+const BANKS_WITH_LOGOS = [
+  { id: "b-kcb", name: "KCB Bank (Kenya Commercial Bank)", logo: "/logos/kcb.svg", color: "bg-blue-700" },
+  { id: "b-coop", name: "Co-operative Bank of Kenya", logo: "/logos/coop.svg", color: "bg-green-700" },
+  { id: "b-ncba", name: "NCBA Bank", logo: "/logos/ncba.svg", color: "bg-blue-800" },
+  { id: "b-absa", name: "Absa Bank Kenya", logo: "/logos/absa.svg", color: "bg-red-600" },
+  { id: "b-stdc", name: "Standard Chartered Kenya", logo: "/logos/standard-chartered.svg", color: "bg-blue-900" },
+  { id: "b-stanbic", name: "Stanbic Bank Kenya", logo: "/logos/stanbic.svg", color: "bg-blue-700" },
+  { id: "b-imbank", name: "I&M Bank", logo: "/logos/im-bank.svg", color: "bg-green-800" },
+  { id: "b-dtb", name: "DTB (Diamond Trust Bank)", logo: "/logos/dtb.svg", color: "bg-red-700" },
+  { id: "b-family", name: "Family Bank", logo: "/logos/family-bank.svg", color: "bg-blue-700" },
+  { id: "b-chase", name: "Chase Bank", logo: "/logos/chase.svg", color: "bg-blue-600" },
+  { id: "b-boa", name: "Bank of America", logo: "/logos/bank-of-america.svg", color: "bg-orange-600" },
+];
+
 const SAVED_BANKS = [
   {
     id: "b1",
     name: "Chase Bank",
     accountNumber: "****6789",
     holder: "John Doe",
-    logo: "CB",
+    logo: "/logos/chase.svg",
     color: "bg-blue-600",
   },
   {
@@ -56,8 +76,8 @@ const SAVED_BANKS = [
     name: "Bank of America",
     accountNumber: "****1234",
     holder: "John Doe",
-    logo: "BA",
-    color: "bg-red-600",
+    logo: "/logos/bank-of-america.svg",
+    color: "bg-orange-600",
   },
 ];
 

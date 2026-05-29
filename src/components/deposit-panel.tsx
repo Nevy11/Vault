@@ -42,7 +42,36 @@ import { supabase } from "@/api/supabase";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
-// ... (SAVED_BANK_ACCOUNTS, CARRIERS, BANKS, EXCHANGE_RATE remains same)
+// Mobile Money & Banks Configuration
+const MOBILE_MONEY = [
+  { id: "mm-mpesa", name: "M-Pesa", logo: "/logos/mpesa.svg", color: "bg-emerald-600" },
+  { id: "mm-airtel", name: "Airtel Money", logo: "/logos/airtel.svg", color: "bg-red-500" },
+  { id: "mm-tkash", name: "T-Kash", logo: "/logos/tkash.svg", color: "bg-purple-600" },
+];
+
+const BANKS_WITH_LOGOS = [
+  { id: "b-kcb", name: "KCB Bank", logo: "/logos/kcb.svg", color: "bg-blue-700" },
+  { id: "b-coop", name: "Co-operative Bank", logo: "/logos/coop.svg", color: "bg-green-700" },
+  { id: "b-ncba", name: "NCBA Bank", logo: "/logos/ncba.svg", color: "bg-blue-800" },
+  { id: "b-absa", name: "Absa Bank", logo: "/logos/absa.svg", color: "bg-red-600" },
+];
+
+// Constants
+const EXCHANGE_RATE = 130; // 1 USD = 130 KES (approximate)
+const SAVED_NUMBERS = [
+  { id: "m1", phone: "+254712345678", carrier: "M-Pesa", logo: "/logos/mpesa.svg" },
+  { id: "m2", phone: "+254798765432", carrier: "M-Pesa", logo: "/logos/mpesa.svg" },
+];
+const SAVED_BANK_ACCOUNTS = [];
+const CARRIERS = [
+  { name: "M-Pesa", logo: "/logos/mpesa.svg" },
+  { name: "Airtel Money", logo: "/logos/airtel.svg" },
+  { name: "T-Kash", logo: "/logos/tkash.svg" },
+];
+const BANKS = ["Stripe ACH"];
+
+type SourceChannel = "mobile" | "bank" | "stripe";
+type DepositStatus = "idle" | "processing" | "confirming" | "stripe_pay" | "success";
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
@@ -58,7 +87,11 @@ export function DepositPanel() {
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-  // ... (currencySymbol, SAVED_NUMBERS, kesEquivalent, usdEquivalent remain same)
+  // Derived values
+  const currencySymbol = currency === "USD" ? "$" : currency === "KES" ? "KES " : currency + " ";
+  const numAmount = parseFloat(amount || "0");
+  const kesEquivalent = currency === "USD" ? numAmount * EXCHANGE_RATE : numAmount;
+  const usdEquivalent = currency === "USD" ? numAmount : numAmount / EXCHANGE_RATE;
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -188,7 +221,7 @@ export function DepositPanel() {
           channel === "mobile" ? "mpesa" : selectedSourceId === "stripe-ach" ? "bank" : "bank",
         amount: parseFloat(amount),
         status: "pending",
-        description: checkoutId,
+        description: channel === "mobile" ? `M-Pesa Deposit - ${checkoutId}` : `Bank Deposit - ${checkoutId}`,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
@@ -201,24 +234,83 @@ export function DepositPanel() {
   };
 
   const handleConfirmDeposit = async () => {
-    // ... (same as before)
+    // Handle the confirmed deposit
+    setStatus("success");
   };
 
   const getSourceName = () => {
-    // ... (same as before)
+    if (isAddingNew) {
+      return newPhoneNumber || "Mobile Money";
+    }
+    const source = SAVED_NUMBERS.find((n) => n.id === selectedSourceId);
+    return source?.phone || "Selected Source";
   };
 
   if (status === "stripe_pay" && stripeClientSecret) {
-    // ... (same as before)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <p className="text-lg text-muted-foreground">Redirecting to Stripe payment...</p>
+        </div>
+      </div>
+    );
   }
 
   if (status === "success") {
-    // ... (same as before)
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <CheckCircle2 className="w-16 h-16 text-primary mx-auto" />
+          <h2 className="text-2xl font-semibold">Deposit Successful!</h2>
+          <p className="text-muted-foreground">Your deposit has been processed.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-      {/* ... (left panel remains same) */}
+      {/* LEFT PANEL - DEPOSIT METHODS */}
+      <div className="space-y-6">
+        {/* Mobile Money Section */}
+        <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-4">
+          <div className="flex items-center gap-3 mb-6">
+            <Smartphone className="w-6 h-6 text-primary" />
+            <h3 className="text-lg font-semibold">Mobile Money</h3>
+          </div>
+          <Select value={selectedSourceId || ""} onValueChange={setSelectedSourceId}>
+            <SelectTrigger className="w-full h-12 rounded-xl">
+              <SelectValue placeholder="Select a phone number" />
+            </SelectTrigger>
+            <SelectContent>
+              {SAVED_NUMBERS.map((num) => (
+                <SelectItem key={num.id} value={num.id}>
+                  {num.phone} ({num.carrier})
+                </SelectItem>
+              ))}
+              <SelectItem value="new">+ Add New Number</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Bank Transfer Section */}
+        <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-4">
+          <div className="flex items-center gap-3 mb-6">
+            <Building2 className="w-6 h-6 text-primary" />
+            <h3 className="text-lg font-semibold">Bank Transfer</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">Connect your bank account for direct transfers</p>
+        </div>
+
+        {/* Card Payment Section */}
+        <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-4">
+          <div className="flex items-center gap-3 mb-6">
+            <CreditCard className="w-6 h-6 text-primary" />
+            <h3 className="text-lg font-semibold">Card Payment</h3>
+          </div>
+          <p className="text-sm text-muted-foreground">Pay securely with Visa, Mastercard, or Amex</p>
+        </div>
+      </div>
 
       {/* SECTION 3: RIGHT PANEL - INPUTS, AMOUNT & SECURITY AUTHORIZATION */}
       <div className="space-y-6">
