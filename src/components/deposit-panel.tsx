@@ -382,8 +382,8 @@ export function DepositPanel() {
             <Info className="w-5 h-5" />
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Deposits are processed instantly via our secure payment rails. A small network fee may
-            apply based on your carrier or bank.
+            Deposits are processed instantly via our secure payment rails. Network fee may apply
+            based on your carrier or bank.
           </p>
         </div>
       </div>
