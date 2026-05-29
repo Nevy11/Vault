@@ -33,6 +33,7 @@ interface MerchantProfile {
   business?: {
     business_name: string;
     business_category: string;
+    business_description: string;
   } | null;
 }
 
@@ -59,7 +60,7 @@ function PaymentPortal() {
             last_name, 
             kyc_tag, 
             profile_photo_url,
-            merchants (business_name, business_category)
+            merchants (business_name, business_category, business_description)
           `,
           )
           .eq("kyc_tag", `@${cleanUsername}`)
@@ -277,27 +278,35 @@ function PaymentPortal() {
         <div className="w-full">
           <div className="bg-card/40 border border-border/50 rounded-[48px] p-10 backdrop-blur-2xl shadow-2xl space-y-10 relative overflow-hidden group">
             {/* Profile Card Overlay */}
-            <div className="flex items-center gap-5 p-6 rounded-3xl bg-background/40 border border-border/40 shadow-inner relative z-10">
-              <Avatar className="w-16 h-16 border-2 border-primary/20 shadow-xl group-hover:scale-110 transition-transform duration-500">
-                <AvatarImage src={merchant.profile_photo_url || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                  {merchant.first_name[0]}
-                  {merchant.last_name[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="text-xl font-bold truncate">
-                  {merchant.business?.business_name ||
-                    `${merchant.first_name} ${merchant.last_name}`}
-                </div>
-                <div className="text-sm text-primary font-mono">{merchant.kyc_tag}</div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                    Verified Vault Business
-                  </span>
+            <div className="flex flex-col gap-5 p-6 rounded-3xl bg-background/40 border border-border/40 shadow-inner relative z-10">
+              <div className="flex items-center gap-5">
+                <Avatar className="w-16 h-16 border-2 border-primary/20 shadow-xl group-hover:scale-110 transition-transform duration-500">
+                  <AvatarImage src={merchant.profile_photo_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                    {merchant.first_name[0]}
+                    {merchant.last_name[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xl font-bold truncate">
+                    {merchant.business?.business_name ||
+                      `${merchant.first_name} ${merchant.last_name}`}
+                  </div>
+                  <div className="text-sm text-primary font-mono">{merchant.kyc_tag}</div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                      Verified Vault Business
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {merchant.business?.business_description && (
+                <div className="pt-4 border-t border-border/10 text-xs text-muted-foreground leading-relaxed italic">
+                  "{merchant.business.business_description}"
+                </div>
+              )}
             </div>
 
             <div className="space-y-8 relative z-10">

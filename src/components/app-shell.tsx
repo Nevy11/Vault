@@ -15,6 +15,9 @@ import {
   AlertCircle,
   TrendingUp,
   Zap,
+  QrCode,
+  Scan,
+  ArrowRight,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -40,6 +43,7 @@ import {
 
 import { Logo } from "@/components/logo";
 import { TopNav } from "@/components/top-nav";
+import { ScanToPay } from "./scan-to-pay";
 import { FinanceAdvisorContent } from "./finance-advisor-content";
 import { FloatingAdvisor } from "./floating-advisor";
 
@@ -118,6 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useProfileSignal();
   const [showPhotoPreview, setShowPhotoPreview] = useState(false);
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
+  const [isTransactOpen, setIsTransactOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

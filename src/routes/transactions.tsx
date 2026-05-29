@@ -210,7 +210,7 @@ const FREQUENT_TRANSACTIONS: Recipient[] = [
   },
 ];
 
-function SendPanel() {
+function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const { currency, refetch: refetchBalance } = useWalletBalance();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
@@ -230,6 +230,29 @@ function SendPanel() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Derived filtered lists
+  const filteredRecent = useMemo(() => {
+    if (!searchFilter) return recentRecipients;
+    const s = searchFilter.toLowerCase();
+    return recentRecipients.filter(
+      (r) =>
+        r.name.toLowerCase().includes(s) ||
+        r.identifier.toLowerCase().includes(s) ||
+        r.type.toLowerCase().includes(s),
+    );
+  }, [recentRecipients, searchFilter]);
+
+  const filteredFrequent = useMemo(() => {
+    if (!searchFilter) return frequentRecipients;
+    const s = searchFilter.toLowerCase();
+    return frequentRecipients.filter(
+      (r) =>
+        r.name.toLowerCase().includes(s) ||
+        r.identifier.toLowerCase().includes(s) ||
+        r.type.toLowerCase().includes(s),
+    );
+  }, [frequentRecipients, searchFilter]);
 
   useEffect(() => {
     const fetchRecipients = async () => {
@@ -753,13 +776,14 @@ function SendPanel() {
 
       {/* Header & Lists */}
       <div className="space-y-6">
-        {(recentRecipients.length > 0 || isSearching) && (
+        {(filteredRecent.length > 0 || isSearching) && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <History className="w-4 h-4" /> Recent Transactions
+              <History className="w-4 h-4" />{" "}
+              {searchFilter ? "Search Results (Recent)" : "Recent Transactions"}
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {recentRecipients.map((r) => (
+              {filteredRecent.map((r) => (
                 <button
                   key={`recent-${r.id}`}
                   onClick={() => handleSelectRecipient(r)}
@@ -779,13 +803,14 @@ function SendPanel() {
           </div>
         )}
 
-        {frequentRecipients.length > 0 && (
+        {(filteredFrequent.length > 0 || isSearching) && (
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Zap className="w-4 h-4" /> Most Frequent
+              <Zap className="w-4 h-4" />{" "}
+              {searchFilter ? "Search Results (Frequent)" : "Most Frequent"}
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {frequentRecipients.map((r) => (
+              {filteredFrequent.map((r) => (
                 <button
                   key={`freq-${r.id}`}
                   onClick={() => handleSelectRecipient(r)}
@@ -802,6 +827,13 @@ function SendPanel() {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {searchFilter && filteredRecent.length === 0 && filteredFrequent.length === 0 && (
+          <div className="py-12 text-center border border-dashed border-border/40 rounded-3xl bg-muted/5">
+            <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No recipients match "{searchFilter}"</p>
           </div>
         )}
       </div>
@@ -1045,11 +1077,11 @@ function TransactionHistory() {
           Detailed Ledger History
         </h2>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
             <Input 
               placeholder="Search ledger..." 
-              className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40"
+              className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40 focus:border-primary/50 transition-all"
               value={search}
               onChange={handleSearchChange}
             />
@@ -1173,6 +1205,7 @@ function TransactionsPage() {
   const { mode: initialMode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [mode, setMode] = useState<Mode>(initialMode || "send");
+  const [globalSearch, setGlobalSearch] = useState("");
 
   useEffect(() => {
     if (initialMode) {
@@ -1235,12 +1268,17 @@ function TransactionsPage() {
           {mode === "send" && (
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Search..." className="pl-9 bg-card/40" />
+              <Input
+                placeholder="Search recipients..."
+                className="pl-9 bg-card/40"
+                value={globalSearch}
+                onChange={(e) => setGlobalSearch(e.target.value)}
+              />
             </div>
           )}
         </div>
 
-        {mode === "send" && <SendPanel />}
+        {mode === "send" && <SendPanel searchFilter={globalSearch} />}
         {mode === "deposit" && <DepositPanel />}
         {mode === "withdraw" && <WithdrawPanel />}
       </main>
