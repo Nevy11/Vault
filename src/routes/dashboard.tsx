@@ -37,6 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
+import { useReceiptHistory } from "@/components/receipt-history";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
