@@ -77,15 +77,7 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
 
         if (growthPercentage > 0) {
           trend = "positive";
-          if (growthPercentage >= 15) {
-            message = `Excellent progress! Your portfolio grew by ${growthPercentage.toFixed(1)}% this month. Keep up this momentum!`;
-          } else if (growthPercentage >= 8) {
-            message = `Great work! Your portfolio improved by ${growthPercentage.toFixed(1)}% this month. You're trending in the right direction.`;
-          } else if (growthPercentage >= 2) {
-            message = `Good start! Your portfolio grew by ${growthPercentage.toFixed(1)}% this month. Stay consistent and watch it grow.`;
-          } else {
-            message = `Progress made! Your portfolio grew by ${growthPercentage.toFixed(1)}% this month. Every step counts.`;
-          }
+          message = `Your portfolio improved by ${growthPercentage.toFixed(0)}% this month. Keep it up! You're trending in the right direction.`;
         } else if (growthPercentage < -5) {
           trend = "negative";
           message = `Your portfolio declined by ${Math.abs(growthPercentage).toFixed(1)}% this month. Consider reviewing your spending and adjusting your strategy.`;
