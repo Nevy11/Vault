@@ -778,6 +778,8 @@ function DashboardPage() {
       if (desc.includes("chase bank") || meth.includes("chase")) return "/logos/chase.svg";
       if (desc.includes("bank of america") || meth.includes("america"))
         return "/logos/bank-of-america.svg";
+      if (desc.includes("equity") || meth.includes("equity")) return "/logos/equity.svg";
+      if (desc.includes("stripe") || meth.includes("stripe")) return "/logos/stripe.svg";
 
       // Fallback for generic bank method
       if (meth === "bank" || meth === "mpesa" || meth === "airtel") return "/logos/bank.svg";
