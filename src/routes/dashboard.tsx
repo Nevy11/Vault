@@ -21,6 +21,7 @@ import { AppShell } from "@/components/app-shell";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
+import { usePortfolioSummary } from "@/hooks/use-portfolio-summary";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/api/supabase";
@@ -603,9 +604,10 @@ function DashboardPage() {
   const { transactions, loading: txLoading, error: txError, refetch: refetchTransactions } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
   const { notifications, markAsRead } = useNotifications();
+  const [profile] = useProfileSignal();
+  const portfolioSummary = usePortfolioSummary(profile?.id);
   const [activeFilter, setActiveFilter] = useState("All");
   const [showReport, setShowReport] = useState(false);
-  const [profile] = useProfileSignal();
   const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
 
@@ -947,7 +949,16 @@ function DashboardPage() {
                 )}
               </div>
               <p className="mt-3 text-[11px] text-slate-500 dark:text-slate-400 max-w-sm leading-relaxed font-medium">
-                Your portfolio is currently outperforming 84% of similar Vault accounts this month.
+                {portfolioSummary.loading ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Analyzing portfolio...
+                  </span>
+                ) : portfolioSummary.error ? (
+                  "Your portfolio is performing well this month."
+                ) : (
+                  portfolioSummary.message
+                )}
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2.5">
