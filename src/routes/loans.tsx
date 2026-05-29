@@ -143,6 +143,16 @@ function LoansPage() {
   const interestAmount = requestedAmountNum * (currentInterestRate / 100);
   const totalDue = requestedAmountNum + interestAmount;
 
+  const loanTotalDue = activeLoan
+    ? parseFloat(activeLoan.amount) * (1 + parseFloat(activeLoan.interest_rate) / 100)
+    : 0;
+  const outstandingBalance = activeLoan ? parseFloat(activeLoan.remaining_balance) : 0;
+  const loanPaid = loanTotalDue - outstandingBalance;
+  const loanProgress = loanTotalDue > 0 ? Math.round((loanPaid / loanTotalDue) * 100) : 0;
+  const potentialLimitBoost = activeLoan
+    ? Math.min(25, Math.max(5, Math.round((loanPaid / loanTotalDue) * 20 + 5)))
+    : 5;
+
   const handleRequestLoan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile?.id) return;
@@ -690,18 +700,94 @@ function LoansPage() {
               value="success"
               className="focus-visible:outline-none animate-in zoom-in-95 duration-500"
             >
-              <div className="max-w-4xl mx-auto text-center py-12">
+              <div className="max-w-4xl mx-auto py-12">
                 {activeLoan ? (
-                  <>
-                    <div className="relative inline-block mb-8">
-                      <div className="absolute inset-0 bg-destructive blur-3xl opacity-20 animate-pulse" />
-                      <div className="w-32 h-32 rounded-3xl bg-white/20 backdrop-blur-xl text-destructive flex items-center justify-center shadow-2xl border border-white/30 relative z-10">
-                        <AlertCircle className="w-16 h-16" />
+                  <div className="space-y-8">
+                    <div className="relative text-center">
+                      <div className="absolute inset-x-0 top-0 h-40 rounded-[2.5rem] bg-emerald-500/10 blur-3xl opacity-40" />
+                      <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-white/90 shadow-2xl border border-white/40 backdrop-blur-xl text-destructive mx-auto">
+                        <AlertCircle className="w-12 h-12 text-emerald-600" />
                       </div>
                     </div>
-                  </>
+
+                    <div className="text-center">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground mb-3">
+                        Status
+                      </p>
+                      <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-950 dark:text-white uppercase">
+                        YOU HAVE A PENDING LOAN LEFT
+                      </h2>
+                      <p className="mt-4 text-sm sm:text-base font-medium text-slate-700 dark:text-slate-300 max-w-2xl mx-auto">
+                        You have an outstanding balance of <span className="font-bold text-destructive">KES {outstandingBalance.toLocaleString()}</span>. Complete the loan today to increase your limit!
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                      <Card className="rounded-[2rem] border border-white/30 bg-white/90 shadow-2xl p-8 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground mb-3">
+                          OUTSTANDING BALANCE
+                        </p>
+                        <p className="text-3xl sm:text-4xl font-black text-slate-950 tabular-nums">
+                          KES {outstandingBalance.toLocaleString()}
+                        </p>
+                        <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">
+                          Remaining on your active loan.
+                        </p>
+                      </Card>
+
+                      <Card className="rounded-[2rem] border border-white/30 bg-emerald-500/10 shadow-2xl p-8 text-center">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-700 mb-3">
+                          POTENTIAL LIMIT BOOST
+                        </p>
+                        <p className="text-3xl sm:text-4xl font-black text-emerald-700">
+                          +{potentialLimitBoost}%
+                        </p>
+                        <p className="mt-2 text-xs sm:text-sm text-emerald-950/80 font-medium">
+                          Based on your active loan repayment health.
+                        </p>
+                      </Card>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-2">
+                      <Button
+                        className="h-12 px-8 rounded-full bg-emerald-600 text-white font-bold shadow-xl hover:bg-emerald-700 transition-all"
+                        onClick={() => setShowRepayPopup(true)}
+                      >
+                        Pay Balance Now
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-12 px-8 rounded-full border-white/30 text-slate-950 dark:text-white font-bold hover:bg-white/10 transition-all"
+                        onClick={() => setActiveTab("tracker")}
+                      >
+                        View Tracker
+                      </Button>
+                    </div>
+
+                    <div className="mt-10 rounded-[2rem] border border-white/20 bg-slate-950/5 dark:bg-slate-900/40 p-6 text-center shadow-inner">
+                      <p className="text-[11px] uppercase tracking-[0.35em] font-semibold text-muted-foreground mb-3">
+                        Progress to completion
+                      </p>
+                      <div className="mx-auto h-4 w-full max-w-xl rounded-full bg-muted/20 overflow-hidden border border-white/10">
+                        <div className="h-full bg-emerald-600 transition-all" style={{ width: `${loanProgress}%` }} />
+                      </div>
+                      <p className="mt-3 text-sm font-semibold text-slate-950 dark:text-white">
+                        {loanProgress}% repaid of KES {loanTotalDue.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
                 ) : (
-                  <div>Loan Success State</div>
+                  <div className="text-center py-20">
+                    <h2 className="text-xl font-bold text-slate-950 dark:text-white mb-3">
+                      No Pending Loan
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      Request a loan to see your current status and repayment progress.
+                    </p>
+                    <Button onClick={() => setActiveTab("request")} className="rounded-full px-6 h-11 font-bold bg-emerald-600 hover:bg-emerald-700 transition-all">
+                      Request Loan
+                    </Button>
+                  </div>
                 )}
               </div>
             </TabsContent>
