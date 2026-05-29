@@ -422,10 +422,9 @@ function SendPanel() {
           p_user_id: user.id,
           p_amount: total,
           p_method: method === "mobile" ? "mpesa" : "bank",
-          p_description:
-            method === "mobile"
-              ? `Transfer to ${provider}: ${identifier}`
-              : `Bank Transfer to ${bank}: ${identifier}`,
+          p_description: method === "mobile" 
+            ? `Transfer to ${provider}: ${identifier}` 
+            : `Bank Transfer to ${bank}: ${identifier}`,
         });
 
         if (rpcError) {
@@ -835,23 +834,16 @@ function SendPanel() {
 function TransactionHistory() {
   const { balance, currency, loading: balanceLoading } = useWalletBalance();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "transfer" | "deposit" | "withdrawal">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<"all" | "transfer" | "deposit" | "withdrawal">("all");
   const [page, setPage] = useState(0);
-
-  const {
-    transactions,
-    loading: txLoading,
-    totalCount,
-    hasMore,
-  } = useTransactions(!balanceLoading, {
+  
+  const { transactions, loading: txLoading, totalCount, hasMore } = useTransactions(!balanceLoading, {
     page,
     pageSize: 10,
     search,
-    type: typeFilter,
+    type: typeFilter
   });
-
+  
   const [profile] = useProfileSignal();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -866,19 +858,47 @@ function TransactionHistory() {
 
   const loadMore = () => {
     if (hasMore && !txLoading) {
-      setPage((prev) => prev + 1);
+      setPage(prev => prev + 1);
     }
   };
 
   const getTransactionDetails = (t: any) => {
     console.log("Processing transaction:", t);
     const isSender = t.sender_id === (profile as any)?.id;
-    const userName = profile?.first_name
+    const userName = profile?.first_name 
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-      : profile?.email?.split("@")[0] || "Vault User";
-    const symbol = currency === "USD" ? "$" : currency + " ";
+      : (profile?.email?.split('@')[0] || "Vault User");
+    const symbol = currency === 'USD' ? '$' : currency + ' ';
 
-    if (t.type === "transfer") {
+    // Method-specific logo helper - enhanced with all banks and mobile services
+    const getMethodLogo = (method: string, description: string) => {
+      const desc = (description || '').toLowerCase();
+      const meth = (method || '').toLowerCase();
+      
+      // Mobile money services
+      if (desc.includes('mpesa') || desc.includes('m-pesa') || meth.includes('mpesa')) return '/logos/mpesa.svg';
+      if (desc.includes('airtel') || meth.includes('airtel')) return '/logos/airtel.svg';
+      if (desc.includes('t-kash') || desc.includes('tkash') || meth.includes('tkash')) return '/logos/tkash.svg';
+      
+      // Banks
+      if (desc.includes('kcb') || meth.includes('kcb')) return '/logos/kcb.svg';
+      if (desc.includes('co-operative') || desc.includes('coop') || meth.includes('coop')) return '/logos/coop.svg';
+      if (desc.includes('ncba') || meth.includes('ncba')) return '/logos/ncba.svg';
+      if (desc.includes('absa') || meth.includes('absa')) return '/logos/absa.svg';
+      if (desc.includes('standard chartered') || meth.includes('standard')) return '/logos/standard-chartered.svg';
+      if (desc.includes('stanbic') || meth.includes('stanbic')) return '/logos/stanbic.svg';
+      if (desc.includes('i&m') || desc.includes('im bank') || meth.includes('im bank')) return '/logos/im-bank.svg';
+      if (desc.includes('dtb') || desc.includes('diamond trust') || meth.includes('dtb')) return '/logos/dtb.svg';
+      if (desc.includes('family bank') || meth.includes('family')) return '/logos/family-bank.svg';
+      if (desc.includes('chase bank') || meth.includes('chase')) return '/logos/chase.svg';
+      if (desc.includes('bank of america') || meth.includes('america')) return '/logos/bank-of-america.svg';
+      
+      // Fallback for generic bank method
+      if (meth === 'bank' || meth === 'mpesa' || meth === 'airtel') return '/logos/bank.svg';
+      return null; // Fallback to initials
+    };
+
+    if (t.type === 'transfer') {
       if (isSender) {
         // Check if this is a transfer to a mobile/bank service
         const desc = (t.description || '').toLowerCase();
@@ -896,7 +916,7 @@ function TransactionHistory() {
         };
       } else {
         return {
-          title: `Received from ${t.sender?.first_name || "User"} ${t.sender?.last_name || ""}`,
+          title: `Received from ${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || 'V',
@@ -943,20 +963,20 @@ function TransactionHistory() {
     };
   };
 
-  const currencySymbol = currency === "USD" ? "$" : currency + " ";
+  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
 
   return (
     <div className="mt-12 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-light tracking-tight flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" />
+          <History className="w-5 h-5 text-primary" /> 
           Detailed Ledger History
         </h2>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search ledger..."
+            <Input 
+              placeholder="Search ledger..." 
               className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40"
               value={search}
               onChange={handleSearchChange}
@@ -973,16 +993,16 @@ function TransactionHistory() {
           { id: "all", label: "All" },
           { id: "transfer", label: "Transfers" },
           { id: "deposit", label: "Deposits" },
-          { id: "withdrawal", label: "Withdrawals" },
-        ].map((f) => (
+          { id: "withdrawal", label: "Withdrawals" }
+        ].map(f => (
           <button
             key={f.id}
             onClick={() => handleFilterChange(f.id)}
             className={cn(
               "px-4 py-1.5 rounded-full text-xs font-medium transition-all border",
-              typeFilter === f.id
-                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                : "bg-card/40 text-muted-foreground border-border/40 hover:border-border",
+              typeFilter === f.id 
+                ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                : "bg-card/40 text-muted-foreground border-border/40 hover:border-border"
             )}
           >
             {f.label}
@@ -995,28 +1015,21 @@ function TransactionHistory() {
           {txLoading && page === 0 ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-              <p className="text-xs text-muted-foreground animate-pulse">
-                Syncing transaction ledger...
-              </p>
+              <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
             </div>
           ) : transactions.length === 0 ? (
             <div className="py-12 text-center">
               <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
                 <Search className="w-6 h-6 text-muted-foreground/40" />
               </div>
-              <p className="text-sm text-muted-foreground font-medium">
-                No activity found matching your criteria.
-              </p>
+              <p className="text-sm text-muted-foreground font-medium">No activity found matching your criteria.</p>
             </div>
           ) : (
             <>
               {transactions.map((t) => {
                 const details = getTransactionDetails(t);
                 return (
-                  <li
-                    key={t.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 transition-colors hover:bg-white/5 group px-2 rounded-lg -mx-2"
-                  >
+                  <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 transition-colors hover:bg-white/5 group px-2 rounded-lg -mx-2">
                     <div className="flex items-center gap-4">
                       <div className="flex flex-col items-center justify-center w-12 shrink-0">
                         <span className="text-[9px] font-bold uppercase text-muted-foreground/60 mb-1">
@@ -1033,19 +1046,13 @@ function TransactionHistory() {
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
-                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                          {details.title}
-                        </div>
+                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{details.title}</div>
                         <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${
-                              t.status === "completed"
-                                ? "bg-emerald-500/10 text-emerald-500"
-                                : t.status === "pending"
-                                  ? "bg-amber-500/10 text-amber-500 animate-pulse"
-                                  : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${
+                            t.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                            t.status === 'pending' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
+                            'bg-destructive/10 text-destructive'
+                          }`}>
                             {t.status}
                           </span>
                           <span className="text-[10px] text-muted-foreground/60">
@@ -1061,19 +1068,18 @@ function TransactionHistory() {
                         {details.amount}
                       </div>
                       <div className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
-                        Bal: {currencySymbol}
-                        {t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                        Bal: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
                       </div>
                     </div>
                   </li>
                 );
               })}
-
+              
               {hasMore && (
                 <div className="pt-6 flex justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
                     className="rounded-full text-xs"
                     onClick={loadMore}
                     disabled={txLoading}

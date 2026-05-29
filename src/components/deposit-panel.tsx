@@ -101,36 +101,32 @@ export function DepositPanel() {
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-  const currencySymbol = useMemo(() => (currency === "USD" ? "$" : "KSH"), [currency]);
+  const currencySymbol = currency === "USD" ? "$" : currency === "KSH" ? "KES " : currency + " ";
 
   const SAVED_NUMBERS = useMemo(() => {
+    console.log("DEBUG: Current profile object:", profile);
     const phoneNumber = profile?.phone_number || "No number set";
     return [
       {
         id: "m1",
-        name: "Personal M-Pesa",
+        name: phoneNumber,
         phone: phoneNumber,
-        provider: "M-Pesa",
+        carrier: "M-Pesa",
         color: "bg-emerald-600",
-      },
-      {
-        id: "m2",
-        name: "Secondary Line",
-        phone: "+254 7XX XXX XXX",
-        provider: "Airtel Money",
-        color: "bg-red-500",
       },
     ];
   }, [profile]);
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    return currency === "KSH" ? val : val * EXCHANGE_RATE;
+    if (currency === "KSH") return val;
+    return val * EXCHANGE_RATE;
   }, [amount, currency]);
 
   const usdEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    return currency === "USD" ? val : val / EXCHANGE_RATE;
+    if (currency === "USD") return val;
+    return val / EXCHANGE_RATE;
   }, [amount, currency]);
 
   const handleDepositClick = async () => {
@@ -293,35 +289,74 @@ export function DepositPanel() {
   };
 
   const handleConfirmDeposit = async () => {
-    setStatus("success");
-    toast.success("Deposit successful! Your balance has been updated.");
+    setStatus("processing");
+    try {
+      const userId = profile?.id;
+      if (!userId) throw new Error("User session not found");
+
+      // 1. Read the amount from the pending transaction to ensure integrity
+      const { data: tx, error: txFetchError } = await supabase
+        .from("transactions")
+        .select("amount")
+        .eq("description", refCode)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      if (txFetchError) throw txFetchError;
+
+      // Use the amount from the DB if found, otherwise fallback to state
+      const depositAmount = tx?.amount || parseFloat(amount);
+
+      // 2. Update the actual ledger and wallet balance
+      // The RPC now automatically updates the transaction status and logs it to public.transactions
+      const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
+        p_user_id: userId,
+        p_amount: depositAmount,
+        p_currency: currency,
+        p_type: "deposit",
+        p_reference: refCode,
+        p_description: `M-Pesa Deposit: ${refCode}`,
+        p_status: "completed",
+        p_metadata: { payment_method: "mpesa", mpesa_checkout_id: refCode },
+      });
+
+      if (ledgerError) throw ledgerError;
+
+      // 3. Update local state balance (Realtime will handle the main sync, but this is for immediate feedback) 
+      // We don't need a manual transactions update here anymore as create_ledger_entry handles it
+
+      setStatus("success");
+      toast.success("Deposit confirmed and balance updated!");
+    } catch (err: any) {
+      console.error("M-Pesa confirmation error:", err);
+      toast.error("Failed to confirm deposit: " + err.message);
+      setStatus("idle");
+    }
   };
 
   const getSourceName = () => {
-    if (channel === "stripe") return "Stripe (International)";
-    if (channel === "bank") {
-      if (selectedSourceId === "stripe-ach") return "Stripe ACH";
-      return SAVED_BANK_ACCOUNTS.find((b) => b.id === selectedSourceId)?.name || "Bank Account";
-    }
-    if (isAddingNew) return selectedCarrier;
-    return SAVED_NUMBERS.find((n) => n.id === selectedSourceId)?.name || "Mobile Wallet";
+    if (channel === "stripe") return "Credit/Debit Card";
+    if (selectedSourceId === "stripe-ach") return "Stripe Bank Transfer";
+    if (isAddingNew) return channel === "mobile" ? selectedCarrier : "New Bank Account";
+    if (channel === "mobile")
+      return SAVED_NUMBERS.find((n) => n.id === selectedSourceId)?.name || selectedCarrier;
+    return SAVED_BANK_ACCOUNTS.find((b) => b.id === selectedSourceId)?.name || "Bank Account";
   };
 
   if (status === "stripe_pay" && stripeClientSecret) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <h2 className="text-2xl font-semibold mb-6">Complete Payment</h2>
-        <div className="w-full max-w-md bg-card/40 border border-border/50 rounded-2xl p-6 backdrop-blur-sm">
-          <p className="text-muted-foreground mb-4">
-            Stripe payment gateway is ready. (Implementation placeholder)
-          </p>
-          <Button className="w-full" onClick={() => setStatus("success")}>
-            Complete Payment (Mock)
-          </Button>
-          <Button variant="ghost" className="w-full mt-2" onClick={() => setStatus("idle")}>
-            Cancel
-          </Button>
-        </div>
+      <div className="max-w-md mx-auto py-8">
+        <h2 className="text-2xl font-light mb-6 text-center">Complete Deposit</h2>
+        <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
+          <StripePayment
+            amount={parseFloat(amount)}
+            onSuccess={(ref) => {
+              setRefCode(ref);
+              setStatus("success");
+            }}
+            onCancel={() => setStatus("idle")}
+          />
+        </Elements>
       </div>
     );
   }
@@ -329,37 +364,52 @@ export function DepositPanel() {
   if (status === "success") {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-500">
-        <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-6">
-          <CheckCircle2 className="w-12 h-12" />
+        <div className="relative mb-6">
+          <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+            <CheckCircle2 className="w-16 h-16 animate-in zoom-in-50 duration-500" />
+          </div>
+          <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />        
         </div>
-        <h2 className="text-2xl font-semibold mb-2">Deposit Successful!</h2>
-        <p className="text-muted-foreground mb-6 max-w-sm">
-          Your funds have been credited to your Vault wallet.
+
+        <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Deposit Successful!</h2>
+        <p className="text-muted-foreground mb-8 max-w-md">
+          Funds have been credited to your Vault Wallet from your {getSourceName()} account.
         </p>
 
-        <div className="bg-card/40 border border-border/50 rounded-2xl p-6 w-full max-w-sm mb-8 backdrop-blur-sm">
-          <div className="flex justify-between mb-3 text-sm">
-            <span className="text-muted-foreground">Reference Code</span>
-            <span className="font-mono font-medium">{refCode}</span>
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-8 w-full max-w-sm mb-8 backdrop-blur-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Zap className="w-20 h-20 text-emerald-500" />
           </div>
-          <div className="flex justify-between mb-3 text-sm">
-            <span className="text-muted-foreground">Amount Deposited</span>
-            <span className="font-medium">
-              {currencySymbol}
-              {parseFloat(amount).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between mb-3 text-sm">
-            <span className="text-muted-foreground">Source</span>
-            <span className="font-medium">{getSourceName()}</span>
-          </div>
-          <div className="border-t border-border/50 pt-3 flex justify-between text-sm">
-            <span className="text-muted-foreground">Status</span>
-            <span className="text-primary font-medium">Completed</span>
+
+          <div className="space-y-4 relative">
+            <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">     
+              <span className="text-muted-foreground">Credited Balance</span>
+              <span className="text-2xl font-light text-emerald-500 font-mono">
+                ${parseFloat(amount).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Transaction ID</span>
+              <span className="font-mono font-medium">{refCode}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Source</span>
+              <span className="font-medium">{getSourceName()}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Status</span>
+              <span className="text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">        
+                Completed
+              </span>
+            </div>
           </div>
         </div>
 
-        <Button variant="outline" className="w-full max-w-xs" asChild>
+        <Button
+          size="lg"
+          className="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14"
+          asChild
+        >
           <Link to="/dashboard">Back to Dashboard</Link>
         </Button>
       </div>
@@ -368,36 +418,34 @@ export function DepositPanel() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">
+      {/* SECTION 2: LEFT PANEL - DEPOSIT SOURCE SELECTION */}
+      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-light tracking-tight">
-            {channel === "mobile" && "Deposit via Mobile Money"}
-            {channel === "bank" && "Deposit via Bank Transfer"}
-            {channel === "stripe" && "International Deposit"}
-          </h2>
-          <div className="flex p-1 bg-background/60 border border-border/60 rounded-2xl overflow-x-auto">
+          <h2 className="text-2xl font-light tracking-tight">Select Deposit Source</h2>
+          <div className="flex p-1 bg-background/60 border border-border/60 rounded-2xl">
             {[
-              { id: "mobile", label: "Mobile", icon: Smartphone },
-              { id: "bank", label: "Bank", icon: Building2 },
-              { id: "stripe", label: "Stripe", icon: CreditCard },
+              { id: "mobile", label: "Mobile Money", icon: Smartphone },
+              { id: "bank", label: "Bank Account", icon: Building2 },
+              { id: "stripe", label: "Credit Card", icon: CreditCard },
             ].map((t) => {
-              const ActiveIcon = t.icon;
+              const Icon = t.icon;
               return (
                 <button
                   key={t.id}
                   onClick={() => {
                     setChannel(t.id as SourceChannel);
-                    setSelectedSourceId(t.id === "mobile" ? "m1" : t.id === "bank" ? "b1" : null);
+                    setSelectedSourceId(null);
+                    setIsAddingNew(false);
                   }}
                   className={cn(
-                    "flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
+                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",        
                     channel === t.id
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <ActiveIcon className="w-4 h-4" />
-                  <span className="">{t.label}</span>
+                  <Icon className="w-4 h-4" />
+                  {t.label}
                 </button>
               );
             })}
@@ -407,38 +455,59 @@ export function DepositPanel() {
         <div className="min-h-[300px] animate-in slide-in-from-left-4 duration-500">
           {channel === "mobile" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-3">
-                {SAVED_NUMBERS.map((num) => (
+              <div className="space-y-3">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+                  Select Carrier
+                </Label>
+                <Select value={selectedCarrier} onValueChange={setSelectedCarrier}>
+                  <SelectTrigger className="h-14 bg-background/40 border-border/60 rounded-2xl text-base">      
+                    <SelectValue placeholder="Select provider" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl">
+                    {CARRIERS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {SAVED_NUMBERS.filter((n) => n.carrier === selectedCarrier).map((item) => (
                   <button
-                    key={num.id}
+                    key={item.id}
                     onClick={() => {
-                      setSelectedSourceId(num.id);
+                      setSelectedSourceId(item.id);
                       setIsAddingNew(false);
                     }}
                     className={cn(
-                      "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
-                      selectedSourceId === num.id && !isAddingNew
+                      "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all w-full",
+                      selectedSourceId === item.id && !isAddingNew
                         ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
                         : "border-border/60 bg-background/20 hover:border-border",
                     )}
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
-                        num.color,
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",   
+                        item.color,
                       )}
                     >
-                      {num.provider === "M-Pesa" ? "MP" : "AM"}
+                      MP
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold truncate">{num.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{num.phone}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">    
+                        Primary Number
+                      </div>
+                      <div className="text-sm font-semibold truncate">{item.name}</div>
                     </div>
-                    {selectedSourceId === num.id && !isAddingNew && (
+                    {selectedSourceId === item.id && !isAddingNew && (
                       <Check className="w-5 h-5 text-primary" />
                     )}
                   </button>
                 ))}
+
                 <button
                   onClick={() => {
                     setIsAddingNew(true);
@@ -454,33 +523,26 @@ export function DepositPanel() {
                   <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
                     <Plus className="w-6 h-6" />
                   </div>
-                  <div className="text-sm font-medium">Use a Different Number</div>
+                  <div className="text-sm font-medium">Add a New Number</div>
                 </button>
               </div>
 
               {isAddingNew && (
-                <div className="p-6 rounded-2xl border border-border/60 bg-background/40 space-y-6 animate-in slide-in-from-top-4 duration-300">
+                <div className="p-6 rounded-2xl border border-border/60 bg-background/40 animate-in slide-in-from-top-4 duration-300">
                   <div className="space-y-4">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                      Mobile Number
-                    </Label>
-                    <Input
-                      placeholder="07XX XXX XXX"
-                      value={newPhoneNumber}
-                      onChange={(e) => setNewPhoneNumber(e.target.value)}
-                      className="h-12 bg-background/60 rounded-xl"
-                    />
-                    <div className="flex gap-2">
-                      {CARRIERS.map((c) => (
-                        <Button
-                          key={c}
-                          variant={selectedCarrier === c ? "default" : "outline"}
-                          onClick={() => setSelectedCarrier(c)}
-                          className="flex-1 rounded-xl"
-                        >
-                          {c}
-                        </Button>
-                      ))}
+                    <div className="space-y-2">
+                      <Label>Phone Number</Label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
+                          +254
+                        </span>
+                        <Input
+                          placeholder="7XX XXX XXX"
+                          className="pl-16 h-12 bg-background/60 rounded-xl"
+                          value={newPhoneNumber}
+                          onChange={(e) => setNewPhoneNumber(e.target.value)}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -490,90 +552,115 @@ export function DepositPanel() {
 
           {channel === "bank" && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-3">
-                {SAVED_BANK_ACCOUNTS.map((bank) => (
+              <div className="space-y-3">
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+                  Search Banks
+                </Label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" /> 
+                  <Input
+                    placeholder="Search major Kenyan banks..."
+                    className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-base"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {SAVED_BANK_ACCOUNTS.map((item) => (
                   <button
-                    key={bank.id}
-                    onClick={() => setSelectedSourceId(bank.id)}
+                    key={item.id}
+                    onClick={() => {
+                      setSelectedSourceId(item.id);
+                      setIsAddingNew(false);
+                    }}
                     className={cn(
                       "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
-                      selectedSourceId === bank.id
+                      selectedSourceId === item.id && !isAddingNew
                         ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
                         : "border-border/60 bg-background/20 hover:border-border",
                     )}
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
-                        bank.color,
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-xs font-bold",   
+                        item.color,
                       )}
                     >
-                      {bank.logo}
+                      {item.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold truncate">{bank.name}</div>
+                      <div className="text-sm font-semibold truncate">{item.name}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {bank.accountNumber}
+                        {item.accountNumber}
                       </div>
                     </div>
-                    {selectedSourceId === bank.id && <Check className="w-5 h-5 text-primary" />}
+                    {selectedSourceId === item.id && !isAddingNew && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
                   </button>
                 ))}
 
-                <div className="relative py-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/50"></span>
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                      Or connect via Stripe
-                    </span>
-                  </div>
-                </div>
-
                 <button
-                  onClick={() => setSelectedSourceId("stripe-ach")}
+                  onClick={() => {
+                    setSelectedSourceId("stripe-ach");
+                    setIsAddingNew(false);
+                  }}
                   className={cn(
                     "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
-                    selectedSourceId === "stripe-ach"
+                    selectedSourceId === "stripe-ach" && !isAddingNew
                       ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
                       : "border-border/60 bg-background/20 hover:border-border",
                   )}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-sm font-bold">
-                    S
+                  <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-white text-xs font-bold">
+                    ACH
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">Stripe Direct ACH</div>
+                    <div className="text-sm font-semibold truncate">Stripe Bank Transfer</div>
                     <div className="text-xs text-muted-foreground truncate">
-                      Instant Verification
+                      US ACH / International
                     </div>
                   </div>
-                  {selectedSourceId === "stripe-ach" && <Check className="w-5 h-5 text-primary" />}
+                  {selectedSourceId === "stripe-ach" && !isAddingNew && (
+                    <Check className="w-5 h-5 text-primary" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsAddingNew(true);
+                    setSelectedSourceId(null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-4 p-5 rounded-2xl border border-dashed text-left transition-all hover:bg-background/40",
+                    isAddingNew
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border/60",
+                  )}
+                >
+                  <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
+                    <Plus className="w-6 h-6" />
+                  </div>
+                  <div className="text-sm font-medium">Link New Bank Account</div>
                 </button>
               </div>
             </div>
           )}
 
           {channel === "stripe" && (
-            <div className="flex flex-col items-center justify-center py-12 px-6 border border-dashed border-border/60 rounded-3xl bg-background/20">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 mb-4">
-                <CreditCard className="w-8 h-8" />
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-6 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary">
+                <CreditCard className="w-10 h-10" />
               </div>
-              <h3 className="text-lg font-medium mb-2">International Card Payment</h3>
-              <p className="text-sm text-muted-foreground text-center max-w-xs mb-6">
-                Deposit instantly using any major credit or debit card worldwide via Stripe.
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border/60 text-[10px] font-bold">
-                  VISA
-                </div>
-                <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border/60 text-[10px] font-bold">
-                  MASTERCARD
-                </div>
-                <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border/60 text-[10px] font-bold">
-                  AMEX
-                </div>
+              <div className="space-y-2 max-w-sm">
+                <h3 className="text-xl font-medium">Credit or Debit Card</h3>
+                <p className="text-sm text-muted-foreground">
+                  You will be securely redirected to Stripe to complete your deposit using any major
+                  credit or debit card.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest bg-muted/50 px-4 py-2 rounded-full">
+                <LockIcon className="w-3 h-3" /> Encrypted by Stripe
               </div>
             </div>
           )}
