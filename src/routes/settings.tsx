@@ -8,6 +8,7 @@ import {
   Smartphone,
   ScrollText,
   CheckCircle2,
+  AlertCircle,
   Info,
   ChevronRight,
   Settings as SettingsIcon,
@@ -21,6 +22,8 @@ import {
   Store,
   QrCode,
   ExternalLink,
+  Zap,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +32,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/api/supabase";
+import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { formatKycTag } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -113,7 +117,7 @@ function Row({
   description?: string;
 }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[180px_1fr] gap-3 sm:gap-8 items-start">
+    <div className="grid grid-cols-1 sm:grid-cols-[150px_1fr] gap-3 sm:gap-8 items-start">
       <div>
         <div className="text-sm text-muted-foreground">{label}</div>
         {description && (
@@ -238,7 +242,9 @@ function SettingsPage() {
   const [merchantEnabled, setMerchantEnabled] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [businessCategory, setBusinessCategory] = useState("Retail");
+  const [businessDescription, setBusinessDescription] = useState("");
   const [isSavingMerchant, setIsSavingMerchant] = useState(false);
+  const [isMerchantSaved, setIsMerchantSaved] = useState(false);
 
   // New UI states
   const [showViewModal, setShowViewModal] = useState(false);
@@ -277,6 +283,8 @@ function SettingsPage() {
         setMerchantEnabled(data.is_active);
         setBusinessName(data.business_name);
         setBusinessCategory(data.business_category);
+        setBusinessDescription(data.business_description || "");
+        setIsMerchantSaved(true);
       }
     } catch (err) {
       console.error("Error fetching merchant data:", err);
@@ -296,6 +304,7 @@ function SettingsPage() {
           user_id: user.id,
           business_name: businessName || `${profile?.first_name}'s Business`,
           business_category: businessCategory,
+          business_description: businessDescription,
           is_active: merchantEnabled,
           updated_at: new Date().toISOString(),
         },
@@ -303,6 +312,7 @@ function SettingsPage() {
       );
 
       if (error) throw error;
+      setIsMerchantSaved(true);
       toast.success("Merchant profile updated!");
     } catch (err: any) {
       toast.error(err.message || "Failed to save business profile");
@@ -310,6 +320,20 @@ function SettingsPage() {
       setIsSavingMerchant(false);
     }
   }
+
+  const handleDownloadQR = () => {
+    const canvas = document.getElementById("merchant-qr-canvas") as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `vault-qr-${profile?.kyc_tag}.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    toast.success("QR Code download started!");
+  };
 
   async function fetchDevices() {
     try {
@@ -557,8 +581,18 @@ function SettingsPage() {
     }
   }
 
+  // Account Deletion State
+  const [deleteStage, setDeleteStage] = useState<"initial" | "warning" | "verify">("initial");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const deleteTargetText = profile?.email || "delete my account";
+
   async function handleDeleteAccount() {
     try {
+      if (deleteConfirmText !== deleteTargetText) {
+        toast.error("Confirmation text does not match");
+        return;
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -825,82 +859,229 @@ function SettingsPage() {
             meta="Merchant Mode & B2C Tools"
             hint="Enable to receive public payments via QR"
           >
-            <ToggleRow
-              label="Enable Merchant Mode"
-              description="Activate your public payment profile and generate your unique Vault QR code."
-              checked={merchantEnabled}
-              onCheckedChange={(val) => {
-                setMerchantEnabled(val);
-                // Auto-save toggle status
-                if (profile?.id) {
-                  supabase.from("merchants").upsert({
-                    user_id: profile.id,
-                    is_active: val,
-                    business_name: businessName || "My Business",
-                  });
-                }
-              }}
-            />
+            <div className="space-y-8">
+              <ToggleRow
+                label="Enable Merchant Mode"
+                description="Activate your public payment profile and generate your unique Vault QR code for instant B2C settlements."
+                checked={merchantEnabled}
+                onCheckedChange={(val) => {
+                  setMerchantEnabled(val);
+                  if (profile?.id) {
+                    supabase.from("merchants").upsert(
+                      {
+                        user_id: profile.id,
+                        is_active: val,
+                        business_name: businessName || `${profile?.first_name}'s Business`,
+                      },
+                      { onConflict: "user_id" },
+                    );
+                  }
+                }}
+              />
 
-            {merchantEnabled && (
-              <div className="space-y-6 pt-6 border-t border-border/40 animate-in fade-in slide-in-from-top-4 duration-500">
-                <Row label="Business Name" description="Displayed on your public payment portal.">
-                  <Input
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    placeholder="e.g. Acme Coffee Roasters"
-                    className="bg-input/40 border-border/60"
-                  />
-                </Row>
-                <Row label="Category">
-                  <select
-                    value={businessCategory}
-                    onChange={(e) => setBusinessCategory(e.target.value)}
-                    className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option>Retail</option>
-                    <option>Food & Beverage</option>
-                    <option>Services</option>
-                    <option>Technology</option>
-                    <option>Creative</option>
-                    <option>Other</option>
-                  </select>
-                </Row>
-
-                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <QrCode className="w-6 h-6" />
+              {merchantEnabled ? (
+                <div className="space-y-10 pt-8 border-t border-border/40 animate-in fade-in slide-in-from-top-4 duration-700">
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-10">
+                    <div className="space-y-6">
+                      <Row
+                        label="Business Name"
+                        description="The name customers will see on their receipts."
+                      >
+                        <Input
+                          value={businessName}
+                          onChange={(e) => {
+                            setBusinessName(e.target.value);
+                            setIsMerchantSaved(false);
+                          }}
+                          placeholder="e.g. Acme Coffee Roasters"
+                          className="bg-input/40 border-border/60 h-11"
+                        />
+                      </Row>
+                      <Row label="Category">
+                        <select
+                          value={businessCategory}
+                          onChange={(e) => {
+                            setBusinessCategory(e.target.value);
+                            setIsMerchantSaved(false);
+                          }}
+                          className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        >
+                          <option>Retail</option>
+                          <option>Food & Beverage</option>
+                          <option>Services</option>
+                          <option>Technology</option>
+                          <option>Creative</option>
+                          <option>Other</option>
+                        </select>
+                      </Row>
+                      <Row
+                        label="Description"
+                        description="Summarize your offerings for your public portal."
+                      >
+                        <textarea
+                          value={businessDescription}
+                          onChange={(e) => {
+                            setBusinessDescription(e.target.value);
+                            setIsMerchantSaved(false);
+                          }}
+                          placeholder="Crafting premium coffee experiences."
+                          className="w-full min-h-[100px] rounded-md border border-border/60 bg-input/40 p-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                          maxLength={160}
+                        />
+                      </Row>
                     </div>
-                    <div>
-                      <div className="text-sm font-bold uppercase tracking-widest">
-                        Public QR Code
+
+                    <div className="flex flex-col items-center gap-4">
+                      {isMerchantSaved ? (
+                        <>
+                          <div className="group relative p-4 rounded-[32px] bg-white border border-border shadow-xl transition-all hover:scale-105 duration-500">
+                            <QRCodeSVG
+                              value={`${window.location.origin}/pay/${profile?.kyc_tag}`}
+                              size={180}
+                              level="H"
+                              includeMargin={false}
+                              imageSettings={{
+                                src: "/v-logo.svg",
+                                x: undefined,
+                                y: undefined,
+                                height: 32,
+                                width: 32,
+                                excavate: true,
+                              }}
+                            />
+                            {/* Hidden canvas for download */}
+                            <QRCodeCanvas
+                              id="merchant-qr-canvas"
+                              value={`${window.location.origin}/pay/${profile?.kyc_tag}`}
+                              size={512}
+                              level="H"
+                              includeMargin={true}
+                              className="hidden"
+                            />
+                            <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 rounded-[32px] flex items-center justify-center transition-opacity pointer-events-none">
+                              <QrCode className="w-8 h-8 text-black/20" />
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+                              Public QR Code
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                              {profile?.kyc_tag}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 w-full">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-xl h-10 px-0"
+                              onClick={handleDownloadQR}
+                            >
+                              <Download className="w-3.5 h-3.5 mr-2" /> Download
+                            </Button>
+                            <Button asChild size="sm" variant="outline" className="rounded-xl h-10 px-0">
+                              <Link to={`/pay/${profile?.kyc_tag}`} target="_blank">
+                                <ExternalLink className="w-3.5 h-3.5 mr-2" /> View
+                              </Link>
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-[212px] h-[212px] rounded-[32px] bg-input/5 border border-dashed border-border/60 flex flex-col items-center justify-center p-6 text-center">
+                          <QrCode className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                            Save to Generate QR
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* How it works */}
+                  <div className="rounded-2xl border border-primary/10 bg-primary/5 p-6">
+                    <h3 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                      <Zap className="w-3.5 h-3.5 text-primary" /> How Merchant Mode Works
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
+                            1
+                          </div>
+                          <div className="text-xs font-bold">Configure Profile</div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
+                          Set your business identity. This is what customers see when they scan
+                          your code or visit your link.
+                        </p>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Ready for high-fidelity scanning
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
+                            2
+                          </div>
+                          <div className="text-xs font-bold">Share & Display</div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
+                          Download your QR code for physical display or share your unique payment
+                          URL across digital platforms.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
+                            3
+                          </div>
+                          <div className="text-xs font-bold">Zero-Trust Payments</div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
+                          Customers pay via Vault or M-Pesa. Each transaction is cryptographically
+                          verified for maximum security.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
+                            4
+                          </div>
+                          <div className="text-xs font-bold">Instant Settlement</div>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
+                          Funds are settled instantly in your Vault. No 2-3 day waiting periods
+                          or high merchant fees.
+                        </p>
                       </div>
                     </div>
                   </div>
-                  <Button asChild size="sm" variant="outline" className="rounded-xl">
-                    <Link to={`/pay/${profile?.kyc_tag}`} target="_blank">
-                      View Portal <ExternalLink className="ml-2 w-3 h-3" />
-                    </Link>
-                  </Button>
-                </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    className="rounded-xl h-10 px-6"
-                    onClick={handleSaveMerchant}
-                    disabled={isSavingMerchant}
-                  >
-                    {isSavingMerchant && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Update Business Profile
-                  </Button>
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      className="rounded-xl h-12 px-8 font-bold shadow-lg shadow-primary/20"
+                      onClick={handleSaveMerchant}
+                      disabled={isSavingMerchant}
+                    >
+                      {isSavingMerchant ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                      )}
+                      Update Business Profile
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="p-12 rounded-2xl border border-dashed border-border/60 bg-input/5 flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
+                    <Store className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Merchant Mode is Inactive</h3>
+                  <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                    Enable Merchant Mode to start accepting public payments and unlock business
+                    growth tools.
+                  </p>
+                </div>
+              )}
+            </div>
           </SectionCard>
 
           {/* Security Center */}
@@ -1225,7 +1406,7 @@ function SettingsPage() {
                 </div>
               </div>
 
-              <Dialog>
+              <Dialog onOpenChange={(open) => !open && setDeleteStage("initial")}>
                 <DialogTrigger asChild>
                   <Button
                     variant="destructive"
@@ -1234,32 +1415,108 @@ function SettingsPage() {
                     Delete Account Permanently
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="text-xl font-serif">Delete Account?</DialogTitle>
-                    <DialogDescription className="text-muted-foreground text-sm mt-2">
-                      This action is permanent and cannot be undone. Your account and all data will be
-                      deleted from our servers.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="rounded-xl border border-border/60 bg-input/20 p-4 my-4 flex items-start gap-3">
-                    <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
-                    <p className="text-sm text-muted-foreground/80 font-medium">
-                      Last warning: This cannot be reversed
-                    </p>
-                  </div>
-                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
-                    <Button variant="outline" className="rounded-lg h-11 font-medium">
-                      Cancel
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDeleteAccount}
-                      className="rounded-lg h-11 active:scale-95 transition-all font-medium"
-                    >
-                      Confirm Deletion
-                    </Button>
-                  </div>
+                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-0 overflow-hidden shadow-2xl">
+                  {deleteStage === "initial" && (
+                    <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
+                      <DialogHeader className="mb-6">
+                        <DialogTitle className="text-2xl font-serif">Are you sure?</DialogTitle>
+                        <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
+                          This is a significant action. You are about to initiate the permanent
+                          removal of your Vault OS identity.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20 flex gap-3 items-start">
+                          <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                          <div className="text-sm text-destructive/80 font-medium">
+                            All your financial history, ledger entries, and personal data will be
+                            permanently purged.
+                          </div>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          className="w-full h-12 rounded-xl font-bold"
+                          onClick={() => setDeleteStage("warning")}
+                        >
+                          I understand, continue
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {deleteStage === "warning" && (
+                    <div className="p-8 animate-in slide-in-from-right-4 duration-300">
+                      <DialogHeader className="mb-6">
+                        <DialogTitle className="text-2xl font-serif text-destructive">
+                          Final Warning
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
+                          This action is **irreversible**. Once completed, your funds and account
+                          access cannot be recovered by Vault Support.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <ul className="space-y-3 mb-8">
+                        {[
+                          "Immediate revocation of all device sessions",
+                          "Permanent deletion of all cryptographic keys",
+                          "Removal of your unique KYC tag and profile",
+                        ].map((text) => (
+                          <li key={text} className="flex items-center gap-3 text-xs font-medium">
+                            <div className="w-1.5 h-1.5 rounded-full bg-destructive/40" />
+                            {text}
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="flex gap-3">
+                        <Button
+                          variant="outline"
+                          className="flex-1 h-12 rounded-xl"
+                          onClick={() => setDeleteStage("initial")}
+                        >
+                          Go Back
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          className="flex-1 h-12 rounded-xl font-bold"
+                          onClick={() => setDeleteStage("verify")}
+                        >
+                          Confirm Impact
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {deleteStage === "verify" && (
+                    <div className="p-8 animate-in slide-in-from-right-4 duration-300">
+                      <DialogHeader className="mb-6">
+                        <DialogTitle className="text-2xl font-serif">Verify Identity</DialogTitle>
+                        <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
+                          To prevent accidental deletion, please type{" "}
+                          <span className="text-foreground font-mono font-bold select-all bg-muted px-1.5 py-0.5 rounded">
+                            {deleteTargetText}
+                          </span>{" "}
+                          below.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-6">
+                        <Input
+                          placeholder="Type to confirm..."
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          className="h-12 bg-input/40 border-border/60 rounded-xl font-mono text-sm"
+                          autoFocus
+                        />
+                        <Button
+                          variant="destructive"
+                          className="w-full h-12 rounded-xl font-bold shadow-lg shadow-destructive/20 disabled:opacity-30 transition-all"
+                          disabled={deleteConfirmText !== deleteTargetText}
+                          onClick={handleDeleteAccount}
+                        >
+                          Delete Account Permanently
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
             </div>

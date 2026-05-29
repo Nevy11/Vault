@@ -37,7 +37,6 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
-import { useReceiptHistory } from "@/components/receipt-history";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -399,7 +398,7 @@ function NetWorthChart({
 }
 
 function SecurityStatus() {
-  const { open: openReceipts } = useReceiptHistory();
+  const openReceipts = () => console.log("Open receipts placeholder");
   
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
@@ -897,7 +896,14 @@ function DashboardPage() {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button className="h-12 px-6 rounded-2xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95">
+              <Button
+                className="h-12 px-6 rounded-2xl font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 bg-primary"
+                onClick={() =>
+                  toast.info("Vault Connect", {
+                    description: "External account linking is currently in maintenance mode.",
+                  })
+                }
+              >
                 <UserPlus className="w-4 h-4 mr-2" /> Add External Account
               </Button>
               <Button
