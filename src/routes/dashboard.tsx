@@ -38,7 +38,6 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
-import { useReceiptHistory } from "@/components/receipt-history";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
@@ -405,7 +404,7 @@ function NetWorthChart({
 }
 
 function SecurityStatus() {
-  const { open: openReceipts } = useReceiptHistory();
+  const openReceipts = () => console.log("Open receipts placeholder");
   
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
@@ -780,6 +779,8 @@ function DashboardPage() {
       if (desc.includes("chase bank") || meth.includes("chase")) return "/logos/chase.svg";
       if (desc.includes("bank of america") || meth.includes("america"))
         return "/logos/bank-of-america.svg";
+      if (desc.includes("equity") || meth.includes("equity")) return "/logos/equity.svg";
+      if (desc.includes("stripe") || meth.includes("stripe")) return "/logos/stripe.svg";
 
       // Fallback for generic bank method
       if (meth === "bank" || meth === "mpesa" || meth === "airtel") return "/logos/bank.svg";

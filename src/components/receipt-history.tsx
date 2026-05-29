@@ -151,10 +151,10 @@ function ReceiptHistoryContent() {
                     <FileText size={18} />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold truncate max-w-[180px]">
+                    <div className="text-sm font-semibold truncate max-w-[180px] dark:text-white">
                       {r.transaction_details.description || "Vault Transaction"}
                     </div>
-                    <div className="text-[10px] text-muted-foreground font-mono">
+                    <div className="text-[10px] dark:text-white font-mono">
                       {r.receipt_number}
                     </div>
                   </div>
