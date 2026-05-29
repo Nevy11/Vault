@@ -534,7 +534,7 @@ const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 function DashboardPage() {
   const navigate = useNavigate();
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
+  const { transactions, loading: txLoading, error: txError, refetch: refetchTransactions } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
   const { notifications, markAsRead } = useNotifications();
   const [activeFilter, setActiveFilter] = useState("All");
@@ -1005,9 +1005,14 @@ function DashboardPage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <RefreshCw className={`w-3 h-3 ${txLoading ? "animate-spin" : ""}`} /> {syncTime}
-            </div>
+            <button 
+              onClick={() => refetchTransactions()}
+              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-primary transition-colors group/sync"
+              disabled={txLoading}
+            >
+              <RefreshCw className={cn("w-3 h-3 transition-transform group-hover/sync:rotate-180 duration-500", txLoading && "animate-spin")} /> 
+              {syncTime}
+            </button>
           </div>
 
           <ul className="divide-y divide-border/40">
