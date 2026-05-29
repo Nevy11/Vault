@@ -541,6 +541,42 @@ function DashboardPage() {
   const [showReport, setShowReport] = useState(false);
   const [profile] = useProfileSignal();
   const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+
+  // Fetch suggested users from profiles table
+  useEffect(() => {
+    const fetchSuggestedUsers = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, kyc_tag, profile_photo_url")
+          .neq("id", user.id)
+          .limit(8);
+
+        if (error) throw error;
+
+        if (data) {
+          const colors = ["bg-emerald-500", "bg-blue-500", "bg-pink-500", "bg-amber-500", "bg-indigo-500", "bg-violet-500"];
+          const mapped = data.map((u, i) => ({
+            id: u.id,
+            initial: u.first_name?.[0] || "V",
+            color: colors[i % colors.length],
+            name: `${u.first_name} ${u.last_name?.[0] || ""}`.trim(),
+            tag: u.kyc_tag,
+            avatarUrl: u.profile_photo_url,
+          }));
+          setSuggestedUsers(mapped);
+        }
+      } catch (err) {
+        console.error("Error fetching suggested users:", err);
+      }
+    };
+
+    fetchSuggestedUsers();
+  }, []);
 
   // Find unread warning notifications (like sharp drops from AI)
   const warningNotifications = useMemo(() => 
@@ -925,12 +961,14 @@ function DashboardPage() {
             avatars={
               frequentRecipients.length > 0
                 ? frequentRecipients
-                : [
-                    { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
-                    { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
-                    { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
-                    { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
-                  ]
+                : suggestedUsers.length > 0
+                  ? suggestedUsers
+                  : [
+                      { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
+                      { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
+                      { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
+                      { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
+                    ]
             }
           />
           <div className="hidden sm:block col-span-1">
