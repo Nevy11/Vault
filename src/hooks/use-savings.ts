@@ -202,6 +202,7 @@ export function useSavings() {
       if (goals.length >= 2) {
         toast.error("Maximum limit reached", {
           description: "You can only have a maximum of 2 active savings goals at a time.",
+          className: "bg-red-50 border-red-200 text-red-900",
         });
         return false;
       }

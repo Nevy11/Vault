@@ -106,7 +106,22 @@ const SAVING_LINES = [
 
 function SavingsPage() {
   const { tab } = Route.useSearch();
-  const [activeTab, setActiveTab] = useState(tab || "overview");
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const {
+    goals,
+    goal: savingsGoal,
+    selectedGoalIndex,
+    setSelectedGoalIndex,
+    ledger,
+    loading,
+    addContribution,
+    createGoal,
+    updateGoal,
+  } = useSavings();
+
+  const [isEditing, setIsEditing] = useState(false);
+
   const [isAutomated, setIsAutomated] = useState(false);
   const [showAutoPopup, setShowAutoPopup] = useState(false);
   const [showContributionModal, setShowContributionModal] = useState(false);
@@ -124,19 +139,17 @@ function SavingsPage() {
 
   const today = format(new Date(), "yyyy-MM-dd");
 
-  const {
-    goals,
-    goal: savingsGoal,
-    selectedGoalIndex,
-    setSelectedGoalIndex,
-    ledger,
-    loading,
-    addContribution,
-    createGoal,
-    updateGoal,
-  } = useSavings();
-
-  const [isEditing, setIsEditing] = useState(false);
+  useEffect(() => {
+    if (tab) {
+      setActiveTab(tab);
+    } else if (goals.length === 0) {
+      // Default to setup if no goals exist
+      setActiveTab("setup");
+    } else {
+      // Default to overview if goals exist
+      setActiveTab("overview");
+    }
+  }, [tab, goals.length]);
 
   useEffect(() => {
     if (activeTab === "setup" && isEditing && savingsGoal) {
@@ -985,18 +998,29 @@ function SavingsPage() {
                     <SelectValue placeholder="Where are you saving from?" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
-                    <SelectItem value="mpesa" className="font-bold">
-                      M-Pesa
-                    </SelectItem>
-                    <SelectItem value="airtel" className="font-bold">
-                      Airtel Money
-                    </SelectItem>
-                    <SelectItem value="bank" className="font-bold">
-                      Bank Account
-                    </SelectItem>
-                    <SelectItem value="vault_balance" className="font-bold">
-                      Vault Balance
-                    </SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <Smartphone className="w-3 h-3" /> Mobile Money
+                    </div>
+                    <SelectItem value="mpesa" className="font-bold">M-Pesa</SelectItem>
+                    <SelectItem value="airtel" className="font-bold">Airtel Money</SelectItem>
+
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
+                      <Building2 className="w-3 h-3" /> Banks
+                    </div>
+                    <SelectItem value="kcb" className="font-bold">KCB Group</SelectItem>
+                    <SelectItem value="equity" className="font-bold">Equity Bank</SelectItem>
+                    <SelectItem value="ncba" className="font-bold">NCBA Bank</SelectItem>
+                    <SelectItem value="absa" className="font-bold">Absa Kenya</SelectItem>
+                    <SelectItem value="coop" className="font-bold">Co-operative Bank</SelectItem>
+                    <SelectItem value="stanbic" className="font-bold">Stanbic Bank</SelectItem>
+                    <SelectItem value="im" className="font-bold">I&M Bank</SelectItem>
+                    <SelectItem value="dtb" className="font-bold">Diamond Trust Bank</SelectItem>
+                    <SelectItem value="family" className="font-bold">Family Bank Kenya</SelectItem>
+
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
+                      <Wallet className="w-3 h-3" /> Vault
+                    </div>
+                    <SelectItem value="vault_balance" className="font-bold">Vault Balance</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
