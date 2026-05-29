@@ -638,23 +638,22 @@ function SavingsPage() {
             >
               <div className="max-w-3xl mx-auto">
                 <Card className="rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl p-5 shadow-xl transition-all">
-                  <form onSubmit={handleCreateGoal} className="space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
-                      <div className="space-y-2">
-                        <Label className="text-[9px] font-semibold uppercase tracking-wider">Title</Label>
-                        <div className="relative">
-                          <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-600" />
-                          <Input placeholder="Saving for..." value={goalTitle} onChange={(e) => setGoalTitle(e.target.value)} className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm" required />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-[9px] font-semibold uppercase tracking-wider">Target (KES)</Label>
-                        <div className="relative">
-                          <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                          <Input placeholder="0.00" value={targetAmount} onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))} className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm tabular-nums" required />
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-semibold uppercase tracking-wider">Title</Label>
+                      <div className="relative">
+                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-600" />
+                        <Input placeholder="Saving for..." value={goalTitle} onChange={(e) => setGoalTitle(e.target.value)} className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm" required />
                       </div>
                     </div>
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-semibold uppercase tracking-wider">Target (KES)</Label>
+                      <div className="relative">
+                        <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Input placeholder="0.00" value={targetAmount} onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))} className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm tabular-nums" required />
+                      </div>
+                    </div>
+                  </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <div className="space-y-3">
