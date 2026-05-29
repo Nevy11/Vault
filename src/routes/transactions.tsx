@@ -1077,11 +1077,11 @@ function TransactionHistory() {
           Detailed Ledger History
         </h2>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
             <Input 
               placeholder="Search ledger..." 
-              className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40"
+              className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40 focus:border-primary/50 transition-all"
               value={search}
               onChange={handleSearchChange}
             />
