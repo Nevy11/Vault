@@ -93,6 +93,7 @@ export function TransactionPinModal({
             <div className="flex justify-center">
               <InputOTP
                 maxLength={6}
+                type="password"
                 value={pin}
                 onChange={(val) => {
                   setPin(val);
