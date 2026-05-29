@@ -48,6 +48,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/settings")({
@@ -69,15 +70,17 @@ function SectionCard({
   meta,
   hint,
   children,
+  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   meta?: string;
   hint?: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset]">
+    <section className={`rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm p-6 sm:p-8 lg:p-10 shadow-[0_1px_0_0_oklch(1_0_0_/_0.03)_inset] ${className || ""}`}>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between pb-6 mb-8 border-b border-border/40">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -552,6 +555,29 @@ function SettingsPage() {
       toast.error(error.message || "Error removing avatar");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) throw new Error("No session found");
+
+      const { error } = await supabase.functions.invoke("delete-account", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+
+      await supabase.auth.signOut();
+      toast.success("Account deleted successfully");
+      window.location.href = "/login";
+    } catch (error: any) {
+      toast.error(error.message || "Error deleting account");
     }
   }
 
@@ -1071,7 +1097,47 @@ function SettingsPage() {
             </div>
           </SectionCard>
 
-          {/* Preferences */}
+          {/* Recent Activity */}
+          <SectionCard icon={ScrollText} title="Recent Activity">
+            <ul className="divide-y divide-border/40">
+              {logs.length > 0 ? (
+                logs.slice(0, 4).map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
+                  >
+                    <div>
+                      <div className="text-sm text-foreground capitalize">
+                        {item.action_type.replace("_", " ")}
+                        {item.device_info && (
+                          <span className="text-muted-foreground/60 text-xs ml-2">
+                            via {item.device_info}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground/70">
+                        {new Date(item.created_at).toLocaleString([], {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </div>
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <div className="py-4 text-sm text-muted-foreground italic">
+                  No recent activity recorded.
+                </div>
+              )}
+            </ul>
+
+            <ActivityLogDrawer logs={logs}>
+              <button className="w-full text-center text-xs text-primary hover:text-primary/80 pt-4 transition-colors">
+                View full activity log →
+              </button>
+            </ActivityLogDrawer>
+          </SectionCard>
+
           <SectionCard icon={SlidersHorizontal} title="Preferences">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
@@ -1133,48 +1199,75 @@ function SettingsPage() {
             </div>
           </SectionCard>
 
-          {/* Activity */}
-          <SectionCard icon={ScrollText} title="Recent Activity">
-            <ul className="divide-y divide-border/40">
-              {logs.length > 0 ? (
-                logs.slice(0, 4).map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center justify-between py-4 first:pt-0 last:pb-0"
-                  >
-                    <div>
-                      <div className="text-sm text-foreground capitalize">
-                        {item.action_type.replace("_", " ")}
-                        {item.device_info && (
-                          <span className="text-muted-foreground/60 text-xs ml-2">
-                            via {item.device_info}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground/70">
-                        {new Date(item.created_at).toLocaleString([], {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
-                      </div>
+          {/* Danger Zone */}
+          <SectionCard icon={X} title="Danger Zone" className="lg:col-span-2">
+            <div className="space-y-6">
+              <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-input/40 text-muted-foreground/70 flex-shrink-0 mt-0.5">
+                      <X className="h-5 w-5" />
                     </div>
-                  </li>
-                ))
-              ) : (
-                <div className="py-4 text-sm text-muted-foreground italic">
-                  No recent activity recorded.
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-medium text-foreground">Delete Account</h3>
+                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                        Permanently delete your Vault OS account and all associated data. This action cannot be
+                        undone and will immediately revoke access to all authorized devices.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border/60 bg-card/40 p-4 flex items-start gap-3">
+                    <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">
+                      This is an irreversible action. Please ensure you have downloaded or backed up any
+                      important data before proceeding.
+                    </p>
+                  </div>
                 </div>
-              )}
-            </ul>
+              </div>
 
-            <ActivityLogDrawer logs={logs}>
-              <button className="w-full text-center text-xs text-primary hover:text-primary/80 pt-4 transition-colors">
-                View full activity log →
-              </button>
-            </ActivityLogDrawer>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    className="w-full h-12 rounded-xl transition-all active:scale-95 font-medium text-base shadow-sm hover:shadow-md"
+                  >
+                    Delete Account Permanently
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-serif">Delete Account?</DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-sm mt-2">
+                      This action is permanent and cannot be undone. Your account and all data will be
+                      deleted from our servers.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="rounded-xl border border-border/60 bg-input/20 p-4 my-4 flex items-start gap-3">
+                    <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
+                    <p className="text-sm text-muted-foreground/80 font-medium">
+                      Last warning: This cannot be reversed
+                    </p>
+                  </div>
+                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4">
+                    <Button variant="outline" className="rounded-lg h-11 font-medium">
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteAccount}
+                      className="rounded-lg h-11 active:scale-95 transition-all font-medium"
+                    >
+                      Confirm Deletion
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </SectionCard>
         </div>
       </main>
     </AppShell>
   );
 }
+
