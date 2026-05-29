@@ -4,10 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 // @supabase/realtime-js can initialize correctly during SSR/dev.
 if (typeof window === "undefined") {
   try {
-    // @ts-ignore
+    // @ts-expect-error -- ws is an optional peer dependency for SSR/Realtime support
     const wsPkg = await import("ws");
-    const wsImpl = (wsPkg as any).WebSocket || (wsPkg as any).default || wsPkg;
-    (globalThis as any).WebSocket = wsImpl;
+    const wsImpl =
+      (wsPkg as { WebSocket?: unknown; default?: { WebSocket?: unknown } }).WebSocket ||
+      (wsPkg as { default?: { WebSocket?: unknown } }).default?.WebSocket ||
+      wsPkg;
+    (globalThis as unknown as { WebSocket: unknown }).WebSocket = wsImpl;
   } catch (e) {
     // If `ws` isn't installed, we intentionally let createClient fail later
     // with the existing suggestion to install `ws`.
@@ -15,7 +18,9 @@ if (typeof window === "undefined") {
   }
 }
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || (import.meta.env as any).SUPABASE_URL;
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  (import.meta.env as unknown as { SUPABASE_URL: string }).SUPABASE_URL;
 
 // Lovable Cloud injects `VITE_SUPABASE_PUBLISHABLE_KEY`; older setups may use
 // `VITE_SUPABASE_ANON_KEY`. Accept either so the deployed build doesn't end up

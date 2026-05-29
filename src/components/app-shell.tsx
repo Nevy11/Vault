@@ -54,7 +54,8 @@ const sidebarNavItems = [
     label: "Savings & Loans",
     to: "/finance-hub",
     icon: Landmark,
-    isActive: (path: string) => path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
+    isActive: (path: string) =>
+      path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
   },
   {
     label: "Transact",
@@ -87,7 +88,8 @@ const mobileNavItems = [
     label: "Savings & Loans",
     to: "/finance-hub",
     icon: Landmark,
-    isActive: (path: string) => path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
+    isActive: (path: string) =>
+      path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
   },
   {
     label: "Transact",

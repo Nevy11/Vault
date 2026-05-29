@@ -42,7 +42,44 @@ import { supabase } from "@/api/supabase";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
-// ... (SAVED_BANK_ACCOUNTS, CARRIERS, BANKS, EXCHANGE_RATE remains same)
+type SourceChannel = "bank" | "mobile" | "stripe";
+type DepositStatus = "idle" | "processing" | "confirming" | "stripe_pay" | "success";
+
+const SAVED_BANK_ACCOUNTS = [
+  {
+    id: "b1",
+    name: "Chase Bank",
+    accountNumber: "****6789",
+    holder: "John Doe",
+    logo: "CB",
+    color: "bg-blue-600",
+  },
+  {
+    id: "b2",
+    name: "Bank of America",
+    accountNumber: "****1234",
+    holder: "John Doe",
+    logo: "BA",
+    color: "bg-red-600",
+  },
+];
+
+const CARRIERS = ["M-Pesa", "Airtel Money", "T-Kash"];
+
+const BANKS_LIST = [
+  "KCB Bank (Kenya Commercial Bank)",
+  "Co-operative Bank of Kenya",
+  "NCBA Bank",
+  "Absa Bank Kenya",
+  "Standard Chartered Kenya",
+  "Stanbic Bank Kenya",
+  "I&M Bank",
+  "DTB (Diamond Trust Bank)",
+  "Family Bank",
+  "Equity Bank Kenya",
+];
+
+const EXCHANGE_RATE = 130.0;
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
@@ -58,7 +95,37 @@ export function DepositPanel() {
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-  // ... (currencySymbol, SAVED_NUMBERS, kesEquivalent, usdEquivalent remain same)
+  const currencySymbol = useMemo(() => (currency === "USD" ? "$" : "KSH"), [currency]);
+
+  const SAVED_NUMBERS = useMemo(() => {
+    const phoneNumber = profile?.phone_number || "No number set";
+    return [
+      {
+        id: "m1",
+        name: "Personal M-Pesa",
+        phone: phoneNumber,
+        provider: "M-Pesa",
+        color: "bg-emerald-600",
+      },
+      {
+        id: "m2",
+        name: "Secondary Line",
+        phone: "+254 7XX XXX XXX",
+        provider: "Airtel Money",
+        color: "bg-red-500",
+      },
+    ];
+  }, [profile]);
+
+  const kesEquivalent = useMemo(() => {
+    const val = parseFloat(amount || "0");
+    return currency === "KSH" ? val : val * EXCHANGE_RATE;
+  }, [amount, currency]);
+
+  const usdEquivalent = useMemo(() => {
+    const val = parseFloat(amount || "0");
+    return currency === "USD" ? val : val / EXCHANGE_RATE;
+  }, [amount, currency]);
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -201,24 +268,292 @@ export function DepositPanel() {
   };
 
   const handleConfirmDeposit = async () => {
-    // ... (same as before)
+    setStatus("success");
+    toast.success("Deposit successful! Your balance has been updated.");
   };
 
   const getSourceName = () => {
-    // ... (same as before)
+    if (channel === "stripe") return "Stripe (International)";
+    if (channel === "bank") {
+      if (selectedSourceId === "stripe-ach") return "Stripe ACH";
+      return SAVED_BANK_ACCOUNTS.find((b) => b.id === selectedSourceId)?.name || "Bank Account";
+    }
+    if (isAddingNew) return selectedCarrier;
+    return SAVED_NUMBERS.find((n) => n.id === selectedSourceId)?.name || "Mobile Wallet";
   };
 
   if (status === "stripe_pay" && stripeClientSecret) {
-    // ... (same as before)
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <h2 className="text-2xl font-semibold mb-6">Complete Payment</h2>
+        <div className="w-full max-w-md bg-card/40 border border-border/50 rounded-2xl p-6 backdrop-blur-sm">
+          <p className="text-muted-foreground mb-4">
+            Stripe payment gateway is ready. (Implementation placeholder)
+          </p>
+          <Button className="w-full" onClick={() => setStatus("success")}>
+            Complete Payment (Mock)
+          </Button>
+          <Button variant="ghost" className="w-full mt-2" onClick={() => setStatus("idle")}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (status === "success") {
-    // ... (same as before)
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-6">
+          <CheckCircle2 className="w-12 h-12" />
+        </div>
+        <h2 className="text-2xl font-semibold mb-2">Deposit Successful!</h2>
+        <p className="text-muted-foreground mb-6 max-w-sm">
+          Your funds have been credited to your Vault wallet.
+        </p>
+
+        <div className="bg-card/40 border border-border/50 rounded-2xl p-6 w-full max-w-sm mb-8 backdrop-blur-sm">
+          <div className="flex justify-between mb-3 text-sm">
+            <span className="text-muted-foreground">Reference Code</span>
+            <span className="font-mono font-medium">{refCode}</span>
+          </div>
+          <div className="flex justify-between mb-3 text-sm">
+            <span className="text-muted-foreground">Amount Deposited</span>
+            <span className="font-medium">
+              {currencySymbol}
+              {parseFloat(amount).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between mb-3 text-sm">
+            <span className="text-muted-foreground">Source</span>
+            <span className="font-medium">{getSourceName()}</span>
+          </div>
+          <div className="border-t border-border/50 pt-3 flex justify-between text-sm">
+            <span className="text-muted-foreground">Status</span>
+            <span className="text-primary font-medium">Completed</span>
+          </div>
+        </div>
+
+        <Button variant="outline" className="w-full max-w-xs" asChild>
+          <Link to="/dashboard">Back to Dashboard</Link>
+        </Button>
+      </div>
+    );
   }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-      {/* ... (left panel remains same) */}
+      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-light tracking-tight">
+            {channel === "mobile" && "Deposit via Mobile Money"}
+            {channel === "bank" && "Deposit via Bank Transfer"}
+            {channel === "stripe" && "International Deposit"}
+          </h2>
+          <div className="flex p-1 bg-background/60 border border-border/60 rounded-2xl overflow-x-auto">
+            {[
+              { id: "mobile", label: "Mobile", icon: Smartphone },
+              { id: "bank", label: "Bank", icon: Building2 },
+              { id: "stripe", label: "Stripe", icon: CreditCard },
+            ].map((t) => {
+              const ActiveIcon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => {
+                    setChannel(t.id as SourceChannel);
+                    setSelectedSourceId(t.id === "mobile" ? "m1" : t.id === "bank" ? "b1" : null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap",
+                    channel === t.id
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <ActiveIcon className="w-4 h-4" />
+                  <span className="">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="min-h-[300px] animate-in slide-in-from-left-4 duration-500">
+          {channel === "mobile" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-3">
+                {SAVED_NUMBERS.map((num) => (
+                  <button
+                    key={num.id}
+                    onClick={() => {
+                      setSelectedSourceId(num.id);
+                      setIsAddingNew(false);
+                    }}
+                    className={cn(
+                      "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
+                      selectedSourceId === num.id && !isAddingNew
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
+                        : "border-border/60 bg-background/20 hover:border-border",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
+                        num.color,
+                      )}
+                    >
+                      {num.provider === "M-Pesa" ? "MP" : "AM"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold truncate">{num.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">{num.phone}</div>
+                    </div>
+                    {selectedSourceId === num.id && !isAddingNew && (
+                      <Check className="w-5 h-5 text-primary" />
+                    )}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    setIsAddingNew(true);
+                    setSelectedSourceId(null);
+                  }}
+                  className={cn(
+                    "flex items-center gap-4 p-5 rounded-2xl border border-dashed text-left transition-all hover:bg-background/40",
+                    isAddingNew
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border/60",
+                  )}
+                >
+                  <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
+                    <Plus className="w-6 h-6" />
+                  </div>
+                  <div className="text-sm font-medium">Use a Different Number</div>
+                </button>
+              </div>
+
+              {isAddingNew && (
+                <div className="p-6 rounded-2xl border border-border/60 bg-background/40 space-y-6 animate-in slide-in-from-top-4 duration-300">
+                  <div className="space-y-4">
+                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                      Mobile Number
+                    </Label>
+                    <Input
+                      placeholder="07XX XXX XXX"
+                      value={newPhoneNumber}
+                      onChange={(e) => setNewPhoneNumber(e.target.value)}
+                      className="h-12 bg-background/60 rounded-xl"
+                    />
+                    <div className="flex gap-2">
+                      {CARRIERS.map((c) => (
+                        <Button
+                          key={c}
+                          variant={selectedCarrier === c ? "default" : "outline"}
+                          onClick={() => setSelectedCarrier(c)}
+                          className="flex-1 rounded-xl"
+                        >
+                          {c}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {channel === "bank" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-3">
+                {SAVED_BANK_ACCOUNTS.map((bank) => (
+                  <button
+                    key={bank.id}
+                    onClick={() => setSelectedSourceId(bank.id)}
+                    className={cn(
+                      "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
+                      selectedSourceId === bank.id
+                        ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
+                        : "border-border/60 bg-background/20 hover:border-border",
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
+                        bank.color,
+                      )}
+                    >
+                      {bank.logo}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold truncate">{bank.name}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {bank.accountNumber}
+                      </div>
+                    </div>
+                    {selectedSourceId === bank.id && <Check className="w-5 h-5 text-primary" />}
+                  </button>
+                ))}
+
+                <div className="relative py-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50"></span>
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or connect via Stripe
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedSourceId("stripe-ach")}
+                  className={cn(
+                    "flex items-center gap-4 p-5 rounded-2xl border text-left transition-all",
+                    selectedSourceId === "stripe-ach"
+                      ? "border-primary bg-primary/10 ring-1 ring-primary shadow-lg shadow-primary/5"
+                      : "border-border/60 bg-background/20 hover:border-border",
+                  )}
+                >
+                  <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                    S
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">Stripe Direct ACH</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      Instant Verification
+                    </div>
+                  </div>
+                  {selectedSourceId === "stripe-ach" && <Check className="w-5 h-5 text-primary" />}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {channel === "stripe" && (
+            <div className="flex flex-col items-center justify-center py-12 px-6 border border-dashed border-border/60 rounded-3xl bg-background/20">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 mb-4">
+                <CreditCard className="w-8 h-8" />
+              </div>
+              <h3 className="text-lg font-medium mb-2">International Card Payment</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-xs mb-6">
+                Deposit instantly using any major credit or debit card worldwide via Stripe.
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border/60 text-[10px] font-bold">
+                  VISA
+                </div>
+                <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border/60 text-[10px] font-bold">
+                  MASTERCARD
+                </div>
+                <div className="px-3 py-1.5 rounded-lg bg-background/60 border border-border/60 text-[10px] font-bold">
+                  AMEX
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* SECTION 3: RIGHT PANEL - INPUTS, AMOUNT & SECURITY AUTHORIZATION */}
       <div className="space-y-6">

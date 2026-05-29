@@ -23,18 +23,21 @@ import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
  */
 export function ReceiptActionIcon() {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
         <button
           className={cn(
             "relative h-10 w-10 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/20 transition-all active:scale-95 group shadow-sm",
-            isOpen && "bg-primary/10 text-primary border-primary/30"
+            isOpen && "bg-primary/10 text-primary border-primary/30",
           )}
           aria-label="View receipts"
         >
-          <ReceiptIcon size={20} className="group-hover:scale-110 transition-transform duration-300" />
+          <ReceiptIcon
+            size={20}
+            className="group-hover:scale-110 transition-transform duration-300"
+          />
           <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full border border-background shadow-sm opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </SheetTrigger>
@@ -53,14 +56,14 @@ function ReceiptHistoryContent() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
-  
+
   // Realtime updates
   const { latestReceipt } = useReceiptRealtime();
 
   useEffect(() => {
     if (latestReceipt) {
-      setReceipts(prev => {
-        if (prev.find(r => r.id === latestReceipt.id)) return prev;
+      setReceipts((prev) => {
+        if (prev.find((r) => r.id === latestReceipt.id)) return prev;
         return [latestReceipt, ...prev];
       });
     }
@@ -72,7 +75,7 @@ function ReceiptHistoryContent() {
         console.log("No profile ID found, skipping receipt fetch");
         return;
       }
-      
+
       try {
         console.log("Fetching receipts for user:", profile.id);
         const data = await getReceipts({ data: { userId: profile.id, page: 0, pageSize: 20 } });
@@ -149,7 +152,10 @@ function ReceiptHistoryContent() {
                       {format(new Date(r.created_at), "MMM d")}
                     </div>
                   </div>
-                  <ChevronRight size={14} className="text-muted-foreground/40 group-hover:text-primary transition-colors" />
+                  <ChevronRight
+                    size={14}
+                    className="text-muted-foreground/40 group-hover:text-primary transition-colors"
+                  />
                 </div>
               </button>
             ))}
@@ -171,8 +177,12 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
           <X size={16} /> Back
         </Button>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full"><Download size={16} /></Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full"><Share2 size={16} /></Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+            <Download size={16} />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
+            <Share2 size={16} />
+          </Button>
         </div>
       </div>
 
@@ -181,7 +191,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
           {/* Receipt Decorators */}
           <div className="absolute top-0 left-0 w-full h-2 bg-primary/20" />
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
-             <ReceiptIcon size={120} className="rotate-12" />
+            <ReceiptIcon size={120} className="rotate-12" />
           </div>
 
           <div className="text-center mb-10">
@@ -189,17 +199,25 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
               <ReceiptIcon size={32} />
             </div>
             <h2 className="text-2xl font-black tracking-tight">Vault OS</h2>
-            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold">Transaction Certified</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold">
+              Transaction Certified
+            </p>
           </div>
 
           <div className="space-y-6">
             <div className="flex justify-between items-baseline border-b border-dashed border-border/60 pb-4">
-              <span className="text-xs text-muted-foreground uppercase font-bold">Receipt Number</span>
-              <span className="text-sm font-mono font-bold tracking-tighter">{receipt.receipt_number}</span>
+              <span className="text-xs text-muted-foreground uppercase font-bold">
+                Receipt Number
+              </span>
+              <span className="text-sm font-mono font-bold tracking-tighter">
+                {receipt.receipt_number}
+              </span>
             </div>
 
             <div className="py-4">
-              <div className="text-[10px] text-muted-foreground uppercase font-black mb-1">Amount Deducted</div>
+              <div className="text-[10px] text-muted-foreground uppercase font-black mb-1">
+                Amount Deducted
+              </div>
               <div className="text-4xl font-black text-primary tracking-tighter">
                 {receipt.currency} {receipt.amount.toLocaleString()}
               </div>
@@ -208,26 +226,35 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
             <div className="space-y-4 pt-4">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Status</span>
-                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10">COMPLETED</Badge>
+                <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10">
+                  COMPLETED
+                </Badge>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Date</span>
-                <span className="font-semibold">{format(new Date(receipt.created_at), "PPP p")}</span>
+                <span className="font-semibold">
+                  {format(new Date(receipt.created_at), "PPP p")}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Method</span>
-                <span className="font-semibold uppercase tracking-wider text-xs">{receipt.transaction_details.method}</span>
+                <span className="font-semibold uppercase tracking-wider text-xs">
+                  {receipt.transaction_details.method}
+                </span>
               </div>
               <div className="flex justify-between items-center text-sm border-t border-border/40 pt-4">
                 <span className="text-muted-foreground">Type</span>
-                <span className="font-semibold uppercase tracking-wider text-xs">{receipt.transaction_details.type}</span>
+                <span className="font-semibold uppercase tracking-wider text-xs">
+                  {receipt.transaction_details.type}
+                </span>
               </div>
             </div>
 
             <div className="mt-12 pt-10 border-t border-dashed border-border/60 text-center">
               <div className="mb-6 px-4 py-3 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold leading-relaxed">
-                  Your transfer of {receipt.currency} {receipt.amount.toLocaleString()} has been processed securely.
+                  Your transfer of {receipt.currency} {receipt.amount.toLocaleString()} has been
+                  processed securely.
                 </p>
               </div>
               <div className="inline-block p-4 bg-muted/40 rounded-2xl border border-border/40 mb-4 grayscale opacity-50">
@@ -235,7 +262,8 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
                 <div className="w-24 h-24 bg-foreground/10 rounded-md" />
               </div>
               <p className="text-[9px] text-muted-foreground max-w-[200px] mx-auto leading-relaxed">
-                This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.
+                This digital receipt is cryptographically signed and serves as official proof of
+                transaction for Vault OS services.
               </p>
             </div>
           </div>

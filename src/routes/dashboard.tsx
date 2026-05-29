@@ -37,6 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -453,7 +454,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
 
   useEffect(() => {
     if (!profileId) return;
-    
+
     // Check DB first for latest insight
     async function loadLatestInsight() {
       const { data } = await supabase
@@ -463,10 +464,10 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-        
+
       if (data) setInsight(data);
     }
-    
+
     loadLatestInsight();
   }, [profileId]);
 
@@ -477,12 +478,25 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
         body: { userId: profileId },
       });
-      if (error) throw error;
+      if (error) {
+        let errorDetails = error.message;
+        try {
+          // Attempt to extract the JSON error message from the Edge Function response
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json();
+            if (errorBody?.error) errorDetails = errorBody.error;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        throw new Error(errorDetails);
+      }
       if (data?.insight) {
         setInsight(data.insight);
       }
     } catch (err: any) {
       console.error("Failed to generate insight:", err);
+      toast.error(`AI Insight Failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -493,33 +507,63 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-primary/5 border border-primary/20 p-6 sm:p-8 backdrop-blur-sm transition-all hover:bg-primary/10 mb-8 shadow-lg">
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-3xl transition-all group-hover:bg-primary/20" />
-      
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary flex flex-shrink-0 items-center justify-center text-primary-foreground shadow-lg">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 2v4" />
+              <path d="M12 18v4" />
+              <path d="M4.93 4.93l2.83 2.83" />
+              <path d="M16.24 16.24l2.83 2.83" />
+              <path d="M2 12h4" />
+              <path d="M18 12h4" />
+              <path d="M4.93 19.07l2.83-2.83" />
+              <path d="M16.24 7.76l2.83-2.83" />
+            </svg>
           </div>
           <div>
             <h3 className="text-lg font-bold text-foreground">AI Financial Insight</h3>
             {insight ? (
               <div className="mt-2 space-y-1">
-                <div className="text-sm font-semibold text-primary">{insight.title || insight.content}</div>
-                {insight.title && <div className="text-xs text-muted-foreground leading-relaxed">{insight.content}</div>}
+                <div className="text-sm font-semibold text-primary">
+                  {insight.title || insight.content}
+                </div>
+                {insight.title && (
+                  <div className="text-xs text-muted-foreground leading-relaxed">
+                    {insight.content}
+                  </div>
+                )}
               </div>
             ) : (
-              <p className="mt-1 text-xs text-muted-foreground">Click generate to analyze your spending and get AI predictions.</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Click generate to analyze your spending and get AI predictions.
+              </p>
             )}
           </div>
         </div>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={generateNewInsight} 
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={generateNewInsight}
           disabled={loading}
           className="shrink-0 rounded-2xl h-10 border-primary/30 text-primary hover:bg-primary/10 shadow-sm"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+          {loading ? (
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
           {insight ? "Update Analysis" : "Generate Insight"}
         </Button>
       </div>
@@ -541,17 +585,18 @@ function DashboardPage() {
   const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
 
   // Find unread warning notifications (like sharp drops from AI)
-  const warningNotifications = useMemo(() => 
-    notifications.filter(n => !n.is_read && n.type === "warning"),
-  [notifications]);
+  const warningNotifications = useMemo(
+    () => notifications.filter((n) => !n.is_read && n.type === "warning"),
+    [notifications],
+  );
 
   useEffect(() => {
     const fetchBalanceHistory = async () => {
       if (!profile?.id) return;
       const { data } = await supabase
-        .from('balance_history')
-        .select('*')
-        .order('recorded_at', { ascending: false });
+        .from("balance_history")
+        .select("*")
+        .order("recorded_at", { ascending: false });
       setBalanceHistory(data || []);
     };
     fetchBalanceHistory();
@@ -720,14 +765,18 @@ function DashboardPage() {
         {warningNotifications.length > 0 && (
           <div className="mb-8 space-y-3">
             {warningNotifications.map((n) => (
-              <Alert key={n.id} variant="destructive" className="bg-destructive/10 border-destructive/30 rounded-2xl animate-in slide-in-from-top-4 duration-500">
+              <Alert
+                key={n.id}
+                variant="destructive"
+                className="bg-destructive/10 border-destructive/30 rounded-2xl animate-in slide-in-from-top-4 duration-500"
+              >
                 <Shield className="h-4 w-4" />
                 <AlertTitle className="font-bold">{n.title}</AlertTitle>
                 <AlertDescription className="flex items-center justify-between gap-4">
                   <span>{n.message}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-7 text-[10px] uppercase font-bold hover:bg-destructive/20"
                     onClick={() => markAsRead(n.id)}
                   >
@@ -938,7 +987,7 @@ function DashboardPage() {
             ) : (
               filteredTransactions.map((t) => {
                 const details = getTransactionDetails(t);
-                
+
                 // Trust the balance_after provided by the useTransactions hook
                 // This value is already the 'Ultimate Truth' (combined DB snapshots + anchored calculation)
                 const displayBalance = t.balance_after || balance || 0;
@@ -972,7 +1021,8 @@ function DashboardPage() {
                         {details.amount}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Balance: {currencySymbol}{displayBalance.toLocaleString()}
+                        Balance: {currencySymbol}
+                        {displayBalance.toLocaleString()}
                       </div>
                     </div>
                   </li>

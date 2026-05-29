@@ -19,7 +19,7 @@ serve(async (req) => {
     }
 
     // Clean the key: remove any wrapping quotes or brackets
-    stripeKey = stripeKey.replace(/^["'\[]+|["'\]]+$/g, "");
+    stripeKey = stripeKey.replace(/^["'[]+|["'\]]+$/g, "");
 
     console.log(`Stripe Key Length: ${stripeKey.length} characters`);
     console.log(

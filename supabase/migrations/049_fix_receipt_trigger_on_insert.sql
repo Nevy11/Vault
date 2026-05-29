@@ -1,8 +1,6 @@
 -- Migration: Fix Receipt Trigger to fire on INSERT and retroactively generate missing receipts
 -- Description: The previous trigger only fired on UPDATE, meaning transactions inserted as 'completed' (like vault transfers) bypassed the receipt generation.
 
-BEGIN;
-
 CREATE OR REPLACE FUNCTION fn_generate_transaction_receipt() 
 RETURNS TRIGGER AS $$
 DECLARE
@@ -95,5 +93,3 @@ BEGIN
         );
     END LOOP;
 END $$;
-
-COMMIT;

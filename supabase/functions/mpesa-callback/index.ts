@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL")!;
-const supabaseAnonKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("VITE_SUPABASE_SERVICE_ROLE_KEY")!;
+const supabaseAnonKey =
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || Deno.env.get("VITE_SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 serve(async (req) => {
@@ -21,7 +22,7 @@ serve(async (req) => {
   if (resultCode === 0) {
     // Success: Update database
     console.log("Transaction Success:", checkoutRequestId);
-    
+
     // 1. Fetch the pending transaction
     const { data: tx, error: txError } = await supabase
       .from("transactions")
@@ -70,9 +71,9 @@ serve(async (req) => {
     // 3. Update the transaction status and balance_after
     const { error: updateError } = await supabase
       .from("transactions")
-      .update({ 
+      .update({
         status: "completed",
-        balance_after: newBalance
+        balance_after: newBalance,
       })
       .eq("id", tx.id);
 
@@ -85,7 +86,7 @@ serve(async (req) => {
       status: "completed",
       reference: checkoutRequestId,
       description: `M-Pesa Deposit: ${checkoutRequestId}`,
-      metadata: { mpesa_checkout_id: checkoutRequestId, payment_method: 'mpesa' }
+      metadata: { mpesa_checkout_id: checkoutRequestId, payment_method: "mpesa" },
     });
 
     return new Response(JSON.stringify({ ResultCode: 0, ResultDesc: "Success" }), {

@@ -29,7 +29,7 @@ export interface DashboardPayload {
  */
 export const getDashboardData = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user?.id; // From JWT Auth Middleware
+    const userId = (req as { user?: { id: string } }).user?.id; // From JWT Auth Middleware
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     // Atomic data fetching via Promise.all
@@ -63,7 +63,7 @@ export const getDashboardData = async (req: Request, res: Response) => {
     };
 
     return res.status(200).json(payload);
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Dashboard Data Error:", err);
     return res.status(500).json({ error: "Internal server error fetching dashboard data" });
   }

@@ -179,13 +179,14 @@ export function WithdrawPanel() {
       if (!userId) throw new Error("User not found");
 
       // Call the RPC function
-      const { data, error: txError } = await supabase.rpc('process_secure_withdrawal', {
+      const { data, error: txError } = await supabase.rpc("process_secure_withdrawal", {
         p_user_id: userId,
         p_amount: totalDeduction,
-        p_method: channel === 'mobile' ? 'mpesa' : 'bank',
-        p_description: channel === 'mobile' 
-          ? `Withdrawal to ${getRecipientName()}` 
-          : `Withdrawal to ${selectedBank}: ${bankAccount}`
+        p_method: channel === "mobile" ? "mpesa" : "bank",
+        p_description:
+          channel === "mobile"
+            ? `Withdrawal to ${getRecipientName()}`
+            : `Withdrawal to ${selectedBank}: ${bankAccount}`,
       });
 
       if (txError) throw txError;

@@ -325,9 +325,7 @@ function HelpPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm text-muted-foreground">Your message</label>
-                  <span className="text-xs text-muted-foreground/60">
-                    {message.length} / 1000
-                  </span>
+                  <span className="text-xs text-muted-foreground/60">{message.length} / 1000</span>
                 </div>
                 <textarea
                   rows={6}
@@ -354,7 +352,14 @@ function HelpPage() {
 
               <Button
                 type="submit"
-                disabled={!agreed || isSending || !firstName.trim() || !lastName.trim() || !email.trim() || !message.trim()}
+                disabled={
+                  !agreed ||
+                  isSending ||
+                  !firstName.trim() ||
+                  !lastName.trim() ||
+                  !email.trim() ||
+                  !message.trim()
+                }
                 className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed gap-2"
               >
                 <Send className="h-4 w-4" />

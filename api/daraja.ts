@@ -102,8 +102,9 @@ export const initiateStkPush = async (req: Request, res: Response) => {
     // await db.transactions.create({ data: { checkoutRequestId: response.data.CheckoutRequestID, ... } })
 
     return res.status(200).json(response.data);
-  } catch (error: any) {
-    console.error("M-PESA STK Push Error:", error.response?.data || error.message);
+  } catch (error: unknown) {
+    const err = error as { response?: { data?: unknown }; message?: string };
+    console.error("M-PESA STK Push Error:", err.response?.data || err.message);
     return res.status(500).json({ error: "Failed to initiate STK Push" });
   }
 };
@@ -123,8 +124,8 @@ export const handleMpesaCallback = async (req: Request, res: Response) => {
   try {
     if (ResultCode === 0) {
       // Success: Securely parse metadata array
-      const metadata: Record<string, any> = {};
-      CallbackMetadata.Item.forEach((item: { Name: string; Value: any }) => {
+      const metadata: Record<string, unknown> = {};
+      CallbackMetadata.Item.forEach((item: { Name: string; Value: unknown }) => {
         metadata[item.Name] = item.Value;
       });
 

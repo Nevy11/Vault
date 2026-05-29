@@ -1,3 +1,7 @@
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS pg_net;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Create transaction enums
 -- This migration creates the enum types needed for the transactions table
 

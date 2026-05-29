@@ -15,46 +15,99 @@ serve(async (req) => {
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const authHeader = req.headers.get("Authorization");
 
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not set");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader || "" } },
+    });
 
-    // If a userId is provided in the body, run for that user. 
-    // Otherwise, this could be extended to run for all active users.
-    const { userId } = await req.json().catch(() => ({}));
-    
+    // Get the user ID from the request token or body
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    // Fallback to body param if needed for testing, but prefer auth token
+    const body = await req.json().catch(() => ({}));
+    const userId = user?.id || body.userId;
+
     if (!userId) {
-       return new Response(JSON.stringify({ error: "No userId provided" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "No authenticated user found" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // 1. Fetch balance history (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // 1. Fetch user's wallets to get wallet IDs and currencies
+    const { data: wallets, error: walletError } = await supabase
+      .from("wallets")
+      .select("id, currency")
+      .eq("user_id", userId);
 
-    const { data: history, error: historyError } = await supabase
-      .from("balance_history")
-      .select("balance, currency, created_at")
-      .eq("user_id", userId)
-      .gte("created_at", thirtyDaysAgo.toISOString())
-      .order("created_at", { ascending: true });
+    if (walletError) {
+      console.error("Wallet Fetch Error:", walletError);
+      throw walletError;
+    }
 
-    if (historyError) throw historyError;
+    const walletIds = wallets?.map((w) => w.id) || [];
+    const walletMap = Object.fromEntries(wallets?.map((w) => [w.id, w.currency]) || []);
 
-    // 2. Fetch recent transactions
+    let history = [];
+    if (walletIds.length > 0) {
+      // 2. Fetch balance history (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: historyData, error: historyError } = await supabase
+        .from("balance_history")
+        .select("recorded_balance, recorded_at, wallet_id")
+        .in("wallet_id", walletIds)
+        .gte("recorded_at", thirtyDaysAgo.toISOString())
+        .order("recorded_at", { ascending: true });
+
+      if (historyError) {
+        console.error("History Fetch Error:", historyError);
+        throw historyError;
+      }
+      history = historyData || [];
+    }
+
+    // 3. Fetch recent transactions (both sent and received)
     const { data: transactions, error: txError } = await supabase
       .from("transactions")
-      .select("amount, type, description, created_at")
-      .eq("sender_id", userId) // Simplification: just looking at outflows
+      .select("amount, type, description, created_at, sender_id, receiver_id")
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(20);
 
-    if (txError) throw txError;
+    if (txError) {
+      console.error("Transactions Fetch Error:", txError);
+      throw txError;
+    }
 
-    // 3. Construct prompt
-    const historyText = history?.map(h => `${h.created_at}: ${h.currency} ${h.balance}`).join("\n") || "No history available";
-    const txText = transactions?.map(t => `${t.created_at}: -${t.amount} (${t.description})`).join("\n") || "No transactions available";
+    // 4. Construct prompt with accurate data
+    const historyText =
+      history.length > 0
+        ? history
+            .map(
+              (h) => `${h.recorded_at}: ${walletMap[h.wallet_id] || "USD"} ${h.recorded_balance}`,
+            )
+            .join("\n")
+        : "No recent balance history (stable balance).";
+
+    const txText =
+      transactions && transactions.length > 0
+        ? transactions
+            .map((t) => {
+              const isOutflow = t.sender_id === userId;
+              const prefix = isOutflow ? "-" : "+";
+              return `${t.created_at}: ${prefix}${t.amount} (${t.description || t.type})`;
+            })
+            .join("\n")
+        : "No recent transactions found.";
 
     const prompt = `
       Analyze this user's financial data for Vault OS and provide ONE actionable insight or prediction.
@@ -63,7 +116,7 @@ serve(async (req) => {
       Balance History (Last 30 Days):
       ${historyText}
       
-      Recent Outflows:
+      Recent Activity (last 20 items):
       ${txText}
       
       Return the response in strictly valid JSON format with the following keys:
@@ -72,23 +125,29 @@ serve(async (req) => {
       "content": the detailed insight
       "severity": "low", "medium", "high"
       
-      Focus on spending patterns, potential balance depletion, or savings opportunities.
+      Focus on spending patterns, potential balance depletion, or savings opportunities. Be specific to the data provided.
+      If there is very little data, provide a welcoming tip on how to get started with Vault OS.
     `;
 
+    console.log(
+      `Generating insight for user ${userId} with ${history.length} history points and ${transactions?.length || 0} transactions.`,
+    );
+
     // 4. Call Gemini
-    const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-    
+    const GEMINI_API_URL =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+
     const aiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { response_mime_type: "application/json" }
+        generationConfig: { response_mime_type: "application/json" },
       }),
     });
 
     const aiData = await aiResponse.json();
-    
+
     if (!aiResponse.ok) {
       throw new Error(`Gemini API Error: ${aiResponse.status} ${JSON.stringify(aiData)}`);
     }
@@ -98,9 +157,12 @@ serve(async (req) => {
     }
 
     let rawText = aiData.candidates[0].content.parts[0].text;
-    
+
     // Strip markdown formatting if Gemini returns it wrapped in ```json ... ```
-    rawText = rawText.replace(/```json/gi, "").replace(/```/g, "").trim();
+    rawText = rawText
+      .replace(/```json/gi, "")
+      .replace(/```/g, "")
+      .trim();
 
     let insightJson;
     try {
@@ -111,15 +173,13 @@ serve(async (req) => {
     }
 
     // 5. Store insight
-    const { error: insertError } = await supabase
-      .from("financial_insights")
-      .insert({
-        user_id: userId,
-        type: insightJson.type,
-        title: insightJson.title,
-        content: insightJson.content,
-        metadata: { severity: insightJson.severity, generated_at: new Date().toISOString() }
-      });
+    const { error: insertError } = await supabase.from("financial_insights").insert({
+      user_id: userId,
+      type: insightJson.type,
+      title: insightJson.title,
+      content: insightJson.content,
+      metadata: { severity: insightJson.severity, generated_at: new Date().toISOString() },
+    });
 
     if (insertError) throw insertError;
 
@@ -127,7 +187,6 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error: any) {
     console.error("Health Check Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {

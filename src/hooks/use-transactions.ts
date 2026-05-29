@@ -42,24 +42,20 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const {
-    page = 0,
-    pageSize = 10,
-    search = "",
-    type = "all",
-    status = "all"
-  } = options;
+  const { page = 0, pageSize = 10, search = "", type = "all", status = "all" } = options;
 
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      
+
       let userId = profile?.id;
       if (!userId) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         userId = user?.id;
       }
-      
+
       if (!userId) {
         setLoading(false);
         return;
@@ -76,7 +72,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
           sender:profiles!sender_id(first_name, last_name, kyc_tag, profile_photo_url),
           receiver:profiles!receiver_id(first_name, last_name, kyc_tag, profile_photo_url)
           `,
-          { count: "exact" }
+          { count: "exact" },
         )
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order("created_at", { ascending: false })
@@ -98,11 +94,11 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
       if (txError) throw txError;
 
       if (page === 0) {
-        setTransactions(data as Transaction[] || []);
+        setTransactions((data as Transaction[]) || []);
       } else {
-        setTransactions(prev => [...prev, ...(data as Transaction[] || [])]);
+        setTransactions((prev) => [...prev, ...((data as Transaction[]) || [])]);
       }
-      
+
       setTotalCount(count || 0);
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
@@ -130,7 +126,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
           table: "transactions",
           filter: `sender_id=eq.${profile.id}`,
         },
-        () => fetchTransactions()
+        () => fetchTransactions(),
       )
       .on(
         "postgres_changes",
@@ -140,7 +136,7 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
           table: "transactions",
           filter: `receiver_id=eq.${profile.id}`,
         },
-        () => fetchTransactions()
+        () => fetchTransactions(),
       )
       .subscribe();
 
@@ -149,12 +145,12 @@ export function useTransactions(enabled = true, options: TransactionOptions = {}
     };
   }, [profile?.id, enabled]);
 
-  return { 
-    transactions, 
-    totalCount, 
-    loading, 
-    error, 
+  return {
+    transactions,
+    totalCount,
+    loading,
+    error,
     refetch: fetchTransactions,
-    hasMore: transactions.length < totalCount
+    hasMore: transactions.length < totalCount,
   };
 }

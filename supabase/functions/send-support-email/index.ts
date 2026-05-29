@@ -87,17 +87,19 @@ serve(async (req) => {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-
   } catch (error: any) {
     console.error("send-support-email error:", error.message);
-    
+
     // Return a structured error that doesn't trigger CORS issues
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message || "An unexpected error occurred" 
-    }), {
-      status: 200, // Still 200 so the client can read the JSON error
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message || "An unexpected error occurred",
+      }),
+      {
+        status: 200, // Still 200 so the client can read the JSON error
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

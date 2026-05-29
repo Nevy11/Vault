@@ -65,8 +65,8 @@ export const FinancialHealthReport: React.FC<FinancialHealthReportProps> = ({
         // Simple audit check for demo purposes
         // In a real app, you'd verify entry.cryptographic_signature against HMAC
         // We assume valid unless explicitly marked invalid to prevent false positives
-        const isVerified = entry.cryptographic_signature 
-          ? !entry.cryptographic_signature.startsWith("invalid_") 
+        const isVerified = entry.cryptographic_signature
+          ? !entry.cryptographic_signature.startsWith("invalid_")
           : true;
 
         if (isVerified) {
