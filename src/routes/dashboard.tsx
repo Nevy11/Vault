@@ -37,7 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
-import { useReceiptHistory } from "@/components/receipt-history";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -485,12 +485,27 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
         body: { userId: profileId },
       });
-      if (error) throw error;
+      
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          // Attempt to extract the JSON error message from the Edge Function response
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json();
+            if (errorBody?.error) errorMessage = errorBody.error;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        throw new Error(errorMessage);
+      }
+      
       if (data?.insight) {
         setInsight(data.insight);
       }
     } catch (err: any) {
       console.error("Failed to generate insight:", err);
+      toast.error(`AI Insight Failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -549,7 +564,7 @@ const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 function DashboardPage() {
   const navigate = useNavigate();
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
+  const { transactions, loading: txLoading, error: txError, refetch: refetchTransactions } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
   const { notifications, markAsRead } = useNotifications();
   const [activeFilter, setActiveFilter] = useState("All");
@@ -1020,9 +1035,14 @@ function DashboardPage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <RefreshCw className={`w-3 h-3 ${txLoading ? "animate-spin" : ""}`} /> {syncTime}
-            </div>
+            <button 
+              onClick={() => refetchTransactions()}
+              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-primary transition-colors group/sync"
+              disabled={txLoading}
+            >
+              <RefreshCw className={cn("w-3 h-3 transition-transform group-hover/sync:rotate-180 duration-500", txLoading && "animate-spin")} /> 
+              {syncTime}
+            </button>
           </div>
 
           <ul className="divide-y divide-border/40">

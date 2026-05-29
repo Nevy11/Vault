@@ -349,7 +349,18 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json();
+            if (errorBody?.error) errorMessage = errorBody.error;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        throw new Error(errorMessage);
+      }
 
       const aiText = data.text;
       const newAiMessage = {
