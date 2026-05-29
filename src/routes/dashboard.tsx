@@ -151,6 +151,7 @@ function QuickSend({
   withAdd,
   onAvatarClick,
   title = "Quick Send (P2P)",
+  className,
 }: {
   avatars: {
     id?: string;
@@ -163,9 +164,10 @@ function QuickSend({
   withAdd?: boolean;
   onAvatarClick?: (tag: string) => void;
   title?: string;
+  className?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm transition-all hover:border-border/60">
+    <div className={cn("rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm transition-all hover:border-border/60", className)}>
       <div className="flex items-center justify-between mb-4">
         <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">
           {title}
@@ -447,6 +449,86 @@ function SecurityStatus() {
   );
 }
 
+function AIInsightsWidget({ profileId }: { profileId?: string }) {
+  const [insight, setInsight] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!profileId) return;
+    
+    // Check DB first for latest insight
+    async function loadLatestInsight() {
+      const { data } = await supabase
+        .from("financial_insights")
+        .select("*")
+        .eq("user_id", profileId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+      if (data) setInsight(data);
+    }
+    
+    loadLatestInsight();
+  }, [profileId]);
+
+  const generateNewInsight = async () => {
+    if (!profileId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("financial-health-check", {
+        body: { userId: profileId },
+      });
+      if (error) throw error;
+      if (data?.insight) {
+        setInsight(data.insight);
+      }
+    } catch (err: any) {
+      console.error("Failed to generate insight:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!profileId) return null;
+
+  return (
+    <div className="group relative overflow-hidden rounded-3xl bg-primary/5 border border-primary/20 p-6 sm:p-8 backdrop-blur-sm transition-all hover:bg-primary/10 mb-8 shadow-lg">
+      <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-3xl transition-all group-hover:bg-primary/20" />
+      
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary flex flex-shrink-0 items-center justify-center text-primary-foreground shadow-lg">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-foreground">AI Financial Insight</h3>
+            {insight ? (
+              <div className="mt-2 space-y-1">
+                <div className="text-sm font-semibold text-primary">{insight.title || insight.content}</div>
+                {insight.title && <div className="text-xs text-muted-foreground leading-relaxed">{insight.content}</div>}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">Click generate to analyze your spending and get AI predictions.</p>
+            )}
+          </div>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={generateNewInsight} 
+          disabled={loading}
+          className="shrink-0 rounded-2xl h-10 border-primary/30 text-primary hover:bg-primary/10 shadow-sm"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+          {insight ? "Update Analysis" : "Generate Insight"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 
 function DashboardPage() {
@@ -554,10 +636,16 @@ function DashboardPage() {
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
       : profile?.email?.split("@")[0] || "Vault User";
     const symbol = currency === "USD" ? "$" : currency + " ";
-    const isLedger = t.source === "ledger";
+    
+    // Method-specific icon helper
+    const getMethodIcon = (method: string) => {
+      if (method === 'mpesa') return { initials: 'MP', color: 'bg-emerald-600', isAvatar: false };
+      if (method === 'bank') return { initials: 'BB', color: 'bg-blue-600', isAvatar: false };
+      return { initials: 'V', color: 'bg-primary', isAvatar: false };
+    };
 
     if (t.type === "transfer") {
-      if (t.description === "Transferred to savings" || (isSender && !t.receiver_id)) {
+      if (t.description === "Transferred to savings") {
         return {
           title: "Transferred to savings",
           amount: `-${symbol}${t.amount.toLocaleString()}`,
@@ -587,25 +675,23 @@ function DashboardPage() {
         };
       }
     } else if (t.type === "deposit") {
-      const bankName = isLedger ? "Wallet Deposit" : (t.method || "Deposit").toString();
-      const initials = bankName.substring(0, 2).toUpperCase();
+      const methodInfo = getMethodIcon(t.method);
       return {
-        title: `${bankName} to ${userName}`,
+        title: t.description,
         amount: `+${symbol}${t.amount.toLocaleString()}`,
         positive: true,
-        icon: initials,
-        avatarUrl: t.sender?.profile_photo_url || null,
-        color: "bg-emerald-500/20 text-emerald-500",
+        icon: methodInfo.initials,
+        avatarUrl: null,
+        color: `${methodInfo.color}/20 text-${methodInfo.color.replace('bg-', '')}`,
       };
     } else if (t.type === "withdrawal") {
-      const bankName = isLedger ? "Wallet Withdrawal" : (t.method || "Withdrawal").toString();
-      const initials = bankName.substring(0, 2).toUpperCase();
+      const methodInfo = getMethodIcon(t.method);
       return {
-        title: `${bankName} to ${userName}`,
+        title: t.description,
         amount: `-${symbol}${t.amount.toLocaleString()}`,
         positive: false,
-        icon: initials,
-        avatarUrl: t.receiver?.profile_photo_url || profile?.profile_photo_url || null,
+        icon: methodInfo.initials,
+        avatarUrl: null,
         color: "bg-destructive/20 text-destructive",
       };
     }
@@ -633,7 +719,10 @@ function DashboardPage() {
           </p>
         </div>
 
-        {/* Warning Notifications (AI Insights) */}
+        {/* AI Financial Insights Widget */}
+        <AIInsightsWidget profileId={profile?.id} />
+
+        {/* Warning Notifications */}
         {warningNotifications.length > 0 && (
           <div className="mb-8 space-y-3">
             {warningNotifications.map((n) => (
@@ -769,29 +858,43 @@ function DashboardPage() {
         </div>
 
         {/* Quick actions + Finance Hub */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <Link
             to="/finance-hub"
-            className="lg:col-span-2 group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 p-5 backdrop-blur-sm transition-all hover:bg-primary/20 hover:border-primary/40 shadow-lg"
+            className="col-span-1 group relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/15 via-primary/5 to-transparent border border-primary/25 p-6 sm:p-7 lg:p-8 backdrop-blur-md transition-all duration-300 hover:from-primary/20 hover:via-primary/10 hover:border-primary/40 hover:shadow-xl shadow-md min-h-[240px] flex flex-col justify-center"
           >
-            <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all" />
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+            {/* Decorative blur elements */}
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/8 rounded-full blur-3xl group-hover:bg-primary/12 transition-all duration-300" />
+            <div className="absolute -left-8 bottom-0 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/8 transition-all duration-300" />
+            
+            {/* Header with label and icon */}
+            <div className="relative flex items-center justify-between mb-6 sm:mb-8">
+              <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/70 group-hover:text-primary transition-colors">
                 Finance & Credit
               </div>
-              <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                <Landmark className="w-6 h-6" />
+              <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
               </div>
-              <div>
-                <h3 className="text-lg font-bold">Savings & Loans</h3>
-                <p className="text-xs text-muted-foreground">Unlock 2% rewards & instant credit</p>
+            </div>
+            
+            {/* Main content */}
+            <div className="relative flex items-center gap-4 sm:gap-5">
+              {/* Icon container */}
+              <div className="flex-shrink-0">
+                <div className="w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-105 transition-all duration-300">
+                  <Landmark className="w-8 h-8" />
+                </div>
+              </div>
+              
+              {/* Text content */}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg sm:text-xl font-bold text-foreground leading-tight mb-1.5">Savings & Loans</h3>
+                <p className="text-sm text-muted-foreground/85 leading-relaxed">Unlock 2% rewards & instant credit</p>
               </div>
             </div>
           </Link>
           <QuickSend
+            className="col-span-1"
             onAvatarClick={handleQuickSend}
             avatars={
               frequentRecipients.length > 0
@@ -804,7 +907,7 @@ function DashboardPage() {
                   ]
             }
           />
-          <div className="hidden lg:block lg:col-span-1">
+          <div className="hidden sm:block col-span-1">
             <NetWorthChart
               entries={ledgerEntries}
               currencySymbol={currencySymbol}

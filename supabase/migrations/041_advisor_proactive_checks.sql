@@ -16,31 +16,33 @@ CREATE INDEX IF NOT EXISTS idx_advisor_checks_user_id ON public.advisor_checks(u
 -- 2. Function to call the advisor check edge function
 -- Note: This assumes pg_net is available in Supabase
 CREATE OR REPLACE FUNCTION public.trigger_advisor_health_check()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+AS $$
 DECLARE
     v_last_check TIMESTAMPTZ;
     v_user_id UUID;
+    v_headers jsonb;
 BEGIN
-    -- Get user_id from wallet
     SELECT user_id INTO v_user_id FROM public.wallets WHERE id = NEW.wallet_id;
-    
-    -- Check when the last advisor check was run for this user
     SELECT MAX(last_check_at) INTO v_last_check FROM public.advisor_checks WHERE user_id = v_user_id;
     
-    -- Only run check if it's been at least 12 hours since the last one
-    -- or if there's no previous check
+    -- Attempt to get headers safely, default to empty json if not available
+    BEGIN
+        v_headers := current_setting('request.headers')::jsonb;
+    EXCEPTION WHEN OTHERS THEN
+        v_headers := '{}'::jsonb;
+    END;
+
     IF v_last_check IS NULL OR v_last_check < NOW() - INTERVAL '12 hours' THEN
-        -- Insert a record to mark that a check is being triggered
         INSERT INTO public.advisor_checks (user_id, last_check_at) VALUES (v_user_id, NOW());
         
-        -- Call the Edge Function
-        -- Replace <PROJECT_REF> with your actual project reference if running manually, 
-        -- but in Supabase environment, we can use the relative path or secret
         PERFORM net.http_post(
-            url := 'https://' || current_setting('request.headers')::json->>'host' || '/functions/v1/financial-health-check',
+            url := 'https://' || (v_headers->>'host') || '/functions/v1/financial-health-check',
             headers := jsonb_build_object(
                 'Content-Type', 'application/json',
-                'Authorization', current_setting('request.headers')::json->>'authorization'
+                'Authorization', (v_headers->>'authorization')
             ),
             body := jsonb_build_object('user_id', v_user_id)
         );
@@ -48,7 +50,7 @@ BEGIN
     
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- 3. Trigger on balance_history
 DROP TRIGGER IF EXISTS trigger_advisor_health_check ON public.balance_history;

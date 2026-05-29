@@ -65,7 +65,7 @@ BEGIN
     END IF;
     
     -- Notification for Deposits
-    IF NEW.type = 'deposit' AND NEW.status = 'completed' THEN
+    IF NEW.type = 'deposit' AND NEW.status = 'completed' AND COALESCE(NEW.receiver_id, NEW.sender_id) IS NOT NULL THEN
         INSERT INTO public.notifications (user_id, title, message, type)
         VALUES (
             COALESCE(NEW.receiver_id, NEW.sender_id),
@@ -76,7 +76,7 @@ BEGIN
     END IF;
 
     -- Notification for Withdrawals
-    IF NEW.type = 'withdrawal' AND NEW.status = 'completed' THEN
+    IF NEW.type = 'withdrawal' AND NEW.status = 'completed' AND NEW.sender_id IS NOT NULL THEN
         INSERT INTO public.notifications (user_id, title, message, type)
         VALUES (
             NEW.sender_id,

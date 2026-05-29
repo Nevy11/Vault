@@ -21,6 +21,7 @@ import { Route as FinanceHubRouteImport } from './routes/finance-hub'
 import { Route as FinanceAdvisorRouteImport } from './routes/finance-advisor'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PayUsernameRouteImport } from './routes/pay.$username'
 
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
@@ -82,6 +83,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PayUsernameRoute = PayUsernameRouteImport.update({
+  id: '/pay/$username',
+  path: '/pay/$username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
   '/transactions': typeof TransactionsRoute
+  '/pay/$username': typeof PayUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
   '/transactions': typeof TransactionsRoute
+  '/pay/$username': typeof PayUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -125,6 +133,7 @@ export interface FileRoutesById {
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
   '/transactions': typeof TransactionsRoute
+  '/pay/$username': typeof PayUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-up'
     | '/transactions'
+    | '/pay/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-up'
     | '/transactions'
+    | '/pay/$username'
   id:
     | '__root__'
     | '/'
@@ -169,6 +180,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-up'
     | '/transactions'
+    | '/pay/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   SettingsRoute: typeof SettingsRoute
   SignUpRoute: typeof SignUpRoute
   TransactionsRoute: typeof TransactionsRoute
+  PayUsernameRoute: typeof PayUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -272,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pay/$username': {
+      id: '/pay/$username'
+      path: '/pay/$username'
+      fullPath: '/pay/$username'
+      preLoaderRoute: typeof PayUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -288,6 +308,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   SignUpRoute: SignUpRoute,
   TransactionsRoute: TransactionsRoute,
+  PayUsernameRoute: PayUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
