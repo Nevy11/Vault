@@ -39,46 +39,60 @@ import { Link } from "@tanstack/react-router";
 
 import { useProfileSignal } from "@/lib/profile-signal";
 import { supabase } from "@/api/supabase";
+import { hashPin } from "@/lib/utils";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
-import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
-// Mobile Money & Banks Configuration
-const MOBILE_MONEY = [
-  { id: "mm-mpesa", name: "M-Pesa", logo: "/logos/mpesa.svg", color: "bg-emerald-600" },
-  { id: "mm-airtel", name: "Airtel Money", logo: "/logos/airtel.svg", color: "bg-red-500" },
-  { id: "mm-tkash", name: "T-Kash", logo: "/logos/tkash.svg", color: "bg-purple-600" },
+import { StripePayment } from "./stripe-payment";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+
+// Initialize Stripe (use env variable in production)
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51Ro0ysE4K5QIsyl6tFrDH7oCDENuxy0P1iq7wWIvwiI5jyUtrf2Tsb0bizDjX0NIaTjiV1gzmGNVPj7GbqeyF4yX005RF2puYW",
+);
+
+// Mock Data
+const SAVED_BANK_ACCOUNTS = [
+  {
+    id: "b1",
+    name: "Equity Bank",
+    accountNumber: "****5678",
+    holder: "John Doe",
+    color: "bg-orange-600",
+  },
+  {
+    id: "b2",
+    name: "KCB Bank",
+    accountNumber: "****1234",
+    holder: "John Doe",
+    color: "bg-green-700",
+  },
 ];
 
-const BANKS_WITH_LOGOS = [
-  { id: "b-kcb", name: "KCB Bank", logo: "/logos/kcb.svg", color: "bg-blue-700" },
-  { id: "b-coop", name: "Co-operative Bank", logo: "/logos/coop.svg", color: "bg-green-700" },
-  { id: "b-ncba", name: "NCBA Bank", logo: "/logos/ncba.svg", color: "bg-blue-800" },
-  { id: "b-absa", name: "Absa Bank", logo: "/logos/absa.svg", color: "bg-red-600" },
+const CARRIERS = ["M-Pesa", "Airtel Money", "T-Kash"];
+const BANKS = [
+  "KCB Bank",
+  "Equity Bank",
+  "Co-operative Bank",
+  "Absa Bank",
+  "NCBA Bank",
+  "Standard Chartered",
+  "Stanbic Bank",
+  "I&M Bank",
 ];
 
-// Constants
-const EXCHANGE_RATE = 130; // 1 USD = 130 KES (approximate)
-const SAVED_NUMBERS = [
-  { id: "m1", phone: "+254712345678", carrier: "M-Pesa", logo: "/logos/mpesa.svg" },
-  { id: "m2", phone: "+254798765432", carrier: "M-Pesa", logo: "/logos/mpesa.svg" },
-];
-const SAVED_BANK_ACCOUNTS = [];
-const CARRIERS = [
-  { name: "M-Pesa", logo: "/logos/mpesa.svg" },
-  { name: "Airtel Money", logo: "/logos/airtel.svg" },
-  { name: "T-Kash", logo: "/logos/tkash.svg" },
-];
-const BANKS = ["Stripe ACH"];
+const EXCHANGE_RATE = 130.0;
 
-type SourceChannel = "mobile" | "bank" | "stripe";
-type DepositStatus = "idle" | "processing" | "confirming" | "stripe_pay" | "success";
+type SourceChannel = "bank" | "mobile" | "stripe";
+type DepositStatus = "idle" | "confirming" | "processing" | "success" | "stripe_pay";
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
   const { currency, balance: walletBalance } = useWalletBalance();
   const [channel, setChannel] = useState<SourceChannel>("mobile");
   const [amount, setAmount] = useState<string>("");
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pin, setPin] = useState("");
   const [status, setStatus] = useState<DepositStatus>("idle");
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>("m1");
   const [newPhoneNumber, setNewPhoneNumber] = useState("");
@@ -125,18 +139,34 @@ export function DepositPanel() {
       return;
     }
 
+    if (!pin || pin.length < 4) {
+      toast.error("Please enter your transaction PIN");
+      return;
+    }
+
     const userId = profile?.id;
     if (!userId) {
       toast.error("User session not found. Please log in again.");
       return;
     }
 
-    setIsPinModalOpen(true);
-  };
+    // Verify Vault PIN
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("pin_hash")
+      .eq("id", userId)
+      .single();
 
-  const handlePinVerified = async () => {
-    const userId = profile?.id;
-    if (!userId) return;
+    if (profileError || !profileData) {
+      toast.error("Could not verify your identity. Please try again.");
+      return;
+    }
+
+    const hashedPin = await hashPin(pin);
+    if (profileData.pin_hash !== hashedPin) {
+      toast.error("Invalid transaction PIN");
+      return;
+    }
 
     if (channel === "stripe") {
       setStatus("processing");
@@ -217,6 +247,7 @@ export function DepositPanel() {
       if (error) {
         let errorMessage = "Failed to initiate M-Pesa payment";
         try {
+          // Try to get the error response body
           const errorResponse = await error.context?.json();
           errorMessage =
             errorResponse?.error || errorResponse?.errorMessage || error.message || errorMessage;
@@ -235,10 +266,12 @@ export function DepositPanel() {
         );
       }
 
+      // Store the checkout ID for later confirmation
       const checkoutId =
         data.CheckoutRequestID || `DEP-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
       setRefCode(checkoutId);
 
+      // Record pending transaction
       await supabase.from("transactions").insert({
         sender_id: userId,
         receiver_id: userId,
@@ -247,7 +280,7 @@ export function DepositPanel() {
           channel === "mobile" ? "mpesa" : selectedSourceId === "stripe-ach" ? "bank" : "bank",
         amount: parseFloat(amount),
         status: "pending",
-        description: channel === "mobile" ? `M-Pesa Deposit - ${checkoutId}` : `Bank Deposit - ${checkoutId}`,
+        description: checkoutId,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
@@ -577,7 +610,7 @@ export function DepositPanel() {
           </div>
 
           <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-6 space-y-4 relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">      
               <History className="w-24 h-24 text-emerald-500" />
             </div>
             <div className="flex justify-between items-center text-xs text-emerald-500/70 uppercase tracking-widest font-bold">
@@ -600,16 +633,34 @@ export function DepositPanel() {
             </div>
           </div>
 
-          <div className="space-y-4 pt-4">
-            <Button
-              size="lg"
-              className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl text-lg font-medium shadow-xl shadow-primary/20 group"
-              onClick={handleDepositClick}
-            >
-              Deposit Funds{" "}
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+          <div className="space-y-4">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
+              Vault Transaction PIN
+            </Label>
+            <div className="relative">
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />   
+              <Input
+                type="password"
+                maxLength={6}
+                placeholder="******"
+                className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-center text-2xl tracking-[0.6em] focus:ring-primary/20"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              />
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">
+              Authorize Secure Deposit
+            </p>
           </div>
+
+          <Button
+            size="lg"
+            className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl text-lg font-medium shadow-xl shadow-primary/20 group"
+            onClick={handleDepositClick}
+          >
+            Deposit Funds{" "}
+            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Button>
         </div>
 
         <div className="rounded-2xl bg-card/20 border border-border/40 p-5 flex items-start gap-4">
@@ -623,14 +674,7 @@ export function DepositPanel() {
         </div>
       </div>
 
-      <TransactionPinModal
-        isOpen={isPinModalOpen}
-        onClose={() => setIsPinModalOpen(false)}
-        onVerified={handlePinVerified}
-        title="Authorize Deposit"
-        description={`Securely authorize your deposit of ${currencySymbol}${parseFloat(amount || "0").toLocaleString()} via ${getSourceName()}.`}
-      />
-
+      {/* SECTION 4: THE CONFIRMATION MODAL & SUCCESS FLOW */}
       <Dialog open={status === "confirming"} onOpenChange={(o) => !o && setStatus("idle")}>
         <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/60 backdrop-blur-xl border-white/10 shadow-2xl">
           <div className="p-8 space-y-8">

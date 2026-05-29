@@ -39,36 +39,15 @@ import { Link } from "@tanstack/react-router";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
 import { useProfileSignal } from "@/lib/profile-signal";
-import { TransactionPinModal } from "@/components/transaction-pin-modal";
 
-// Mobile Money & Banks Configuration
-const MOBILE_MONEY = [
-  { id: "mm-mpesa", name: "M-Pesa", logo: "/logos/mpesa.svg", color: "bg-emerald-600" },
-  { id: "mm-airtel", name: "Airtel Money", logo: "/logos/airtel.svg", color: "bg-red-500" },
-  { id: "mm-tkash", name: "T-Kash", logo: "/logos/tkash.svg", color: "bg-purple-600" },
-];
-
-const BANKS_WITH_LOGOS = [
-  { id: "b-kcb", name: "KCB Bank (Kenya Commercial Bank)", logo: "/logos/kcb.svg", color: "bg-blue-700" },
-  { id: "b-coop", name: "Co-operative Bank of Kenya", logo: "/logos/coop.svg", color: "bg-green-700" },
-  { id: "b-ncba", name: "NCBA Bank", logo: "/logos/ncba.svg", color: "bg-blue-800" },
-  { id: "b-absa", name: "Absa Bank Kenya", logo: "/logos/absa.svg", color: "bg-red-600" },
-  { id: "b-stdc", name: "Standard Chartered Kenya", logo: "/logos/standard-chartered.svg", color: "bg-blue-900" },
-  { id: "b-stanbic", name: "Stanbic Bank Kenya", logo: "/logos/stanbic.svg", color: "bg-blue-700" },
-  { id: "b-imbank", name: "I&M Bank", logo: "/logos/im-bank.svg", color: "bg-green-800" },
-  { id: "b-dtb", name: "DTB (Diamond Trust Bank)", logo: "/logos/dtb.svg", color: "bg-red-700" },
-  { id: "b-family", name: "Family Bank", logo: "/logos/family-bank.svg", color: "bg-blue-700" },
-  { id: "b-chase", name: "Chase Bank", logo: "/logos/chase.svg", color: "bg-blue-600" },
-  { id: "b-boa", name: "Bank of America", logo: "/logos/bank-of-america.svg", color: "bg-orange-600" },
-];
-
+// Mock Data
 const SAVED_BANKS = [
   {
     id: "b1",
     name: "Chase Bank",
     accountNumber: "****6789",
     holder: "John Doe",
-    logo: "/logos/chase.svg",
+    logo: "CB",
     color: "bg-blue-600",
   },
   {
@@ -76,8 +55,8 @@ const SAVED_BANKS = [
     name: "Bank of America",
     accountNumber: "****1234",
     holder: "John Doe",
-    logo: "/logos/bank-of-america.svg",
-    color: "bg-orange-600",
+    logo: "BA",
+    color: "bg-red-600",
   },
 ];
 
@@ -110,7 +89,7 @@ export function WithdrawPanel() {
   const [amount, setAmount] = useState<string>("");
   const [channel, setChannel] = useState<Channel>("bank");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pin, setPin] = useState("");
   const [status, setStatus] = useState<WithdrawalStatus>("idle");
   const [refCode, setRefCode] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -185,11 +164,45 @@ export function WithdrawPanel() {
       }
     }
 
-    setIsPinModalOpen(true);
-  };
+    if (pin.length < 4) {
+      toast.error("Please enter your transaction PIN");
+      return;
+    }
 
-  const handlePinVerified = () => {
-    setStatus("confirming");
+    try {
+      let userId = profile?.id;
+      if (!userId) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        userId = user?.id;
+      }
+
+      if (!userId) {
+        throw new Error("User session not found. Please log in again.");
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("pin_hash")
+        .eq("id", userId)
+        .single();
+
+      if (profileError || !profileData) {
+        console.error("Profile fetch error:", profileError);
+        throw new Error("Could not verify your identity. Please try again.");
+      }
+
+      const hashedPin = await hashPin(pin);
+      if (profileData.pin_hash !== hashedPin) {
+        throw new Error("Incorrect transaction PIN");
+      }
+
+      setStatus("confirming");
+    } catch (error: any) {
+      console.error("Withdrawal verification error:", error);
+      toast.error(error.message || "An error occurred during verification");
+    }
   };
 
   const handleConfirmWithdraw = async () => {
@@ -203,9 +216,9 @@ export function WithdrawPanel() {
         p_user_id: userId,
         p_amount: totalDeduction,
         p_method: channel === 'mobile' ? 'mpesa' : 'bank',
-        p_description: channel === 'mobile' 
-          ? `Withdrawal to ${getRecipientName()}` 
-          : `V2B: ${selectedBank} - ****${bankAccount.slice(-4)}`
+        p_description: channel === 'mobile'
+          ? `Withdrawal to ${getRecipientName()}`
+          : `Withdrawal to ${selectedBank}: ${bankAccount}`
       });
 
       if (txError) throw txError;
@@ -234,7 +247,7 @@ export function WithdrawPanel() {
 
   const getRecipientName = () => {
     if (channel === "bank") return selectedBank || "Bank Account";
-    if (isAddingMobile) return newMobile.provider;
+    if (isAddingNew) return newMobile.provider;
     return SAVED_MOBILE.find((m) => m.id === selectedMobileId)?.name || "Mobile Wallet";
   };
 
@@ -284,7 +297,7 @@ export function WithdrawPanel() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">
+      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">       
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-light tracking-tight">
             {channel === "bank" && "Withdraw to Bank Account"}
@@ -304,7 +317,7 @@ export function WithdrawPanel() {
                     setSelectedId(null);
                   }}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",
+                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",        
                     channel === t.id
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "text-muted-foreground hover:text-foreground",
@@ -406,7 +419,7 @@ export function WithdrawPanel() {
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",   
                         wallet.color,
                       )}
                     >
@@ -446,7 +459,7 @@ export function WithdrawPanel() {
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
                       Provider Choice
                     </Label>
-                    <div className="flex gap-2 p-1 bg-background/60 rounded-xl border border-border/60">
+                    <div className="flex gap-2 p-1 bg-background/60 rounded-xl border border-border/60">        
                       {["M-Pesa", "Airtel Money"].map((p) => (
                         <button
                           key={p}
@@ -615,7 +628,7 @@ export function WithdrawPanel() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="bg-card/60 border border-border/50 rounded-2xl p-5 space-y-4 backdrop-blur-sm">
+              <div className="bg-card/60 border border-border/50 rounded-2xl p-5 space-y-4 backdrop-blur-sm">   
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">You are withdrawing</span>
                   <span className="font-semibold text-foreground text-lg">
