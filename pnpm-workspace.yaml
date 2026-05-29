@@ -1,5 +1,7 @@
 packages:
   - "mobile"
+minimumReleaseAgeExclude:
+  - zustand@5.0.14
 
 # Optional: Configuration for allowed builds in the workspace
 # allowBuilds:

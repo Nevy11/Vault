@@ -116,7 +116,6 @@ export function TopNav() {
                     />
                   )}
                 </button>
-                <ReceiptActionIcon />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
@@ -209,20 +208,22 @@ export function TopNav() {
 
           {/* Profile Dropdown */}
           {mounted && profile && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="ml-2 rounded-full transition-all hover:ring-4 hover:ring-primary/10 focus:outline-none flex p-0.5 border border-primary/20 bg-primary/5">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={profile?.profile_photo_url || undefined}
-                      className="object-cover"
-                    />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-xs font-bold">
-                      {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </button>
-              </DropdownMenuTrigger>
+            <div className="flex items-center gap-2 ml-2">
+              <ReceiptActionIcon />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="rounded-full transition-all hover:ring-4 hover:ring-primary/10 focus:outline-none flex p-0.5 border border-primary/20 bg-primary/5">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={profile?.profile_photo_url || undefined}
+                        className="object-cover"
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-primary-foreground text-xs font-bold">
+                        {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
                 className="w-64 rounded-2xl p-2 border-border/50 shadow-xl"
@@ -277,9 +278,10 @@ export function TopNav() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          </div>
+        )}
 
-          {mounted && (
+        {mounted && (
             <Dialog open={showPhotoPreview} onOpenChange={setShowPhotoPreview}>
               <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-2xl border-border/40">
                 <DialogHeader>
