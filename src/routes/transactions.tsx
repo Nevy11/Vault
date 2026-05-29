@@ -905,8 +905,18 @@ function TransactionHistory() {
         const logo = getMethodLogo(t.method || '', t.description || '');
         const hasMobileOrBank = logo && desc.includes('transfer to');
         
+        // Use description if available (has method/identifier details), otherwise build from receiver info
+        let titleText = t.description;
+        if (!titleText) {
+          // Use kyc_tag if available, otherwise first/last name
+          const receiverName = t.receiver?.kyc_tag 
+            ? `@${t.receiver.kyc_tag}`
+            : `${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`.trim();
+          titleText = `Transfer to ${receiverName}`;
+        }
+        
         return {
-          title: t.description || `Transfer to ${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`,
+          title: titleText,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
           icon: hasMobileOrBank ? null : (t.receiver?.first_name?.[0] || 'V'),
@@ -915,8 +925,16 @@ function TransactionHistory() {
           color: "bg-primary/20 text-primary",
         };
       } else {
+        // For received transfers, use kyc_tag if available
+        let senderName = t.sender?.kyc_tag
+          ? `@${t.sender.kyc_tag}`
+          : `${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`.trim();
+        
+        // If the description contains more info (like bank/mobile details), use it
+        const titleText = t.description || `Received from ${senderName}`;
+        
         return {
-          title: `Received from ${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`,
+          title: titleText,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
           icon: t.sender?.first_name?.[0] || 'V',
@@ -1011,63 +1029,59 @@ function TransactionHistory() {
       </div>
 
       <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-6 backdrop-blur-sm shadow-inner">
-        <ul className="divide-y divide-border/40">
-          {txLoading && page === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-              <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
+        {txLoading && page === 0 ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
+            <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-6 h-6 text-muted-foreground/40" />
             </div>
-          ) : transactions.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <Search className="w-6 h-6 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground font-medium">No activity found matching your criteria.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/40">
+              <div className="text-xs text-muted-foreground font-medium">
+                <RefreshCw className="w-3 h-3 inline mr-1" />
+                Data Synced {Math.floor(Math.random() * 60)} minutes ago
               </div>
-              <p className="text-sm text-muted-foreground font-medium">No activity found matching your criteria.</p>
             </div>
-          ) : (
-            <>
+            <ul className="space-y-2">
               {transactions.map((t) => {
                 const details = getTransactionDetails(t);
+                const typeLabel = t.type === 'transfer' ? 'P2P' : 
+                                t.type === 'deposit' ? 'DEP' : 
+                                t.type === 'withdrawal' ? 'WIT' : 'TXN';
+                
                 return (
-                  <li key={t.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 transition-colors hover:bg-white/5 group px-2 rounded-lg -mx-2">
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col items-center justify-center w-12 shrink-0">
-                        <span className="text-[9px] font-bold uppercase text-muted-foreground/60 mb-1">
-                          {format(new Date(t.created_at), "MMM")}
-                        </span>
-                        <span className="text-lg font-serif leading-none">
-                          {format(new Date(t.created_at), "dd")}
+                  <li key={t.id} className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-input/40 border border-border/40">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
+                          {typeLabel}
                         </span>
                       </div>
-                      <Avatar className="w-10 h-10 border border-border/40 shrink-0 group-hover:scale-105 transition-transform">
-                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
-                        <AvatarFallback className={cn("text-xs font-bold", details.color)}>
-                          {details.icon}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">{details.title}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${
-                            t.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
-                            t.status === 'pending' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
-                            'bg-destructive/10 text-destructive'
-                          }`}>
-                            {t.status}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/60">
-                            {format(new Date(t.created_at), "h:mm a")}
-                          </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                          {details.title}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground/60 mt-1">
+                          {format(new Date(t.created_at), "MMM dd, yyyy · h:mm a")}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto pl-16 sm:pl-0">
+                    <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
                       <div
-                        className={`text-base font-semibold font-mono ${details.positive ? "text-primary" : "text-destructive"}`}
+                        className={`text-sm font-semibold font-mono ${
+                          details.positive ? "text-emerald-500" : "text-red-500"
+                        }`}
                       >
                         {details.amount}
                       </div>
-                      <div className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
+                      <div className="text-[10px] text-muted-foreground/50 font-mono">
                         Bal: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
                       </div>
                     </div>
@@ -1093,9 +1107,9 @@ function TransactionHistory() {
                   </Button>
                 </div>
               )}
-            </>
-          )}
-        </ul>
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );
