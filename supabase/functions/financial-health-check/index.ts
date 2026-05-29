@@ -164,6 +164,8 @@ serve(async (req) => {
       
       Focus on spending patterns, potential balance depletion, or savings opportunities. Be specific to the data provided.
       If there is very little data, provide a welcoming tip on how to get started with Vault OS.
+      
+      IMPORTANT: Do not use any markdown formatting, asterisks (*), or bullet points in the "content" field. Use plain text only.
     `;
 
     console.log(
