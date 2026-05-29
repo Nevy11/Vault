@@ -37,6 +37,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
+import { useReceiptHistory } from "@/components/receipt-history";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -402,6 +404,8 @@ function NetWorthChart({
 }
 
 function SecurityStatus() {
+  const { open: openReceipts } = useReceiptHistory();
+  
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
       <div className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
@@ -447,8 +451,9 @@ function SecurityStatus() {
         variant="ghost"
         size="sm"
         className="relative z-10 mt-8 w-full text-xs gap-2 h-9 rounded-xl border border-border/40 hover:bg-muted/50 hover:border-border transition-all"
+        onClick={openReceipts}
       >
-        <Shield className="w-3 h-3" /> Security Settings
+        <Shield className="w-3 h-3" /> Security Transaction Logs
       </Button>
     </div>
   );
@@ -457,8 +462,10 @@ function SecurityStatus() {
 function AIInsightsWidget({ profileId }: { profileId?: string }) {
   const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (!profileId) return;
 
     // Check DB first for latest insight
@@ -484,18 +491,42 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
         body: { userId: profileId },
       });
-      if (error) throw error;
+      
+      if (error) {
+        let errorMessage = error.message;
+        try {
+          // Attempt to extract the JSON error message from the Edge Function response
+          if (error.context && typeof error.context.json === "function") {
+            const errorBody = await error.context.json();
+            if (errorBody?.error) errorMessage = errorBody.error;
+          }
+        } catch (e) {
+          // Ignore parsing errors
+        }
+        throw new Error(errorMessage);
+      }
+      
       if (data?.insight) {
         setInsight(data.insight);
       }
     } catch (err: any) {
       console.error("Failed to generate insight:", err);
+      toast.error(`AI Insight Failed: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!profileId) return null;
+  if (!isMounted || !profileId) {
+    return (
+      <div className="rounded-3xl bg-muted/20 border border-border/40 p-8 mb-8 animate-pulse h-[160px] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" />
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">Initializing AI Advisor...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="group relative overflow-hidden rounded-3xl bg-primary/5 border border-primary/20 p-6 sm:p-8 backdrop-blur-sm transition-all hover:bg-primary/10 mb-8 shadow-lg">
@@ -569,7 +600,7 @@ const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
 function DashboardPage() {
   const navigate = useNavigate();
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  const { transactions, loading: txLoading, error: txError } = useTransactions(!balanceLoading);
+  const { transactions, loading: txLoading, error: txError, refetch: refetchTransactions } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
   const { notifications, markAsRead } = useNotifications();
   const [activeFilter, setActiveFilter] = useState("All");
@@ -1063,9 +1094,14 @@ function DashboardPage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <RefreshCw className={`w-3 h-3 ${txLoading ? "animate-spin" : ""}`} /> {syncTime}
-            </div>
+            <button 
+              onClick={() => refetchTransactions()}
+              className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-primary transition-colors group/sync"
+              disabled={txLoading}
+            >
+              <RefreshCw className={cn("w-3 h-3 transition-transform group-hover/sync:rotate-180 duration-500", txLoading && "animate-spin")} /> 
+              {syncTime}
+            </button>
           </div>
 
           <ul className="divide-y divide-border/40">

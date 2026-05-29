@@ -18,7 +18,6 @@ import {
   Loader2,
   X,
   Search,
-  Briefcase,
   Store,
   QrCode,
   ExternalLink,
@@ -1202,7 +1201,7 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Danger Zone */}
-          <SectionCard icon={X} title="Danger Zone" className="lg:col-span-2">
+          <SectionCard icon={X} title="Danger Zone">
             <div className="space-y-6">
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">

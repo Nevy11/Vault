@@ -8,7 +8,7 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import { FileText, ChevronRight, Download, Share2 } from "lucide-react-native";
+import { FileText, ChevronRight, Download, Share2, Loader2, AlertCircle } from "lucide-react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,46 +17,83 @@ import Animated, {
   FadeInRight,
   Layout,
 } from "react-native-reanimated";
+import { supabase } from "../lib/supabase";
 
 const { width, height } = Dimensions.get("window");
 
-/**
- * Mock Data for Receipts (in production, fetch from Supabase)
- */
-const MOCK_RECEIPTS = [
-  {
-    id: "1",
-    receipt_number: "VT-B1C8E440",
-    amount: 56.0,
-    currency: "KSH",
-    description: "Secure Transfer",
-    date: "May 28, 2026",
-    method: "Vault",
-  },
-  {
-    id: "2",
-    receipt_number: "VT-D4E5F6A7",
-    amount: 420.0,
-    currency: "USD",
-    description: "P2P Transfer to Aisha",
-    date: "May 27, 2026",
-    method: "Vault",
-  },
-];
-
 export default function ReceiptHistoryScreen() {
   const [selectedReceipt, setSelectedReceipt] = React.useState<any>(null);
+  const [receipts, setReceipts] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    fetchReceipts();
+  }, []);
+
+  const fetchReceipts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Authentication required");
+
+      const { data, error: fetchError } = await supabase
+        .from("receipts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (fetchError) throw fetchError;
+      setReceipts(data || []);
+    } catch (err: any) {
+      console.error("Error fetching receipts:", err);
+      setError(err.message || "Failed to load receipts");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <Loader2 size={32} color="#004D2C" />
+        <Text style={styles.loadingText}>Fetching secure logs...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <AlertCircle size={40} color="#EF4444" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={fetchReceipts}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={MOCK_RECEIPTS}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item, index }) => (
-          <ReceiptItem item={item} index={index} onPress={() => setSelectedReceipt(item)} />
-        )}
-      />
+      {receipts.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <FileText size={64} color="#E2E8F0" />
+          <Text style={styles.emptyTitle}>No Receipts Yet</Text>
+          <Text style={styles.emptySubtitle}>Completed transactions will appear here automatically.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={receipts}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item, index }) => (
+            <ReceiptItem item={item} index={index} onPress={() => setSelectedReceipt(item)} />
+          )}
+        />
+      )}
 
       {selectedReceipt && (
         <ReceiptDetailOverlay receipt={selectedReceipt} onClose={() => setSelectedReceipt(null)} />
@@ -66,6 +103,14 @@ export default function ReceiptHistoryScreen() {
 }
 
 function ReceiptItem({ item, index, onPress }: any) {
+  const details = item.transaction_details || {};
+  const description = details.description || item.description || "Secure Transaction";
+  const date = new Date(item.created_at).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
   return (
     <Animated.View entering={FadeInRight.delay(index * 100)} layout={Layout.springify()}>
       <TouchableOpacity style={styles.receiptCard} onPress={onPress}>
@@ -73,8 +118,9 @@ function ReceiptItem({ item, index, onPress }: any) {
           <FileText size={20} color="#64748B" />
         </View>
         <View style={styles.receiptInfo}>
-          <Text style={styles.receiptDescription}>{item.description}</Text>
+          <Text style={styles.receiptDescription}>{description}</Text>
           <Text style={styles.receiptMeta}>{item.receipt_number}</Text>
+          <Text style={styles.receiptDate}>{date}</Text>
         </View>
         <View style={styles.receiptRight}>
           <Text style={styles.receiptAmount}>
@@ -89,6 +135,12 @@ function ReceiptItem({ item, index, onPress }: any) {
 
 function ReceiptDetailOverlay({ receipt, onClose }: any) {
   const translateY = useSharedValue(height);
+  const details = receipt.transaction_details || {};
+  const date = new Date(receipt.created_at).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   React.useEffect(() => {
     translateY.value = withSpring(0, { damping: 15 });
@@ -144,7 +196,7 @@ function ReceiptDetailOverlay({ receipt, onClose }: any) {
             <View style={styles.receiptGrid}>
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>Date</Text>
-                <Text style={styles.gridValue}>{receipt.date}</Text>
+                <Text style={styles.gridValue}>{date}</Text>
               </View>
               <View style={styles.gridItem}>
                 <Text style={styles.gridLabel}>Status</Text>
@@ -159,7 +211,7 @@ function ReceiptDetailOverlay({ receipt, onClose }: any) {
 
             <View style={styles.securityMessage}>
               <Text style={styles.securityText}>
-                Your transfer of {receipt.currency} {receipt.amount.toLocaleString()} has been
+                Your {details.type || "transaction"} via {details.method || "Vault"} has been
                 processed securely.
               </Text>
             </View>
@@ -185,6 +237,53 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  errorText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#EF4444",
+    textAlign: "center",
+    paddingHorizontal: 40,
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: "#004D2C",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1E293B",
+    marginTop: 20,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#94A3B8",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
   },
   listContent: {
     padding: 20,
@@ -224,6 +323,12 @@ const styles = StyleSheet.create({
     color: "#94A3B8",
     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
     marginTop: 2,
+  },
+  receiptDate: {
+    fontSize: 10,
+    color: "#64748B",
+    marginTop: 2,
+    fontWeight: "500",
   },
   receiptRight: {
     alignItems: "flex-end",

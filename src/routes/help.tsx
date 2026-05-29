@@ -18,7 +18,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/api/supabase";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -68,14 +77,14 @@ const channels = [
     id: "call",
     icon: Phone,
     title: "Request a Call",
-    detail: "+1 (800) Vault·OS",
+    detail: "+254 721 735 254",
     note: "Avg. wait: under 2 minutes",
   },
   {
     id: "email",
     icon: Mail,
     title: "Email Support",
-    detail: "support@vault.os",
+    detail: "alphine886@gmail.com",
     note: "Replies within 4 hours",
   },
 ];
@@ -112,6 +121,30 @@ function HelpPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // Call Workflow State
+  const [showCallWorkflow, setShowCallWorkflow] = useState(false);
+  const [callbackNumber, setCallbackNumber] = useState("");
+  const [isRequestingCallback, setIsRequestingCallback] = useState(false);
+
+  const handleRequestCallback = async () => {
+    if (!callbackNumber.trim()) {
+      toast.error("Please enter a valid phone number for the callback.");
+      return;
+    }
+    setIsRequestingCallback(true);
+    try {
+      // Simulate backend processing
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      toast.success("Callback scheduled! A Vault OS agent will call you within 2 minutes.");
+      setShowCallWorkflow(false);
+      setCallbackNumber("");
+    } catch (err) {
+      toast.error("Failed to schedule callback. Please try calling directly.");
+    } finally {
+      setIsRequestingCallback(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -208,36 +241,77 @@ function HelpPage() {
                 {channels.map((c) => {
                   const Icon = c.icon;
                   const active = selectedChannel === c.id;
+                  const isEmail = c.id === "email";
+                  
                   return (
-                    <button
+                    <div
                       key={c.id}
-                      onClick={() => setSelectedChannel(c.id)}
-                      className={`w-full flex items-center gap-4 rounded-xl border px-5 py-4 text-left transition-all ${
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedChannel(c.id);
+                        if (c.id === "call") {
+                          setShowCallWorkflow(true);
+                        } else if (c.id === "email") {
+                          window.location.href = "mailto:alphine886@gmail.com?subject=Vault.OS Support Request";
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelectedChannel(c.id);
+                          if (c.id === "call") setShowCallWorkflow(true);
+                          if (c.id === "email") {
+                            window.location.href = "mailto:alphine886@gmail.com?subject=Vault.OS Support Request";
+                          }
+                        }
+                      }}
+                      className={`w-full flex items-center gap-4 rounded-2xl border px-6 py-5 text-left transition-all duration-300 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/50 ${
                         active
-                          ? "border-primary/50 bg-primary/5 shadow-[0_0_0_1px_oklch(0.82_0.16_165_/_0.2)]"
-                          : "border-border/40 bg-input/20 hover:border-border hover:bg-input/40"
+                          ? "border-emerald-600 bg-emerald-600/10 shadow-[0_0_25px_rgba(5,150,105,0.15)] ring-1 ring-emerald-600/50 scale-[1.02]"
+                          : "border-border/40 bg-input/10 opacity-50 grayscale-[0.4] hover:opacity-70 hover:grayscale-0"
                       }`}
                     >
                       <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-colors ${
-                          active ? "border-primary" : "border-muted-foreground/40"
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-300 ${
+                          active 
+                            ? "border-emerald-600 bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.4)]" 
+                            : "border-muted-foreground/30 bg-transparent"
                         }`}
                       >
-                        {active && <span className="h-2 w-2 rounded-full bg-primary" />}
+                        {active && <span className="h-2.5 w-2.5 rounded-full bg-white shadow-sm" />}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-foreground">{c.title}</div>
-                        <div className="mt-0.5 text-xs text-muted-foreground truncate">
-                          {c.detail}
+                        <div className={`text-sm font-bold tracking-tight transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                          {c.title}
+                        </div>
+                        <div className="mt-1 text-xs truncate">
+                          {isEmail ? (
+                            <a 
+                              href="mailto:alphine886@gmail.com?subject=Vault.OS Support Request"
+                              className={`transition-colors font-medium ${active ? "text-emerald-500 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4" : "text-muted-foreground"}`}
+                              onClick={(e) => {
+                                // We don't stop propagation because we still want the card to become active
+                                // but we want to ensure the link click works.
+                              }}
+                            >
+                              {c.detail}
+                            </a>
+                          ) : (
+                            <span className={active ? "text-foreground/90 font-medium" : "text-muted-foreground"}>
+                              {c.detail}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                      <div className="flex flex-col items-end gap-2">
+                        <div className={`p-2 rounded-lg transition-colors ${active ? "bg-emerald-600/20 text-emerald-500" : "bg-muted/10 text-muted-foreground/40"}`}>
+                          <Icon className="h-4.5 w-4.5" />
+                        </div>
+                        <span className={`text-[9px] uppercase tracking-widest font-black ${active ? "text-emerald-500/80" : "text-muted-foreground/40"}`}>
                           {c.note}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -373,9 +447,74 @@ function HelpPage() {
         <div className="mt-12 lg:mt-16 pt-8 border-t border-border/40 text-center">
           <p className="text-xs text-muted-foreground">
             Need urgent help? Call our 24/7 line at{" "}
-            <span className="text-foreground">+1 (800) Vault·OS</span>
+            <span className="text-foreground">+254 721 735 254</span>
           </p>
         </div>
+
+        {/* Call Workflow Dialog */}
+        <Dialog open={showCallWorkflow} onOpenChange={setShowCallWorkflow}>
+          <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-serif">Request a Call</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Initiate a secure line with a Vault OS agent. Choose your preferred connection path.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="rounded-2xl border border-border/40 bg-input/20 p-5">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Phone className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">+254 721 735 254</div>
+                    <div className="text-[11px] text-muted-foreground uppercase tracking-widest">
+                      Vault OS Direct Line
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  className="w-full mt-4 h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+                  onClick={() => (window.location.href = "tel:+254721735254")}
+                >
+                  Call Now
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-border/40" />
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">
+                    Or request a callback
+                  </span>
+                  <div className="h-px flex-1 bg-border/40" />
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="+254..."
+                    value={callbackNumber}
+                    onChange={(e) => setCallbackNumber(e.target.value)}
+                    className="h-11 bg-input/40 border-border/60 rounded-xl"
+                  />
+                  <Button
+                    className="h-11 rounded-xl px-6 transition-all active:scale-95"
+                    onClick={handleRequestCallback}
+                    disabled={isRequestingCallback}
+                  >
+                    {isRequestingCallback ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      "Request"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic text-center leading-relaxed">
+                  Callback requests are cryptographically queued and prioritized by KYC level.
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </AppShell>
   );

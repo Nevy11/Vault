@@ -15,12 +15,20 @@ serve(async (req) => {
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) {
-      throw new Error("GEMINI_API_KEY is not set.");
+      console.error("Missing GEMINI_API_KEY");
+      throw new Error("GEMINI_API_KEY is not set in Edge Function secrets.");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No Authorization header provided" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
@@ -47,9 +55,6 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const GEMINI_API_URL =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
-
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
@@ -57,22 +62,10 @@ serve(async (req) => {
       throw new Error("No conversation history or input provided.");
     }
 
-    // Create a personalized system instruction
+    // Create a personalized instruction string to prepend
     const firstName = profile?.first_name || "User";
     const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
-
-    const system_instruction = {
-      parts: [
-        {
-          text: `You are a helpful and professional Finance Advisor for Vault OS. 
-        You are assisting ${firstName}. 
-        User's current wallet balance: ${balance}.
-        Your goal is to help users manage their money, plan budgets, and understand their finances. 
-        Keep your responses concise, actionable, and friendly. 
-        Refer to the user by name occasionally to build rapport.`,
-        },
-      ],
-    };
+    const advisorPersona = `[SYSTEM INSTRUCTION: You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport.]\n\n`;
 
     let contents = [];
     const validMessages = (messages || []).filter(
@@ -80,25 +73,36 @@ serve(async (req) => {
     );
 
     if (validMessages.length > 0) {
+      // Limit context to last 29 messages as requested for better context awareness
+      const recentMessages = validMessages.slice(-29);
+      
       // Gemini contents must alternate user/model and start with user
-      const firstUserIndex = validMessages.findIndex((m: any) => m.sender === "user");
+      const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
       if (firstUserIndex !== -1) {
-        contents = validMessages.slice(firstUserIndex).map((msg: any) => ({
-          role: msg.sender === "user" ? "user" : "model",
-          parts: [{ text: msg.text }],
-        }));
+        contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => {
+          let text = msg.text;
+          // Prepend persona to the very first user message in this window
+          if (idx === 0) {
+            text = advisorPersona + text;
+          }
+          return {
+            role: msg.sender === "user" ? "user" : "model",
+            parts: [{ text }],
+          };
+        });
       }
     }
 
     // Ensure the last role is 'user' before adding model response
     if (userInput) {
       if (contents.length > 0 && contents[contents.length - 1].role === "user") {
-        // If the last message was already from user, append to it or just replace (Gemini requirement)
         contents[contents.length - 1].parts[0].text += `\n${userInput}`;
       } else {
+        // If this is the first and only message, prepend persona
+        const text = contents.length === 0 ? advisorPersona + userInput : userInput;
         contents.push({
           role: "user",
-          parts: [{ text: userInput }],
+          parts: [{ text }],
         });
       }
     }
@@ -109,24 +113,69 @@ serve(async (req) => {
 
     console.log(`Calling Gemini with ${contents.length} messages for user ${user.id}`);
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        system_instruction,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+    // High-Reliability Multi-Tier Failover Logic
+    const models = [
+      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
+    ];
 
-    const data = await response.json();
+    const tryCallGemini = async (modelUrl: string) => {
+      try {
+        const res = await fetch(`${modelUrl}?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048,
+            },
+          }),
+        });
+        return res;
+      } catch (err) {
+        return null;
+      }
+    };
 
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      throw new Error(data.error?.message || `Gemini error: ${response.status}`);
+    let response = null;
+    let data = null;
+    let success = false;
+
+    // Iterate through the failover chain
+    for (let i = 0; i < models.length; i++) {
+      const currentModelUrl = models[i];
+      const modelName = currentModelUrl.split('/models/')[1].split(':')[0];
+      
+      console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
+      
+      response = await tryCallGemini(currentModelUrl);
+      if (!response) continue;
+
+      data = await response.json();
+
+      // If successful, break the loop
+      if (response.ok) {
+        success = true;
+        console.log(`Success with model: ${modelName}`);
+        break;
+      }
+
+      // If we get an error that isn't a 400 (Bad Request), try next model
+      if (response.status === 503 || response.status === 429 || response.status === 404) {
+        console.warn(`Model ${modelName} returned ${response.status}. Trying next in chain...`);
+        continue;
+      }
+
+      // For other serious errors (400 Bad Request), don't retry as the payload might be the issue
+      break;
+    }
+
+    if (!success) {
+      console.error("All models in failover chain failed.", data);
+      throw new Error(data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`);
     }
 
     const aiResponse =

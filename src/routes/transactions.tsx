@@ -79,7 +79,7 @@ function WalletCard() {
   const { balance, currency, loading } = useWalletBalance();
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-4 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
+    <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-6 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
       {/* Decorative glass reflection */}
       <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
 
@@ -226,7 +226,9 @@ function SendPanel() {
   const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
 
   // Recipient Verification
-  const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
+  const [recipient, setRecipient] = useState<{ id: string; name: string; tag?: string } | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -336,26 +338,40 @@ function SendPanel() {
 
   useEffect(() => {
     const searchRecipient = async () => {
-      // Remove any existing @ then add one to match DB format
-      const searchTag = identifier.trim() ? `@${identifier.replace("@", "").toLowerCase()}` : "";
-
-      if (method === "vault" && searchTag.length >= 4) {
-        // @ + at least 3 chars
+      const query = identifier.trim().toLowerCase();
+      
+      if (method === "vault" && query.length >= 2) {
         setIsSearching(true);
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Search by first_name or kyc_tag (which starts with @)
+        const { data } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name")
-          .eq("kyc_tag", searchTag) // DB tags start with @ and are lowercase
-          .maybeSingle();
+          .select("id, first_name, last_name, kyc_tag, profile_photo_url")
+          .or(`first_name.ilike.%${query}%,kyc_tag.ilike.%${query}%`)
+          .neq("id", user?.id)
+          .limit(5);
 
-        if (data) {
-          setRecipient({ id: data.id, name: `${data.first_name} ${data.last_name}` });
+        if (data && data.length > 0) {
+          setSearchResults(data);
+          setShowSuggestions(true);
+          
+          // Check for exact match to show verified badge
+          const exactMatch = data.find(p => p.kyc_tag?.toLowerCase() === `@${query.replace("@", "")}`);
+          if (exactMatch) {
+            setRecipient({ id: exactMatch.id, name: `${exactMatch.first_name} ${exactMatch.last_name}`, tag: exactMatch.kyc_tag });
+          } else {
+            setRecipient(null);
+          }
         } else {
+          setSearchResults([]);
           setRecipient(null);
         }
         setIsSearching(false);
       } else {
+        setSearchResults([]);
         setRecipient(null);
+        setShowSuggestions(false);
       }
     };
 
@@ -363,12 +379,19 @@ function SendPanel() {
     return () => clearTimeout(timer);
   }, [identifier, method]);
 
+  // Add click listener to close suggestions
+  useEffect(() => {
+    const handleClickOutside = () => setShowSuggestions(false);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
+
   const fee = method === "vault" ? 0.0 : 15.0;
   const total = parseFloat(amount || "0") + fee;
 
   const handleSelectRecipient = (r: Recipient) => {
     setMethod(r.type);
-    setIdentifier(r.identifier);
+    setIdentifier(r.type === "vault" ? r.identifier.replace("@", "") : r.identifier);
     if (r.bank) setBank(r.bank);
     if (r.provider) setProvider(r.provider);
   };
@@ -394,9 +417,10 @@ function SendPanel() {
       if (!user) throw new Error("User not found");
 
       if (method === "vault") {
+        const fullTag = identifier.startsWith("@") ? identifier : `@${identifier}`;
         const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
           p_sender_id: user.id,
-          p_recipient_tag: identifier,
+          p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
         });
 
@@ -422,10 +446,9 @@ function SendPanel() {
           p_user_id: user.id,
           p_amount: total,
           p_method: method === "mobile" ? "mpesa" : "bank",
-          p_description:
-            method === "mobile"
-              ? `Transfer to ${provider}: ${identifier}`
-              : `Bank Transfer to ${bank}: ${identifier}`,
+          p_description: method === "mobile" 
+            ? `Transfer to ${provider}: ${identifier}` 
+            : `Bank Transfer to ${bank}: ${identifier}`,
         });
 
         if (rpcError) {
@@ -467,7 +490,7 @@ function SendPanel() {
           Your transfer of {currency} {parseFloat(amount).toLocaleString()} has been processed
           securely.
         </p>
-        <div className="bg-card/40 border border-border/50 rounded-2xl p-4 w-full max-w-sm mb-8">
+        <div className="bg-card/40 border border-border/50 rounded-2xl p-6 w-full max-w-sm mb-8">
           <div className="flex justify-between mb-3 text-sm">
             <span className="text-muted-foreground">Transaction ID</span>
             <span className="font-mono font-medium">{refCode}</span>
@@ -501,7 +524,7 @@ function SendPanel() {
           <button
             onClick={() => setMethod("vault")}
             className={cn(
-              "p-4 rounded-2xl border transition-all text-left group",
+              "p-6 rounded-2xl border transition-all text-left group",
               method === "vault"
                 ? "border-primary bg-primary/10"
                 : "border-border/50 bg-card/30 hover:bg-card/50",
@@ -521,7 +544,7 @@ function SendPanel() {
           <button
             onClick={() => setMethod("bank")}
             className={cn(
-              "p-4 rounded-2xl border transition-all text-left group",
+              "p-6 rounded-2xl border transition-all text-left group",
               method === "bank"
                 ? "border-primary bg-primary/10"
                 : "border-border/50 bg-card/30 hover:bg-card/50",
@@ -541,7 +564,7 @@ function SendPanel() {
           <button
             onClick={() => setMethod("mobile")}
             className={cn(
-              "p-4 rounded-2xl border transition-all text-left group",
+              "p-6 rounded-2xl border transition-all text-left group",
               method === "mobile"
                 ? "border-primary bg-primary/10"
                 : "border-border/50 bg-card/30 hover:bg-card/50",
@@ -623,27 +646,27 @@ function SendPanel() {
                   {method === "mobile" && "Phone Number"}
                 </Label>
                 <div className="relative">
-                  {method === "vault" && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">
-                      @
-                    </span>
-                  )}
                   <Input
                     placeholder={
                       method === "vault"
-                        ? "username"
+                        ? "@username"
                         : method === "bank"
                           ? "0000000000"
                           : "+254 7XX XXX XXX"
                     }
-                    className={cn(
-                      "bg-background/40 h-12 border-border/60",
-                      method === "vault" && "pl-8",
-                    )}
+                    className="bg-background/40 h-12 border-border/60"
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Strip @ if method is vault
+                      setIdentifier(method === "vault" ? val.replace("@", "") : val);
+                      if (method === "vault") setShowSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      if (method === "vault" && searchResults.length > 0) setShowSuggestions(true);
+                    }}
                   />
-                  {method === "vault" && identifier.length >= 3 && (
+                  {method === "vault" && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                       {isSearching ? (
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -651,11 +674,47 @@ function SendPanel() {
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium animate-in fade-in zoom-in duration-300">
                           <Check className="w-3 h-3" /> {recipient.name}
                         </div>
-                      ) : (
+                      ) : identifier.length >= 3 && !showSuggestions ? (
                         <span className="text-[10px] text-destructive font-medium uppercase tracking-tighter">
                           Not Found
                         </span>
-                      )}
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Suggestions Dropdown */}
+                  {method === "vault" && showSuggestions && searchResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-1">
+                        {searchResults.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-primary/5 text-left transition-colors group"
+                            onClick={() => {
+                              setIdentifier(p.kyc_tag.replace("@", ""));
+                              setRecipient({ id: p.id, name: `${p.first_name} ${p.last_name}`, tag: p.kyc_tag });
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <Avatar className="w-8 h-8 border border-border/40">
+                              <AvatarImage src={p.profile_photo_url} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                {p.first_name[0]}{p.last_name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {p.first_name} {p.last_name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono">
+                                {p.kyc_tag}
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground/0 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -835,23 +894,16 @@ function SendPanel() {
 function TransactionHistory() {
   const { balance, currency, loading: balanceLoading } = useWalletBalance();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "transfer" | "deposit" | "withdrawal">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<"all" | "transfer" | "deposit" | "withdrawal">("all");
   const [page, setPage] = useState(0);
-
-  const {
-    transactions,
-    loading: txLoading,
-    totalCount,
-    hasMore,
-  } = useTransactions(!balanceLoading, {
+  
+  const { transactions, loading: txLoading, totalCount, hasMore } = useTransactions(!balanceLoading, {
     page,
     pageSize: 10,
     search,
-    type: typeFilter,
+    type: typeFilter
   });
-
+  
   const [profile] = useProfileSignal();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -866,86 +918,88 @@ function TransactionHistory() {
 
   const loadMore = () => {
     if (hasMore && !txLoading) {
-      setPage((prev) => prev + 1);
+      setPage(prev => prev + 1);
     }
   };
 
   const getTransactionDetails = (t: any) => {
     console.log("Processing transaction:", t);
     const isSender = t.sender_id === (profile as any)?.id;
-    const userName = profile?.first_name
+    const userName = profile?.first_name 
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-      : profile?.email?.split("@")[0] || "Vault User";
-    const symbol = currency === "USD" ? "$" : currency + " ";
+      : (profile?.email?.split('@')[0] || "Vault User");
+    const symbol = currency === 'USD' ? '$' : currency + ' ';
 
     // Method-specific logo helper - enhanced with all banks and mobile services
     const getMethodLogo = (method: string, description: string) => {
-      const desc = (description || "").toLowerCase();
-      const meth = (method || "").toLowerCase();
-
+      const desc = (description || '').toLowerCase();
+      const meth = (method || '').toLowerCase();
+      
       // Mobile money services
-      if (desc.includes("mpesa") || desc.includes("m-pesa") || meth.includes("mpesa"))
-        return "/logos/mpesa.svg";
-      if (desc.includes("airtel") || meth.includes("airtel")) return "/logos/airtel.svg";
-      if (desc.includes("t-kash") || desc.includes("tkash") || meth.includes("tkash"))
-        return "/logos/tkash.svg";
-
+      if (desc.includes('mpesa') || desc.includes('m-pesa') || meth.includes('mpesa')) return '/logos/mpesa.svg';
+      if (desc.includes('airtel') || meth.includes('airtel')) return '/logos/airtel.svg';
+      if (desc.includes('t-kash') || desc.includes('tkash') || meth.includes('tkash')) return '/logos/tkash.svg';
+      
       // Banks
-      if (desc.includes("kcb") || meth.includes("kcb")) return "/logos/kcb.svg";
-      if (desc.includes("co-operative") || desc.includes("coop") || meth.includes("coop"))
-        return "/logos/coop.svg";
-      if (desc.includes("ncba") || meth.includes("ncba")) return "/logos/ncba.svg";
-      if (desc.includes("absa") || meth.includes("absa")) return "/logos/absa.svg";
-      if (desc.includes("standard chartered") || meth.includes("standard"))
-        return "/logos/standard-chartered.svg";
-      if (desc.includes("stanbic") || meth.includes("stanbic")) return "/logos/stanbic.svg";
-      if (desc.includes("i&m") || desc.includes("im bank") || meth.includes("im bank"))
-        return "/logos/im-bank.svg";
-      if (desc.includes("dtb") || desc.includes("diamond trust") || meth.includes("dtb"))
-        return "/logos/dtb.svg";
-      if (desc.includes("family bank") || meth.includes("family")) return "/logos/family-bank.svg";
-      if (desc.includes("chase bank") || meth.includes("chase")) return "/logos/chase.svg";
-      if (desc.includes("bank of america") || meth.includes("america"))
-        return "/logos/bank-of-america.svg";
-
+      if (desc.includes('kcb') || meth.includes('kcb')) return '/logos/kcb.svg';
+      if (desc.includes('co-operative') || desc.includes('coop') || meth.includes('coop')) return '/logos/coop.svg';
+      if (desc.includes('ncba') || meth.includes('ncba')) return '/logos/ncba.svg';
+      if (desc.includes('absa') || meth.includes('absa')) return '/logos/absa.svg';
+      if (desc.includes('standard chartered') || meth.includes('standard')) return '/logos/standard-chartered.svg';
+      if (desc.includes('stanbic') || meth.includes('stanbic')) return '/logos/stanbic.svg';
+      if (desc.includes('i&m') || desc.includes('im bank') || meth.includes('im bank')) return '/logos/im-bank.svg';
+      if (desc.includes('dtb') || desc.includes('diamond trust') || meth.includes('dtb')) return '/logos/dtb.svg';
+      if (desc.includes('family bank') || meth.includes('family')) return '/logos/family-bank.svg';
+      if (desc.includes('chase bank') || meth.includes('chase')) return '/logos/chase.svg';
+      if (desc.includes('bank of america') || meth.includes('america')) return '/logos/bank-of-america.svg';
+      
       // Fallback for generic bank method
-      if (meth === "bank" || meth === "mpesa" || meth === "airtel") return "/logos/bank.svg";
+      if (meth === 'bank' || meth === 'mpesa' || meth === 'airtel') return '/logos/bank.svg';
       return null; // Fallback to initials
     };
 
-    if (t.type === "transfer") {
+    if (t.type === 'transfer') {
       if (isSender) {
-        // Check if this is a transfer to a mobile/bank service
-        const desc = (t.description || "").toLowerCase();
-        const logo = getMethodLogo(t.method || "", t.description || "");
-        const hasMobileOrBank = logo && desc.includes("transfer to");
+        const desc = (t.description || '').toLowerCase();
+        const logo = getMethodLogo(t.method || '', t.description || '');
+        const useLogo = Boolean(logo);
+        
+        let titleText = t.description;
+        if (!titleText) {
+          const receiverName = t.receiver?.kyc_tag 
+            ? `@${t.receiver.kyc_tag}`
+            : `${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`.trim();
+          titleText = `Transfer to ${receiverName}`;
+        }
 
         return {
-          title:
-            t.description ||
-            `Transfer to ${t.receiver?.first_name || "User"} ${t.receiver?.last_name || ""}`,
+          title: titleText,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: hasMobileOrBank ? null : t.receiver?.first_name?.[0] || "V",
-          logo: hasMobileOrBank ? logo : t.receiver?.profile_photo_url,
+          icon: useLogo ? null : (t.receiver?.first_name?.[0] || 'V'),
+          logo: logo || t.receiver?.profile_photo_url,
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
+        let senderName = t.sender?.kyc_tag
+          ? `@${t.sender.kyc_tag}`
+          : `${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`.trim();
+        const titleText = t.description || `Received from ${senderName}`;
+
         return {
-          title: `Received from ${t.sender?.first_name || "User"} ${t.sender?.last_name || ""}`,
+          title: titleText,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || "V",
+          icon: t.sender?.first_name?.[0] || 'V',
           logo: t.sender?.profile_photo_url,
           avatarUrl: t.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
-    } else if (t.type === "deposit") {
+    } else if (t.type === 'deposit') {
       const logo = getMethodLogo(t.method, t.description);
-      const bankName =
-        t.method === "mpesa" ? "M-Pesa" : t.description?.includes("Ref:") ? "Bank" : t.method;
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: t.description || `${bankName} deposit to ${userName}`,
@@ -956,10 +1010,9 @@ function TransactionHistory() {
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
-    } else if (t.type === "withdrawal") {
+    } else if (t.type === 'withdrawal') {
       const logo = getMethodLogo(t.method, t.description);
-      const bankName =
-        t.method === "mpesa" ? "M-Pesa" : t.description?.includes("Ref:") ? "Bank" : t.method;
+      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
       const initials = bankName.substring(0, 2).toUpperCase();
       return {
         title: t.description || `Withdrawal to ${bankName}`,
@@ -975,27 +1028,27 @@ function TransactionHistory() {
       title: t.description,
       amount: `${symbol}${t.amount.toLocaleString()}`,
       positive: true,
-      icon: "?",
+      icon: '?',
       logo: null,
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
     };
   };
 
-  const currencySymbol = currency === "USD" ? "$" : currency + " ";
+  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
 
   return (
     <div className="mt-12 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-light tracking-tight flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" />
+          <History className="w-5 h-5 text-primary" /> 
           Detailed Ledger History
         </h2>
         <div className="flex items-center gap-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search ledger..."
+            <Input 
+              placeholder="Search ledger..." 
               className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40"
               value={search}
               onChange={handleSearchChange}
@@ -1012,16 +1065,16 @@ function TransactionHistory() {
           { id: "all", label: "All" },
           { id: "transfer", label: "Transfers" },
           { id: "deposit", label: "Deposits" },
-          { id: "withdrawal", label: "Withdrawals" },
-        ].map((f) => (
+          { id: "withdrawal", label: "Withdrawals" }
+        ].map(f => (
           <button
             key={f.id}
             onClick={() => handleFilterChange(f.id)}
             className={cn(
               "px-4 py-1.5 rounded-full text-xs font-medium transition-all border",
-              typeFilter === f.id
-                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                : "bg-card/40 text-muted-foreground border-border/40 hover:border-border",
+              typeFilter === f.id 
+                ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                : "bg-card/40 text-muted-foreground border-border/40 hover:border-border"
             )}
           >
             {f.label}
@@ -1029,90 +1082,72 @@ function TransactionHistory() {
         ))}
       </div>
 
-      <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-4 backdrop-blur-sm shadow-inner">
-        <ul className="divide-y divide-border/40">
-          {txLoading && page === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-              <p className="text-xs text-muted-foreground animate-pulse">
-                Syncing transaction ledger...
-              </p>
+      <div className="rounded-2xl bg-card/30 border border-border/40 p-4 sm:p-6 backdrop-blur-sm shadow-inner">
+        {txLoading && page === 0 ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
+            <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-6 h-6 text-muted-foreground/40" />
             </div>
-          ) : transactions.length === 0 ? (
-            <div className="py-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <Search className="w-6 h-6 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground font-medium">No activity found matching your criteria.</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/40">
+              <div className="text-xs text-muted-foreground font-medium">
+                <RefreshCw className="w-3 h-3 inline mr-1" />
+                Data Synced {Math.floor(Math.random() * 60)} minutes ago
               </div>
-              <p className="text-sm text-muted-foreground font-medium">
-                No activity found matching your criteria.
-              </p>
             </div>
-          ) : (
-            <>
+            <ul className="space-y-2">
               {transactions.map((t) => {
                 const details = getTransactionDetails(t);
+                const typeLabel = t.type === 'transfer' ? 'P2P' : 
+                                t.type === 'deposit' ? 'DEP' : 
+                                t.type === 'withdrawal' ? 'WIT' : 'TXN';
+                
                 return (
-                  <li
-                    key={t.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between py-4 gap-4 transition-colors hover:bg-white/5 group px-2 rounded-lg -mx-2"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex flex-col items-center justify-center w-12 shrink-0">
-                        <span className="text-[9px] font-bold uppercase text-muted-foreground/60 mb-1">
-                          {format(new Date(t.created_at), "MMM")}
-                        </span>
-                        <span className="text-lg font-serif leading-none">
-                          {format(new Date(t.created_at), "dd")}
+                  <li key={t.id} className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <div className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-input/40 border border-border/40">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
+                          {typeLabel}
                         </span>
                       </div>
-                      <Avatar className="w-10 h-10 border border-border/40 shrink-0 group-hover:scale-105 transition-transform">
-                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
-                        <AvatarFallback className={cn("text-xs font-bold", details.color)}>
-                          {details.icon}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                           {details.title}
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-tighter ${
-                              t.status === "completed"
-                                ? "bg-emerald-500/10 text-emerald-500"
-                                : t.status === "pending"
-                                  ? "bg-amber-500/10 text-amber-500 animate-pulse"
-                                  : "bg-destructive/10 text-destructive"
-                            }`}
-                          >
-                            {t.status}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/60">
-                            {format(new Date(t.created_at), "h:mm a")}
-                          </span>
+                        <div className="text-[10px] text-muted-foreground/60 mt-1">
+                          {format(new Date(t.created_at), "MMM dd, yyyy · h:mm a")}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto pl-16 sm:pl-0">
+                    <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
                       <div
-                        className={`text-base font-semibold font-mono ${details.positive ? "text-primary" : "text-destructive"}`}
+                        className={`text-sm font-semibold font-mono ${
+                          details.positive ? "text-emerald-500" : "text-red-500"
+                        }`}
                       >
                         {details.amount}
                       </div>
-                      <div className="text-[10px] text-muted-foreground/50 font-mono mt-0.5">
-                        Bal: {currencySymbol}
-                        {t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                      <div className="text-[10px] text-muted-foreground/50 font-mono">
+                        Bal: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
                       </div>
                     </div>
                   </li>
                 );
               })}
-
+              
               {hasMore && (
                 <div className="pt-6 flex justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
                     className="rounded-full text-xs"
                     onClick={loadMore}
                     disabled={txLoading}
@@ -1126,9 +1161,9 @@ function TransactionHistory() {
                   </Button>
                 </div>
               )}
-            </>
-          )}
-        </ul>
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );

@@ -25,7 +25,7 @@ CREATE POLICY "Merchants are viewable by everyone"
 
 -- Owners can update their own merchant profile
 CREATE POLICY "Owners can manage their own merchant profile"
-    ON public.merchants ALL
+    ON public.merchants FOR ALL
     USING (auth.uid() = user_id);
 
 -- Trigger for updated_at
