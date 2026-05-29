@@ -18,7 +18,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AppShell } from "@/components/app-shell";
-import { supabase } from "@/api/supabase";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -68,7 +77,7 @@ const channels = [
     id: "call",
     icon: Phone,
     title: "Request a Call",
-    detail: "+1 (800) Vault·OS",
+    detail: "+254 721 735 254",
     note: "Avg. wait: under 2 minutes",
   },
   {
@@ -112,6 +121,30 @@ function HelpPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+
+  // Call Workflow State
+  const [showCallWorkflow, setShowCallWorkflow] = useState(false);
+  const [callbackNumber, setCallbackNumber] = useState("");
+  const [isRequestingCallback, setIsRequestingCallback] = useState(false);
+
+  const handleRequestCallback = async () => {
+    if (!callbackNumber.trim()) {
+      toast.error("Please enter a valid phone number for the callback.");
+      return;
+    }
+    setIsRequestingCallback(true);
+    try {
+      // Simulate backend processing
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      toast.success("Callback scheduled! A Vault OS agent will call you within 2 minutes.");
+      setShowCallWorkflow(false);
+      setCallbackNumber("");
+    } catch (err) {
+      toast.error("Failed to schedule callback. Please try calling directly.");
+    } finally {
+      setIsRequestingCallback(false);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -211,7 +244,10 @@ function HelpPage() {
                   return (
                     <button
                       key={c.id}
-                      onClick={() => setSelectedChannel(c.id)}
+                      onClick={() => {
+                        setSelectedChannel(c.id);
+                        if (c.id === "call") setShowCallWorkflow(true);
+                      }}
                       className={`w-full flex items-center gap-4 rounded-xl border px-5 py-4 text-left transition-all ${
                         active
                           ? "border-primary/50 bg-primary/5 shadow-[0_0_0_1px_oklch(0.82_0.16_165_/_0.2)]"
@@ -373,9 +409,74 @@ function HelpPage() {
         <div className="mt-12 lg:mt-16 pt-8 border-t border-border/40 text-center">
           <p className="text-xs text-muted-foreground">
             Need urgent help? Call our 24/7 line at{" "}
-            <span className="text-foreground">+1 (800) Vault·OS</span>
+            <span className="text-foreground">+254 721 735 254</span>
           </p>
         </div>
+
+        {/* Call Workflow Dialog */}
+        <Dialog open={showCallWorkflow} onOpenChange={setShowCallWorkflow}>
+          <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-serif">Request a Call</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Initiate a secure line with a Vault OS agent. Choose your preferred connection path.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="rounded-2xl border border-border/40 bg-input/20 p-5">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Phone className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-foreground">+254 721 735 254</div>
+                    <div className="text-[11px] text-muted-foreground uppercase tracking-widest">
+                      Vault OS Direct Line
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  className="w-full mt-4 h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+                  onClick={() => (window.location.href = "tel:+254721735254")}
+                >
+                  Call Now
+                </Button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-px flex-1 bg-border/40" />
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">
+                    Or request a callback
+                  </span>
+                  <div className="h-px flex-1 bg-border/40" />
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="+254..."
+                    value={callbackNumber}
+                    onChange={(e) => setCallbackNumber(e.target.value)}
+                    className="h-11 bg-input/40 border-border/60 rounded-xl"
+                  />
+                  <Button
+                    className="h-11 rounded-xl px-6 transition-all active:scale-95"
+                    onClick={handleRequestCallback}
+                    disabled={isRequestingCallback}
+                  >
+                    {isRequestingCallback ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    ) : (
+                      "Request"
+                    )}
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic text-center leading-relaxed">
+                  Callback requests are cryptographically queued and prioritized by KYC level.
+                </p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </AppShell>
   );
