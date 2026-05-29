@@ -55,9 +55,6 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const GEMINI_API_URL =
-      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent";
-
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
@@ -116,42 +113,69 @@ serve(async (req) => {
 
     console.log(`Calling Gemini with ${contents.length} messages for user ${user.id}`);
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+    // High-Reliability Multi-Tier Failover Logic
+    const models = [
+      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
+    ];
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error("Gemini API Error:", data);
-      
-      // If model is not found, try to list available models to help with debugging
-      if (response.status === 404 || (data.error?.message && data.error.message.includes("not found"))) {
-        try {
-          const listResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models?key=${GEMINI_API_KEY}`
-          );
-          const listData = await listResponse.json();
-          if (listResponse.ok) {
-            const availableModels = listData.models?.map((m: any) => m.name.replace("models/", "")).join(", ") || "None found";
-            throw new Error(`${data.error?.message || "Model not found"}. Available models for your key: ${availableModels}`);
-          } else {
-            throw new Error(`${data.error?.message || "Model not found"}. ListModels failed: ${listResponse.status} ${JSON.stringify(listData)}`);
-          }
-        } catch (listErr: any) {
-          throw new Error(`${data.error?.message || "Model not found"}. Diagnostic failed: ${listErr.message}`);
-        }
+    const tryCallGemini = async (modelUrl: string) => {
+      try {
+        const res = await fetch(`${modelUrl}?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents,
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 2048,
+            },
+          }),
+        });
+        return res;
+      } catch (err) {
+        return null;
       }
+    };
+
+    let response = null;
+    let data = null;
+    let success = false;
+
+    // Iterate through the failover chain
+    for (let i = 0; i < models.length; i++) {
+      const currentModelUrl = models[i];
+      const modelName = currentModelUrl.split('/models/')[1].split(':')[0];
       
-      throw new Error(data.error?.message || `Gemini error: ${response.status}`);
+      console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
+      
+      response = await tryCallGemini(currentModelUrl);
+      if (!response) continue;
+
+      data = await response.json();
+
+      // If successful, break the loop
+      if (response.ok) {
+        success = true;
+        console.log(`Success with model: ${modelName}`);
+        break;
+      }
+
+      // If we get an error that isn't a 400 (Bad Request), try next model
+      if (response.status === 503 || response.status === 429 || response.status === 404) {
+        console.warn(`Model ${modelName} returned ${response.status}. Trying next in chain...`);
+        continue;
+      }
+
+      // For other serious errors (400 Bad Request), don't retry as the payload might be the issue
+      break;
+    }
+
+    if (!success) {
+      console.error("All models in failover chain failed.", data);
+      throw new Error(data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`);
     }
 
     const aiResponse =

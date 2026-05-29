@@ -900,39 +900,33 @@ function TransactionHistory() {
 
     if (t.type === 'transfer') {
       if (isSender) {
-        // Check if this is a transfer to a mobile/bank service
         const desc = (t.description || '').toLowerCase();
         const logo = getMethodLogo(t.method || '', t.description || '');
-        const hasMobileOrBank = logo && desc.includes('transfer to');
+        const useLogo = Boolean(logo);
         
-        // Use description if available (has method/identifier details), otherwise build from receiver info
         let titleText = t.description;
         if (!titleText) {
-          // Use kyc_tag if available, otherwise first/last name
           const receiverName = t.receiver?.kyc_tag 
             ? `@${t.receiver.kyc_tag}`
             : `${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`.trim();
           titleText = `Transfer to ${receiverName}`;
         }
-        
+
         return {
           title: titleText,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: hasMobileOrBank ? null : (t.receiver?.first_name?.[0] || 'V'),
-          logo: hasMobileOrBank ? logo : t.receiver?.profile_photo_url,
+          icon: useLogo ? null : (t.receiver?.first_name?.[0] || 'V'),
+          logo: logo || t.receiver?.profile_photo_url,
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
-        // For received transfers, use kyc_tag if available
         let senderName = t.sender?.kyc_tag
           ? `@${t.sender.kyc_tag}`
           : `${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`.trim();
-        
-        // If the description contains more info (like bank/mobile details), use it
         const titleText = t.description || `Received from ${senderName}`;
-        
+
         return {
           title: titleText,
           amount: `+${symbol}${t.amount.toLocaleString()}`,
