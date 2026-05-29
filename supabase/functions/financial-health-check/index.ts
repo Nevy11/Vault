@@ -7,18 +7,55 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  retries = 3,
+  backoff = 2000
+): Promise<Response> {
+  const response = await fetch(url, options);
+
+  // Retry on 429 (Too Many Requests), 503 (Service Unavailable), or 500 (Internal Server Error)
+  if ((response.status === 429 || response.status === 503 || response.status === 500) && retries > 0) {
+    let delay = backoff;
+
+    // Try to extract retry delay from 429 error
+    if (response.status === 429) {
+      try {
+        const data = await response.clone().json();
+        const retryInfo = data.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
+        if (retryInfo?.retryDelay) {
+          // Convert "37s" or similar to milliseconds
+          const match = retryInfo.retryDelay.match(/(\d+)s/);
+          if (match) {
+            delay = parseInt(match[1]) * 1000;
+          }
+        }
+      } catch (e) {
+        // Fallback to exponential backoff
+      }
+    }
+
+    console.warn(`Gemini API returned ${response.status}, retrying in ${delay}ms... (${retries} retries left)`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    return fetchWithRetry(url, options, retries - 1, backoff * 2);
+  }
+
+  return response;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
   }
 
   try {
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY_HEALTH") ?? Deno.env.get("GEMINI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const authHeader = req.headers.get("Authorization");
 
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not set");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY_HEALTH is not set");
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader || "" } },
@@ -127,51 +164,75 @@ serve(async (req) => {
       
       Focus on spending patterns, potential balance depletion, or savings opportunities. Be specific to the data provided.
       If there is very little data, provide a welcoming tip on how to get started with Vault OS.
+      
+      IMPORTANT: Do not use any markdown formatting, asterisks (*), or bullet points in the "content" field. Use plain text only.
     `;
 
     console.log(
       `Generating insight for user ${userId} with ${history.length} history points and ${transactions?.length || 0} transactions.`,
     );
 
-    // 4. Call Gemini
-    const GEMINI_API_URL =
-      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent";
+    // 4. Call Gemini (with Multi-Tier Failover Logic)
+    const models = [
+      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
+    ];
 
-    const aiResponse = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt + "\n\nIMPORTANT: Return ONLY valid raw JSON without markdown code blocks." }] }],
-        generationConfig: { 
-          temperature: 0.7
-        },
-      }),
+    const promptText = prompt + "\n\nIMPORTANT: Return ONLY valid raw JSON without markdown code blocks.";
+    const requestBody = JSON.stringify({
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: { 
+        temperature: 0.7
+      },
     });
 
-    const aiData = await aiResponse.json();
+    let aiData;
+    let aiResponse;
+    let success = false;
 
-    if (!aiResponse.ok) {
-      console.error("Gemini API Error:", aiData);
+    for (let i = 0; i < models.length; i++) {
+      const currentModelUrl = models[i];
+      const modelName = currentModelUrl.split('/models/')[1].split(':')[0];
+      
+      console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
+      
+      aiResponse = await fetchWithRetry(`${currentModelUrl}?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+      });
 
-      // If model is not found, try to list available models to help with debugging
-      if (aiResponse.status === 404 || (aiData.error?.message && aiData.error.message.includes("not found"))) {
-        try {
-          const listResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models?key=${GEMINI_API_KEY}`
-          );
-          const listData = await listResponse.json();
-          if (listResponse.ok) {
-            const availableModels = listData.models?.map((m: any) => m.name.replace("models/", "")).join(", ") || "None found";
-            throw new Error(`${aiData.error?.message || "Model not found"}. Available models for your key: ${availableModels}`);
-          } else {
-            throw new Error(`${aiData.error?.message || "Model not found"}. ListModels failed: ${listResponse.status} ${JSON.stringify(listData)}`);
-          }
-        } catch (listErr: any) {
-          throw new Error(`${aiData.error?.message || "Model not found"}. Diagnostic failed: ${listErr.message}`);
-        }
+      aiData = await aiResponse.json();
+
+      if (aiResponse.ok) {
+        success = true;
+        console.log(`Success with model: ${modelName}`);
+        break;
       }
 
-      throw new Error(`Gemini API Error: ${aiResponse.status} ${JSON.stringify(aiData)}`);
+      console.warn(`Model ${modelName} returned ${aiResponse.status}. Trying next in chain...`);
+    }
+
+    if (!success) {
+      console.error("All models in failover chain failed.", aiData);
+      const lastStatus = aiResponse?.status;
+      let extra = "";
+      try {
+        const errMsg = aiData?.error?.message;
+        if (errMsg) extra += ` ${errMsg}`;
+
+        const retryInfo = aiData?.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
+        if (retryInfo?.retryDelay) {
+          const match = retryInfo.retryDelay.match(/(\d+)s/);
+          if (match) extra += ` Retry after ${match[1]}s.`;
+        }
+      } catch (e) {
+        // ignore parsing errors
+      }
+
+      throw new Error(`Gemini API Error: All models unavailable. Last status: ${lastStatus}.${extra}`);
     }
 
     if (!aiData.candidates || !aiData.candidates[0]?.content?.parts?.[0]?.text) {

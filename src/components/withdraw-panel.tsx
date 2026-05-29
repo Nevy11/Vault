@@ -212,13 +212,14 @@ export function WithdrawPanel() {
       if (!userId) throw new Error("User not found");
 
       // Call the RPC function
-      const { data, error: txError } = await supabase.rpc('process_secure_withdrawal', {
+      const { data, error: txError } = await supabase.rpc("process_secure_withdrawal", {
         p_user_id: userId,
         p_amount: totalDeduction,
-        p_method: channel === 'mobile' ? 'mpesa' : 'bank',
-        p_description: channel === 'mobile'
-          ? `Withdrawal to ${getRecipientName()}`
-          : `Withdrawal to ${selectedBank}: ${bankAccount}`
+        p_method: channel === "mobile" ? "mpesa" : "bank",
+        p_description:
+          channel === "mobile"
+            ? `Withdrawal to ${getRecipientName()}`
+            : `Withdrawal to ${selectedBank}: ${bankAccount}`,
       });
 
       if (txError) throw txError;
@@ -297,7 +298,7 @@ export function WithdrawPanel() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
-      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">       
+      <div className="rounded-3xl border border-border/50 bg-card/30 p-8 flex flex-col backdrop-blur-sm">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl font-light tracking-tight">
             {channel === "bank" && "Withdraw to Bank Account"}
@@ -317,7 +318,7 @@ export function WithdrawPanel() {
                     setSelectedId(null);
                   }}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",        
+                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",
                     channel === t.id
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "text-muted-foreground hover:text-foreground",
@@ -419,7 +420,7 @@ export function WithdrawPanel() {
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",   
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
                         wallet.color,
                       )}
                     >
@@ -459,7 +460,7 @@ export function WithdrawPanel() {
                     <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
                       Provider Choice
                     </Label>
-                    <div className="flex gap-2 p-1 bg-background/60 rounded-xl border border-border/60">        
+                    <div className="flex gap-2 p-1 bg-background/60 rounded-xl border border-border/60">
                       {["M-Pesa", "Airtel Money"].map((p) => (
                         <button
                           key={p}
@@ -628,7 +629,7 @@ export function WithdrawPanel() {
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="bg-card/60 border border-border/50 rounded-2xl p-5 space-y-4 backdrop-blur-sm">   
+              <div className="bg-card/60 border border-border/50 rounded-2xl p-5 space-y-4 backdrop-blur-sm">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">You are withdrawing</span>
                   <span className="font-semibold text-foreground text-lg">

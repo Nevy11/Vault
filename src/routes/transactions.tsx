@@ -226,7 +226,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
 
   // Recipient Verification
-  const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
+  const [recipient, setRecipient] = useState<{ id: string; name: string; tag?: string } | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   // Derived filtered lists
@@ -359,26 +361,40 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
 
   useEffect(() => {
     const searchRecipient = async () => {
-      // Remove any existing @ then add one to match DB format
-      const searchTag = identifier.trim() ? `@${identifier.replace("@", "").toLowerCase()}` : "";
-
-      if (method === "vault" && searchTag.length >= 4) {
-        // @ + at least 3 chars
+      const query = identifier.trim().toLowerCase();
+      
+      if (method === "vault" && query.length >= 2) {
         setIsSearching(true);
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Search by first_name or kyc_tag (which starts with @)
+        const { data } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name")
-          .eq("kyc_tag", searchTag) // DB tags start with @ and are lowercase
-          .maybeSingle();
+          .select("id, first_name, last_name, kyc_tag, profile_photo_url")
+          .or(`first_name.ilike.%${query}%,kyc_tag.ilike.%${query}%`)
+          .neq("id", user?.id)
+          .limit(5);
 
-        if (data) {
-          setRecipient({ id: data.id, name: `${data.first_name} ${data.last_name}` });
+        if (data && data.length > 0) {
+          setSearchResults(data);
+          setShowSuggestions(true);
+          
+          // Check for exact match to show verified badge
+          const exactMatch = data.find(p => p.kyc_tag?.toLowerCase() === `@${query.replace("@", "")}`);
+          if (exactMatch) {
+            setRecipient({ id: exactMatch.id, name: `${exactMatch.first_name} ${exactMatch.last_name}`, tag: exactMatch.kyc_tag });
+          } else {
+            setRecipient(null);
+          }
         } else {
+          setSearchResults([]);
           setRecipient(null);
         }
         setIsSearching(false);
       } else {
+        setSearchResults([]);
         setRecipient(null);
+        setShowSuggestions(false);
       }
     };
 
@@ -386,12 +402,19 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
     return () => clearTimeout(timer);
   }, [identifier, method]);
 
+  // Add click listener to close suggestions
+  useEffect(() => {
+    const handleClickOutside = () => setShowSuggestions(false);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
+
   const fee = method === "vault" ? 0.0 : 15.0;
   const total = parseFloat(amount || "0") + fee;
 
   const handleSelectRecipient = (r: Recipient) => {
     setMethod(r.type);
-    setIdentifier(r.identifier);
+    setIdentifier(r.type === "vault" ? r.identifier.replace("@", "") : r.identifier);
     if (r.bank) setBank(r.bank);
     if (r.provider) setProvider(r.provider);
   };
@@ -417,9 +440,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
       if (!user) throw new Error("User not found");
 
       if (method === "vault") {
+        const fullTag = identifier.startsWith("@") ? identifier : `@${identifier}`;
         const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
           p_sender_id: user.id,
-          p_recipient_tag: identifier,
+          p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
         });
 
@@ -645,27 +669,27 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   {method === "mobile" && "Phone Number"}
                 </Label>
                 <div className="relative">
-                  {method === "vault" && (
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono">
-                      @
-                    </span>
-                  )}
                   <Input
                     placeholder={
                       method === "vault"
-                        ? "username"
+                        ? "@username"
                         : method === "bank"
                           ? "0000000000"
                           : "+254 7XX XXX XXX"
                     }
-                    className={cn(
-                      "bg-background/40 h-12 border-border/60",
-                      method === "vault" && "pl-8",
-                    )}
+                    className="bg-background/40 h-12 border-border/60"
                     value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      // Strip @ if method is vault
+                      setIdentifier(method === "vault" ? val.replace("@", "") : val);
+                      if (method === "vault") setShowSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      if (method === "vault" && searchResults.length > 0) setShowSuggestions(true);
+                    }}
                   />
-                  {method === "vault" && identifier.length >= 3 && (
+                  {method === "vault" && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                       {isSearching ? (
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -673,11 +697,47 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium animate-in fade-in zoom-in duration-300">
                           <Check className="w-3 h-3" /> {recipient.name}
                         </div>
-                      ) : (
+                      ) : identifier.length >= 3 && !showSuggestions ? (
                         <span className="text-[10px] text-destructive font-medium uppercase tracking-tighter">
                           Not Found
                         </span>
-                      )}
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Suggestions Dropdown */}
+                  {method === "vault" && showSuggestions && searchResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-1">
+                        {searchResults.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-primary/5 text-left transition-colors group"
+                            onClick={() => {
+                              setIdentifier(p.kyc_tag.replace("@", ""));
+                              setRecipient({ id: p.id, name: `${p.first_name} ${p.last_name}`, tag: p.kyc_tag });
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <Avatar className="w-8 h-8 border border-border/40">
+                              <AvatarImage src={p.profile_photo_url} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                {p.first_name[0]}{p.last_name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {p.first_name} {p.last_name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono">
+                                {p.kyc_tag}
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground/0 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -932,39 +992,33 @@ function TransactionHistory() {
 
     if (t.type === 'transfer') {
       if (isSender) {
-        // Check if this is a transfer to a mobile/bank service
         const desc = (t.description || '').toLowerCase();
         const logo = getMethodLogo(t.method || '', t.description || '');
-        const hasMobileOrBank = logo && desc.includes('transfer to');
+        const useLogo = Boolean(logo);
         
-        // Use description if available (has method/identifier details), otherwise build from receiver info
         let titleText = t.description;
         if (!titleText) {
-          // Use kyc_tag if available, otherwise first/last name
           const receiverName = t.receiver?.kyc_tag 
             ? `@${t.receiver.kyc_tag}`
             : `${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`.trim();
           titleText = `Transfer to ${receiverName}`;
         }
-        
+
         return {
           title: titleText,
           amount: `-${symbol}${t.amount.toLocaleString()}`,
           positive: false,
-          icon: hasMobileOrBank ? null : (t.receiver?.first_name?.[0] || 'V'),
-          logo: hasMobileOrBank ? logo : t.receiver?.profile_photo_url,
+          icon: useLogo ? null : (t.receiver?.first_name?.[0] || 'V'),
+          logo: logo || t.receiver?.profile_photo_url,
           avatarUrl: t.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
-        // For received transfers, use kyc_tag if available
         let senderName = t.sender?.kyc_tag
           ? `@${t.sender.kyc_tag}`
           : `${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`.trim();
-        
-        // If the description contains more info (like bank/mobile details), use it
         const titleText = t.description || `Received from ${senderName}`;
-        
+
         return {
           title: titleText,
           amount: `+${symbol}${t.amount.toLocaleString()}`,

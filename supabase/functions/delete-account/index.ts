@@ -10,7 +10,10 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser(token);
 
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -23,7 +26,9 @@ serve(async (req) => {
       throw deleteError;
     }
 
-    return new Response(JSON.stringify({ message: "Account deleted successfully" }), { status: 200 });
+    return new Response(JSON.stringify({ message: "Account deleted successfully" }), {
+      status: 200,
+    });
   } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }

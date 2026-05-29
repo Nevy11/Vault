@@ -322,7 +322,7 @@ export function DepositPanel() {
 
       if (ledgerError) throw ledgerError;
 
-      // 3. Update local state balance (Realtime will handle the main sync, but this is for immediate feedback) 
+      // 3. Update local state balance (Realtime will handle the main sync, but this is for immediate feedback)
       // We don't need a manual transactions update here anymore as create_ledger_entry handles it
 
       setStatus("success");
@@ -368,7 +368,7 @@ export function DepositPanel() {
           <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
             <CheckCircle2 className="w-16 h-16 animate-in zoom-in-50 duration-500" />
           </div>
-          <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />        
+          <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />
         </div>
 
         <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Deposit Successful!</h2>
@@ -382,7 +382,7 @@ export function DepositPanel() {
           </div>
 
           <div className="space-y-4 relative">
-            <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">     
+            <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
               <span className="text-muted-foreground">Credited Balance</span>
               <span className="text-2xl font-light text-emerald-500 font-mono">
                 ${parseFloat(amount).toLocaleString()}
@@ -398,7 +398,7 @@ export function DepositPanel() {
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Status</span>
-              <span className="text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">        
+              <span className="text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
                 Completed
               </span>
             </div>
@@ -438,7 +438,7 @@ export function DepositPanel() {
                     setIsAddingNew(false);
                   }}
                   className={cn(
-                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",        
+                    "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all",
                     channel === t.id
                       ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                       : "text-muted-foreground hover:text-foreground",
@@ -460,7 +460,7 @@ export function DepositPanel() {
                   Select Carrier
                 </Label>
                 <Select value={selectedCarrier} onValueChange={setSelectedCarrier}>
-                  <SelectTrigger className="h-14 bg-background/40 border-border/60 rounded-2xl text-base">      
+                  <SelectTrigger className="h-14 bg-background/40 border-border/60 rounded-2xl text-base">
                     <SelectValue placeholder="Select provider" />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
@@ -490,14 +490,14 @@ export function DepositPanel() {
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",   
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold",
                         item.color,
                       )}
                     >
                       MP
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">    
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                         Primary Number
                       </div>
                       <div className="text-sm font-semibold truncate">{item.name}</div>
@@ -557,7 +557,7 @@ export function DepositPanel() {
                   Search Banks
                 </Label>
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" /> 
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     placeholder="Search major Kenyan banks..."
                     className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-base"
@@ -582,7 +582,7 @@ export function DepositPanel() {
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-xs font-bold",   
+                        "w-12 h-12 rounded-xl flex items-center justify-center text-white text-xs font-bold",
                         item.color,
                       )}
                     >
@@ -697,7 +697,7 @@ export function DepositPanel() {
           </div>
 
           <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-6 space-y-4 relative overflow-hidden group">
-            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">      
+            <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <History className="w-24 h-24 text-emerald-500" />
             </div>
             <div className="flex justify-between items-center text-xs text-emerald-500/70 uppercase tracking-widest font-bold">
@@ -725,7 +725,7 @@ export function DepositPanel() {
               Vault Transaction PIN
             </Label>
             <div className="relative">
-              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />   
+              <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="password"
                 maxLength={6}

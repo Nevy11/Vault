@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // Provide a WebSocket implementation on the server (Node <22) so
 // @supabase/realtime-js can initialize correctly during SSR/dev.
+/*
 if (typeof window === "undefined") {
   try {
     // @ts-expect-error -- ws is an optional peer dependency for SSR/Realtime support
@@ -17,6 +18,7 @@ if (typeof window === "undefined") {
     // Keep silent here to avoid noisy logs.
   }
 }
+*/
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -41,6 +43,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error(msg);
 }
 
+console.log("Initializing Supabase client...");
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
   supabaseAnonKey || "placeholder",
