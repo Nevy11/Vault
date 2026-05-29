@@ -226,7 +226,9 @@ function SendPanel() {
   const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
 
   // Recipient Verification
-  const [recipient, setRecipient] = useState<{ id: string; name: string } | null>(null);
+  const [recipient, setRecipient] = useState<{ id: string; name: string; tag?: string } | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
@@ -336,32 +338,53 @@ function SendPanel() {
 
   useEffect(() => {
     const searchRecipient = async () => {
-      // Remove any existing @ then add one to match DB format
-      const searchTag = identifier.trim() ? `@${identifier.replace("@", "").toLowerCase()}` : "";
-
-      if (method === "vault" && searchTag.length >= 4) {
-        // @ + at least 3 chars
+      const query = identifier.trim().toLowerCase();
+      
+      if (method === "vault" && query.length >= 2) {
         setIsSearching(true);
-        const { data, error } = await supabase
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        // Search by first_name or kyc_tag (which starts with @)
+        const { data } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name")
-          .eq("kyc_tag", searchTag) // DB tags start with @ and are lowercase
-          .maybeSingle();
+          .select("id, first_name, last_name, kyc_tag, profile_photo_url")
+          .or(`first_name.ilike.%${query}%,kyc_tag.ilike.%${query}%`)
+          .neq("id", user?.id)
+          .limit(5);
 
-        if (data) {
-          setRecipient({ id: data.id, name: `${data.first_name} ${data.last_name}` });
+        if (data && data.length > 0) {
+          setSearchResults(data);
+          setShowSuggestions(true);
+          
+          // Check for exact match to show verified badge
+          const exactMatch = data.find(p => p.kyc_tag?.toLowerCase() === `@${query.replace("@", "")}`);
+          if (exactMatch) {
+            setRecipient({ id: exactMatch.id, name: `${exactMatch.first_name} ${exactMatch.last_name}`, tag: exactMatch.kyc_tag });
+          } else {
+            setRecipient(null);
+          }
         } else {
+          setSearchResults([]);
           setRecipient(null);
         }
         setIsSearching(false);
       } else {
+        setSearchResults([]);
         setRecipient(null);
+        setShowSuggestions(false);
       }
     };
 
     const timer = setTimeout(searchRecipient, 400);
     return () => clearTimeout(timer);
   }, [identifier, method]);
+
+  // Add click listener to close suggestions
+  useEffect(() => {
+    const handleClickOutside = () => setShowSuggestions(false);
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const fee = method === "vault" ? 0.0 : 15.0;
   const total = parseFloat(amount || "0") + fee;
@@ -637,9 +660,13 @@ function SendPanel() {
                       const val = e.target.value;
                       // Strip @ if method is vault
                       setIdentifier(method === "vault" ? val.replace("@", "") : val);
+                      if (method === "vault") setShowSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      if (method === "vault" && searchResults.length > 0) setShowSuggestions(true);
                     }}
                   />
-                  {method === "vault" && identifier.length >= 3 && (
+                  {method === "vault" && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                       {isSearching ? (
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -647,11 +674,47 @@ function SendPanel() {
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-md text-xs font-medium animate-in fade-in zoom-in duration-300">
                           <Check className="w-3 h-3" /> {recipient.name}
                         </div>
-                      ) : (
+                      ) : identifier.length >= 3 && !showSuggestions ? (
                         <span className="text-[10px] text-destructive font-medium uppercase tracking-tighter">
                           Not Found
                         </span>
-                      )}
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Suggestions Dropdown */}
+                  {method === "vault" && showSuggestions && searchResults.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="p-1">
+                        {searchResults.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-primary/5 text-left transition-colors group"
+                            onClick={() => {
+                              setIdentifier(p.kyc_tag.replace("@", ""));
+                              setRecipient({ id: p.id, name: `${p.first_name} ${p.last_name}`, tag: p.kyc_tag });
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <Avatar className="w-8 h-8 border border-border/40">
+                              <AvatarImage src={p.profile_photo_url} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                                {p.first_name[0]}{p.last_name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                {p.first_name} {p.last_name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono">
+                                {p.kyc_tag}
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground/0 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
