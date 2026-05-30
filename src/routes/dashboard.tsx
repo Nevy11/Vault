@@ -1148,8 +1148,8 @@ function DashboardPage() {
                       </Avatar>
                       <div className="min-w-0">
                         <div className="text-sm truncate">{details.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(t.created_at), "h:mm a")}
+                        <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
+                          {format(new Date(t.created_at), "EEEE, MMM d · h:mm a")}
                         </div>
                       </div>
                     </div>

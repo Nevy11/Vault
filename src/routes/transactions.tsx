@@ -1155,7 +1155,7 @@ function TransactionHistory() {
                           {details.title}
                         </div>
                         <div className="text-[10px] text-muted-foreground/60 mt-1">
-                          {format(new Date(t.created_at), "MMM dd, yyyy · h:mm a")}
+                          {format(new Date(t.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
                         </div>
                       </div>
                     </div>
