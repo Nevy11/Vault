@@ -1,146 +1,243 @@
-# Vault
+# Vault Project Documentation
 
-Vault is a secure wallet web application built with React, TanStack Start, Supabase, and Vite. It supports SSR, user authentication, KYC onboarding, real-time account activity, deposits, withdrawals, and wallet management.
+## Overview
 
-Live demo: https://vault-one-plum.vercel.app/
+Vault is a secure wallet web application built with React, TanStack Start, Supabase, and Vite. It includes a web frontend, Supabase-managed backend data and serverless functions, and deployment support for Vercel.
 
-## Key features
+The project focuses on user authentication, wallet management, deposits/withdrawals, financial insights, KYC onboarding, and real-time transaction activity.
 
-- Email/PIN login and sign-up flows
-- OTP verification for authentication
-- SSR-ready render pipeline using TanStack Start
-- Supabase backend for auth, profiles, wallets, and activity logs
-- Dark mode support with refined UI contrast
-- Dashboard with send/deposit/withdraw workflows
-- Vercel deployment support via `api/ssr.ts`
+## Live app
 
-## Tech stack
+- Live production URL: https://vault-one-plum.vercel.app/
+
+## How to use
+
+1. Open the live URL in a browser.
+2. Sign up with an email address or log in with an existing account.
+3. Complete any required KYC onboarding flows.
+4. Use the dashboard to view wallet balances, transactions, and financial recommendations.
+5. Deposit funds, withdraw money, send payments, and review receipts from the app.
+
+## Tech Stack
 
 - React 19
 - TanStack Router & TanStack Start
 - Vite 7
 - Tailwind CSS 4
 - Supabase JS
-- `pnpm` package manager
-- Vercel deployment for SSR and static assets
+- pnpm package manager
+- Vercel deployment support
 
-## Repository structure
+## Repository Structure
 
-- `src/` — application source code
-  - `routes/` — route pages like `login`, `sign-up`, `dashboard`, `settings`
-  - `components/` — reusable UI and page components
-  - `lib/` — utility modules, Supabase client, profile signal, helpers
-  - `hooks/` — custom React hooks
-  - `server.ts` — SSR entry wrapper for TanStack Start
-  - `router.tsx` — app router configuration
-- `supabase/` — Supabase functions and migrations
-- `vite.config.ts` — standard Vite config for SSR build
-- `vite.spa.config.ts` — SPA-only client build config
-- `vercel.json` — Vercel deployment config
+### Root
 
-## Local development
+- `package.json` — root package config and shared dependencies.
+- `pnpm-workspace.yaml` — workspace configuration.
+- `vite.config.ts` — Vite config for TanStack Start SSR and client build.
+- `vite.spa.config.ts` — dedicated SPA-only build config.
+- `tsconfig.json` — global TypeScript configuration.
+- `vercel.json` — Vercel build and routing configuration.
+- `wrangler.jsonc` — Cloudflare worker / Vite plugin integration config.
+- `README.md` — project overview and usage notes.
+- `.env.local` — local environment variables for the web app (not committed).
+- `docs/README.md` — this generated documentation file.
 
-1. Install dependencies:
+### Web application
 
-```bash
-pnpm install
-```
+- `src/main.tsx` — client entry point.
+- `src/server.ts` — custom SSR wrapper for TanStack Start.
+- `src/router.tsx` — router creation with query client and scroll restoration.
+- `src/routeTree.gen.ts` — generated TanStack Router route tree.
+- `src/routes/` — route page modules.
+- `src/components/` — reusable UI components.
+- `src/hooks/` — custom hooks.
+- `src/lib/` — utilities, error capture, profile signal, and shared helpers.
+- `src/api/` — Supabase and payment integration logic.
+- `src/styles.css` — application styling and theming.
 
-2. Create environment variables:
+### Backend & Deployment
 
-```bash
-cp .env.example .env.local
-```
+- `api/ssr.ts` — Vercel server handler that forwards requests to the built SSR bundle.
+- `supabase/` — Supabase local development config, database migrations, seed data, and edge functions.
+- `supabase/functions/` — server-side functions for account management, payments, Stripe, M-Pesa, AI chat, and support flows.
+- `public/` — static assets.
+- `dist/` — build output.
 
-3. Set the Supabase values in `.env.local`:
+## Application Architecture
 
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_PUBLISHABLE_KEY=your_public_key
-# or
-VITE_SUPABASE_ANON_KEY=your_public_key
-```
+### Web app
 
-4. Run the dev server:
+The web application is built as a TanStack Start SSR app with the following bootstrap flow:
 
-```bash
-pnpm dev
-```
+1. `src/main.tsx` initializes the client and router.
+2. `src/router.tsx` creates a TanStack Router instance using `routeTree` and a `QueryClient`.
+3. `src/routes/__root.tsx` defines the root route shell, metadata, error boundaries, and profile hydration.
+4. `src/server.ts` wraps the generated SSR entry with error normalization for server rendering.
+5. `vercel.json` routes all non-asset requests to `api/ssr.ts`, which forwards traffic to the built SSR bundle.
 
-Then open `http://localhost:8081`.
+### Routing
 
-## Build & preview
+The app supports these primary routes:
 
-- Build SSR and SPA artifacts:
+- `/` — landing page / sign-in entrypoint
+- `/login` — login form
+- `/sign-up` — sign-up flow
+- `/dashboard` — authenticated dashboard
+- `/finance-advisor` — financial advisory page
+- `/finance-hub` — finance hub
+- `/help` — help page
+- `/kyc` — KYC onboarding
+- `/loans` — loans page
+- `/savings` — savings page
+- `/transactions` — transaction history
+- `/settings` — user/settings page
+- `/pay/$username` — pay-by-username flow
 
-```bash
-pnpm run build
-```
+The routes are generated in `src/routeTree.gen.ts` and mounted under the root route defined in `src/routes/__root.tsx`.
 
-- Preview the built app:
+### UI and components
 
-```bash
-pnpm run preview
-```
+- `src/components/top-nav.tsx` handles navigation, profile, and sign-out behavior.
+- `src/components/ui/` contains shared UI primitives, inputs, buttons, dialogs, and layout utilities.
+- `src/components` contains page-specific panels, dashboards, finance advisors, receipt history, and wallet actions.
+- The app uses Radix UI primitives, Tailwind CSS, and class variance authority for styling.
 
-- Build only the SPA client bundle:
+### Data & state management
 
-```bash
-pnpm run build:spa
-```
+- `@tanstack/react-query` is used for data fetching and caching.
+- `zustand` may be used for lightweight state storage across the app.
+- Profile state is managed through `src/lib/profile-signal.ts` and hydrated from Supabase session state.
+- Supabase is configured in `src/api/supabase.ts` and shared across hooks and components.
 
-- Build only the SSR app:
+## Supabase Backend
 
-```bash
-pnpm run build:ssr
-```
+### Local dev config
+
+- `supabase/config.toml` configures local Supabase services, including API, DB, realtime, storage, auth, and studio.
+- Local Supabase ports are set to `54321` for the API, `54322` for the database, and `54323` for Studio.
+- Auth is enabled with email sign-up and refresh token rotation.
+
+### Migrations
+
+The project includes a long migration history under `supabase/migrations/`.
+
+Important migration topics include:
+
+- enum creation
+- transactions and wallet tables
+- withdrawals and secure withdrawal logic
+- ledger/ledger entries
+- savings, loans, notifications, receipts, and financial insights
+- M-Pesa transaction support
+- Stripe transaction logging and issuing card support
+- real-time replication and notification triggers
+
+### Seed data
+
+- `supabase/seed.sql` populates sample sub-accounts, ledger entries, and M-Pesa transactions for the first authenticated user.
+
+### Supabase functions
+
+Key serverless functions include:
+
+- `delete-account/` — account deletion logic
+- `financial-health-check/` — financial health evaluation
+- `gemini-chat/` — AI chat integration
+- `mpesa-callback/` — M-Pesa callback handler
+- `mpesa-deposit/` — M-Pesa deposit flow
+- `send-support-email/` — support email sending
+- `stripe-checkout/` — Stripe checkout support
+- `stripe-create-intent/` — Stripe payment intents
+- `stripe-issuing/` — Stripe issuing card operations
+- `stripe-issuing-auth/` — Stripe issuing auth flow
+- `stripe-webhook/` — Stripe webhook event handling
+
+## Mobile Companion App
+
+The `mobile` folder contains an Expo React Native app with a minimal authenticated flow.
+
+- The app uses Expo, React Navigation, and Supabase.
+- Screens included are `LoginScreen`, `SignUpScreen`, `DashboardScreen`, and `ReceiptHistoryScreen`.
+- The mobile app is configured to authenticate against the same Supabase backend as the web app.
+- Environment variables are defined in `mobile/.env` or standard `EXPO_PUBLIC_*` names.
 
 ## Deployment
 
-This project is configured to deploy on Vercel with SSR support.
+### Vercel
 
-- `vercel.json` routes static asset requests to `/assets/*`
-- all other requests are handled by `api/ssr.ts`
-- `api/ssr.ts` forwards requests into the built SSR bundle at `dist/server/index.js`
+The project is configured for Vercel deployment:
 
-### Recommended deploy steps
+- `vercel.json` builds the client bundle from `dist/client` and routes all application traffic through `api/ssr.ts`.
+- Static assets under `/assets/*` are served directly.
+- All remaining paths are forwarded to server-side rendering.
 
-1. Push your branch to GitHub.
-2. Ensure Vercel is connected to the repository.
-3. Trigger a new deploy.
+### SSR behavior
 
-If the app loads without styles in production, verify the site is building the client bundle and that the `dist/client/index.html` includes the generated stylesheet link.
+- `src/server.ts` loads the generated TanStack Start server entry and catches catastrophic SSR errors.
+- `api/ssr.ts` adapts Express-style requests into Web Fetch requests, forwards them to the SSR server, and pipes back the response.
 
-## Common scripts
+## Local Development
 
-- `pnpm dev` — start Vite dev server
-- `pnpm run build` — build SPA and SSR outputs
-- `pnpm run build:spa` — build only SPA client
-- `pnpm run build:ssr` — build only SSR server
+### Web app
+
+From the repo root:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+The dev server uses Vite and typically runs on `http://localhost:8081`.
+
+### Supabase local backend
+
+Use Supabase CLI tooling for local development and migrations.
+
+### Environment variables
+
+The web app uses environment variables in `.env.local`, including:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_ANON_KEY`
+
+Expo may also accept `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+
+## Build & Scripts
+
+From the root:
+
+- `pnpm dev` — start the Vite development server
+- `pnpm run build` — build both SPA and SSR artifacts
+- `pnpm run build:spa` — build the client bundle only
+- `pnpm run build:ssr` — build the SSR server bundle only
 - `pnpm run preview` — preview the production build locally
 - `pnpm run lint` — run ESLint
-- `pnpm run format` — run Prettier formatting
+- `pnpm run format` — run Prettier
 
-## Notes
+## Key Concepts & Notes
 
-- The app uses custom CSS variables and `@theme inline` definitions in `src/styles.css`.
-- `src/components/ui/input.tsx` defines the base input styling used across login/sign-up forms.
-- `src/components/top-nav.tsx` controls the profile dropdown and sign-out behavior.
-- `src/api/server.ts` normalizes SSR response errors and ensures runtime-safe server rendering.
+- The app uses TanStack Start for SSR-friendly React rendering and a generated route tree for predictable routing.
+- Profile state is hydrated from Supabase session events and stored in `profileSignal`.
+- The `TopNav` component is a global shell element that handles sign-out and displays profile status.
+- Supabase functions support payments, account deletion, AI chat, Stripe issuing, and M-Pesa integration.
+- The project maintains a strong database migration history in `supabase/migrations/` to support financial workflows, notifications, receipts, and data integrity.
 
-## Troubleshooting
+## Recommendations
 
-### Missing CSS in production
+- Keep `src/routeTree.gen.ts` generated by TanStack Router and do not edit it manually.
+- If adding routes, update the corresponding `src/routes/*.tsx` file and regenerate the route tree.
+- Keep Supabase local config in sync with deployed project settings, especially auth redirect URLs and `site_url`.
+- Use `pnpm` at the root and `npm` or `pnpm` inside `mobile/` consistently with the selected package manager.
 
-- Confirm `src/main.tsx` imports `./styles.css`
-- Confirm `dist/client/index.html` contains a `<link rel="stylesheet" ...>` entry
-- Verify Vercel is using the latest `vercel.json` and `api/ssr.ts` configuration
+## Further Reading
 
-### Auth / sign-out issues
+- `README.md` — root project notes and quick-start guidance.
+- `supabase/config.toml` — local Supabase development configuration.
+- `supabase/migrations/` — ordered database schema history.
+- `api/ssr.ts` — Vercel SSR request adapter.
+- `src/routes/__root.tsx` — application shell, metadata, and error boundaries.
 
-- `src/components/top-nav.tsx` uses `supabase.auth.signOut()` and clears `useProfileSignal()` state.
-- Routes are handled through `@tanstack/react-router` and should match `/dashboard` and `/settings`.
+---
 
-## License
-
-This project is private.
+_Last updated: May 30, 2026._
