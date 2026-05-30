@@ -955,8 +955,6 @@ function DashboardPage() {
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Analyzing portfolio...
                   </span>
-                ) : portfolioSummary.error ? (
-                  "Your portfolio is performing well this month."
                 ) : (
                   portfolioSummary.message
                 )}
