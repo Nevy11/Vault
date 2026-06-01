@@ -118,10 +118,10 @@ export function useSavings() {
 
       // Handle Vault Balance source
       if (source === "vault_balance") {
-        // 1. Fetch current wallet balance
+        // 1. Fetch current wallet balance and currency
         const { data: wallet, error: walletError } = await supabase
           .from("wallets")
-          .select("balance, id")
+          .select("balance, id, currency")
           .eq("user_id", user.id)
           .single();
 
@@ -130,19 +130,35 @@ export function useSavings() {
           return;
         }
 
-        if (Number(wallet.balance) < amount) {
+        const walletCurrency = wallet.currency || "USD";
+        const KES_USD_RATE = 130.0;
+        
+        // Convert contribution amount (which is in KES/KSH) to wallet currency if needed
+        let amountInWalletCurrency = amount;
+        if (walletCurrency === "USD") {
+          amountInWalletCurrency = Number((amount / KES_USD_RATE).toFixed(2));
+        }
+
+        if (Number(wallet.balance) < amountInWalletCurrency) {
+          const displayBalance = walletCurrency === "USD" 
+            ? `KES ${(Number(wallet.balance) * KES_USD_RATE).toLocaleString()}`
+            : `KES ${Number(wallet.balance).toLocaleString()}`;
+            
           toast.error("Insufficient Vault balance", {
-            description: `You have KES ${Number(wallet.balance).toLocaleString()} but tried to save KES ${amount.toLocaleString()}`,
+            description: `You have ${displayBalance} but tried to save KES ${amount.toLocaleString()}`,
           });
           return;
         }
 
-        const newWalletBalance = Number(wallet.balance) - amount;
+        const newWalletBalance = Number(wallet.balance) - amountInWalletCurrency;
 
         // 2. Deduct from wallet
         const { error: deductError } = await supabase
           .from("wallets")
-          .update({ balance: newWalletBalance })
+          .update({ 
+            balance: newWalletBalance,
+            updated_at: new Date().toISOString()
+          })
           .eq("id", wallet.id);
 
         if (deductError) throw deductError;
@@ -153,7 +169,7 @@ export function useSavings() {
           receiver_id: null, // Self-transfer to savings
           type: "transfer",
           method: "vault",
-          amount: amount,
+          amount: amountInWalletCurrency, // Store amount in wallet currency
           status: "completed",
           description: "Transferred to savings",
           balance_after: newWalletBalance,
@@ -164,7 +180,7 @@ export function useSavings() {
 
       const newCurrentAmount = Number(goal.current_amount) + Number(amount);
 
-      // 4. Insert into savings_ledger
+      // 4. Insert into savings_ledger (Always keep ledger in goal's native currency KES)
       const { error: ledgerError } = await supabase.from("savings_ledger").insert({
         goal_id: goal.id,
         user_id: user.id,

@@ -201,24 +201,15 @@ function LoansPage() {
     }
 
     try {
-      let result;
-      if (repayProvider === "Vault Wallet") {
-        const { data, error } = await supabase.rpc("process_vault_repayment", {
-          p_loan_id: activeLoan.id,
-          p_amount: parseFloat(repayAmount),
-        });
-        if (error) throw error;
-        result = data;
-      } else {
-        const { data, error } = await supabase.rpc("repay_loan", {
-          p_loan_id: activeLoan.id,
-          p_amount: parseFloat(repayAmount),
-          p_source: `${repayProvider} (${sourceIdentifier})`,
-          p_payment_type: "manual",
-        });
-        if (error) throw error;
-        result = data;
-      }
+      const { data, error } = await supabase.rpc("repay_loan", {
+        p_loan_id: activeLoan.id,
+        p_amount: parseFloat(repayAmount),
+        p_source: repayProvider === "Vault Wallet" ? "Vault Wallet" : `${repayProvider} (${sourceIdentifier})`,
+        p_payment_type: "manual",
+      });
+      
+      if (error) throw error;
+      const result = data;
 
       if (result.success) {
         toast.success("Repayment Processed", {
