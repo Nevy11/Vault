@@ -45,11 +45,14 @@ function PaymentPortal() {
   const [status, setStatus] = useState<"idle" | "processing" | "success">("idle");
   const [method, setMethod] = useState<"vault" | "mpesa">("vault");
 
-  const cleanUsername = username.replace("@", "").toLowerCase();
-  const paymentLink = `${window.location.origin}/pay/@${cleanUsername}`;
+  const cleanUsername = (username || "").replace(/^@/, "").toLowerCase();
+  const paymentLink = typeof window !== "undefined" 
+    ? `${window.location.origin}/pay/@${cleanUsername}`
+    : `/pay/@${cleanUsername}`;
 
   useEffect(() => {
     async function fetchMerchant() {
+      if (!cleanUsername) return;
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -102,7 +105,8 @@ function PaymentPortal() {
       if (!user) {
         // Redirect to login with intent
         toast.info("Please sign in to complete your Vault payment.");
-        window.location.href = `/login?redirect=/pay/@${cleanUsername}&amount=${amount}`;
+        const redirectPath = `/pay/@${cleanUsername}${amount ? `?amount=${amount}` : ""}`;
+        window.location.href = `/login?redirect=${encodeURIComponent(redirectPath)}`;
         return;
       }
 

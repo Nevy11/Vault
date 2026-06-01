@@ -11,7 +11,15 @@ import { getDeviceName } from "@/lib/device-detection";
 import { Logo } from "@/components/logo";
 import { profileSignal } from "@/lib/profile-signal";
 
+import { z } from "zod";
+
+const loginSearchSchema = z.object({
+  redirect: z.string().optional(),
+  amount: z.string().optional(),
+});
+
 export const Route = createFileRoute("/login")({
+  validateSearch: (search) => loginSearchSchema.parse(search),
   component: LoginPage,
   head: () => ({
     meta: [
@@ -45,6 +53,7 @@ function Field({
 }
 
 function LoginPage() {
+  const { redirect } = Route.useSearch();
   const [showPin, setShowPin] = useState(false);
   const [step, setStep] = useState<"signIn" | "verify">("signIn");
   const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
@@ -180,7 +189,17 @@ function LoginPage() {
         }
 
         toast.success("Login successful!");
-        navigate({ to: "/dashboard" });
+        
+        if (redirect) {
+          // Use window.location.href for absolute redirects or navigate for relative ones
+          if (redirect.startsWith("http")) {
+            window.location.href = redirect;
+          } else {
+            navigate({ to: redirect as any });
+          }
+        } else {
+          navigate({ to: "/dashboard" });
+        }
       } else {
         // If PIN mismatch, sign out the user
         await supabase.auth.signOut();
