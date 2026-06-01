@@ -33,19 +33,17 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
       try {
         setSummary((prev) => ({ ...prev, loading: true, error: null }));
 
-        // 1. Get the user's wallets first to get all wallet_ids
-        const { data: wallets, error: walletError } = await supabase
+        // 1. Get the user's wallets first
+        const { data: wallets, error: walletsError } = await supabase
           .from("wallets")
           .select("id")
           .eq("user_id", userId);
 
-        if (walletError) throw walletError;
+        if (walletsError) throw walletsError;
         if (!wallets || wallets.length === 0) {
           setSummary((prev) => ({ ...prev, loading: false }));
           return;
         }
-
-        const walletIds = wallets.map(w => w.id);
 
         // Fetch balance history for the last 60 days
         const sixtyDaysAgo = new Date();
@@ -53,7 +51,7 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // First, get the wallet_id for this user
+        // First, get the primary wallet_id for this user
         const { data: walletData, error: walletError } = await supabase
           .from("wallets")
           .select("id")
