@@ -437,14 +437,24 @@ function SavingsPage() {
 
         <main className="relative z-10 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
-                Savings Vault
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
-                <ShieldCheck className="w-4 h-4 text-primary" />
-                Cryptographically secured target-based savings.
-              </p>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-8 h-8 hover:bg-white/20"
+                onClick={() => history.back()}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
+                  Savings Vault
+                </h1>
+                <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  Cryptographically secured target-based savings.
+                </p>
+              </div>
             </div>
             <Tabs
               value={activeTab}

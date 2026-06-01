@@ -99,23 +99,6 @@ export function TopNav() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={toggleTheme}
-                  className="h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group"
-                  aria-label="Toggle theme"
-                >
-                  {theme === "dark" ? (
-                    <Sun
-                      size={16}
-                      className="group-hover:scale-110 transition-transform text-yellow-500"
-                    />
-                  ) : (
-                    <Moon
-                      size={16}
-                      className="group-hover:scale-110 transition-transform text-slate-400"
-                    />
-                  )}
-                </button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
@@ -210,10 +193,24 @@ export function TopNav() {
             </>
           )}
 
-          {/* Profile Dropdown */}
+          {/* Icon Row (Theme -> Receipt -> Profile) */}
           {mounted && profile && (
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-2">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="h-9 w-9 rounded-full bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <Sun size={16} className="text-yellow-500" />
+                ) : (
+                  <Moon size={16} className="text-slate-400" />
+                )}
+              </button>
+
               <ReceiptActionIcon />
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="rounded-full transition-all hover:ring-4 hover:ring-primary/10 focus:outline-none flex p-0.5 border border-primary/20 bg-primary/5">
@@ -228,121 +225,62 @@ export function TopNav() {
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="end"
-                className="w-64 rounded-2xl p-2 border-border/50 shadow-xl"
-              >
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1 py-1 px-1">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10 border border-border/40">
-                        <AvatarImage
-                          src={profile?.profile_photo_url || undefined}
-                          className="object-cover"
-                        />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                          {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col space-y-0.5 min-w-0">
-                        <p className="text-sm font-medium leading-none truncate">
-                          {profile?.first_name} {profile?.last_name}
-                        </p>
-                        <p className="text-xs leading-none text-muted-foreground truncate">
-                          Vault User
-                        </p>
+                <DropdownMenuContent
+                  align="end"
+                  className="w-64 rounded-2xl p-2 border-border/50 shadow-xl"
+                >
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1 py-1 px-1">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border border-border/40">
+                          <AvatarImage
+                            src={profile?.profile_photo_url || undefined}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                            {(profile?.first_name?.[0] || profile?.email?.[0] || "U").toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col space-y-0.5 min-w-0">
+                          <p className="text-sm font-medium leading-none truncate">
+                            {profile?.first_name} {profile?.last_name}
+                          </p>
+                          <p className="text-xs leading-none text-muted-foreground truncate">
+                            Vault User
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem
-                  onSelect={() => setShowPhotoPreview(true)}
-                  className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
-                >
-                  <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                  View Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    to="/settings"
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-border/50" />
+                  <DropdownMenuItem
+                    onSelect={() => setShowPhotoPreview(true)}
                     className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
                   >
-                    <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border/50" />
-                <DropdownMenuItem
-                  onClick={handleSignOut}
-                  className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-2.5"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
-
-        {mounted && (
-            <Dialog open={showPhotoPreview} onOpenChange={setShowPhotoPreview}>
-              <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-2xl border-border/40">
-                <DialogHeader>
-                  <DialogTitle className="text-center font-serif text-2xl">
-                    Profile Photo
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center justify-center p-4">
-                  <div className="relative group">
-                    <Avatar className="h-48 w-48 border-4 border-primary/20 shadow-2xl transition-transform duration-500 group-hover:scale-[1.02]">
-                      <AvatarImage
-                        src={profile?.profile_photo_url || undefined}
-                        className="object-cover"
-                      />
-                      <AvatarFallback className="bg-primary/10 text-primary text-4xl">
-                        {profile?.first_name?.[0] || <User className="h-20 w-20" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="absolute inset-0 rounded-full bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <div className="mt-6 text-center">
-                    <h3 className="text-xl font-medium text-foreground">
-                      {profile?.first_name} {profile?.last_name}
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {profile?.email || "Vault OS User"}
-                    </p>
-                  </div>
-                  <div className="mt-8 flex gap-3 w-full">
-                    <Button
-                      className="flex-1 rounded-xl h-11"
-                      onClick={() => setShowPhotoPreview(false)}
+                    <User className="w-4 h-4 mr-2 text-muted-foreground" />
+                    View Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      to="/settings"
+                      className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
                     >
-                      Close Preview
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 rounded-xl h-11 border-border/60"
-                      asChild
-                      onClick={() => setShowPhotoPreview(false)}
-                    >
-                      <Link to="/settings">Edit Profile</Link>
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                      <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-border/50" />
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-2.5"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           )}
-
-          <button
-            type="button"
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:border-border/80 hover:text-foreground md:hidden"
-            aria-label={open ? "Close navigation" : "Open navigation"}
-            onClick={() => setOpen((current) => !current)}
-          >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
       </div>
 

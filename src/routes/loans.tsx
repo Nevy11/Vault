@@ -66,7 +66,9 @@ const INTEREST_RATES: Record<string, number> = {
 
 function LoansPage() {
   const [profile] = useProfileSignal();
-  const [activeTab, setActiveTab] = useState<string>("request");
+  const [activeLoan, setActiveLoan] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<string>("request"); // Will be updated in useEffect
+
   const [loanAmount, setLoanAmount] = useState<string>("");
   const [period, setPeriod] = useState<string>("3");
   const [showRepayPopup, setShowRepayPopup] = useState(false);
@@ -74,7 +76,6 @@ function LoansPage() {
   const [repayProvider, setRepayProvider] = useState("");
   const [sourceIdentifier, setSourceIdentifier] = useState("");
   
-  const [activeLoan, setActiveLoan] = useState<any>(null);
   const [loanHistory, setLoanHistory] = useState<any[]>([]);
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +94,13 @@ function LoansPage() {
 
       if (activeErr) throw activeErr;
       setActiveLoan(active);
+
+      // Set default tab based on loan status
+      if (active) {
+        setActiveTab("tracker");
+      } else {
+        setActiveTab("request");
+      }
 
       // Fetch Loan History
       const { data: history, error: historyErr } = await supabase
@@ -255,14 +263,24 @@ function LoansPage() {
         <main className="relative z-10 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
-                Instant Credit
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                Algorithmic lending based on your ledger integrity.
-              </p>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full w-8 h-8 hover:bg-white/20"
+                onClick={() => history.back()}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
+                  Instant Credit
+                </h1>
+                <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                  Algorithmic lending based on your ledger integrity.
+                </p>
+              </div>
             </div>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
               <TabsList className="grid w-full grid-cols-3 h-12 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
