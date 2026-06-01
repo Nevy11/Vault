@@ -115,9 +115,8 @@ serve(async (req) => {
 
     // High-Reliability Multi-Tier Failover Logic
     const models = [
-      "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent",
       "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
     ];
 
