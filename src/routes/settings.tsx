@@ -24,6 +24,9 @@ import {
   ExternalLink,
   Zap,
   Download,
+  Lock,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +37,7 @@ import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/api/supabase";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
-import { formatKycTag } from "@/lib/utils";
+import { formatKycTag, hashPin } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { profileSignal, useProfileSignal } from "@/lib/profile-signal";
 import {
@@ -227,6 +230,149 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function ChangePinDialog({
+  profile,
+  onSuccess,
+}: {
+  profile: any;
+  onSuccess: () => void;
+}) {
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [showPins, setShowPins] = useState(false);
+  const [isChanging, setIsChanging] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const handlePinChange = async () => {
+    if (currentPin.length !== 6 || newPin.length !== 6 || confirmPin.length !== 6) {
+      toast.error("All PINs must be 6 digits");
+      return;
+    }
+
+    if (newPin !== confirmPin) {
+      toast.error("New PINs do not match");
+      return;
+    }
+
+    try {
+      setIsChanging(true);
+      const hashedCurrent = await hashPin(currentPin);
+
+      if (hashedCurrent !== profile?.pin_hash) {
+        toast.error("Current PIN is incorrect");
+        return;
+      }
+
+      const hashedNew = await hashPin(newPin);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ pin_hash: hashedNew })
+        .eq("id", profile.id);
+
+      if (error) throw error;
+
+      toast.success("PIN changed successfully!");
+      setOpen(false);
+      onSuccess();
+      // Clear fields
+      setCurrentPin("");
+      setNewPin("");
+      setConfirmPin("");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to change PIN");
+    } finally {
+      setIsChanging(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
+          <span className="flex items-center gap-3">
+            <Lock className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            Change Secure PIN
+          </span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-2xl font-serif">Change Secure PIN</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Update your 6-digit access code. You will need your current PIN to authorize this change.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Current PIN</label>
+              <div className="relative">
+                <Input
+                  type={showPins ? "text" : "password"}
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={currentPin}
+                  onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="••••••"
+                  className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">New 6-Digit PIN</label>
+              <Input
+                type={showPins ? "text" : "password"}
+                inputMode="numeric"
+                maxLength={6}
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="••••••"
+                className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Confirm New PIN</label>
+              <Input
+                type={showPins ? "text" : "password"}
+                inputMode="numeric"
+                maxLength={6}
+                value={confirmPin}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="••••••"
+                className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setShowPins(!showPins)}
+              className="text-xs text-primary font-medium flex items-center gap-1.5 hover:underline"
+            >
+              {showPins ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              {showPins ? "Hide PINs" : "Show PINs"}
+            </button>
+          </div>
+
+          <Button
+            onClick={handlePinChange}
+            disabled={isChanging || newPin.length !== 6 || newPin !== confirmPin}
+            className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20"
+          >
+            {isChanging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+            Update Secure PIN
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1175,6 +1321,14 @@ function SettingsPage() {
             </div>
 
             <div className="border-t border-border/40 pt-6 space-y-3">
+              {profile && (
+                <ChangePinDialog
+                  profile={profile}
+                  onSuccess={() => {
+                    // Update local profile state if needed, though pin_hash is usually opaque to frontend
+                  }}
+                />
+              )}
               <Sheet>
                 <SheetTrigger asChild>
                   <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
