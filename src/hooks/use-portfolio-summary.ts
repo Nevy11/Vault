@@ -33,19 +33,17 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
       try {
         setSummary((prev) => ({ ...prev, loading: true, error: null }));
 
-        // 1. Get the user's wallets first to get all wallet_ids
-        const { data: wallets, error: walletError } = await supabase
+        // 1. Get the user's wallets first
+        const { data: wallets, error: walletsError } = await supabase
           .from("wallets")
           .select("id")
           .eq("user_id", userId);
 
-        if (walletError) throw walletError;
+        if (walletsError) throw walletsError;
         if (!wallets || wallets.length === 0) {
           setSummary((prev) => ({ ...prev, loading: false }));
           return;
         }
-
-        const walletIds = wallets.map(w => w.id);
 
         // Fetch balance history for the last 60 days
         const sixtyDaysAgo = new Date();
@@ -53,10 +51,28 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+        // First, get the primary wallet_id for this user
+        const { data: walletData, error: walletError } = await supabase
+          .from("wallets")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (walletError) throw walletError;
+
+        if (!walletData) {
+          setSummary((prev) => ({
+            ...prev,
+            loading: false,
+            message: "Welcome to Vault! Start making transactions to see your growth summary.",
+          }));
+          return;
+        }
+
         const { data: balanceHistory, error: historyError } = await supabase
           .from("balance_history")
           .select("recorded_balance, recorded_at")
-          .in("wallet_id", walletIds)
+          .eq("wallet_id", walletData.id)
           .gte("recorded_at", sixtyDaysAgo.toISOString())
           .order("recorded_at", { ascending: false });
 

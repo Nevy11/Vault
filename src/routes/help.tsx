@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { supabase } from "@/api/supabase";
 import {
   ArrowLeft,
   ShieldCheck,

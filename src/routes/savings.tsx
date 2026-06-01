@@ -249,6 +249,18 @@ function SavingsPage() {
     }
   };
 
+  const handleCancel = () => {
+    setGoalTitle("");
+    setGoalSource("");
+    setTargetAmount("");
+    setIsAutomated(false);
+    setAutoFreq("weekly");
+    setAutoAmount("");
+    setAutoProvider("");
+    setIsEditing(false);
+    setActiveTab("overview");
+  };
+
   const handleRestrictedFieldClick = (fieldName: string) => {
     if (isEditing && savingsGoal) {
       toast.info(`${fieldName} is fixed`, {
@@ -650,7 +662,15 @@ function SavingsPage() {
               className="focus-visible:outline-none animate-in slide-in-from-bottom-4 duration-500"
             >
               <div className="max-w-3xl mx-auto">
-                <Card className="rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl p-5 shadow-xl transition-all">
+                <Card className="rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl p-5 shadow-xl transition-all relative">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors z-20 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+                    title="Cancel"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                   <form onSubmit={handleCreateGoal} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                       <div className="space-y-2">
@@ -749,6 +769,12 @@ function SavingsPage() {
                             className="font-bold text-emerald-600 dark:text-emerald-400"
                           >
                             Any Available Source
+                          </SelectItem>
+                          <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
+                            <Wallet className="w-3 h-3" /> Vault
+                          </div>
+                          <SelectItem value="vault_balance" className="font-bold text-primary">
+                            Vault Account
                           </SelectItem>
                           <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
                             Categories
@@ -1020,7 +1046,7 @@ function SavingsPage() {
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
                       <Wallet className="w-3 h-3" /> Vault
                     </div>
-                    <SelectItem value="vault_balance" className="font-bold">Vault Balance</SelectItem>
+                    <SelectItem value="vault_balance" className="font-bold">Vault Account</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1130,6 +1156,12 @@ function SavingsPage() {
                       className="font-bold text-emerald-600 dark:text-emerald-400"
                     >
                       Any Available Source
+                    </SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
+                      <Wallet className="w-3 h-3" /> Vault
+                    </div>
+                    <SelectItem value="vault_balance" className="font-bold">
+                      Vault Account
                     </SelectItem>
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
                       <Smartphone className="w-3 h-3" /> Mobile

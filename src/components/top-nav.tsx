@@ -121,7 +121,11 @@ export function TopNav() {
                     <button className="relative h-9 w-9 rounded-xl bg-card/40 border border-border/40 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-card/80 transition-all active:scale-95 group">
                       <Bell size={16} className="group-hover:scale-110 transition-transform" />
                       {unreadCount > 0 && (
-                        <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-destructive rounded-full border border-background shadow-sm animate-pulse" />
+                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive rounded-full border border-background shadow-sm animate-pulse flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-white">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                          </span>
+                        </span>
                       )}
                     </button>
                   </DropdownMenuTrigger>
