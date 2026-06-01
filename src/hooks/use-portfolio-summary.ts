@@ -39,10 +39,28 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
+        // First, get the wallet_id for this user
+        const { data: walletData, error: walletError } = await supabase
+          .from("wallets")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (walletError) throw walletError;
+
+        if (!walletData) {
+          setSummary((prev) => ({
+            ...prev,
+            loading: false,
+            message: "Welcome to Vault! Start making transactions to see your growth summary.",
+          }));
+          return;
+        }
+
         const { data: balanceHistory, error: historyError } = await supabase
           .from("balance_history")
           .select("recorded_balance, recorded_at")
-          .eq("user_id", userId)
+          .eq("wallet_id", walletData.id)
           .gte("recorded_at", sixtyDaysAgo.toISOString())
           .order("recorded_at", { ascending: false });
 
