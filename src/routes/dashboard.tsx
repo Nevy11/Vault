@@ -757,33 +757,33 @@ function DashboardPage() {
 
       // Mobile money services
       if (desc.includes("mpesa") || desc.includes("m-pesa") || meth.includes("mpesa"))
-        return "/logos/mpesa.svg";
-      if (desc.includes("airtel") || meth.includes("airtel")) return "/logos/airtel.svg";
+        return "logos/mpesa.svg";
+      if (desc.includes("airtel") || meth.includes("airtel")) return "logos/airtel.svg";
       if (desc.includes("t-kash") || desc.includes("tkash") || meth.includes("tkash"))
-        return "/logos/tkash.svg";
+        return "logos/tkash.svg";
 
       // Banks
-      if (desc.includes("kcb") || meth.includes("kcb")) return "/logos/kcb.svg";
+      if (desc.includes("kcb") || meth.includes("kcb")) return "logos/kcb.svg";
       if (desc.includes("co-operative") || desc.includes("coop") || meth.includes("coop"))
-        return "/logos/coop.svg";
-      if (desc.includes("ncba") || meth.includes("ncba")) return "/logos/ncba.svg";
-      if (desc.includes("absa") || meth.includes("absa")) return "/logos/absa.svg";
+        return "logos/coop.svg";
+      if (desc.includes("ncba") || meth.includes("ncba")) return "logos/ncba.svg";
+      if (desc.includes("absa") || meth.includes("absa")) return "logos/absa.svg";
       if (desc.includes("standard chartered") || meth.includes("standard"))
-        return "/logos/standard-chartered.svg";
-      if (desc.includes("stanbic") || meth.includes("stanbic")) return "/logos/stanbic.svg";
+        return "logos/standard-chartered.svg";
+      if (desc.includes("stanbic") || meth.includes("stanbic")) return "logos/stanbic.svg";
       if (desc.includes("i&m") || desc.includes("im bank") || meth.includes("im bank"))
-        return "/logos/im-bank.svg";
+        return "logos/im-bank.svg";
       if (desc.includes("dtb") || desc.includes("diamond trust") || meth.includes("dtb"))
-        return "/logos/dtb.svg";
-      if (desc.includes("family bank") || meth.includes("family")) return "/logos/family-bank.svg";
-      if (desc.includes("chase bank") || meth.includes("chase")) return "/logos/chase.svg";
+        return "logos/dtb.svg";
+      if (desc.includes("family bank") || meth.includes("family")) return "logos/family-bank.svg";
+      if (desc.includes("chase bank") || meth.includes("chase")) return "logos/chase.svg";
       if (desc.includes("bank of america") || meth.includes("america"))
-        return "/logos/bank-of-america.svg";
-      if (desc.includes("equity") || meth.includes("equity")) return "/logos/equity.svg";
-      if (desc.includes("stripe") || meth.includes("stripe")) return "/logos/stripe.svg";
+        return "logos/bank-of-america.svg";
+      if (desc.includes("equity") || meth.includes("equity")) return "logos/equity.svg";
+      if (desc.includes("stripe") || meth.includes("stripe")) return "logos/stripe.svg";
 
       // Fallback for generic bank method
-      if (meth === "bank" || meth === "mpesa" || meth === "airtel") return "/logos/bank.svg";
+      if (meth === "bank" || meth === "mpesa" || meth === "airtel") return "logos/bank.svg";
       return null; // Fallback to initials
     };
 
@@ -955,8 +955,6 @@ function DashboardPage() {
                     <Loader2 className="w-3 h-3 animate-spin" />
                     Analyzing portfolio...
                   </span>
-                ) : portfolioSummary.error ? (
-                  "Your portfolio is performing well this month."
                 ) : (
                   portfolioSummary.message
                 )}
@@ -1150,8 +1148,8 @@ function DashboardPage() {
                       </Avatar>
                       <div className="min-w-0">
                         <div className="text-sm truncate">{details.title}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(t.created_at), "h:mm a")}
+                        <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
+                          {format(new Date(t.created_at), "EEEE, MMM d · h:mm a")}
                         </div>
                       </div>
                     </div>

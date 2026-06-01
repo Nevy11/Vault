@@ -16,7 +16,7 @@ interface PortfolioSummary {
  */
 export function usePortfolioSummary(userId: string | null | undefined): PortfolioSummary {
   const [summary, setSummary] = useState<PortfolioSummary>({
-    message: "Great job this month! You're building your wealth steadily.",
+    message: "Your portfolio is performing well this month. You're building your wealth steadily.",
     growthPercentage: 0,
     trend: "positive",
     loading: true,
@@ -32,6 +32,20 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
     const generateSummary = async () => {
       try {
         setSummary((prev) => ({ ...prev, loading: true, error: null }));
+
+        // 1. Get the user's wallets first to get all wallet_ids
+        const { data: wallets, error: walletError } = await supabase
+          .from("wallets")
+          .select("id")
+          .eq("user_id", userId);
+
+        if (walletError) throw walletError;
+        if (!wallets || wallets.length === 0) {
+          setSummary((prev) => ({ ...prev, loading: false }));
+          return;
+        }
+
+        const walletIds = wallets.map(w => w.id);
 
         // Fetch balance history for the last 60 days
         const sixtyDaysAgo = new Date();
@@ -107,6 +121,22 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
           message = `Your portfolio remained stable this month. Focus on building new income streams to boost your growth.`;
         }
 
+        // 4. Get AI generated message for a personalized experience
+        try {
+          const aiPrompt = `My portfolio growth is ${growthPercentage.toFixed(1)}% this month (trend: ${trend}). Provide a short, encouraging ONE-SENTENCE portfolio summary for my dashboard. No markdown, just plain text.`;
+          const { data: aiResponse, error: aiError } = await supabase.functions.invoke("gemini-chat", {
+            body: { userInput: aiPrompt }
+          });
+          
+          if (!aiError && aiResponse?.text) {
+            // Ensure it's truly one sentence and not too long
+            const cleanedMessage = aiResponse.text.split(/[.!?]/)[0] + ".";
+            message = cleanedMessage;
+          }
+        } catch (e) {
+          console.warn("AI portfolio summary failed, using fallback:", e);
+        }
+
         setSummary({
           message,
           growthPercentage: Math.round(growthPercentage * 10) / 10,
@@ -120,7 +150,7 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
           ...prev,
           loading: false,
           error: error.message || "Failed to generate portfolio summary",
-          message: "Great job this month! You're building your wealth steadily.",
+          message: "Your portfolio is performing well this month. You're building your wealth steadily.",
           growthPercentage: 0,
           trend: "positive",
         }));

@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { VLogo } from "@/components/v-logo";
 
-export function ScanToPay() {
+export function ScanToPay({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleScanClick = () => {
@@ -27,13 +28,19 @@ export function ScanToPay() {
         onClick={handleScanClick}
         className={cn(
           "fixed bottom-24 right-6 md:bottom-8 md:right-8 z-[60]",
-          "flex items-center gap-3 px-6 py-4 rounded-full font-bold shadow-2xl",
-          "bg-primary text-primary-foreground transition-all duration-300",
+          "flex items-center gap-2 md:gap-3 px-4 md:px-6 h-14 rounded-full font-bold shadow-2xl",
+          "bg-[#004D2C] hover:bg-[#00361E] text-white transition-all duration-300 border border-white/10",
           "hover:scale-105 active:scale-95 group animate-in slide-in-from-bottom-10",
+          className,
         )}
       >
-        <QrCode className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-        <span className="tracking-tight">Scan to pay</span>
+        <div className="flex items-center gap-2">
+          <VLogo className="w-5 h-5 md:w-6 md:h-6 shadow-sm group-hover:scale-110 transition-transform" />
+          <div className="w-px h-4 bg-white/20" />
+          <QrCode className="w-4 h-4 md:w-5 md:h-5 group-hover:rotate-12 transition-transform" />
+        </div>
+        <span className="tracking-tight text-sm hidden md:inline">Scan to pay</span>
+        <span className="tracking-tight text-xs md:hidden">Scan</span>
       </button>
 
       {/* Modern Scanner Placeholder Modal */}

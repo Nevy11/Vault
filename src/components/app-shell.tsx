@@ -46,6 +46,7 @@ import { TopNav } from "@/components/top-nav";
 import { ScanToPay } from "./scan-to-pay";
 import { FinanceAdvisorContent } from "./finance-advisor-content";
 import { FloatingAdvisor } from "./floating-advisor";
+import { cn } from "@/lib/utils";
 
 const sidebarNavItems = [
   {
@@ -200,10 +201,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Advisor FAB */}
       <FloatingAdvisor
         onClick={() => setIsAdvisorOpen(true)}
-        className={
+        className={cn(
+          "bottom-44 right-6 md:bottom-6 md:right-64",
           isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : ""
-        }
+        )}
       />
+
+      {/* Scanner FAB */}
+      <ScanToPay className="bottom-24 right-6 md:bottom-6 md:right-6" />
 
       {/* Mobile Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">

@@ -938,7 +938,7 @@ function SettingsPage() {
                         <>
                           <div className="group relative p-4 rounded-[32px] bg-white border border-border shadow-xl transition-all hover:scale-105 duration-500">
                             <QRCodeSVG
-                              value={`${window.location.origin}/pay/${profile?.kyc_tag}`}
+                              value={`${window.location.origin}/pay/${encodeURIComponent(profile?.kyc_tag || "")}`}
                               size={180}
                               level="H"
                               includeMargin={false}
@@ -954,7 +954,7 @@ function SettingsPage() {
                             {/* Hidden canvas for download */}
                             <QRCodeCanvas
                               id="merchant-qr-canvas"
-                              value={`${window.location.origin}/pay/${profile?.kyc_tag}`}
+                              value={`${window.location.origin}/pay/${encodeURIComponent(profile?.kyc_tag || "")}`}
                               size={512}
                               level="H"
                               includeMargin={true}
@@ -982,7 +982,11 @@ function SettingsPage() {
                               <Download className="w-3.5 h-3.5 mr-2" /> Download
                             </Button>
                             <Button asChild size="sm" variant="outline" className="rounded-xl h-10 px-0">
-                              <Link to={`/pay/${profile?.kyc_tag}`} target="_blank">
+                              <Link 
+                                to="/pay/$username" 
+                                params={{ username: profile?.kyc_tag || "" }} 
+                                target="_blank"
+                              >
                                 <ExternalLink className="w-3.5 h-3.5 mr-2" /> View
                               </Link>
                             </Button>

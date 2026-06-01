@@ -1,25 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Provide a WebSocket implementation on the server (Node <22) so
-// @supabase/realtime-js can initialize correctly during SSR/dev.
-/*
-if (typeof window === "undefined") {
-  try {
-    // @ts-expect-error -- ws is an optional peer dependency for SSR/Realtime support
-    const wsPkg = await import("ws");
-    const wsImpl =
-      (wsPkg as { WebSocket?: unknown; default?: { WebSocket?: unknown } }).WebSocket ||
-      (wsPkg as { default?: { WebSocket?: unknown } }).default?.WebSocket ||
-      wsPkg;
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = wsImpl;
-  } catch (e) {
-    // If `ws` isn't installed, we intentionally let createClient fail later
-    // with the existing suggestion to install `ws`.
-    // Keep silent here to avoid noisy logs.
-  }
-}
-*/
-
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
   (import.meta.env as unknown as { SUPABASE_URL: string }).SUPABASE_URL;
@@ -43,6 +23,19 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error(msg);
 }
 
+const isServer = typeof window === "undefined";
+let ws: any = undefined;
+
+if (isServer) {
+  try {
+    // Use dynamic import for Node.js environments (SSR/Dev)
+    const wsPkg = await import("ws");
+    ws = wsPkg.default || wsPkg.WebSocket || wsPkg;
+  } catch (e) {
+    console.warn("WebSocket polyfill (ws) not found, Realtime may not work on server.");
+  }
+}
+
 console.log("Initializing Supabase client...");
 export const supabase = createClient(
   supabaseUrl || "https://placeholder.supabase.co",
@@ -54,5 +47,6 @@ export const supabase = createClient(
       persistSession: true,
       detectSessionInUrl: true,
     },
+    realtime: isServer ? { transport: ws } : undefined,
   },
 );
