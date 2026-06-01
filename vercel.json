@@ -12,6 +12,11 @@
   ],
   "routes": [
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/v-logo.svg", "dest": "/v-logo.svg" },
+    { "src": "/favicon.ico", "dest": "/favicon.ico" },
+    { "src": "/manifest.webmanifest", "dest": "/manifest.webmanifest" },
+    { "src": "/sw.js", "dest": "/sw.js" },
+    { "src": "/registerSW.js", "dest": "/registerSW.js" },
     { "src": "/(.*)", "dest": "/api/ssr.ts" }
   ]
 }
