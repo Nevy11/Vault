@@ -3,6 +3,19 @@ import "./styles.css";
 import { createRoot } from "react-dom/client";
 import { getRouter } from "./router";
 import { RouterProvider } from "@tanstack/react-router";
+import { registerSW } from "virtual:pwa-register";
+
+// Register Service Worker for PWA
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm("New content available. Reload to update?")) {
+      updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.log("Vault OS is ready for offline use.");
+  },
+});
 
 async function main() {
   const router = await getRouter();

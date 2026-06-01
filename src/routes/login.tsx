@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, useEffect, type FormEvent, type ReactNode } from "react";
 import { Shield, Database, Layers, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,18 @@ function LoginPage() {
   const [showPin, setShowPin] = useState(false);
   const [step, setStep] = useState<"signIn" | "verify">("signIn");
   const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: number;
+    if (resendCooldown > 0) {
+      timer = window.setInterval(() => {
+        setResendCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   const [email, setEmail] = useState("");
   const [pin, setPin] = useState("");
   const [code, setCode] = useState("");
@@ -64,6 +76,11 @@ function LoginPage() {
 
   const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (resendCooldown > 0) {
+      toast.error(`Please wait ${resendCooldown}s before requesting a new code.`);
+      return;
+    }
 
     if (!email || !pin) {
       toast.error("Please enter both email and PIN");
@@ -99,6 +116,10 @@ function LoginPage() {
       });
 
       if (error) {
+        if (error.status === 429) {
+          setResendCooldown(60);
+          throw new Error("Email rate limit exceeded. Please wait 60 seconds.");
+        }
         if (error.message.includes("User not found")) {
           throw new Error("No account found with this email. Please sign up.");
         }
@@ -107,6 +128,7 @@ function LoginPage() {
 
       toast.success("Verification code sent to your email");
       setStep("verify");
+      setResendCooldown(60);
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error.message || "Failed to send code");

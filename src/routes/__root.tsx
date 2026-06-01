@@ -89,12 +89,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Vault" },
-      { name: "description", content: "Vault project" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" },
+      { title: "Vault OS" },
+      { name: "description", content: "Your secure, real-time digital wallet and financial advisor." },
       { name: "author", content: "Vault" },
-      { property: "og:title", content: "Vault" },
-      { property: "og:description", content: "Vault project" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Vault OS" },
+      { name: "theme-color", content: "#004D2C" },
+      { property: "og:title", content: "Vault OS" },
+      { property: "og:description", content: "Your secure, real-time digital wallet and financial advisor." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -107,6 +111,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "icon",
         type: "image/svg+xml",
+        href: "/v-logo.svg",
+      },
+      {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
+      },
+      {
+        rel: "apple-touch-icon",
         href: "/v-logo.svg",
       },
     ],
