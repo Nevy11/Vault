@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode, useEffect } from "react";
+import { useState, type FormEvent, type ReactNode, useEffect, useRef } from "react";
 import {
   Upload,
   CheckCircle2,
@@ -9,11 +9,13 @@ import {
   UserCheck,
   ArrowRight,
   ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
+import { toast } from "sonner";
 
 // 1. Types
 type IDType = "national-id" | "passport" | "alien-card" | null;
@@ -109,6 +111,46 @@ function KYCPage() {
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const navigate = useNavigate();
 
+  // Camera state
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isLoadingCamera, setIsLoadingCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const startCamera = async () => {
+    setIsLoadingCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsCameraActive(true);
+      }
+    } catch (err) {
+      console.error("Camera access error:", err);
+      toast.error("Could not access camera. Please check permissions.");
+    } finally {
+      setIsLoadingCamera(false);
+    }
+  };
+
+  useEffect(() => {
+    if (step !== "biometric") {
+      stopCamera();
+    }
+  }, [step]);
+
   const handleSelectIDType = (type: IDType) => {
     setIdType(type);
     setStep("document-details");
@@ -132,9 +174,13 @@ function KYCPage() {
   };
 
   const handleBiometricCapture = () => {
+    setIsLoadingCamera(true);
     setTimeout(() => {
+      stopCamera();
       setStep("success");
-    }, 500);
+      setIsLoadingCamera(false);
+      toast.success("Biometric verification complete");
+    }, 2000);
   };
 
   const handleExploreWallet = () => {
@@ -346,10 +392,19 @@ function KYCPage() {
 
               <div className="mt-7 space-y-4">
                 <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-black/20 border border-border/50 flex items-center justify-center">
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  {isCameraActive ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Camera className="h-16 w-16 text-muted-foreground/50" />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-48 h-64 border-4 border-primary rounded-full opacity-30" />
                   </div>
-                  <Camera className="h-16 w-16 text-muted-foreground/50" />
                 </div>
 
                 <p className="text-xs text-center text-muted-foreground">
@@ -357,11 +412,16 @@ function KYCPage() {
                 </p>
 
                 <Button
-                  onClick={handleBiometricCapture}
+                  onClick={isCameraActive ? handleBiometricCapture : startCamera}
+                  disabled={isLoadingCamera}
                   className="h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center justify-center gap-2"
                 >
-                  <Camera className="h-4 w-4" />
-                  Take Selfie
+                  {isLoadingCamera ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="h-4 w-4" />
+                  )}
+                  {isLoadingCamera ? "Processing..." : isCameraActive ? "Capture Selfie" : "Start Camera"}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground/70 italic">
