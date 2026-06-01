@@ -193,18 +193,25 @@ function LoansPage() {
       return;
     }
 
+    const isVault = repayProvider === "vault_balance";
+    const isMobile = ["mpesa", "airtel"].includes(repayProvider);
+
     // Require identifier for non-vault payments
-    if (repayProvider !== "Vault Wallet" && !sourceIdentifier) {
-      const label = repayProvider.includes("Bank") ? "Account Number" : "Phone Number";
+    if (!isVault && !sourceIdentifier) {
+      const label = isMobile ? "Phone Number" : "Account Number";
       toast.error(`Missing ${label}`, { description: `Please provide your ${label.toLowerCase()}.` });
       return;
     }
+
+    const finalSource = isVault 
+      ? "Vault Wallet" 
+      : `${repayProvider.toUpperCase()} (${sourceIdentifier})`;
 
     try {
       const { data, error } = await supabase.rpc("repay_loan", {
         p_loan_id: activeLoan.id,
         p_amount: parseFloat(repayAmount),
-        p_source: repayProvider === "Vault Wallet" ? "Vault Wallet" : `${repayProvider} (${sourceIdentifier})`,
+        p_source: finalSource,
         p_payment_type: "manual",
       });
       
@@ -213,12 +220,13 @@ function LoansPage() {
 
       if (result.success) {
         toast.success("Repayment Processed", {
-          description: `KES ${parseFloat(repayAmount).toLocaleString()} has been processed from your ${repayProvider}.`,
+          description: `KES ${parseFloat(repayAmount).toLocaleString()} has been processed from your ${finalSource}.`,
         });
         await fetchLoanData();
         setShowRepayPopup(false);
         setRepayAmount("");
         setSourceIdentifier("");
+        setRepayProvider("");
         if (result.new_balance === 0) {
           setActiveTab("success");
         }
@@ -815,22 +823,51 @@ function LoansPage() {
                 <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Payment Source</Label>
                 <Select value={repayProvider} onValueChange={(val) => { setRepayProvider(val); setSourceIdentifier(""); }}>
                   <SelectTrigger className="h-10 rounded-lg bg-muted/10 border-white/10 font-semibold text-xs"><SelectValue placeholder="Select Source" /></SelectTrigger>
-                  <SelectContent className="rounded-lg shadow-xl backdrop-blur-xl border-white/20 z-[100]">
-                    <SelectItem value="Vault Wallet" className="font-bold text-emerald-600 text-xs">Vault Wallet</SelectItem>
-                    <SelectItem value="M-Pesa" className="font-medium text-xs">M-Pesa</SelectItem>
-                    <SelectItem value="Airtel Money" className="font-medium text-xs">Airtel Money</SelectItem>
-                    <SelectItem value="Equity Bank" className="font-medium text-xs">Equity Bank</SelectItem>
-                    <SelectItem value="KCB Bank" className="font-medium text-xs">KCB Bank</SelectItem>
+                  <SelectContent className="rounded-lg shadow-xl backdrop-blur-xl border-white/20 z-[100] max-h-[300px] overflow-y-auto">
+                    <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                      <Smartphone className="w-2.5 h-2.5" /> Mobile Money
+                    </div>
+                    <SelectItem value="mpesa" className="font-medium text-xs">M-Pesa</SelectItem>
+                    <SelectItem value="airtel" className="font-medium text-xs">Airtel Money</SelectItem>
+
+                    <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
+                      <Building2 className="w-2.5 h-2.5" /> Banks
+                    </div>
+                    <SelectItem value="kcb" className="font-medium text-xs">KCB Group</SelectItem>
+                    <SelectItem value="equity" className="font-medium text-xs">Equity Bank</SelectItem>
+                    <SelectItem value="ncba" className="font-medium text-xs">NCBA Bank</SelectItem>
+                    <SelectItem value="absa" className="font-medium text-xs">Absa Kenya</SelectItem>
+                    <SelectItem value="coop" className="font-medium text-xs">Co-operative Bank</SelectItem>
+                    <SelectItem value="stanbic" className="font-medium text-xs">Stanbic Bank</SelectItem>
+                    <SelectItem value="im" className="font-medium text-xs">I&M Bank</SelectItem>
+                    <SelectItem value="dtb" className="font-medium text-xs">Diamond Trust Bank</SelectItem>
+                    <SelectItem value="family" className="font-medium text-xs">Family Bank Kenya</SelectItem>
+
+                    <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
+                      <Wallet className="w-2.5 h-2.5" /> Vault
+                    </div>
+                    <SelectItem value="vault_balance" className="font-bold text-emerald-600 text-xs">Vault Account</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {repayProvider && repayProvider !== "Vault Wallet" && (
+              {repayProvider && repayProvider !== "vault_balance" && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-300">
-                  <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{repayProvider.includes("Bank") ? "Account Number" : "Mobile Number"}</Label>
+                  <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {["mpesa", "airtel"].includes(repayProvider) ? "Phone Number" : "Account Number"}
+                  </Label>
                   <div className="relative">
-                    {repayProvider.includes("Bank") ? <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" /> : <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />}
-                    <Input placeholder={repayProvider.includes("Bank") ? "1234567..." : "07123..."} value={sourceIdentifier} onChange={(e) => setSourceIdentifier(e.target.value)} className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-medium text-xs text-slate-950 dark:text-white" />
+                    {["mpesa", "airtel"].includes(repayProvider) ? (
+                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    ) : (
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                    <Input
+                      placeholder={["mpesa", "airtel"].includes(repayProvider) ? "07123..." : "1234567..."}
+                      value={sourceIdentifier}
+                      onChange={(e) => setSourceIdentifier(e.target.value)}
+                      className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-medium text-xs text-slate-950 dark:text-white"
+                    />
                   </div>
                 </div>
               )}
