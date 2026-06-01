@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { QrCode, X, Zap, ShieldCheck, Camera, Info } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { QrCode, X, Zap, ShieldCheck, Camera, Info, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -14,10 +14,47 @@ import { VLogo } from "@/components/v-logo";
 
 export function ScanToPay({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  const startCamera = async () => {
+    setIsLoading(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment" } 
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        setIsCameraActive(true);
+      }
+    } catch (err) {
+      console.error("Camera access error:", err);
+      toast.error("Could not access camera. Please check permissions.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      stopCamera();
+    }
+  }, [isOpen]);
 
   const handleScanClick = () => {
     setIsOpen(true);
-    // Communication check
     console.log("Scan to Pay FAB Clicked");
   };
 
@@ -43,7 +80,7 @@ export function ScanToPay({ className }: { className?: string }) {
         <span className="tracking-tight text-xs md:hidden">Scan</span>
       </button>
 
-      {/* Modern Scanner Placeholder Modal */}
+      {/* Modern Scanner Modal */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-md p-0 overflow-hidden bg-black border-white/10 rounded-[32px]">
           <DialogHeader className="p-6 pb-0 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent">
@@ -59,11 +96,20 @@ export function ScanToPay({ className }: { className?: string }) {
               </button>
             </div>
             <DialogDescription className="text-zinc-400 text-xs mt-1">
-              Initializing encrypted scanning environment...
+              {isCameraActive ? "Align QR code within the frame" : "Initializing encrypted scanning environment..."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="relative aspect-square w-full mt-4 flex items-center justify-center bg-zinc-950">
+            {isCameraActive && (
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+
             {/* Viewport HUD */}
             <div className="absolute inset-0 z-20 pointer-events-none">
               <div className="absolute inset-0 border-[40px] border-black/40" />
@@ -79,21 +125,28 @@ export function ScanToPay({ className }: { className?: string }) {
               </div>
             </div>
             
-            <div className="flex flex-col items-center gap-4 text-center p-8">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
-                <Camera className="w-8 h-8 animate-pulse" />
+            {!isCameraActive && (
+              <div className="flex flex-col items-center gap-4 text-center p-8 z-30">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                  {isLoading ? (
+                    <RefreshCw className="w-8 h-8 animate-spin" />
+                  ) : (
+                    <Camera className="w-8 h-8 animate-pulse" />
+                  )}
+                </div>
+                <h3 className="text-white font-medium">Camera Permissions</h3>
+                <p className="text-zinc-500 text-xs max-w-[200px]">
+                  Vault OS requires camera access to scan merchant codes securely.
+                </p>
+                <Button 
+                  className="mt-2 rounded-xl h-10 px-8"
+                  onClick={startCamera}
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Starting..." : "Enable Camera"}
+                </Button>
               </div>
-              <h3 className="text-white font-medium">Camera Permissions</h3>
-              <p className="text-zinc-500 text-xs max-w-[200px]">
-                Vault OS requires camera access to scan merchant codes securely.
-              </p>
-              <Button 
-                className="mt-2 rounded-xl h-10 px-8"
-                onClick={() => toast.error("Camera module is updating. Please try again in a few minutes.")}
-              >
-                Enable Camera
-              </Button>
-            </div>
+            )}
           </div>
 
           <div className="p-6 bg-zinc-900/50 border-t border-white/5">
@@ -125,3 +178,4 @@ export function ScanToPay({ className }: { className?: string }) {
     </>
   );
 }
+
