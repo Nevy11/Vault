@@ -121,6 +121,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "apple-touch-icon",
         href: "/v-logo.svg",
       },
+      {
+        rel: "mask-icon",
+        href: "/v-logo.svg",
+        color: "#004D2C",
+      },
     ],
   }),
   shellComponent: RootShell,
