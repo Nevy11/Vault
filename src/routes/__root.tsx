@@ -139,7 +139,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body>
-        {children}
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>
@@ -215,11 +217,9 @@ function RootComponent() {
   }, [setProfile]);
 
   return (
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <Outlet />
-        <Toaster />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <Outlet />
+      <Toaster />
+    </QueryClientProvider>
   );
 }

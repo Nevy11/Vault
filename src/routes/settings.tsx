@@ -442,10 +442,14 @@ function SettingsPage() {
   async function handleSaveMerchant() {
     try {
       setIsSavingMerchant(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Unauthorized");
+      
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error("No active session. Please log in again.");
+
+      const user = session.user;
+      console.log("handleSaveMerchant: User identified:", user.id);
 
       const { error } = await supabase.from("merchants").upsert(
         {
@@ -459,10 +463,15 @@ function SettingsPage() {
         { onConflict: "user_id" },
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("handleSaveMerchant: Upsert error:", error);
+        throw error;
+      }
+      
       setIsMerchantSaved(true);
       toast.success("Merchant profile updated!");
     } catch (err: any) {
+      console.error("handleSaveMerchant: Final catch:", err);
       toast.error(err.message || "Failed to save business profile");
     } finally {
       setIsSavingMerchant(false);

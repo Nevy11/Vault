@@ -2,6 +2,9 @@ packages:
   - "mobile"
 allowBuilds:
   core-js: set this to true or false
+  esbuild: set this to true or false
+  sharp: set this to true or false
+  workerd: set this to true or false
 minimumReleaseAgeExclude:
   - zustand@5.0.14
 

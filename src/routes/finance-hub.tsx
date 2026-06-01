@@ -15,11 +15,17 @@ import {
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 
+import { useSavings } from "@/hooks/use-savings";
+
 export const Route = createFileRoute("/finance-hub")({
   component: FinanceHubPage,
 });
 
 function FinanceHubPage() {
+  const { goals, loading } = useSavings();
+  const savingsTab = !loading && goals.length > 0 ? "overview" : "setup";
+  const buttonText = loading ? "Loading..." : goals.length > 0 ? "View Savings" : "Setup Savings";
+
   return (
     <AppShell>
       <div className="relative min-h-[calc(100vh-4rem)] w-full overflow-hidden">
@@ -102,8 +108,8 @@ function FinanceHubPage() {
                     asChild
                     className="w-full rounded-xl h-10 text-xs font-bold shadow-md bg-primary hover:bg-primary/90 transition-all active:scale-95"
                   >
-                    <Link to="/savings" search={{ tab: "setup" }}>
-                      Setup Savings <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                    <Link to="/savings" search={{ tab: savingsTab }}>
+                      {buttonText} <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
                     </Link>
                   </Button>
                 </div>
