@@ -127,6 +127,10 @@ function SavingsPage() {
   const [showContributionModal, setShowContributionModal] = useState(false);
   const [contribAmount, setContribAmount] = useState("");
   const [contribSource, setContribSource] = useState("");
+  const [contribPhone, setContribPhone] = useState("");
+  const [contribAccount, setContribAccount] = useState("");
+  const [setupPhone, setSetupPhone] = useState("");
+  const [setupAccount, setSetupAccount] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [goalTitle, setGoalTitle] = useState("");
 
@@ -134,6 +138,8 @@ function SavingsPage() {
   const [autoFreq, setAutoFreq] = useState("weekly");
   const [autoAmount, setAutoAmount] = useState("");
   const [autoProvider, setAutoProvider] = useState("");
+  const [autoPhone, setAutoPhone] = useState("");
+  const [autoAccount, setAutoAccount] = useState("");
 
   const [goalSource, setGoalSource] = useState("");
 
@@ -223,16 +229,59 @@ function SavingsPage() {
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let finalSource = goalSource;
+    if (["mpesa", "airtel", "any_mobile"].includes(goalSource) && setupPhone) {
+      finalSource = `${goalSource.toUpperCase()} (${setupPhone})`;
+    } else if (
+      [
+        "kcb",
+        "equity",
+        "ncba",
+        "absa",
+        "coop",
+        "stanbic",
+        "im",
+        "dtb",
+        "family",
+        "any_bank",
+      ].includes(goalSource) &&
+      setupAccount
+    ) {
+      finalSource = `${goalSource.toUpperCase()} (${setupAccount})`;
+    }
+
+    let finalAutoProvider = autoProvider;
+    if (isAutomated) {
+      if (["mpesa", "airtel", "any"].includes(autoProvider) && autoPhone) {
+        finalAutoProvider = `${autoProvider.toUpperCase()} (${autoPhone})`;
+      } else if (
+        [
+          "kcb",
+          "equity",
+          "ncba",
+          "absa",
+          "coop",
+          "stanbic",
+          "im",
+          "dtb",
+          "family",
+        ].includes(autoProvider) &&
+        autoAccount
+      ) {
+        finalAutoProvider = `${autoProvider.toUpperCase()} (${autoAccount})`;
+      }
+    }
+
     const goalData = {
       title: goalTitle,
       target_amount: parseFormattedNumber(targetAmount),
       start_date: (e.target as any).start.value,
       deadline_date: (e.target as any).deadline.value,
-      funding_source: goalSource,
+      funding_source: finalSource,
       is_automated: isAutomated,
       automation_frequency: isAutomated ? autoFreq : null,
       automation_amount: isAutomated ? parseFormattedNumber(autoAmount) : null,
-      automation_provider: isAutomated ? autoProvider : null,
+      automation_provider: isAutomated ? finalAutoProvider : null,
     };
 
     let success = false;
@@ -246,6 +295,10 @@ function SavingsPage() {
 
     if (success) {
       setActiveTab("overview");
+      setSetupPhone("");
+      setSetupAccount("");
+      setAutoPhone("");
+      setAutoAccount("");
     }
   };
 
@@ -257,6 +310,10 @@ function SavingsPage() {
     setAutoFreq("weekly");
     setAutoAmount("");
     setAutoProvider("");
+    setSetupPhone("");
+    setSetupAccount("");
+    setAutoPhone("");
+    setAutoAccount("");
     setIsEditing(false);
     setActiveTab("overview");
   };
@@ -274,10 +331,44 @@ function SavingsPage() {
       toast.error("Please fill in all fields");
       return;
     }
-    await addContribution(parseFormattedNumber(contribAmount), contribSource, "manual");
+
+    // Determine if we need additional info based on source
+    const isMobileMoney = ["mpesa", "airtel"].includes(contribSource);
+    const isBank = [
+      "kcb",
+      "equity",
+      "ncba",
+      "absa",
+      "coop",
+      "stanbic",
+      "im",
+      "dtb",
+      "family",
+    ].includes(contribSource);
+
+    if (isMobileMoney && !contribPhone) {
+      toast.error("Please enter your phone number");
+      return;
+    }
+
+    if (isBank && !contribAccount) {
+      toast.error("Please enter your account number");
+      return;
+    }
+
+    let finalSource = contribSource;
+    if (isMobileMoney) {
+      finalSource = `${contribSource.toUpperCase()} (${contribPhone})`;
+    } else if (isBank) {
+      finalSource = `${contribSource.toUpperCase()} (${contribAccount})`;
+    }
+
+    await addContribution(parseFormattedNumber(contribAmount), finalSource, "manual");
     setShowContributionModal(false);
     setContribAmount("");
     setContribSource("");
+    setContribPhone("");
+    setContribAccount("");
   };
 
   const handleAutoToggle = (checked: boolean) => {
@@ -295,10 +386,31 @@ function SavingsPage() {
       });
       return;
     }
+
+    let displayProvider = autoProvider;
+    if (["mpesa", "airtel", "any"].includes(autoProvider) && autoPhone) {
+      displayProvider = `${autoProvider.toUpperCase()} (${autoPhone})`;
+    } else if (
+      [
+        "kcb",
+        "equity",
+        "ncba",
+        "absa",
+        "coop",
+        "stanbic",
+        "im",
+        "dtb",
+        "family",
+      ].includes(autoProvider) &&
+      autoAccount
+    ) {
+      displayProvider = `${autoProvider.toUpperCase()} (${autoAccount})`;
+    }
+
     setIsAutomated(true);
     setShowAutoPopup(false);
     toast.success("Automation Configured", {
-      description: `KES ${autoAmount} will be deducted ${autoFreq} via ${autoProvider}.`,
+      description: `KES ${autoAmount} will be deducted ${autoFreq} via ${displayProvider}.`,
     });
   };
 
@@ -825,6 +937,54 @@ function SavingsPage() {
                       </Select>
                     </div>
 
+                    {/* Conditional Setup Inputs */}
+                    {["mpesa", "airtel", "any_mobile"].includes(goalSource) && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          Default Phone Number
+                        </Label>
+                        <div className="relative">
+                          <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="tel"
+                            placeholder="e.g. 0712345678"
+                            value={setupPhone}
+                            onChange={(e) => setSetupPhone(e.target.value)}
+                            className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {[
+                      "kcb",
+                      "equity",
+                      "ncba",
+                      "absa",
+                      "coop",
+                      "stanbic",
+                      "im",
+                      "dtb",
+                      "family",
+                      "any_bank",
+                    ].includes(goalSource) && (
+                      <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          Default Bank Account
+                        </Label>
+                        <div className="relative">
+                          <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            type="text"
+                            placeholder="Enter account number"
+                            value={setupAccount}
+                            onChange={(e) => setSetupAccount(e.target.value)}
+                            className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     <div className="p-8 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 space-y-6 backdrop-blur-sm shadow-inner">
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
@@ -1050,6 +1210,53 @@ function SavingsPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Conditional Inputs */}
+              {["mpesa", "airtel"].includes(contribSource) && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Phone Number
+                  </Label>
+                  <div className="relative">
+                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="tel"
+                      placeholder="e.g. 0712345678"
+                      value={contribPhone}
+                      onChange={(e) => setContribPhone(e.target.value)}
+                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {[
+                "kcb",
+                "equity",
+                "ncba",
+                "absa",
+                "coop",
+                "stanbic",
+                "im",
+                "dtb",
+                "family",
+              ].includes(contribSource) && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Bank Account Number
+                  </Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Enter account number"
+                      value={contribAccount}
+                      onChange={(e) => setContribAccount(e.target.value)}
+                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-bold"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-10">
@@ -1205,6 +1412,53 @@ function SavingsPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Conditional Automation Inputs */}
+              {["mpesa", "airtel", "any"].includes(autoProvider) && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Phone Number for Deduction
+                  </Label>
+                  <div className="relative">
+                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="tel"
+                      placeholder="e.g. 0712345678"
+                      value={autoPhone}
+                      onChange={(e) => setAutoPhone(e.target.value)}
+                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-bold"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {[
+                "kcb",
+                "equity",
+                "ncba",
+                "absa",
+                "coop",
+                "stanbic",
+                "im",
+                "dtb",
+                "family",
+              ].includes(autoProvider) && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                    Bank Account for Deduction
+                  </Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Enter account number"
+                      value={autoAccount}
+                      onChange={(e) => setAutoAccount(e.target.value)}
+                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-bold"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-10 flex gap-4">
