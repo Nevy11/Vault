@@ -648,6 +648,7 @@ function SettingsPage() {
                     onClick={() => profile?.profile_photo_url && setShowViewModal(true)}
                     className="relative block rounded-full border-2 border-border/40 overflow-hidden hover:border-primary/60 transition-all active:scale-95"
                     title={profile?.profile_photo_url ? "View photo" : "No photo set"}
+                    suppressHydrationWarning
                   >
                     <Avatar className="w-16 h-16 rounded-full">
                       <AvatarImage src={profile?.profile_photo_url ?? undefined} alt="Profile" />
@@ -655,11 +656,15 @@ function SettingsPage() {
                         {profile?.first_name?.[0] || <User className="w-8 h-8" />}
                       </AvatarFallback>
                     </Avatar>
-                    {profile?.profile_photo_url && (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center transition-opacity">
-                        <Search className="w-4 h-4 text-white" />
-                      </div>
-                    )}
+                    <div 
+                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
+                        profile?.profile_photo_url 
+                          ? "opacity-0 group-hover/avatar:opacity-100" 
+                          : "opacity-0 pointer-events-none"
+                      }`}
+                    >
+                      <Search className="w-4 h-4 text-white" />
+                    </div>
                   </button>
 
                   <button
