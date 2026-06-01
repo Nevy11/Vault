@@ -82,7 +82,7 @@ import { useSavings } from "@/hooks/use-savings";
 export const Route = createFileRoute("/savings")({
   validateSearch: (search: Record<string, unknown>) => {
     return {
-      tab: (search.tab as string) || "overview",
+      tab: search.tab as string | undefined,
     };
   },
   component: SavingsPage,
