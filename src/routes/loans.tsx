@@ -203,7 +203,7 @@ function LoansPage() {
     try {
       let result;
       if (repayProvider === "Vault Wallet") {
-        const { data, error } = await supabase.rpc("repay_loan_from_vault", {
+        const { data, error } = await supabase.rpc("process_vault_repayment", {
           p_loan_id: activeLoan.id,
           p_amount: parseFloat(repayAmount),
         });

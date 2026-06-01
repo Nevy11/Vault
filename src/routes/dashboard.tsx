@@ -1153,7 +1153,7 @@ function DashboardPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="text-right sm:text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-13 sm:ml-0">
+                    <div className="text-right flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto ml-14 sm:ml-0">
                       <div
                         className={`text-sm font-medium ${details.positive ? "text-primary" : "text-destructive"}`}
                       >

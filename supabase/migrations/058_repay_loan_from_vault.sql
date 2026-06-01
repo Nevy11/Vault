@@ -1,4 +1,6 @@
--- Additional RPC for Vault Repayment
+-- Migration: Ensure Repay Loan From Vault RPC
+-- Description: Re-creates the function with a new migration number to ensure it is applied.
+
 CREATE OR REPLACE FUNCTION public.repay_loan_from_vault(
     p_loan_id UUID,
     p_amount NUMERIC
