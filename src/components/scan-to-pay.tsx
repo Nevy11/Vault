@@ -16,10 +16,15 @@ export function ScanToPay({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopCamera = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
@@ -29,10 +34,30 @@ export function ScanToPay({ className }: { className?: string }) {
 
   const startCamera = async () => {
     setIsLoading(true);
+    setCameraError(null);
+    
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "environment" } 
+      // Set a timeout for camera initialization
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutRef.current = setTimeout(() => {
+          reject(new Error("Camera initialization timeout"));
+        }, 8000);
       });
+
+      const cameraPromise = navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+
+      const stream = await Promise.race([cameraPromise, timeoutPromise]) as MediaStream;
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -41,15 +66,33 @@ export function ScanToPay({ className }: { className?: string }) {
       }
     } catch (err) {
       console.error("Camera access error:", err);
-      toast.error("Could not access camera. Please check permissions.");
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      
+      if (errorMessage.includes("timeout")) {
+        setCameraError("Camera is taking too long to start. Please try again or check if another app is using the camera.");
+        toast.error("Camera initialization timeout");
+      } else if (errorMessage.includes("NotAllowedError")) {
+        setCameraError("Camera permission denied. Please enable camera access in settings and try again.");
+        toast.error("Camera permission denied");
+      } else if (errorMessage.includes("NotFoundError")) {
+        setCameraError("No camera found on this device.");
+        toast.error("No camera device found");
+      } else {
+        setCameraError("Unable to access camera. Please check permissions and try again.");
+        toast.error("Could not access camera. Please check permissions.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      // Auto-start camera when dialog opens
+      startCamera();
+    } else {
       stopCamera();
+      setCameraError(null);
     }
   }, [isOpen]);
 
@@ -96,7 +139,13 @@ export function ScanToPay({ className }: { className?: string }) {
               </button>
             </div>
             <DialogDescription className="text-zinc-400 text-xs mt-1">
-              {isCameraActive ? "Align QR code within the frame" : "Initializing encrypted scanning environment..."}
+              {isCameraActive 
+                ? "Align QR code within the frame" 
+                : isLoading 
+                ? "Initializing camera..." 
+                : cameraError 
+                ? "Camera Error" 
+                : "Ready to scan"}
             </DialogDescription>
           </DialogHeader>
 
@@ -127,24 +176,52 @@ export function ScanToPay({ className }: { className?: string }) {
             
             {!isCameraActive && (
               <div className="flex flex-col items-center gap-4 text-center p-8 z-30">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
-                  {isLoading ? (
-                    <RefreshCw className="w-8 h-8 animate-spin" />
-                  ) : (
-                    <Camera className="w-8 h-8 animate-pulse" />
-                  )}
-                </div>
-                <h3 className="text-white font-medium">Camera Permissions</h3>
-                <p className="text-zinc-500 text-xs max-w-[200px]">
-                  Vault OS requires camera access to scan merchant codes securely.
-                </p>
-                <Button 
-                  className="mt-2 rounded-xl h-10 px-8"
-                  onClick={startCamera}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Starting..." : "Enable Camera"}
-                </Button>
+                {cameraError ? (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mb-2">
+                      <Info className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-white font-medium">Camera Error</h3>
+                    <p className="text-zinc-400 text-xs max-w-[240px] leading-relaxed">
+                      {cameraError}
+                    </p>
+                    <Button 
+                      className="mt-2 rounded-xl h-10 px-8"
+                      onClick={startCamera}
+                      disabled={isLoading}
+                      variant="outline"
+                    >
+                      {isLoading ? "Retrying..." : "Retry"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-2">
+                      {isLoading ? (
+                        <RefreshCw className="w-8 h-8 animate-spin" />
+                      ) : (
+                        <Camera className="w-8 h-8 animate-pulse" />
+                      )}
+                    </div>
+                    <h3 className="text-white font-medium">
+                      {isLoading ? "Starting Camera..." : "Camera Permissions"}
+                    </h3>
+                    <p className="text-zinc-500 text-xs max-w-[240px] leading-relaxed">
+                      {isLoading 
+                        ? "Please wait while we initialize your camera..." 
+                        : "Vault OS requires camera access to scan merchant codes securely."}
+                    </p>
+                    {!isLoading && (
+                      <Button 
+                        className="mt-2 rounded-xl h-10 px-8"
+                        onClick={startCamera}
+                        disabled={isLoading}
+                      >
+                        Enable Camera
+                      </Button>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>
