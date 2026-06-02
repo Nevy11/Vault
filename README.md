@@ -8,7 +8,7 @@ The project focuses on user authentication, wallet management, deposits/withdraw
 
 ## Live app
 
-- Live production URL: https://vault-one-plum.vercel.app/
+- Live production URL: https://vault-finance-os.vercel.app/
 
 ## How to use
 
