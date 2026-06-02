@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Building2,
   Smartphone,
@@ -91,6 +91,7 @@ export function DepositPanel() {
   const [profile] = useProfileSignal();
   const { currency, balance: walletBalance } = useWalletBalance();
   const [channel, setChannel] = useState<SourceChannel>("mobile");
+  const [inputCurrency, setInputCurrency] = useState<"USD" | "KES">(currency === "KES" ? "KES" : "USD");
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<DepositStatus>("idle");
@@ -101,7 +102,14 @@ export function DepositPanel() {
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-  const currencySymbol = currency === "USD" ? "$" : currency === "KSH" ? "KES " : currency + " ";
+  // Sync input currency with wallet currency on initial load
+  useEffect(() => {
+    if (currency === "KES" || currency === "USD") {
+      setInputCurrency(currency as "USD" | "KES");
+    }
+  }, [currency]);
+
+  const currencySymbol = currency === "USD" ? "$" : currency === "KES" ? "KES " : currency + " ";
 
   const SAVED_NUMBERS = useMemo(() => {
     console.log("DEBUG: Current profile object:", profile);
@@ -119,15 +127,17 @@ export function DepositPanel() {
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    if (currency === "KSH") return val;
+    if (inputCurrency === "KES") return val;
     return val * EXCHANGE_RATE;
-  }, [amount, currency]);
+  }, [amount, inputCurrency]);
 
-  const usdEquivalent = useMemo(() => {
+  const walletCredit = useMemo(() => {
     const val = parseFloat(amount || "0");
-    if (currency === "USD") return val;
-    return val / EXCHANGE_RATE;
-  }, [amount, currency]);
+    if (inputCurrency === currency) return val;
+    if (inputCurrency === "KES" && currency === "USD") return val / EXCHANGE_RATE;
+    if (inputCurrency === "USD" && currency === "KES") return val * EXCHANGE_RATE;
+    return val;
+  }, [amount, inputCurrency, currency]);
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -237,7 +247,7 @@ export function DepositPanel() {
     setStatus("processing");
     try {
       const { data, error } = await supabase.functions.invoke("mpesa-deposit", {
-        body: { phoneNumber: formattedPhone, amount: parseFloat(amount) * EXCHANGE_RATE },
+        body: { phoneNumber: formattedPhone, amount: kesEquivalent },
       });
 
       if (error) {
@@ -274,7 +284,7 @@ export function DepositPanel() {
         type: "deposit",
         method:
           channel === "mobile" ? "mpesa" : selectedSourceId === "stripe-ach" ? "bank" : "bank",
-        amount: parseFloat(amount),
+        amount: walletCredit,
         status: "pending",
         description: checkoutId,
       });
@@ -305,7 +315,7 @@ export function DepositPanel() {
       if (txFetchError) throw txFetchError;
 
       // Use the amount from the DB if found, otherwise fallback to state
-      const depositAmount = tx?.amount || parseFloat(amount);
+      const depositAmount = tx?.amount || walletCredit;
 
       // 2. Update the actual ledger and wallet balance
       // The RPC now automatically updates the transaction status and logs it to public.transactions
@@ -317,7 +327,7 @@ export function DepositPanel() {
         p_reference: refCode,
         p_description: `M-Pesa Deposit: ${refCode}`,
         p_status: "completed",
-        p_metadata: { payment_method: "mpesa", mpesa_checkout_id: refCode },
+        p_metadata: { payment_method: "mpesa", mpesa_checkout_id: refCode, input_currency: inputCurrency },
       });
 
       if (ledgerError) throw ledgerError;
@@ -349,7 +359,7 @@ export function DepositPanel() {
         <h2 className="text-2xl font-light mb-6 text-center">Complete Deposit</h2>
         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
           <StripePayment
-            amount={parseFloat(amount)}
+            amount={walletCredit}
             onSuccess={(ref) => {
               setRefCode(ref);
               setStatus("success");
@@ -385,7 +395,7 @@ export function DepositPanel() {
             <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
               <span className="text-muted-foreground">Credited Balance</span>
               <span className="text-2xl font-light text-emerald-500 font-mono">
-                ${parseFloat(amount).toLocaleString()}
+                {currencySymbol}{walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between text-xs">
@@ -671,24 +681,42 @@ export function DepositPanel() {
       <div className="space-y-6">
         <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-8">
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-              Deposit Amount ({currency})
-            </Label>
+            <div className="flex items-center justify-between ml-1">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Amount to Deposit
+              </Label>
+              <div className="flex bg-background/40 border border-border/40 rounded-lg p-0.5">
+                {(["USD", "KES"] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setInputCurrency(c)}
+                    className={cn(
+                      "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                      inputCurrency === c
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="relative">
               <span
                 className={cn(
                   "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-light",
-                  currency === "USD" ? "text-2xl" : "text-lg",
+                  inputCurrency === "USD" ? "text-2xl" : "text-lg",
                 )}
               >
-                {currencySymbol}
+                {inputCurrency === "USD" ? "$" : "KES "}
               </span>
               <Input
                 type="number"
                 placeholder="0.00"
                 className={cn(
                   "h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20",
-                  currency === "USD" ? "pl-10" : "pl-16",
+                  inputCurrency === "USD" ? "pl-10" : "pl-16",
                 )}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -701,18 +729,18 @@ export function DepositPanel() {
               <History className="w-24 h-24 text-emerald-500" />
             </div>
             <div className="flex justify-between items-center text-xs text-emerald-500/70 uppercase tracking-widest font-bold">
-              <span>Conversion</span>
+              <span>Settlement</span>
               <span className="bg-emerald-500/20 px-2 py-0.5 rounded">
                 1 USD = {EXCHANGE_RATE} KES
               </span>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">
-                {currency === "USD" ? "Equivalent KES" : "Equivalent USD"}
+                Credit to your {currency} Wallet
               </div>
               <div className="text-2xl font-mono text-emerald-500 font-bold">
-                {currency === "USD" ? "KES " : "$"}
-                {(currency === "USD" ? kesEquivalent : usdEquivalent).toLocaleString(undefined, {
+                {currencySymbol}
+                {walletCredit.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -774,7 +802,7 @@ export function DepositPanel() {
               <DialogDescription className="text-base">
                 Are you sure you want to deposit{" "}
                 <span className="text-primary font-semibold font-mono">
-                  ${parseFloat(amount || "0").toLocaleString()}
+                  {inputCurrency === "USD" ? "$" : "KES "}{parseFloat(amount || "0").toLocaleString()}
                 </span>{" "}
                 from your <span className="font-semibold">{getSourceName()}</span> account into your
                 Vault Wallet?
@@ -783,7 +811,9 @@ export function DepositPanel() {
 
             <div className="bg-white/5 rounded-2xl p-6 space-y-4 border border-white/5">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Exchange Amount</span>
+                <span className="text-muted-foreground">
+                  Payment Amount
+                </span>
                 <span className="font-mono text-emerald-500">
                   KES {kesEquivalent.toLocaleString()}
                 </span>
@@ -793,9 +823,9 @@ export function DepositPanel() {
                 <span className="text-primary">FREE</span>
               </div>
               <div className="border-t border-white/5 pt-4 flex justify-between items-center">
-                <span className="text-sm font-medium">Total Credit</span>
+                <span className="text-sm font-medium">Wallet Credit</span>
                 <span className="text-2xl font-light font-mono text-primary">
-                  ${parseFloat(amount || "0").toLocaleString()}
+                  {currencySymbol}{walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

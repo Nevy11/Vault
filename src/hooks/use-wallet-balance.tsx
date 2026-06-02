@@ -68,7 +68,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       setDisplayCurrency(cached.currency);
       setLoading(false);
 
-      const alternateCurrency = cached.currency === "USD" ? "KSH" : "USD";
+      const alternateCurrency = cached.currency === "USD" ? "KES" : "USD";
       const alternateAmount =
         cached.currency === "USD" ? cached.balance * KES_USD_RATE : cached.balance / KES_USD_RATE;
 
@@ -100,7 +100,8 @@ export function useWalletBalance(): UseWalletBalanceReturn {
       }
 
       const rawNationality = profileNationality || latestLog?.location || "";
-      return getCurrencyForNationality(rawNationality);
+      const detected = getCurrencyForNationality(rawNationality);
+      return detected === "KSH" ? "KES" : detected;
     },
     [profile],
   );
@@ -135,7 +136,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     setDisplayBalance(nativeAmount);
     setDisplayCurrency(nativeCurrency);
 
-    const alternateCurrency = nativeCurrency === "USD" ? "KSH" : "USD";
+    const alternateCurrency = nativeCurrency === "USD" ? "KES" : "USD";
     const alternateAmount =
       nativeCurrency === "USD" ? nativeAmount * KES_USD_RATE : nativeAmount / KES_USD_RATE;
 
@@ -168,13 +169,14 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         if (fetchError) {
           setError(fetchError.message);
         } else if (!data) {
+          const preferredCurrency = await resolvePreferredCurrency(currentUserId);
           const { data: newWallet, error: createError } = await supabase
             .from("wallets")
             .insert([
               {
                 user_id: currentUserId,
                 balance: 0,
-                currency: "USD",
+                currency: preferredCurrency,
               },
             ])
             .select()
@@ -214,7 +216,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
         setIsSyncing(false);
       }
     },
-    [computeBalances, profile?.id],
+    [computeBalances, profile?.id, resolvePreferredCurrency],
   );
 
   useEffect(() => {
@@ -321,6 +323,31 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     }
   };
 
+  const changeCurrency = async (newCurrency: string) => {
+    if (!wallet?.id) {
+      setError("Wallet not found");
+      return;
+    }
+
+    try {
+      setIsSyncing(true);
+      const { error: updateError } = await supabase
+        .from("wallets")
+        .update({ currency: newCurrency, updated_at: new Date().toISOString() })
+        .eq("id", wallet.id);
+
+      if (updateError) {
+        setError(updateError.message);
+      } else {
+        await fetchWallet(true);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return {
     balance: displayBalance,
     currency: displayCurrency,
@@ -331,5 +358,6 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     secondaryBalance,
     refetch,
     updateBalance,
+    changeCurrency,
   };
 }
