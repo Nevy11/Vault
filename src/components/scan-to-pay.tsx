@@ -76,7 +76,7 @@ export function ScanToPay({ className }: { className?: string }) {
       // Store stream reference first
       streamRef.current = stream;
       
-      // Try to attach to video element
+      // Attach to video element (ref is always available now)
       if (videoRef.current) {
         console.log("[ScanToPay] Attaching stream to video element...");
         videoRef.current.srcObject = stream;
@@ -84,17 +84,8 @@ export function ScanToPay({ className }: { className?: string }) {
         setIsCameraActive(true);
         console.log("[ScanToPay] Camera stream attached successfully");
       } else {
-        console.warn("[ScanToPay] Video ref not available yet, will retry...");
-        // Try again after a short delay to let the ref mount
-        setTimeout(() => {
-          if (videoRef.current && streamRef.current) {
-            console.log("[ScanToPay] Retrying stream attachment...");
-            videoRef.current.srcObject = streamRef.current;
-            streamAttachedRef.current = true;
-            setIsCameraActive(true);
-            console.log("[ScanToPay] Camera stream attached on retry");
-          }
-        }, 100);
+        console.error("[ScanToPay] Video ref still not available!");
+        throw new Error("Video element ref is unavailable");
       }
     } catch (err) {
       console.error("[ScanToPay] Camera access error:", err);
@@ -186,14 +177,15 @@ export function ScanToPay({ className }: { className?: string }) {
           </DialogHeader>
 
           <div className="relative aspect-square w-full mt-4 flex items-center justify-center bg-zinc-950">
-            {isCameraActive && (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            )}
+            {/* Video element - always rendered so ref is available */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className={`absolute inset-0 w-full h-full object-cover ${
+                isCameraActive ? "opacity-100" : "opacity-0"
+              }`}
+            />
 
             {/* Viewport HUD */}
             <div className="absolute inset-0 z-20 pointer-events-none">
