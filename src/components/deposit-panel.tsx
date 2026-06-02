@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Building2,
   Smartphone,
@@ -85,12 +85,13 @@ const BANKS = [
 const EXCHANGE_RATE = 130.0;
 
 type SourceChannel = "bank" | "mobile" | "stripe";
-type DepositStatus = "idle" | "confirming" | "processing" | "success" | "stripe_pay";
+type DepositStatus = "idle" | "processing" | "success" | "stripe_pay" | "awaiting_mpesa";
 
 export function DepositPanel() {
   const [profile] = useProfileSignal();
-  const { currency, balance: walletBalance } = useWalletBalance();
+  const { currency, balance: walletBalance, refetch: refetchWallet } = useWalletBalance();
   const [channel, setChannel] = useState<SourceChannel>("mobile");
+  const [inputCurrency, setInputCurrency] = useState<"USD" | "KES">(currency === "KES" ? "KES" : "USD");
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<DepositStatus>("idle");
@@ -101,7 +102,49 @@ export function DepositPanel() {
   const [refCode, setRefCode] = useState("");
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
-  const currencySymbol = currency === "USD" ? "$" : currency === "KSH" ? "KES " : currency + " ";
+  // Sync input currency with wallet currency on initial load
+  useEffect(() => {
+    if (currency === "KES" || currency === "USD") {
+      setInputCurrency(currency as "USD" | "KES");
+    }
+  }, [currency]);
+
+  // Real-time listener for transaction completion
+  useEffect(() => {
+    if (!refCode || status !== "awaiting_mpesa") return;
+
+    console.log(`Setting up real-time listener for transaction: ${refCode}`);
+    
+    const channel = supabase
+      .channel(`deposit-status-${refCode}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "transactions",
+          filter: `description=eq.${refCode}`,
+        },
+        (payload) => {
+          console.log("Transaction update detected:", payload.new);
+          if (payload.new.status === "completed") {
+            toast.success("Payment confirmed! Your balance has been updated.");
+            refetchWallet();
+            setStatus("success");
+          } else if (payload.new.status === "failed") {
+            toast.error("Payment failed or was cancelled.");
+            setStatus("idle");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refCode, status, refetchWallet]);
+
+  const currencySymbol = currency === "USD" ? "$" : currency === "KES" ? "KES " : currency + " ";
 
   const SAVED_NUMBERS = useMemo(() => {
     console.log("DEBUG: Current profile object:", profile);
@@ -119,15 +162,17 @@ export function DepositPanel() {
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    if (currency === "KSH") return val;
+    if (inputCurrency === "KES") return val;
     return val * EXCHANGE_RATE;
-  }, [amount, currency]);
+  }, [amount, inputCurrency]);
 
-  const usdEquivalent = useMemo(() => {
+  const walletCredit = useMemo(() => {
     const val = parseFloat(amount || "0");
-    if (currency === "USD") return val;
-    return val / EXCHANGE_RATE;
-  }, [amount, currency]);
+    if (inputCurrency === currency) return val;
+    if (inputCurrency === "KES" && currency === "USD") return val / EXCHANGE_RATE;
+    if (inputCurrency === "USD" && currency === "KES") return val * EXCHANGE_RATE;
+    return val;
+  }, [amount, inputCurrency, currency]);
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -135,8 +180,8 @@ export function DepositPanel() {
       return;
     }
 
-    if (!pin || pin.length < 4) {
-      toast.error("Please enter your transaction PIN");
+    if (!pin || pin.length < 6) {
+      toast.error("Please enter your 6-digit transaction PIN");
       return;
     }
 
@@ -161,6 +206,7 @@ export function DepositPanel() {
     const hashedPin = await hashPin(pin);
     if (profileData.pin_hash !== hashedPin) {
       toast.error("Invalid transaction PIN");
+      setPin(""); // Clear invalid PIN
       return;
     }
 
@@ -237,7 +283,7 @@ export function DepositPanel() {
     setStatus("processing");
     try {
       const { data, error } = await supabase.functions.invoke("mpesa-deposit", {
-        body: { phoneNumber: formattedPhone, amount: parseFloat(amount) * EXCHANGE_RATE },
+        body: { phoneNumber: formattedPhone, amount: kesEquivalent },
       });
 
       if (error) {
@@ -274,13 +320,13 @@ export function DepositPanel() {
         type: "deposit",
         method:
           channel === "mobile" ? "mpesa" : selectedSourceId === "stripe-ach" ? "bank" : "bank",
-        amount: parseFloat(amount),
+        amount: walletCredit,
         status: "pending",
         description: checkoutId,
       });
 
       toast.success("Check your phone for the M-Pesa PIN prompt");
-      setStatus("confirming");
+      setStatus("awaiting_mpesa");
     } catch (error: any) {
       console.error("M-Pesa trigger error:", error);
       toast.error(error.message);
@@ -288,51 +334,12 @@ export function DepositPanel() {
     }
   };
 
-  const handleConfirmDeposit = async () => {
-    setStatus("processing");
-    try {
-      const userId = profile?.id;
-      if (!userId) throw new Error("User session not found");
-
-      // 1. Read the amount from the pending transaction to ensure integrity
-      const { data: tx, error: txFetchError } = await supabase
-        .from("transactions")
-        .select("amount")
-        .eq("description", refCode)
-        .eq("status", "pending")
-        .maybeSingle();
-
-      if (txFetchError) throw txFetchError;
-
-      // Use the amount from the DB if found, otherwise fallback to state
-      const depositAmount = tx?.amount || parseFloat(amount);
-
-      // 2. Update the actual ledger and wallet balance
-      // The RPC now automatically updates the transaction status and logs it to public.transactions
-      const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
-        p_user_id: userId,
-        p_amount: depositAmount,
-        p_currency: currency,
-        p_type: "deposit",
-        p_reference: refCode,
-        p_description: `M-Pesa Deposit: ${refCode}`,
-        p_status: "completed",
-        p_metadata: { payment_method: "mpesa", mpesa_checkout_id: refCode },
-      });
-
-      if (ledgerError) throw ledgerError;
-
-      // 3. Update local state balance (Realtime will handle the main sync, but this is for immediate feedback)
-      // We don't need a manual transactions update here anymore as create_ledger_entry handles it
-
-      setStatus("success");
-      toast.success("Deposit confirmed and balance updated!");
-    } catch (err: any) {
-      console.error("M-Pesa confirmation error:", err);
-      toast.error("Failed to confirm deposit: " + err.message);
-      setStatus("idle");
+  // Auto-trigger deposit when PIN is complete
+  useEffect(() => {
+    if (pin.length === 6 && status === "idle") {
+      handleDepositClick();
     }
-  };
+  }, [pin]);
 
   const getSourceName = () => {
     if (channel === "stripe") return "Credit/Debit Card";
@@ -349,7 +356,7 @@ export function DepositPanel() {
         <h2 className="text-2xl font-light mb-6 text-center">Complete Deposit</h2>
         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
           <StripePayment
-            amount={parseFloat(amount)}
+            amount={walletCredit}
             onSuccess={(ref) => {
               setRefCode(ref);
               setStatus("success");
@@ -357,6 +364,61 @@ export function DepositPanel() {
             onCancel={() => setStatus("idle")}
           />
         </Elements>
+      </div>
+    );
+  }
+
+  if (status === "awaiting_mpesa") {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in zoom-in duration-500">
+        <div className="relative mb-6">
+          <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+            <Smartphone className="w-16 h-16 animate-pulse" />
+          </div>
+          <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />
+        </div>
+
+        <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Action Required</h2>
+        <p className="text-muted-foreground mb-8 max-w-md">
+          Please enter your **M-Pesa PIN** on your phone to complete the deposit of{" "}
+          <span className="text-primary font-bold">KES {kesEquivalent.toLocaleString()}</span>.
+        </p>
+
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-8 w-full max-w-sm mb-8 backdrop-blur-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Zap className="w-20 h-20 text-emerald-500" />
+          </div>
+
+          <div className="space-y-4 relative">
+            <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
+              <span className="text-muted-foreground">Expected Credit</span>
+              <span className="text-2xl font-light text-emerald-500 font-mono">
+                {currencySymbol}{walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Transaction ID</span>
+              <span className="font-mono font-medium">{refCode}</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground">Status</span>
+              <span className="text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full animate-pulse">
+                Awaiting PIN
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <Button
+          size="lg"
+          className="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14"
+          asChild
+        >
+          <Link to="/dashboard">Back to Dashboard</Link>
+        </Button>
+        <p className="mt-4 text-[10px] text-muted-foreground uppercase tracking-widest">
+          Your balance will update automatically once confirmed
+        </p>
       </div>
     );
   }
@@ -373,7 +435,7 @@ export function DepositPanel() {
 
         <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Deposit Successful!</h2>
         <p className="text-muted-foreground mb-8 max-w-md">
-          Funds have been credited to your Vault Wallet from your {getSourceName()} account.
+          Your payment has been confirmed and your Vault balance updated.
         </p>
 
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-8 w-full max-w-sm mb-8 backdrop-blur-sm relative overflow-hidden">
@@ -385,16 +447,12 @@ export function DepositPanel() {
             <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
               <span className="text-muted-foreground">Credited Balance</span>
               <span className="text-2xl font-light text-emerald-500 font-mono">
-                ${parseFloat(amount).toLocaleString()}
+                {currencySymbol}{walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Transaction ID</span>
               <span className="font-mono font-medium">{refCode}</span>
-            </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Source</span>
-              <span className="font-medium">{getSourceName()}</span>
             </div>
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">Status</span>
@@ -671,24 +729,42 @@ export function DepositPanel() {
       <div className="space-y-6">
         <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm space-y-8">
           <div className="space-y-4">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-              Deposit Amount ({currency})
-            </Label>
+            <div className="flex items-center justify-between ml-1">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                Amount to Deposit
+              </Label>
+              <div className="flex bg-background/40 border border-border/40 rounded-lg p-0.5">
+                {(["USD", "KES"] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setInputCurrency(c)}
+                    className={cn(
+                      "px-2 py-1 text-[10px] font-bold rounded-md transition-all",
+                      inputCurrency === c
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="relative">
               <span
                 className={cn(
                   "absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-light",
-                  currency === "USD" ? "text-2xl" : "text-lg",
+                  inputCurrency === "USD" ? "text-2xl" : "text-lg",
                 )}
               >
-                {currencySymbol}
+                {inputCurrency === "USD" ? "$" : "KES "}
               </span>
               <Input
                 type="number"
                 placeholder="0.00"
                 className={cn(
                   "h-16 bg-background/40 border-border/60 rounded-2xl text-3xl font-light focus:ring-primary/20",
-                  currency === "USD" ? "pl-10" : "pl-16",
+                  inputCurrency === "USD" ? "pl-10" : "pl-16",
                 )}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -701,18 +777,18 @@ export function DepositPanel() {
               <History className="w-24 h-24 text-emerald-500" />
             </div>
             <div className="flex justify-between items-center text-xs text-emerald-500/70 uppercase tracking-widest font-bold">
-              <span>Conversion</span>
+              <span>Settlement</span>
               <span className="bg-emerald-500/20 px-2 py-0.5 rounded">
                 1 USD = {EXCHANGE_RATE} KES
               </span>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">
-                {currency === "USD" ? "Equivalent KES" : "Equivalent USD"}
+                Credit to your {currency} Wallet
               </div>
               <div className="text-2xl font-mono text-emerald-500 font-bold">
-                {currency === "USD" ? "KES " : "$"}
-                {(currency === "USD" ? kesEquivalent : usdEquivalent).toLocaleString(undefined, {
+                {currencySymbol}
+                {walletCredit.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
@@ -761,70 +837,6 @@ export function DepositPanel() {
         </div>
       </div>
 
-      {/* SECTION 4: THE CONFIRMATION MODAL & SUCCESS FLOW */}
-      <Dialog open={status === "confirming"} onOpenChange={(o) => !o && setStatus("idle")}>
-        <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden bg-background/60 backdrop-blur-xl border-white/10 shadow-2xl">
-          <div className="p-8 space-y-8">
-            <div className="w-16 h-16 rounded-3xl bg-primary/20 flex items-center justify-center text-primary mx-auto">
-              <Zap className="w-8 h-8" />
-            </div>
-
-            <div className="text-center space-y-3">
-              <DialogTitle className="text-2xl font-light">Confirm Deposit</DialogTitle>
-              <DialogDescription className="text-base">
-                Are you sure you want to deposit{" "}
-                <span className="text-primary font-semibold font-mono">
-                  ${parseFloat(amount || "0").toLocaleString()}
-                </span>{" "}
-                from your <span className="font-semibold">{getSourceName()}</span> account into your
-                Vault Wallet?
-              </DialogDescription>
-            </div>
-
-            <div className="bg-white/5 rounded-2xl p-6 space-y-4 border border-white/5">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Exchange Amount</span>
-                <span className="font-mono text-emerald-500">
-                  KES {kesEquivalent.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Platform Fee</span>
-                <span className="text-primary">FREE</span>
-              </div>
-              <div className="border-t border-white/5 pt-4 flex justify-between items-center">
-                <span className="text-sm font-medium">Total Credit</span>
-                <span className="text-2xl font-light font-mono text-primary">
-                  ${parseFloat(amount || "0").toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                variant="ghost"
-                className="h-14 rounded-2xl hover:bg-white/5"
-                onClick={() => setStatus("idle")}
-              >
-                NO, CANCEL
-              </Button>
-              <Button
-                className="h-14 rounded-2xl bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-                onClick={handleConfirmDeposit}
-              >
-                YES, DEPOSIT
-              </Button>
-            </div>
-          </div>
-
-          <div className="bg-primary/5 p-4 text-center border-t border-white/5">
-            <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-2 tracking-widest uppercase">
-              <LockIcon className="w-3 h-3" /> PCI-DSS Compliant Gateway
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       {/* Processing Overlay */}
       {status === "processing" && (
         <div className="fixed inset-0 bg-background/40 backdrop-blur-2xl z-[100] flex flex-col items-center justify-center animate-in fade-in duration-500">
@@ -842,10 +854,20 @@ export function DepositPanel() {
             Triggering secure STK Push / Automated Debit Request
           </p>
 
-          <div className="mt-16 flex gap-6">
-            <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
-            <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
-            <div className="w-3 h-3 rounded-full bg-primary animate-bounce" />
+          <div className="mt-16 flex flex-col items-center gap-8">
+            <div className="flex gap-6">
+              <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+              <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+              <div className="w-3 h-3 rounded-full bg-primary animate-bounce" />
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="rounded-xl border-primary/20 hover:bg-primary/5 text-xs h-10 px-8"
+              onClick={() => setStatus("idle")}
+            >
+              CANCEL REQUEST
+            </Button>
           </div>
         </div>
       )}

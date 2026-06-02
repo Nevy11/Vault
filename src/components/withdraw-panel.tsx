@@ -128,7 +128,7 @@ export function WithdrawPanel() {
 
   const kesEquivalent = useMemo(() => {
     const val = parseFloat(amount || "0");
-    return currency === "KSH" ? val : val * EXCHANGE_RATE;
+    return currency === "KES" ? val : val * EXCHANGE_RATE;
   }, [amount, currency]);
 
   const fee = useMemo(() => {
@@ -147,7 +147,7 @@ export function WithdrawPanel() {
 
     if (balance !== null && totalDeduction > balance) {
       toast.error(
-        `Insufficient balance. You need ${currency === "KSH" ? "KSH" : "$"}${totalDeduction.toFixed(2)} total (including fee).`,
+        `Insufficient balance. You need ${currency === "KES" ? "KSH" : "$"}${totalDeduction.toFixed(2)} total (including fee).`,
       );
       return;
     }
@@ -195,6 +195,7 @@ export function WithdrawPanel() {
 
       const hashedPin = await hashPin(pin);
       if (profileData.pin_hash !== hashedPin) {
+        setPin(""); // Clear invalid PIN
         throw new Error("Incorrect transaction PIN");
       }
 
@@ -204,6 +205,13 @@ export function WithdrawPanel() {
       toast.error(error.message || "An error occurred during verification");
     }
   };
+
+  // Auto-trigger withdrawal when PIN is complete
+  useEffect(() => {
+    if (pin.length === 6 && status === "idle") {
+      handleWithdrawClick();
+    }
+  }, [pin]);
 
   const handleConfirmWithdraw = async () => {
     setStatus("processing");
@@ -271,7 +279,7 @@ export function WithdrawPanel() {
           <div className="flex justify-between mb-3 text-sm">
             <span className="text-muted-foreground">Amount Withdrawn</span>
             <span className="font-medium">
-              {currency === "KSH" ? "KSH" : "$"}
+              {currency === "KES" ? "KSH" : "$"}
               {parseFloat(amount).toLocaleString()}
             </span>
           </div>
@@ -533,7 +541,7 @@ export function WithdrawPanel() {
               </div>
             ) : (
               <div className="text-4xl font-light text-primary tracking-tight">
-                {currency === "KSH" ? "KSH " : "$"}
+                {currency === "KES" ? "KSH " : "$"}
                 {balance?.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -551,7 +559,7 @@ export function WithdrawPanel() {
             </Label>
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-2xl font-light">
-                {currency === "KSH" ? "KSH" : "$"}
+                {currency === "KES" ? "KSH" : "$"}
               </span>
               <Input
                 id="amount"
@@ -633,21 +641,21 @@ export function WithdrawPanel() {
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">You are withdrawing</span>
                   <span className="font-semibold text-foreground text-lg">
-                    {currency === "KSH" ? "KSH" : "$"}
+                    {currency === "KES" ? "KSH" : "$"}
                     {parseFloat(amount || "0").toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-muted-foreground">Platform Fee</span>
                   <span className="text-destructive font-medium">
-                    {currency === "KSH" ? "KSH " : "$"}
+                    {currency === "KES" ? "KSH " : "$"}
                     {fee.toLocaleString()}
                   </span>
                 </div>
                 <div className="border-t border-primary/20 pt-4 flex justify-between items-center">
                   <span className="text-sm font-medium">Total Deduction</span>
                   <span className="text-xl font-mono text-primary font-bold">
-                    {currency === "KSH" ? "KSH" : "$"}
+                    {currency === "KES" ? "KSH" : "$"}
                     {totalDeduction.toLocaleString()}
                   </span>
                 </div>

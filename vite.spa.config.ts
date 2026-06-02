@@ -10,6 +10,7 @@ export default defineConfig({
     tsconfigPaths(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: "auto",
       includeAssets: ["favicon.ico", "v-logo.svg"],
       manifest: {
         name: "Vault OS",
@@ -19,18 +20,20 @@ export default defineConfig({
         background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
-        scope: "/",
         start_url: "/",
+        scope: "/",
         icons: [
           {
             src: "/v-logo.svg",
             sizes: "192x192",
             type: "image/svg+xml",
+            purpose: "any",
           },
           {
             src: "/v-logo.svg",
             sizes: "512x512",
             type: "image/svg+xml",
+            purpose: "any",
           },
           {
             src: "/v-logo.svg",
@@ -42,6 +45,9 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/vwxlnchdathjuprrlite\.supabase\.co\/.*/i,
@@ -50,7 +56,10 @@ export default defineConfig({
               cacheName: "supabase-api-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24,
+                maxAgeSeconds: 60 * 60 * 24, // 24 hours
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
               },
             },
           },

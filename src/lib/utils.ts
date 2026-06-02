@@ -43,12 +43,12 @@ export function formatKycTag(firstName: string, lastName: string) {
 export function getCurrencyForNationality(nationality?: string | null): string {
   const norm = nationality?.trim().toLowerCase() || "";
   if (!norm) return "USD";
-  if (norm.includes("kenya") || norm.includes("kenyan")) return "KSH";
+  if (norm.includes("kenya") || norm.includes("kenyan")) return "KES";
   return "USD";
 }
 
 export function calculateTransactionFee(amount: number, currency: string): number {
-  if (currency === "KSH") {
+  if (currency === "KES" || currency === "KSH") {
     // M-Pesa Withdrawal from Agent Rates
     if (amount < 1) return 0;
     if (amount <= 100) return 10;

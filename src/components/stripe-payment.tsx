@@ -18,7 +18,7 @@ export function StripePayment({ amount, onSuccess, onCancel }: StripePaymentProp
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const currencySymbol = currency === "USD" ? "$" : currency === "KSH" ? "KES " : currency + " ";
+  const currencySymbol = currency === "USD" ? "$" : currency === "KES" ? "KES " : currency + " ";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

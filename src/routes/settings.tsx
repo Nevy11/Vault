@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
+import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { AppShell } from "@/components/app-shell";
 import { supabase } from "@/api/supabase";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
@@ -378,6 +379,7 @@ function ChangePinDialog({
 
 function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { currency, changeCurrency } = useWalletBalance();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1493,7 +1495,18 @@ function SettingsPage() {
           </SectionCard>
 
           <SectionCard icon={SlidersHorizontal} title="Preferences">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-6 border-b border-border/40">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">Primary Currency</label>
+                <select
+                  value={currency}
+                  onChange={(e) => changeCurrency(e.target.value)}
+                  className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="KES">KES (Shillings)</option>
+                </select>
+              </div>
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">Theme</label>
                 <select
@@ -1506,17 +1519,18 @@ function SettingsPage() {
                   <option value="system">System</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-2">Language</label>
-                <select className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-                  <option>English (US)</option>
-                  <option>Spanish (ES)</option>
-                  <option>French (FR)</option>
-                </select>
-              </div>
             </div>
 
-            <div className="border-t border-border/40 pt-6">
+            <div className="pt-6">
+              <label className="block text-sm text-muted-foreground mb-2">Display Language</label>
+              <select className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
+                <option>English (US)</option>
+                <option>Spanish (ES)</option>
+                <option>French (FR)</option>
+              </select>
+            </div>
+
+            <div className="border-t border-border/40 mt-6 pt-6">
               <div className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-4">
                 Notification Center
               </div>
