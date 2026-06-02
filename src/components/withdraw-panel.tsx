@@ -195,6 +195,7 @@ export function WithdrawPanel() {
 
       const hashedPin = await hashPin(pin);
       if (profileData.pin_hash !== hashedPin) {
+        setPin(""); // Clear invalid PIN
         throw new Error("Incorrect transaction PIN");
       }
 
@@ -204,6 +205,13 @@ export function WithdrawPanel() {
       toast.error(error.message || "An error occurred during verification");
     }
   };
+
+  // Auto-trigger withdrawal when PIN is complete
+  useEffect(() => {
+    if (pin.length === 6 && status === "idle") {
+      handleWithdrawClick();
+    }
+  }, [pin]);
 
   const handleConfirmWithdraw = async () => {
     setStatus("processing");
