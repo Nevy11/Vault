@@ -20,23 +20,35 @@ export function ScanToPay({ className }: { className?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const streamAttachedRef = useRef(false);
 
   const stopCamera = () => {
+    console.log("[ScanToPay] Stopping camera...");
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        console.log("[ScanToPay] Stopping track:", track.kind);
+        track.stop();
+      });
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    streamAttachedRef.current = false;
     setIsCameraActive(false);
   };
 
   const startCamera = async () => {
     setIsLoading(true);
     setCameraError(null);
+    streamAttachedRef.current = false;
     
     try {
+      console.log("[ScanToPay] Starting camera...");
+      
       // Set a timeout for camera initialization
       const timeoutPromise = new Promise((_, reject) => {
         timeoutRef.current = setTimeout(() => {
@@ -44,6 +56,7 @@ export function ScanToPay({ className }: { className?: string }) {
         }, 8000);
       });
 
+      console.log("[ScanToPay] Requesting camera access...");
       const cameraPromise = navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: { ideal: "environment" },
@@ -53,19 +66,38 @@ export function ScanToPay({ className }: { className?: string }) {
       });
 
       const stream = await Promise.race([cameraPromise, timeoutPromise]) as MediaStream;
+      console.log("[ScanToPay] Camera stream acquired:", stream.id);
       
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
       
+      // Store stream reference first
+      streamRef.current = stream;
+      
+      // Try to attach to video element
       if (videoRef.current) {
+        console.log("[ScanToPay] Attaching stream to video element...");
         videoRef.current.srcObject = stream;
-        streamRef.current = stream;
+        streamAttachedRef.current = true;
         setIsCameraActive(true);
+        console.log("[ScanToPay] Camera stream attached successfully");
+      } else {
+        console.warn("[ScanToPay] Video ref not available yet, will retry...");
+        // Try again after a short delay to let the ref mount
+        setTimeout(() => {
+          if (videoRef.current && streamRef.current) {
+            console.log("[ScanToPay] Retrying stream attachment...");
+            videoRef.current.srcObject = streamRef.current;
+            streamAttachedRef.current = true;
+            setIsCameraActive(true);
+            console.log("[ScanToPay] Camera stream attached on retry");
+          }
+        }, 100);
       }
     } catch (err) {
-      console.error("Camera access error:", err);
+      console.error("[ScanToPay] Camera access error:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       
       if (errorMessage.includes("timeout")) {
@@ -88,8 +120,12 @@ export function ScanToPay({ className }: { className?: string }) {
 
   useEffect(() => {
     if (isOpen) {
-      // Auto-start camera when dialog opens
-      startCamera();
+      // Auto-start camera when dialog opens (with small delay to ensure video element is mounted)
+      const timeoutId = setTimeout(() => {
+        console.log("[ScanToPay] Dialog opened, auto-starting camera...");
+        startCamera();
+      }, 100);
+      return () => clearTimeout(timeoutId);
     } else {
       stopCamera();
       setCameraError(null);
@@ -97,8 +133,8 @@ export function ScanToPay({ className }: { className?: string }) {
   }, [isOpen]);
 
   const handleScanClick = () => {
+    console.log("[ScanToPay] Scan to Pay FAB Clicked");
     setIsOpen(true);
-    console.log("Scan to Pay FAB Clicked");
   };
 
   return (
