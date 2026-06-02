@@ -54,28 +54,23 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { format, isBefore, startOfToday } from "date-fns";
+import { format, differenceInCalendarDays, startOfToday, subDays } from "date-fns";
 import { cn, formatWithCommas, parseFormattedNumber } from "@/lib/utils";
 import { toast } from "sonner";
-import {
-  PieChart,
-  Pie,
-  Cell,
+import * as Recharts from "recharts";
+
+const {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  LineChart,
-  Line,
   AreaChart,
   Area,
   Defs,
   LinearGradient,
   Stop,
-} from "recharts";
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+} = Recharts;
 
 import { useSavings } from "@/hooks/use-savings";
 
@@ -89,11 +84,10 @@ export const Route = createFileRoute("/savings")({
 });
 
 const FINANCIAL_JOKES = [
-  "Why did the savings account break up with the wallet? It felt like the wallet was just taking it for granted.",
-  "I asked my banker for a loan to buy a giant clock. He said, 'Time is money, but not that much money.'",
-  "My bank balance is currently 'Ask me again on payday.'",
-  "Compound interest is the eighth wonder of the world. He who understands it, earns it... he who doesn't, pays it.",
-  "A budget is telling your money where to go instead of wondering where it went.",
+  "Save a little every day and your goal gets closer faster.",
+  "Daily deposits build momentum more than one big push.",
+  "Track your progress each day to make saving feel effortless.",
+  "Small wins today become a big victory by deadline.",
 ];
 
 const SAVING_LINES = [
@@ -182,32 +176,45 @@ function SavingsPage() {
 
   const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
   const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
+  const remaining = savingsGoal
+    ? Math.max(0, savingsGoal.target_amount - savingsGoal.current_amount)
+    : 0;
+  const deadlineDate = savingsGoal?.lockUntil ?? savingsGoal?.deadline_date;
+  const daysLeft = deadlineDate
+    ? differenceInCalendarDays(new Date(deadlineDate), startOfToday())
+    : null;
+  const averageContribution = ledger.length
+    ? Math.round(
+        ledger.reduce((sum, entry) => sum + Number(entry.amount), 0) / ledger.length,
+      )
+    : 0;
 
-  const chartData = savingsGoal
-    ? [
-        { name: "Saved", value: Number(savingsGoal.current_amount), color: "var(--primary)" },
-        {
-          name: "Remaining",
-          value: Math.max(
-            0,
-            Number(savingsGoal.target_amount) - Number(savingsGoal.current_amount),
-          ),
-          color: "hsl(var(--muted))",
-        },
-      ]
-    : [];
+  const progressValue = Math.max(0, Math.min(100, progress));
+  const ringRadius = 40;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringOffset = ringCircumference - (progressValue / 100) * ringCircumference;
+  const displayDaysLeft = daysLeft !== null ? Math.max(0, daysLeft) : null;
 
   const barData = useMemo(() => {
-    if (!ledger.length) return [];
-
-    // Group by month
-    const months: Record<string, number> = {};
-    [...ledger].reverse().forEach((entry) => {
-      const month = format(new Date(entry.created_at), "MMM");
-      months[month] = (months[month] || 0) + Number(entry.amount);
+    const last7Days = Array.from({ length: 7 }, (_, index) => {
+      const date = subDays(startOfToday(), 6 - index);
+      return {
+        key: format(date, "yyyy-MM-dd"),
+        label: format(date, "EEE"),
+        amount: 0,
+      };
     });
 
-    return Object.entries(months).map(([month, amount]) => ({ month, amount }));
+    const totals: Record<string, number> = {};
+    ledger.forEach((entry) => {
+      const dateKey = format(new Date(entry.created_at), "yyyy-MM-dd");
+      totals[dateKey] = (totals[dateKey] || 0) + Number(entry.amount);
+    });
+
+    return last7Days.map((day) => ({
+      ...day,
+      amount: totals[day.key] || 0,
+    }));
   }, [ledger]);
 
   const [jokeIndex, setJokeIndex] = useState(0);
@@ -548,7 +555,6 @@ function SavingsPage() {
               )}
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Progress Card */}
                 <Card className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between flex-wrap gap-4">
@@ -569,98 +575,214 @@ function SavingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center py-6">
-                      <div className="h-[250px] relative">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={chartData}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={70}
-                              outerRadius={90}
-                              paddingAngle={5}
-                              dataKey="value"
-                              stroke="none"
-                            >
-                              {chartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                          <span className="text-3xl font-bold text-slate-950 dark:text-white">
-                            KES {savingsGoal?.current_amount?.toLocaleString() || "0"}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-[0.2em] mt-1 font-bold">
-                            Current Saved
-                          </span>
-                        </div>
-                      </div>
+                    <div className="grid gap-8 xl:grid-cols-[1.75fr_1fr]">
                       <div className="space-y-6">
-                        <div className="space-y-2">
-                          <div className="text-sm text-center">
-                            <span className="text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight">
-                              Monthly Contributions
-                            </span>
+                        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-7 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
+                          <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_25%)] pointer-events-none" />
+                          <div className="relative z-10 space-y-6">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                  Savings status
+                                </p>
+                                <h2 className="mt-3 text-4xl font-bold tracking-tight">
+                                  KES {savingsGoal?.current_amount?.toLocaleString() || "0"}
+                                </h2>
+                                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                                  of KES {savingsGoal?.target_amount?.toLocaleString() || "0"} target
+                                </p>
+                              </div>
+                              <div className="relative rounded-3xl bg-white p-4 border border-slate-200 shadow-sm text-center dark:bg-slate-900 dark:border-slate-800">
+                                <Calendar className="absolute right-4 top-4 w-4 h-4 text-emerald-500" />
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 text-center">
+                                  Days left
+                                </p>
+                                <div className="mt-4 flex items-center justify-center">
+                                  <div className="relative">
+                                    <svg className="h-24 w-24" viewBox="0 0 100 100">
+                                      <circle
+                                        cx="50"
+                                        cy="50"
+                                        r={ringRadius}
+                                        fill="none"
+                                        stroke="rgba(148,163,184,0.2)"
+                                        strokeWidth="10"
+                                      />
+                                      <circle
+                                        cx="50"
+                                        cy="50"
+                                        r={ringRadius}
+                                        fill="none"
+                                        stroke="#10b981"
+                                        strokeWidth="10"
+                                        strokeLinecap="round"
+                                        strokeDasharray={ringCircumference}
+                                        strokeDashoffset={ringOffset}
+                                        transform="rotate(-90 50 50)"
+                                      />
+                                    </svg>
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                      <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                                        {displayDaysLeft !== null ? displayDaysLeft : "--"}
+                                      </span>
+                                      <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">
+                                        days
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  Progress
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{progress.toFixed(0)}%</p>
+                                <Progress value={Math.min(100, progress)} className="mt-4 h-3 rounded-full bg-slate-200 dark:bg-slate-800" />
+                              </div>
+                              <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  Remaining
+                                </p>
+                                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">KES {remaining.toLocaleString()}</p>
+                                <p className="mt-1 text-xs text-slate-500">towards your goal</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="h-[120px]">
+                        </div>
+
+                        <div className="rounded-[2rem] bg-white/95 dark:bg-slate-950/95 p-4 md:p-5 shadow-2xl border border-white/60 dark:border-white/10">
+                          <div className="flex items-center justify-between gap-4 mb-4">
+                            <div className="space-y-1">
+                              <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted-foreground">
+                                Momentum
+                              </p>
+                              <h3 className="text-lg font-bold text-slate-950 dark:text-white">
+                                Daily progress
+                              </h3>
+                            </div>
+                            <div className="rounded-3xl bg-primary/10 px-3 py-2 text-primary font-bold text-xs uppercase">
+                              Money Fancy
+                            </div>
+                          </div>
+                          <div className="h-[280px]">
                             <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={barData}>
-                                <defs>
-                                  <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop
-                                      offset="5%"
-                                      stopColor="var(--primary)"
-                                      stopOpacity={0.3}
-                                    />
-                                    <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
-                                  </linearGradient>
-                                </defs>
+                              <AreaChart data={barData}>
+                                <Defs>
+                                  <LinearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <Stop offset="5%" stopColor="rgba(16,185,129,0.85)" stopOpacity={0.85} />
+                                    <Stop offset="95%" stopColor="rgba(16,185,129,0)" stopOpacity={0} />
+                                  </LinearGradient>
+                                </Defs>
+                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(148,163,184,0.15)" />
+                                <XAxis
+                                  dataKey="label"
+                                  tick={{ fill: "var(--muted)", fontSize: 12 }}
+                                  axisLine={false}
+                                  tickLine={false}
+                                />
+                                <YAxis
+                                  tick={{ fill: "var(--muted)", fontSize: 12 }}
+                                  axisLine={false}
+                                  tickLine={false}
+                                />
                                 <Tooltip
                                   contentStyle={{
-                                    backgroundColor: "rgba(255, 255, 255, 0.8)",
-                                    borderRadius: "12px",
-                                    border: "none",
-                                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                                    fontWeight: "bold",
+                                    backgroundColor: "rgba(255,255,255,0.95)",
+                                    borderRadius: "16px",
+                                    border: "1px solid rgba(148,163,184,0.15)",
+                                    boxShadow: "0 12px 30px rgba(15,23,42,0.12)",
                                   }}
-                                  labelStyle={{ color: "var(--primary)" }}
+                                  labelStyle={{ color: "#0f172a", fontWeight: "700" }}
                                 />
-                                <Line
+                                <Area
                                   type="monotone"
                                   dataKey="amount"
-                                  stroke="var(--primary)"
-                                  strokeWidth={4}
-                                  dot={{
-                                    r: 4,
-                                    fill: "var(--primary)",
-                                    strokeWidth: 2,
-                                    stroke: "#fff",
-                                  }}
+                                  stroke="#10b981"
+                                  strokeWidth={3}
+                                  fill="url(#savingsGradient)"
+                                  fillOpacity={0.9}
                                   activeDot={{ r: 6, strokeWidth: 0 }}
                                 />
-                              </LineChart>
+                              </AreaChart>
                             </ResponsiveContainer>
                           </div>
                         </div>
-                        <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-start gap-3">
-                          <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                          <p className="text-xs text-slate-900 dark:text-slate-100 font-bold leading-relaxed">
-                            Your funds are locked until{" "}
-                            <span className="text-primary font-bold">
-                              {savingsGoal?.lockUntil
-                                ? format(new Date(savingsGoal.lockUntil), "PPP")
-                                : "N/A"}
-                            </span>
-                            . Achieve your goal to unlock the 2% reward!
+                      </div>
+
+                      <div className="space-y-6">
+                        <Card className="min-h-[30rem] rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 overflow-hidden relative flex flex-col justify-between">
+                          <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-emerald-500/15 blur-3xl" />
+                          <div className="absolute -left-10 bottom-10 w-36 h-36 rounded-full bg-primary/15 blur-3xl" />
+                          <div className="relative z-10 space-y-6">
+                            <div className="flex items-center gap-4">
+                              <div className="grid place-items-center h-14 w-14 rounded-3xl bg-white shadow-sm text-emerald-600 border border-slate-200">
+                                <PiggyBank className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-bold">
+                                  Goal snapshot
+                                </p>
+                                <h3 className="text-2xl font-bold">Visible progress</h3>
+                              </div>
+                            </div>
+                            <div className="relative z-10 mt-6 grid gap-4">
+                              <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  Reward
+                                </p>
+                                <p className="mt-3 text-2xl font-bold">KES {rewardAmount.toLocaleString()}</p>
+                              </div>
+                              <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  Avg/day
+                                </p>
+                                <p className="mt-3 text-2xl font-bold">KES {averageContribution.toLocaleString()}</p>
+                              </div>
+                              <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
+                                <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  Funding
+                                </p>
+                                <p className="mt-3 text-lg font-bold">
+                                  {savingsGoal?.funding_source || "Vault / Mobile Money"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                        <Card className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-5 overflow-hidden relative animate-in fade-in duration-500">
+                          <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-emerald-500/15 blur-3xl" />
+                          <div className="absolute -left-10 bottom-8 w-28 h-28 rounded-full bg-primary/15 blur-3xl" />
+                          <div className="relative z-10 flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-3xl bg-white shadow-sm grid place-items-center text-emerald-600 border border-slate-200">
+                              <Sparkles className="w-7 h-7" />
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-bold">
+                                Quick tip
+                              </p>
+                              <p className="text-lg font-bold">Save a little each day</p>
+                            </div>
+                          </div>
+                          <p className="mt-4 text-sm text-slate-600 leading-relaxed">
+                            Daily progress adds up faster than one big push.
                           </p>
-                        </div>
+                          <div className="mt-5">
+                            <Button
+                              variant="outline"
+                              className="w-full rounded-xl border-primary/30 font-bold hover:bg-primary/5 transition-all"
+                              onClick={nextJoke}
+                            >
+                              Next Tip
+                            </Button>
+                          </div>
+                        </Card>
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="pt-0 pb-8 px-8 flex gap-4">
+                  <CardFooter className="pt-0 pb-8 px-8 flex flex-col sm:flex-row gap-4">
                     <Button
                       className="flex-1 h-14 rounded-2xl text-lg font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                       onClick={() => setShowContributionModal(true)}
@@ -668,41 +790,43 @@ function SavingsPage() {
                       <PiggyBank className="w-5 h-5 mr-2" />
                       Add Savings
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="px-6 h-14 rounded-2xl font-bold border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/5 transition-all duration-300"
-                      onClick={() => setActiveTab("congrats")}
-                    >
-                      Simulate Hit
-                    </Button>
                   </CardFooter>
                 </Card>
 
-                {/* Wisdom & Jokes Card */}
-                <Card className="rounded-2xl border border-white/30 bg-white/70 dark:bg-slate-950/70 backdrop-blur-2xl overflow-hidden flex flex-col shadow-xl">
-                  <CardHeader>
-                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 border border-primary/20 shadow-lg">
-                      <Zap className="w-6 h-6" />
+                {/* Savings Tip Card */}
+                <Card className="rounded-2xl border border-slate-200 bg-emerald-50 dark:border-slate-800 dark:bg-slate-950 overflow-hidden flex flex-col shadow-xl animate-in fade-in duration-500">
+                  <CardHeader className="relative overflow-hidden">
+                    <div className="absolute -top-8 -right-8 h-28 w-28 rounded-full bg-emerald-500/10 blur-3xl" />
+                    <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-primary/10 blur-3xl" />
+                    <div className="flex items-center justify-between gap-4 relative z-10">
+                      <div className="flex items-center gap-3">
+                        <div className="grid place-items-center h-12 w-12 rounded-3xl bg-white text-emerald-600 shadow-sm animate-pulse">
+                          <Wallet className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <CardTitle className="font-bold text-slate-950 dark:text-white uppercase tracking-tight">
+                            Savings Tip
+                          </CardTitle>
+                          <CardDescription className="text-sm text-slate-600 dark:text-slate-400">
+                            Daily progress makes it real.
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <Sparkles className="w-6 h-6 text-emerald-500 animate-bounce" />
                     </div>
-                    <CardTitle className="font-bold text-slate-950 dark:text-white uppercase tracking-tight">
-                      Vault Wisdom
-                    </CardTitle>
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col justify-center">
-                    <div className="relative p-6 rounded-2xl bg-white/50 dark:bg-slate-900/50 italic text-lg leading-relaxed text-slate-900 dark:text-slate-100 shadow-inner font-bold border border-white/20">
-                      <span className="absolute -top-4 -left-2 text-6xl text-primary/20 font-serif">
-                        "
-                      </span>
+                  <CardContent className="flex-1 flex flex-col justify-center px-6 pb-6 pt-4">
+                    <p className="text-base font-semibold text-slate-900 dark:text-white leading-relaxed tracking-tight">
                       {joke}
-                    </div>
+                    </p>
                   </CardContent>
-                  <div className="p-8 mt-auto border-t border-white/20">
+                  <div className="p-6 mt-auto border-t border-slate-200 dark:border-slate-800">
                     <Button
                       variant="outline"
                       className="w-full rounded-xl border-primary/30 font-bold hover:bg-primary/5 transition-all"
                       onClick={nextJoke}
                     >
-                      Another Tip
+                      Next Tip
                     </Button>
                   </div>
                 </Card>
