@@ -67,6 +67,13 @@
       "settings": "Settings"
     }
   },
+  "ai_insights": {
+    "title": "AI Financial Insight",
+    "placeholder": "Click generate to analyze your spending and get AI predictions.",
+    "initializing": "Initializing AI Advisor...",
+    "update": "Update Analysis",
+    "generate": "Generate Insight"
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Configuration",

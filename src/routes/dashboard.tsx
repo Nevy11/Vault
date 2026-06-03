@@ -555,6 +555,8 @@ function SecurityStatus() {
 }
 
 function AIInsightsWidget({ profileId }: { profileId?: string }) {
+  const { t } = useTranslation();
+  const [profile] = useProfileSignal();
   const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -584,7 +586,10 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
-        body: { userId: profileId },
+        body: { 
+          userId: profileId,
+          language: profile?.language || "en"
+        },
       });
       
       if (error) {
@@ -617,7 +622,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       <div className="rounded-3xl bg-muted/20 border border-border/40 p-8 mb-8 animate-pulse h-[160px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" />
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">Initializing AI Advisor...</span>
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">{t("ai_insights.initializing")}</span>
         </div>
       </div>
     );
@@ -651,7 +656,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-foreground">AI Financial Insight</h3>
+            <h3 className="text-lg font-bold text-foreground">{t("ai_insights.title")}</h3>
             {insight ? (
               <div className="mt-2 space-y-1">
                 <div className="text-sm font-semibold text-primary">
@@ -665,7 +670,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
               </div>
             ) : (
               <p className="mt-1 text-xs text-muted-foreground">
-                Click generate to analyze your spending and get AI predictions.
+                {t("ai_insights.placeholder")}
               </p>
             )}
           </div>
@@ -683,7 +688,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
           ) : (
             <RefreshCw className="w-4 h-4 mr-2" />
           )}
-          {insight ? "Update Analysis" : "Generate Insight"}
+          {insight ? t("ai_insights.update") : t("ai_insights.generate")}
         </Button>
       </div>
     </div>

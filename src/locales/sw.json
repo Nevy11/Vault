@@ -67,6 +67,13 @@
       "settings": "Mipangilio"
     }
   },
+  "ai_insights": {
+    "title": "Ushauri wa Kifedha wa AI",
+    "placeholder": "Bonyeza zalisha ili kuchanganua matumizi yako na kupata utabiri wa AI.",
+    "initializing": "Inaanzisha Mshauri wa AI...",
+    "update": "Sasisha Uchambuzi",
+    "generate": "Zalisha Ushauri"
+  },
   "settings": {
     "title": "Mipangilio",
     "subtitle": "Usanidi",
