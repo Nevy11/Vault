@@ -7,11 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { Layers } from "lucide-react";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal, profileSignal } from "@/lib/profile-signal";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import i18n from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
@@ -167,9 +168,67 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MultiWindowOverlay({ onUseHere }: { onUseHere: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="max-w-md w-full mx-4 p-8 rounded-3xl border border-border bg-card shadow-2xl text-center">
+        <div className="mb-6 flex justify-center">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <Layers className="h-8 w-8" />
+          </div>
+        </div>
+        <h2 className="text-2xl font-serif text-foreground mb-3">Vault is open in another window</h2>
+        <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
+          To ensure your data remains secure and synchronized, Vault can only be active in one window at a time.
+        </p>
+        <button
+          onClick={onUseHere}
+          className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+        >
+          Use Vault here
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [profile, setProfile] = useProfileSignal();
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  useEffect(() => {
+    const tabId = Math.random().toString(36).substring(2, 9);
+    const channel = new BroadcastChannel("vault_multi_window");
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === "PING" && !isBlocked) {
+        channel.postMessage({ type: "PONG", senderId: tabId });
+      } else if (event.data.type === "TAKING_OVER" && event.data.senderId !== tabId) {
+        setIsBlocked(true);
+      } else if (event.data.type === "PONG" && event.data.senderId !== tabId) {
+        setIsBlocked(true);
+      }
+    };
+
+    channel.addEventListener("message", handleMessage);
+    
+    // Initial check: is anyone else here?
+    channel.postMessage({ type: "PING", senderId: tabId });
+
+    return () => {
+      channel.removeEventListener("message", handleMessage);
+      channel.close();
+    };
+  }, [isBlocked]);
+
+  const handleUseHere = () => {
+    const tabId = "commander-" + Math.random().toString(36).substring(2, 5);
+    const channel = new BroadcastChannel("vault_multi_window");
+    channel.postMessage({ type: "TAKING_OVER", senderId: tabId });
+    setIsBlocked(false);
+    channel.close();
+  };
 
   useEffect(() => {
     // Hydrate profile from localStorage on client mount
@@ -262,6 +321,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <Outlet />
       <Toaster />
+      {isBlocked && <MultiWindowOverlay onUseHere={handleUseHere} />}
     </QueryClientProvider>
   );
 }
