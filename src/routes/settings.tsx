@@ -191,19 +191,16 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
                     }`}
                   />
                   <div className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-foreground capitalize">
-                        {log.action_type.replace("_", " ")}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground bg-input/50 px-2 py-0.5 rounded-full">
-                        {log.location || "Unknown"}
-                      </span>
+                    <div className="text-sm font-medium text-foreground lowercase">
+                      {t(`settings.activity.actions.${log.action_type}`, { defaultValue: log.action_type })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {log.location || t("settings.security.unknown")}
                     </div>
                     <div className="text-xs text-muted-foreground leading-relaxed">
-                      Successfully authenticated via{" "}
-                      <span className="text-foreground/80">
-                        {log.device_info || "Unknown Device"}
-                      </span>
+                      {t("settings.security.auth_success", { 
+                        device: log.device_info || t("settings.security.unknown_device") 
+                      })}
                     </div>
                     <div className="text-[10px] text-muted-foreground/60 mt-1">
                       {new Date(log.created_at).toLocaleString([], {
@@ -214,7 +211,7 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
                     {log.is_suspicious && (
                       <div className="mt-2 p-2 rounded-md bg-destructive/10 border border-destructive/20 text-[10px] text-destructive flex items-center gap-2">
                         <ShieldCheck className="h-3 w-3" />
-                        Flagged as suspicious activity
+                        {t("settings.security.suspicious_flag")}
                       </div>
                     )}
                   </div>

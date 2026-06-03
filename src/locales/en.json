@@ -272,7 +272,15 @@
     "activity": {
       "none": "No recent activity recorded.",
       "view_full": "View full activity log",
-      "via": "via {{device}}"
+      "via": "via {{device}}",
+      "actions": {
+        "login": "Login",
+        "logout": "Logout",
+        "pin_change": "PIN Change",
+        "profile_update": "Profile Update",
+        "biometric_toggle": "Biometric Toggle",
+        "suspicious_activity": "Suspicious Activity"
+      }
     },
     "preferences": {
       "currency": "Primary Currency",

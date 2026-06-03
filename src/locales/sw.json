@@ -263,11 +263,24 @@
       },
       "session_history": "Historia ya Kipindi na Kumbukumbu za Shughuli",
       "session_history_desc": "Rekodi kamili ya hatua zote zinazohusiana na usalama na shughuli za kipindi.",
-      "audit_note": "Kumbukumbu za ukaguzi za Vault OS zimefungwa kwa njia ya siri na haziwezi kubadilishwa mara tu zinaporekodiwa."
+      "audit_note": "Kumbukumbu za ukaguzi za Vault OS zimefungwa kwa njia ya siri na haziwezi kubadilishwa mara tu zinaporekodiwa.",
+      "auth_success": "Umefanikiwa kuingia kupitia {{device}}",
+      "suspicious_flag": "Imewekwa alama kama shughuli inayotiliwa shaka",
+      "unknown": "Haijulikani",
+      "unknown_device": "Kifaa Kisichojulikana"
     },
     "activity": {
       "none": "Hakuna shughuli za hivi karibuni zilizorekodiwa.",
-      "view_full": "Angalia kumbukumbu kamili ya shughuli"
+      "view_full": "Angalia kumbukumbu kamili ya shughuli",
+      "via": "kupitia {{device}}",
+      "actions": {
+        "login": "Ingizo",
+        "logout": "Toka",
+        "pin_change": "Badilisha PIN",
+        "profile_update": "Sasisha Wasifu",
+        "biometric_toggle": "Badilisha Biometriki",
+        "suspicious_activity": "Shughuli Inayotiliwa Shaka"
+      }
     },
     "preferences": {
       "currency": "Sarafu Kuu",

@@ -263,11 +263,24 @@
       },
       "session_history": "Sitzungsverlauf & Aktivitätsprotokolle",
       "session_history_desc": "Eine umfassende Aufzeichnung aller sicherheitsrelevanten Aktionen und Sitzungsaktivitäten.",
-      "audit_note": "Vault OS-Audit-Protokolle sind kryptografisch versiegelt und nach der Aufzeichnung unveränderlich."
+      "audit_note": "Vault OS-Audit-Protokolle sind kryptografisch versiegelt und nach der Aufzeichnung unveränderlich.",
+      "auth_success": "Erfolgreich authentifiziert über {{device}}",
+      "suspicious_flag": "Als verdächtige Aktivität markiert",
+      "unknown": "Unbekannt",
+      "unknown_device": "Unbekanntes Gerät"
     },
     "activity": {
-      "none": "Keine neueren Aktivitäten aufgezeichnet.",
-      "view_full": "Vollständiges Aktivitätsprotokoll anzeigen"
+      "none": "Keine kürzlichen Aktivitäten aufgezeichnet.",
+      "view_full": "Vollständiges Aktivitätenprotokoll anzeigen",
+      "via": "über {{device}}",
+      "actions": {
+        "login": "Anmelden",
+        "logout": "Abmelden",
+        "pin_change": "PIN-Änderung",
+        "profile_update": "Profilaktualisierung",
+        "biometric_toggle": "Biometrie umschalten",
+        "suspicious_activity": "Verdächtige Aktivität"
+      }
     },
     "preferences": {
       "currency": "Primärwährung",

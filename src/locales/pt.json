@@ -263,11 +263,24 @@
       },
       "session_history": "Histórico de sessões e logs de atividade",
       "session_history_desc": "Um registro abrangente de todas as ações relacionadas à segurança e atividade da sessão.",
-      "audit_note": "Os logs de auditoria do Vault OS são selados criptograficamente e imutáveis depois de registrados."
+      "audit_note": "Os logs de auditoria do Vault OS são selados criptograficamente e imutáveis depois de registrados.",
+      "auth_success": "Autenticação bem-sucedida via {{device}}",
+      "suspicious_flag": "Marcado como atividade suspeita",
+      "unknown": "Desconhecido",
+      "unknown_device": "Dispositivo desconhecido"
     },
     "activity": {
       "none": "Nenhuma atividade recente registrada.",
-      "view_full": "Ver log de atividades completo"
+      "view_full": "Ver registro de atividade completo",
+      "via": "via {{device}}",
+      "actions": {
+        "login": "Iniciar Sessão",
+        "logout": "Encerrar Sessão",
+        "pin_change": "Alteração de PIN",
+        "profile_update": "Atualização de Perfil",
+        "biometric_toggle": "Alternar Biometria",
+        "suspicious_activity": "Atividade Suspeita"
+      }
     },
     "preferences": {
       "currency": "Moeda Principal",

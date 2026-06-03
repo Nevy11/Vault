@@ -263,11 +263,24 @@
       },
       "session_history": "Historial de sesiones y registros de actividad",
       "session_history_desc": "Un registro completo de todas las acciones relacionadas con la seguridad y la actividad de la sesión.",
-      "audit_note": "Los registros de auditoría de Vault OS están sellados criptográficamente y son inmutables una vez registrados."
+      "audit_note": "Los registros de auditoría de Vault OS están sellados criptográficamente y son inmutables una vez registrados.",
+      "auth_success": "Autenticación exitosa vía {{device}}",
+      "suspicious_flag": "Marcado como actividad sospechosa",
+      "unknown": "Desconocido",
+      "unknown_device": "Dispositivo desconocido"
     },
     "activity": {
       "none": "No se registró actividad reciente.",
-      "view_full": "Ver registro de actividad completo"
+      "view_full": "Ver registro de actividad completo",
+      "via": "vía {{device}}",
+      "actions": {
+        "login": "Iniciar Sesión",
+        "logout": "Cerrar Sesión",
+        "pin_change": "Cambio de PIN",
+        "profile_update": "Actualización de Perfil",
+        "biometric_toggle": "Alternar Biometría",
+        "suspicious_activity": "Actividad Sospechosa"
+      }
     },
     "preferences": {
       "currency": "Moneda principal",

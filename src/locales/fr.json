@@ -263,11 +263,24 @@
       },
       "session_history": "Historique des sessions et journaux d'activité",
       "session_history_desc": "Un enregistrement complet de toutes les actions liées à la sécurité et de l'activité des sessions.",
-      "audit_note": "Les journaux d'audit Vault OS sont scellés de manière cryptographique et immuables une fois enregistrés."
+      "audit_note": "Les journaux d'audit Vault OS sont scellés de manière cryptographique et immuables une fois enregistrés.",
+      "auth_success": "Authentification réussie via {{device}}",
+      "suspicious_flag": "Signalé comme activité suspecte",
+      "unknown": "Inconnu",
+      "unknown_device": "Appareil inconnu"
     },
     "activity": {
       "none": "Aucune activité récente enregistrée.",
-      "view_full": "Voir le journal d'activité complet"
+      "view_full": "Voir le journal d'activité complet",
+      "via": "via {{device}}",
+      "actions": {
+        "login": "Connexion",
+        "logout": "Déconnexion",
+        "pin_change": "Changement de PIN",
+        "profile_update": "Mise à jour du profil",
+        "biometric_toggle": "Bascule biométrique",
+        "suspicious_activity": "Activité suspecte"
+      }
     },
     "preferences": {
       "currency": "Devise principale",
