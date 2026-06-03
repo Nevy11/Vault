@@ -70,6 +70,7 @@ serve(async (req) => {
     // Fallback to body param if needed for testing, but prefer auth token
     const body = await req.json().catch(() => ({}));
     const userId = user?.id || body.userId;
+    const language = body.language || "en";
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "No authenticated user found" }), {
@@ -158,8 +159,8 @@ serve(async (req) => {
       
       Return the response in strictly valid JSON format with the following keys:
       "type": one of "prediction", "alert", "tip", "milestone"
-      "title": a short catchy title
-      "content": the detailed insight
+      "title": a short catchy title (in the following language: ${language})
+      "content": the detailed insight (in the following language: ${language})
       "severity": "low", "medium", "high"
       
       Focus on spending patterns, potential balance depletion, or savings opportunities. Be specific to the data provided.

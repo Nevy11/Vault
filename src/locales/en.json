@@ -1,0 +1,102 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "portfolio": {
+      "balance": "Total Portfolio Value",
+      "growth": "Portfolio Pulse",
+      "performance": "Growth",
+      "chart": {
+        "value": "Value",
+        "date": "Date"
+      }
+    },
+    "accounts": {
+      "vault": "Vault Core",
+      "mpesa": "M-Pesa Wallet",
+      "equity": "Equity Bank",
+      "kcb": "KCB Bank",
+      "absa": "Absa Kenya",
+      "stanchart": "StanChart",
+      "type": {
+        "primary": "Primary Settlement Account",
+        "linked": "Linked Rail"
+      }
+    },
+    "ledger": {
+      "title": "Unified Ledger",
+      "viewAll": "View all activity",
+      "noActivity": "No transaction history recorded for this period.",
+      "transaction": {
+        "verified": "Verified",
+        "unverified": "Unverified",
+        "processing": "Processing",
+        "deposit": "Deposit",
+        "withdraw": "Withdrawal",
+        "transfer": "Transfer",
+        "p2p": "P2P Transfer",
+        "savings": "Transferred to savings"
+      },
+      "filters": {
+        "all": "All",
+        "send": "Send",
+        "received": "Received",
+        "deposit": "Deposit",
+        "withdraw": "Withdraw"
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "finance": "Savings & Loans",
+    "transact": "Transact",
+    "settings": "Settings",
+    "help": "Help",
+    "signout": "Sign out",
+    "greetings": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Mark all as read",
+      "none": "No notifications yet"
+    },
+    "profile": {
+      "view": "View Profile",
+      "settings": "Settings"
+    }
+  },
+  "ai_insights": {
+    "title": "AI Financial Insight",
+    "placeholder": "Click generate to analyze your spending and get AI predictions.",
+    "initializing": "Initializing AI Advisor...",
+    "update": "Update Analysis",
+    "generate": "Generate Insight"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configuration",
+    "description": "Manage your profile, security posture, and personal preferences. Changes apply across all authorized devices.",
+    "back": "Back",
+    "sections": {
+      "profile": "Account Profile & KYC",
+      "business": "Business Profile",
+      "security": "Security Center",
+      "activity": "Recent Activity",
+      "preferences": "Preferences",
+      "danger": "Danger Zone"
+    },
+    "preferences": {
+      "currency": "Primary Currency",
+      "theme": "Theme",
+      "language": "Display Language",
+      "notifications": "Notification Center"
+    }
+  },
+  "common": {
+    "save": "Save Changes",
+    "loading": "Loading...",
+    "error": "Error"
+  }
+}

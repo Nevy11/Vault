@@ -1,0 +1,102 @@
+{
+  "dashboard": {
+    "title": "Dashibodi",
+    "portfolio": {
+      "balance": "Thamani ya Jumla ya Portfolio",
+      "growth": "Mapigo ya Portfolio",
+      "performance": "Ukuaji",
+      "chart": {
+        "value": "Thamani",
+        "date": "Tarehe"
+      }
+    },
+    "accounts": {
+      "vault": "Kiini cha Vault",
+      "mpesa": "Mkoba wa M-Pesa",
+      "equity": "Benki ya Equity",
+      "kcb": "Benki ya KCB",
+      "absa": "Absa Kenya",
+      "stanchart": "StanChart",
+      "type": {
+        "primary": "Akaunti Kuu ya Malipo",
+        "linked": "Njia Iliyounganishwa"
+      }
+    },
+    "ledger": {
+      "title": "Leja Iliyounganishwa",
+      "viewAll": "Angalia shughuli zote",
+      "noActivity": "Hakuna historia ya miamala iliyorekodiwa kwa kipindi hiki.",
+      "transaction": {
+        "verified": "Imethibitishwa",
+        "unverified": "Haijathibitishwa",
+        "processing": "Inashughulikiwa",
+        "deposit": "Amana",
+        "withdraw": "Kutoa",
+        "transfer": "Uhamisho",
+        "p2p": "Uhamisho wa P2P",
+        "savings": "Imehamishiwa kwenye akiba"
+      },
+      "filters": {
+        "all": "Zote",
+        "send": "Tuma",
+        "received": "Imepokelewa",
+        "deposit": "Amana",
+        "withdraw": "Toa"
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Dashibodi",
+    "finance": "Akiba na Mikopo",
+    "transact": "Fanya Muamala",
+    "settings": "Mipangilio",
+    "help": "Msaada",
+    "signout": "Ondoka",
+    "greetings": {
+      "morning": "Habari za asubuhi",
+      "afternoon": "Habari za mchana",
+      "evening": "Habari za jioni"
+    },
+    "notifications": {
+      "title": "Arifa",
+      "markAllRead": "Weka zote kuwa zimesomwa",
+      "none": "Bado hakuna arifa"
+    },
+    "profile": {
+      "view": "Angalia wasifu",
+      "settings": "Mipangilio"
+    }
+  },
+  "ai_insights": {
+    "title": "Ushauri wa Kifedha wa AI",
+    "placeholder": "Bonyeza zalisha ili kuchanganua matumizi yako na kupata utabiri wa AI.",
+    "initializing": "Inaanzisha Mshauri wa AI...",
+    "update": "Sasisha Uchambuzi",
+    "generate": "Zalisha Ushauri"
+  },
+  "settings": {
+    "title": "Mipangilio",
+    "subtitle": "Usanidi",
+    "description": "Dhibiti wasifu wako, usalama wako, na mapendeleo yako binafsi. Mabadiliko yanatumika kwenye vifaa vyote vilivyoidhinishwa.",
+    "back": "Rudi",
+    "sections": {
+      "profile": "Wasifu wa Akaunti na KYC",
+      "business": "Wasifu wa Biashara",
+      "security": "Kituo cha Usalama",
+      "activity": "Shughuli za Hivi Karibuni",
+      "preferences": "Mapendeleo",
+      "danger": "Eneo la Hatari"
+    },
+    "preferences": {
+      "currency": "Sarafu Kuu",
+      "theme": "Mandhari",
+      "language": "Lugha ya Kuonyesha",
+      "notifications": "Kituo cha Arifa"
+    }
+  },
+  "common": {
+    "save": "Hifadhi mabadiliko",
+    "loading": "Inapakia...",
+    "error": "Hitilafu"
+  }
+}

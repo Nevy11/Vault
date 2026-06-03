@@ -1,0 +1,95 @@
+{
+  "dashboard": {
+    "title": "Tableau de bord",
+    "portfolio": {
+      "balance": "Valeur totale du portefeuille",
+      "growth": "Pouls du portefeuille",
+      "performance": "Croissance",
+      "chart": {
+        "value": "Valeur",
+        "date": "Date"
+      }
+    },
+    "accounts": {
+      "vault": "Noyau de la voûte",
+      "mpesa": "Portefeuille M-Pesa",
+      "equity": "Banque Equity",
+      "kcb": "Banque KCB",
+      "absa": "Absa Kenya",
+      "stanchart": "StanChart",
+      "type": {
+        "primary": "Compte de règlement principal",
+        "linked": "Rail lié"
+      }
+    },
+    "ledger": {
+      "title": "Grand livre unifié",
+      "viewAll": "Voir toute l'activité",
+      "noActivity": "Aucun historique de transaction enregistré pour cette période.",
+      "transaction": {
+        "verified": "Vérifié",
+        "unverified": "Non vérifié",
+        "processing": "Traitement",
+        "deposit": "Dépôt",
+        "withdraw": "Retrait",
+        "transfer": "Transfert",
+        "p2p": "Transfert P2P",
+        "savings": "Transféré aux économies"
+      },
+      "filters": {
+        "all": "Tout",
+        "send": "Envoyer",
+        "received": "Reçu",
+        "deposit": "Dépôt",
+        "withdraw": "Retirer"
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "finance": "Épargne et prêts",
+    "transact": "Transiger",
+    "settings": "Paramètres",
+    "help": "Aide",
+    "signout": "Se déconnecter",
+    "greetings": {
+      "morning": "Bon matin",
+      "afternoon": "Bon après-midi",
+      "evening": "Bonsoir"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Tout marquer comme lu",
+      "none": "Pas encore de notifications"
+    },
+    "profile": {
+      "view": "Voir le profil",
+      "settings": "Paramètres"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Configuration",
+    "description": "Gérez votre profil, votre posture de sécurité et vos préférences personnelles. Les modifications s'appliquent à tous les appareils autorisés.",
+    "back": "Retour",
+    "sections": {
+      "profile": "Profil du compte et KYC",
+      "business": "Profil de l'entreprise",
+      "security": "Centre de sécurité",
+      "activity": "Activité récente",
+      "preferences": "Préférences",
+      "danger": "Zone de danger"
+    },
+    "preferences": {
+      "currency": "Devise principale",
+      "theme": "Thème",
+      "language": "Langue d'affichage",
+      "notifications": "Centre de notifications"
+    }
+  },
+  "common": {
+    "save": "Enregistrer les modifications",
+    "loading": "Chargement...",
+    "error": "Erreur"
+  }
+}

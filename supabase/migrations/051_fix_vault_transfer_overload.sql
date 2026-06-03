@@ -68,6 +68,14 @@ BEGIN
         v_recipient_currency := 'USD';
     END IF;
 
+    -- Normalize common Kenyan currency alias to the standard code used by FX rates
+    IF v_sender_currency = 'KSH' THEN
+        v_sender_currency := 'KES';
+    END IF;
+    IF v_recipient_currency = 'KSH' THEN
+        v_recipient_currency := 'KES';
+    END IF;
+
     -- Calculate FX if currencies differ
     IF v_sender_currency != v_recipient_currency THEN
         SELECT rate INTO v_exchange_rate

@@ -1,0 +1,95 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "portfolio": {
+      "balance": "Gesamtportfoliowert",
+      "growth": "Portfolio-Puls",
+      "performance": "Wachstum",
+      "chart": {
+        "value": "Wert",
+        "date": "Datum"
+      }
+    },
+    "accounts": {
+      "vault": "Vault-Kern",
+      "mpesa": "M-Pesa Brieftasche",
+      "equity": "Equity Bank",
+      "kcb": "KCB Bank",
+      "absa": "Absa Kenia",
+      "stanchart": "StanChart",
+      "type": {
+        "primary": "Primäres Verrechnungskonto",
+        "linked": "Verknüpfte Schiene"
+      }
+    },
+    "ledger": {
+      "title": "Einheitliches Hauptbuch",
+      "viewAll": "Alle Aktivitäten anzeigen",
+      "noActivity": "Für diesen Zeitraum wurde kein Transaktionsverlauf aufgezeichnet.",
+      "transaction": {
+        "verified": "Verifiziert",
+        "unverified": "Unverifiziert",
+        "processing": "Verarbeitung",
+        "deposit": "Einzahlung",
+        "withdraw": "Auszahlung",
+        "transfer": "Überweisung",
+        "p2p": "P2P-Überweisung",
+        "savings": "An Ersparnisse überwiesen"
+      },
+      "filters": {
+        "all": "Alle",
+        "send": "Senden",
+        "received": "Empfangen",
+        "deposit": "Einzahlung",
+        "withdraw": "Abheben"
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "finance": "Sparen & Kredite",
+    "transact": "Transagieren",
+    "settings": "Einstellungen",
+    "help": "Hilfe",
+    "signout": "Abmelden",
+    "greetings": {
+      "morning": "Guten Morgen",
+      "afternoon": "Guten Tag",
+      "evening": "Guten Abend"
+    },
+    "notifications": {
+      "title": "Benachrichtigungen",
+      "markAllRead": "Alle als gelesen markieren",
+      "none": "Noch keine Benachrichtigungen"
+    },
+    "profile": {
+      "view": "Profil anzeigen",
+      "settings": "Einstellungen"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Konfiguration",
+    "description": "Verwalten Sie Ihr Profil, Ihre Sicherheitseinstellungen und Ihre persönlichen Vorlieben. Änderungen gelten für alle autorisierten Geräte.",
+    "back": "Zurück",
+    "sections": {
+      "profile": "Kontoprofil & KYC",
+      "business": "Business-Profil",
+      "security": "Sicherheitszentrum",
+      "activity": "Letzte Aktivitäten",
+      "preferences": "Vorlieben",
+      "danger": "Gefahrenzone"
+    },
+    "preferences": {
+      "currency": "Primärwährung",
+      "theme": "Thema",
+      "language": "Anzeigesprache",
+      "notifications": "Benachrichtigungszentrum"
+    }
+  },
+  "common": {
+    "save": "Änderungen speichern",
+    "loading": "Laden...",
+    "error": "Fehler"
+  }
+}

@@ -7,32 +7,11 @@ import {
   Settings,
   User,
   LogOut,
-  MessageCircle,
-  PiggyBank,
   Landmark,
-  Bell,
-  CheckCircle2,
-  AlertCircle,
-  TrendingUp,
-  Zap,
-  QrCode,
-  Scan,
-  ArrowRight,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -47,35 +26,36 @@ import { ScanToPay } from "./scan-to-pay";
 import { FinanceAdvisorContent } from "./finance-advisor-content";
 import { FloatingAdvisor } from "./floating-advisor";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 const sidebarNavItems = [
   {
-    label: "Dashboard",
+    labelKey: "nav.dashboard",
     to: "/dashboard",
     icon: Home,
     isActive: (path: string) => path === "/dashboard",
   },
   {
-    label: "Savings & Loans",
+    labelKey: "nav.finance",
     to: "/finance-hub",
     icon: Landmark,
     isActive: (path: string) =>
       path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
   },
   {
-    label: "Transact",
+    labelKey: "nav.transact",
     to: "/transactions",
     icon: Send,
     isActive: (path: string) => path.startsWith("/transactions"),
   },
   {
-    label: "Settings",
+    labelKey: "nav.settings",
     to: "/settings",
     icon: Settings,
     isActive: (path: string) => path.startsWith("/settings"),
   },
   {
-    label: "Help",
+    labelKey: "nav.help",
     to: "/help",
     icon: HelpCircle,
     isActive: (path: string) => path.startsWith("/help"),
@@ -84,32 +64,32 @@ const sidebarNavItems = [
 
 const mobileNavItems = [
   {
-    label: "Dashboard",
+    labelKey: "nav.dashboard",
     to: "/dashboard",
     icon: Home,
     isActive: (path: string) => path === "/dashboard",
   },
   {
-    label: "Savings & Loans",
+    labelKey: "nav.finance",
     to: "/finance-hub",
     icon: Landmark,
     isActive: (path: string) =>
       path.startsWith("/savings") || path.startsWith("/loans") || path.startsWith("/finance-hub"),
   },
   {
-    label: "Transact",
+    labelKey: "nav.transact",
     to: "/transactions",
     icon: Send,
     isActive: (path: string) => path.startsWith("/transactions"),
   },
   {
-    label: "Settings",
+    labelKey: "nav.settings",
     to: "/settings",
     icon: Settings,
     isActive: (path: string) => path.startsWith("/settings"),
   },
   {
-    label: "Help",
+    labelKey: "nav.help",
     to: "/help",
     icon: HelpCircle,
     isActive: (path: string) => path.startsWith("/help"),
@@ -117,13 +97,12 @@ const mobileNavItems = [
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const [profile, setProfile] = useProfileSignal();
-  const [showPhotoPreview, setShowPhotoPreview] = useState(false);
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
-  const [isTransactOpen, setIsTransactOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -140,6 +119,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className="min-h-screen w-full text-foreground overflow-x-hidden"
       style={{ background: "var(--gradient-bg)" }}
+    suppressHydrationWarning
     >
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
@@ -148,8 +128,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav className="p-4">
           <ul className="space-y-1">
-            {sidebarNavItems.map(({ label, to, icon: Icon, isActive }) => (
-              <li key={`${to}-${label}`}>
+            {sidebarNavItems.map(({ labelKey, to, icon: Icon, isActive }) => (
+              <li key={`${to}-${labelKey}`}>
                 <Link
                   to={to}
                   className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -159,7 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  {t(labelKey)}
                 </Link>
               </li>
             ))}
@@ -168,7 +148,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="absolute left-4 bottom-4 w-[calc(100%-2rem)]">
           <Button variant="ghost" size="sm" className="w-full" onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
-            Sign out
+            {t("nav.signout")}
           </Button>
         </div>
       </div>
@@ -214,9 +194,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/40 px-2 py-3">
         <nav>
           <ul className="grid grid-cols-5 items-center">
-            {mobileNavItems.map(({ label, to, icon: Icon, isActive }) => {
+            {mobileNavItems.map(({ labelKey, to, icon: Icon, isActive }) => {
               const active = isActive(currentPath);
-              const isTransact = label === "Transact";
+              const isTransact = labelKey === "nav.transact";
 
               return (
                 <li
@@ -243,7 +223,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         isTransact ? "hidden" : active ? "text-primary" : ""
                       }`}
                     >
-                      {label}
+                      {t(labelKey)}
                     </span>
                   </Link>
                 </li>

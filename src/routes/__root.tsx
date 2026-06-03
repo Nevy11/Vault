@@ -13,6 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal, profileSignal } from "@/lib/profile-signal";
 import { useEffect, useState } from "react";
+import i18n from "@/lib/i18n";
 
 import appCss from "../styles.css?url";
 
@@ -237,29 +238,52 @@ function RootComponent() {
       if (!userId) return;
 
       try {
-        const { data, error } = await supabase
+        // Fetch profile
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", userId)
           .maybeSingle();
 
-        if (error) throw error;
+        if (profileError) throw profileError;
 
-        if (data) {
+        // Fetch preferences
+        const { data: prefData, error: prefError } = await supabase
+          .from("user_preferences")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if (prefError) {
+          console.warn("Error fetching user preferences:", prefError);
+        }
+
+        if (profileData) {
+          const combinedData = {
+            ...profileData,
+            language: prefData?.language || "en",
+            theme: prefData?.theme || "system",
+          };
+
           const current = profileSignal.get();
           // Deep compare relevant fields to prevent unnecessary re-renders
           const hasChanged =
             !current ||
-            current.id !== data.id ||
-            current.kyc_status !== data.kyc_status ||
-            current.profile_photo_url !== data.profile_photo_url ||
-            current.first_name !== data.first_name ||
-            current.last_name !== data.last_name ||
-            current.kyc_tag !== data.kyc_tag;
+            current.id !== combinedData.id ||
+            current.kyc_status !== combinedData.kyc_status ||
+            current.profile_photo_url !== combinedData.profile_photo_url ||
+            current.first_name !== combinedData.first_name ||
+            current.last_name !== combinedData.last_name ||
+            current.kyc_tag !== combinedData.kyc_tag ||
+            current.language !== combinedData.language;
 
           if (hasChanged) {
-            console.log("Profile data updated/synced");
-            setProfile(data);
+            console.log("Profile and preferences updated/synced");
+            setProfile(combinedData);
+            
+            if (combinedData.language && i18n.language !== combinedData.language) {
+              i18n.changeLanguage(combinedData.language);
+            }
           }
         } else {
           console.warn("No profile found for authenticated user:", userId);
