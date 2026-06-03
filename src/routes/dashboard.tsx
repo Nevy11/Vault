@@ -154,6 +154,7 @@ function QuickSend({
   onAvatarClick,
   title = "Quick Send (P2P)",
   className,
+  loading = false,
 }: {
   avatars: {
     id?: string;
@@ -167,6 +168,7 @@ function QuickSend({
   onAvatarClick?: (tag: string) => void;
   title?: string;
   className?: string;
+  loading?: boolean;
 }) {
   return (
     <div
@@ -182,38 +184,51 @@ function QuickSend({
         <ArrowRight className="w-3 h-3 text-muted-foreground/40" />
       </div>
       <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
-        {withAdd && (
-          <button className="flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all">
-            <Plus className="w-5 h-5" />
-          </button>
-        )}
-        {avatars.map((a, index) => (
-          <div
-            key={a.id ?? `${a.name}-${index}`}
-            className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0"
-            onClick={() => a.tag && onAvatarClick?.(a.tag)}
-          >
-            <div className="relative">
-              {a.avatarUrl ? (
-                <img
-                  src={a.avatarUrl}
-                  alt={a.name}
-                  className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
-                />
-              ) : (
-                <div
-                  className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
-                >
-                  {a.initial}
+        {loading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-muted/50 animate-pulse" />
+                <div className="h-2 w-8 bg-muted/50 rounded-full animate-pulse" />
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            {withAdd && (
+              <button className="flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all">
+                <Plus className="w-5 h-5" />
+              </button>
+            )}
+            {avatars.map((a, index) => (
+              <div
+                key={a.id ?? `${a.name}-${index}`}
+                className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0"
+                onClick={() => a.tag && onAvatarClick?.(a.tag)}
+              >
+                <div className="relative">
+                  {a.avatarUrl ? (
+                    <img
+                      src={a.avatarUrl}
+                      alt={a.name}
+                      className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
+                    />
+                  ) : (
+                    <div
+                      className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
+                    >
+                      {a.initial}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
                 </div>
-              )}
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-              {a.name}
-            </span>
-          </div>
-        ))}
+                <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                  {a.name}
+                </span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -609,15 +624,20 @@ function DashboardPage() {
   const [showReport, setShowReport] = useState(false);
   const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [loadingSuggestedUsers, setLoadingSuggestedUsers] = useState(true);
 
   // Fetch suggested users from profiles table
   useEffect(() => {
     const fetchSuggestedUsers = async () => {
+      setLoadingSuggestedUsers(true);
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setLoadingSuggestedUsers(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from("profiles")
@@ -648,11 +668,13 @@ function DashboardPage() {
         }
       } catch (err) {
         console.error("Error fetching suggested users:", err);
+      } finally {
+        setLoadingSuggestedUsers(false);
       }
     };
 
     fetchSuggestedUsers();
-  }, []);
+  }, [profile?.id]);
 
   // Find unread warning notifications (like sharp drops from AI)
   const warningNotifications = useMemo(
@@ -1057,17 +1079,13 @@ function DashboardPage() {
           <QuickSend
             className="col-span-1"
             onAvatarClick={handleQuickSend}
+            loading={loadingSuggestedUsers && frequentRecipients.length === 0}
             avatars={
               frequentRecipients.length > 0
                 ? frequentRecipients
                 : suggestedUsers.length > 0
                   ? suggestedUsers
-                  : [
-                      { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
-                      { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
-                      { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
-                      { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
-                    ]
+                  : []
             }
           />
           <div className="hidden sm:block col-span-1">
