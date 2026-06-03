@@ -25,7 +25,7 @@ import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
 const navLinks = [
   { label: "Features", href: "/#features" },
   { label: "Security", href: "/#security" },
-  { label: "Pricing", href: "/#pricing" },
+  { label: "Advisor", href: "/#advisor" },
   { label: "FAQ", href: "/#faq" },
 ];
 

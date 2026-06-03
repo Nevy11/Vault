@@ -291,99 +291,124 @@ function Security() {
   );
 }
 
-function Pricing() {
-  const tiers = [
-    {
-      name: "Personal",
-      price: "Free",
-      desc: "For everyday spending, sending, and saving.",
-      features: [
-        "Unlimited transfers within Vault",
-        "2 free withdrawals/month",
-        "Multi-currency wallet",
-      ],
-      cta: "Open a Vault",
-      featured: false,
-    },
-    {
-      name: "Plus",
-      price: "$6/mo",
-      desc: "For frequent senders and global earners.",
-      features: [
-        "Unlimited withdrawals",
-        "Better FX rates",
-        "Priority support",
-        "Spending insights",
-      ],
-      cta: "Try Plus free",
-      featured: true,
-    },
-    {
-      name: "Business",
-      price: "Custom",
-      desc: "For teams moving money at scale.",
-      features: [
-        "Multi-user access",
-        "API & webhooks",
-        "Dedicated rails",
-        "SLA & compliance support",
-      ],
-      cta: "Talk to us",
-      featured: false,
-    },
-  ];
-
+function AdvisorSection() {
   return (
-    <section id="pricing" className="bg-background py-24">
+    <section id="advisor" className="bg-background py-24 overflow-hidden">
       <div className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl">
-          <p className="text-xs uppercase tracking-[0.2em] text-primary">Pricing</p>
-          <h2 className="mt-3 font-serif text-4xl text-foreground">Simple, honest, transparent.</h2>
-          <p className="mt-4 text-muted-foreground">
-            No hidden fees. No surprise FX spreads. Pick the plan that fits how you move money.
-          </p>
-        </div>
+        <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              AI-Powered Finance
+            </div>
+            <h2 className="mt-6 font-serif text-4xl leading-tight text-foreground md:text-5xl lg:text-6xl">
+              Meet your personal <span className="text-primary italic">AI Advisor.</span>
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
+              Vault AI isn't just a chatbot. It's a proactive strategist that monitors your
+              spending, optimizes your savings, and helps you make smarter financial decisions in real-time.
+            </p>
+            
+            <div className="mt-10 space-y-6">
+              {[
+                {
+                  title: "Smart Insights",
+                  desc: "Automatically categorizes spending and suggests optimizations.",
+                  icon: LineChart,
+                },
+                {
+                  title: "Proactive Planning",
+                  desc: "Helps you set and reach financial goals with tailored advice.",
+                  icon: Sparkles,
+                },
+                {
+                  title: "Secure & Private",
+                  desc: "Your data is encrypted and used only to power your insights.",
+                  icon: Shield,
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-card border border-border/60 text-primary shadow-sm">
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">{item.title}</h3>
+                    <p className="text-sm text-muted-foreground">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {tiers.map((t) => (
-            <div
-              key={t.name}
-              className={
-                "rounded-2xl border p-7 " +
-                (t.featured ? "border-primary bg-primary/5" : "border-border bg-card")
-              }
-            >
-              <div className="flex items-baseline justify-between">
-                <h3 className="text-lg font-medium text-foreground">{t.name}</h3>
-                {t.featured && (
-                  <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] uppercase tracking-wider text-primary-foreground">
-                    Popular
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 font-serif text-3xl text-foreground">{t.price}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{t.desc}</p>
-              <ul className="mt-6 space-y-2">
-                {t.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-foreground/90">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Button
-                asChild
-                className={
-                  "mt-7 h-11 w-full " +
-                  (t.featured
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-foreground text-background hover:bg-foreground/90")
-                }
-              >
-                <Link to="/sign-up">{t.cta}</Link>
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Button asChild size="lg" className="h-12 bg-primary px-8 text-primary-foreground hover:bg-primary/90">
+                <Link to="/sign-up">Consult the Advisor</Link>
+              </Button>
+              <Button asChild variant="outline" size="lg" className="h-12 px-8">
+                <Link to="/login">View Demo</Link>
               </Button>
             </div>
-          ))}
+          </div>
+
+          <div className="relative">
+            {/* Premium Mock Chat Interface */}
+            <div className="relative mx-auto w-full max-w-[440px] rounded-[2.5rem] border-[8px] border-card bg-background p-3 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)]">
+              <div className="overflow-hidden rounded-[1.8rem] bg-zinc-50 dark:bg-zinc-950 p-4 min-h-[500px] flex flex-col">
+                {/* Chat Header */}
+                <div className="flex items-center gap-3 border-b border-border/40 pb-4 mb-4">
+                  <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Vault Advisor</p>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Active strategist</p>
+                  </div>
+                </div>
+
+                {/* Chat Bubbles */}
+                <div className="space-y-4 flex-1">
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white dark:bg-zinc-900 border border-border/60 p-3 text-sm shadow-sm">
+                      <p className="text-foreground">Hi there! I've noticed you've spent 15% more on dining this month. Would you like to see a breakdown?</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="max-w-[85%] rounded-2xl rounded-tr-none bg-primary p-3 text-sm text-white shadow-md">
+                      <p>Yes, please show me the breakdown.</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-start">
+                    <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white dark:bg-zinc-900 border border-border/60 p-3 text-sm shadow-sm">
+                      <div className="space-y-2">
+                        <p className="font-bold text-primary">Monthly Insight</p>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary w-[75%]" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">You've spent $420 on dining. If you reduce this by 20%, you could save $84/mo.</p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <span className="px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">Set Budget</span>
+                          <span className="px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">Compare Months</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chat Input Mock */}
+                <div className="mt-auto pt-4 border-t border-border/40">
+                  <div className="h-10 w-full rounded-full bg-card border border-border/60 px-4 flex items-center justify-between text-muted-foreground">
+                    <span className="text-xs">Ask me anything...</span>
+                    <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-white">
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Decorative blobs */}
+            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-[100px] pointer-events-none" />
+            <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-primary/5 blur-[100px] pointer-events-none" />
+          </div>
         </div>
       </div>
     </section>
@@ -497,7 +522,7 @@ function LandingPage() {
       <Hero />
       <Features />
       <Security />
-      <Pricing />
+      <AdvisorSection />
       <FAQ />
       <CTA />
       <Footer />
