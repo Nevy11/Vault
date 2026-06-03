@@ -554,7 +554,7 @@ function SavingsPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <Card className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between flex-wrap gap-4">
@@ -575,7 +575,7 @@ function SavingsPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid gap-8 xl:grid-cols-[1.75fr_1fr]">
+                    <div className="grid gap-8 xl:grid-cols-[1.75fr_1fr] items-stretch">
                       <div className="space-y-6">
                         <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-7 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
                           <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_25%)] pointer-events-none" />
@@ -712,7 +712,7 @@ function SavingsPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-6">
+                      <div className="space-y-6 flex flex-col justify-center">
                         <Card className="min-h-[30rem] rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 overflow-hidden relative flex flex-col justify-between">
                           <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-emerald-500/15 blur-3xl" />
                           <div className="absolute -left-10 bottom-10 w-36 h-36 rounded-full bg-primary/15 blur-3xl" />
@@ -794,36 +794,36 @@ function SavingsPage() {
                 </Card>
 
                 {/* Savings Tip Card */}
-                <Card className="rounded-2xl border border-slate-200 bg-emerald-50 dark:border-slate-800 dark:bg-slate-950 overflow-hidden flex flex-col shadow-xl animate-in fade-in duration-500">
-                  <CardHeader className="relative overflow-hidden">
-                    <div className="absolute -top-8 -right-8 h-28 w-28 rounded-full bg-emerald-500/10 blur-3xl" />
-                    <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-primary/10 blur-3xl" />
-                    <div className="flex items-center justify-between gap-4 relative z-10">
+                <Card className="mx-auto w-full max-w-[26rem] min-h-[18rem] max-h-[20rem] rounded-2xl border border-slate-200 bg-emerald-50 dark:border-slate-800 dark:bg-slate-950 overflow-hidden flex flex-col shadow-xl animate-in fade-in duration-500">
+                  <CardHeader className="relative overflow-hidden px-5 pt-5">
+                    <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-emerald-500/10 blur-3xl" />
+                    <div className="absolute -bottom-6 -left-6 h-20 w-20 rounded-full bg-primary/10 blur-3xl" />
+                    <div className="flex items-center justify-between gap-3 relative z-10">
                       <div className="flex items-center gap-3">
-                        <div className="grid place-items-center h-12 w-12 rounded-3xl bg-white text-emerald-600 shadow-sm animate-pulse">
-                          <Wallet className="w-6 h-6" />
+                        <div className="grid place-items-center h-11 w-11 rounded-3xl bg-white text-emerald-600 shadow-sm animate-pulse">
+                          <Wallet className="w-5 h-5" />
                         </div>
                         <div>
-                          <CardTitle className="font-bold text-slate-950 dark:text-white uppercase tracking-tight">
+                          <CardTitle className="font-semibold text-slate-950 dark:text-white uppercase tracking-tight text-base">
                             Savings Tip
                           </CardTitle>
-                          <CardDescription className="text-sm text-slate-600 dark:text-slate-400">
+                          <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
                             Daily progress makes it real.
                           </CardDescription>
                         </div>
                       </div>
-                      <Sparkles className="w-6 h-6 text-emerald-500 animate-bounce" />
+                      <Sparkles className="w-5 h-5 text-emerald-500 animate-bounce" />
                     </div>
                   </CardHeader>
-                  <CardContent className="flex-1 flex flex-col justify-center px-6 pb-6 pt-4">
-                    <p className="text-base font-semibold text-slate-900 dark:text-white leading-relaxed tracking-tight">
+                  <CardContent className="flex flex-1 flex-col justify-center px-5 py-4">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug tracking-tight">
                       {joke}
                     </p>
                   </CardContent>
-                  <div className="p-6 mt-auto border-t border-slate-200 dark:border-slate-800">
+                  <div className="px-5 pb-5 border-t border-slate-200 dark:border-slate-800">
                     <Button
                       variant="outline"
-                      className="w-full rounded-xl border-primary/30 font-bold hover:bg-primary/5 transition-all"
+                      className="w-full rounded-xl border-primary/30 font-bold hover:bg-primary/5 transition-all py-3"
                       onClick={nextJoke}
                     >
                       Next Tip

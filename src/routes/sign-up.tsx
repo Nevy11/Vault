@@ -56,7 +56,7 @@ function SignUp() {
     initialStep === "verify" ? "verify" : "signUp",
   );
   const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
-  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
@@ -72,7 +72,7 @@ function SignUp() {
 
   const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log("handleSendCode triggered", { email, fullName, phone, pinLength: pin.length });
+    console.log("handleSendCode triggered", { email, username, phone, pinLength: pin.length });
 
     if (!agreed) {
       console.log("Terms not agreed");
@@ -103,8 +103,10 @@ function SignUp() {
         password: hashedPin,
         options: {
           data: {
-            full_name: fullName,
-            phone_number: phone,
+            username,
+            full_name: username, // This ensures Display Name is not null in Supabase Auth
+            phone,
+            pin_hash: hashedPin, // Pass to DB trigger for instant profile creation
           },
         },
       });
@@ -158,8 +160,8 @@ function SignUp() {
     }
   };
 
-  const findUniqueKycTag = async (firstName: string, lastName: string) => {
-    const baseTag = formatKycTag(firstName, lastName);
+  const findUniqueKycTag = async (inputUsername: string) => {
+    const baseTag = `@${inputUsername.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
     const { data: existingTags, error: existingError } = await supabase
       .from("profiles")
       .select("kyc_tag")
@@ -193,20 +195,19 @@ function SignUp() {
 
     console.log("Proceeding with database operations for user:", user.id);
 
-    const nameParts = fullName.trim().split(/\s+/);
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || "";
-    const kycTag = await findUniqueKycTag(firstName, lastName);
+    // Ensure we have a unique KYC tag
+    const kycTag = await findUniqueKycTag(username);
 
-    // 1. Create Profile
+    // 1. Create/Update Profile
     console.log("Hashing PIN for storage...");
     const hashedPin = await hashPin(pin);
 
     console.log("Upserting profile...");
+    // Note: We use first_name to store the username until official KYC
     const { error: profileError } = await supabase.from("profiles").upsert({
       id: user.id,
-      first_name: firstName,
-      last_name: lastName,
+      first_name: username,
+      last_name: "Pending_KYC",
       email: email,
       phone_number: phone,
       pin_hash: hashedPin,
@@ -289,12 +290,12 @@ function SignUp() {
 
           {step === "signUp" ? (
             <form className="mt-7 space-y-4" onSubmit={handleSendCode}>
-              <Field label="Full Legal Name" hint="as per your ID" required>
+              <Field label="Username" hint="your unique identity" required>
                 <Input
                   className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                  autoComplete="name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </Field>
