@@ -57,6 +57,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -378,12 +380,44 @@ function ChangePinDialog({
 }
 
 function SettingsPage() {
+  const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const { currency, changeCurrency } = useWalletBalance();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useProfileSignal();
+
+  async function updateLanguage(lang: string) {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("No user found");
+
+      const { error } = await supabase
+        .from("user_preferences")
+        .upsert({ user_id: user.id, language: lang }, { onConflict: "user_id" });
+
+      if (error) throw error;
+
+      i18n.changeLanguage(lang);
+      setProfile({
+        ...profile,
+        language: lang,
+      });
+      
+      const messages: Record<string, string> = {
+        en: "Language updated to English",
+        es: "Idioma actualizado a Español",
+        fr: "Langue mise à jour en Français",
+        de: "Sprache auf Deutsch aktualisiert",
+      };
+      toast.success(messages[lang] || `Language updated to ${lang}`);
+    } catch (error: any) {
+      toast.error(error.message || "Error updating language");
+    }
+  }
   const [devices, setDevices] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -783,21 +817,20 @@ function SettingsPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t("settings.back")}
           </Link>
           <h1 className="mt-8 font-serif text-4xl lg:text-5xl tracking-tight">
-            Settings <span className="text-muted-foreground/60">&</span> Configuration
+            {t("settings.title")} <span className="text-muted-foreground/60">&</span> {t("settings.subtitle")}
           </h1>
           <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
-            Manage your profile, security posture, and personal preferences. Changes apply across
-            all authorized devices.
+            {t("settings.description")}
           </p>
         </div>
 
         {/* Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
           {/* Account Profile */}
-          <SectionCard icon={User} title="Account Profile & KYC">
+          <SectionCard icon={User} title={t("settings.sections.profile")}>
             <Row label="Profile Picture">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="relative group/avatar">
@@ -1494,10 +1527,10 @@ function SettingsPage() {
             </ActivityLogDrawer>
           </SectionCard>
 
-          <SectionCard icon={SlidersHorizontal} title="Preferences">
+          <SectionCard icon={SlidersHorizontal} title={t("settings.sections.preferences")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-6 border-b border-border/40">
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">Primary Currency</label>
+                <label className="block text-sm text-muted-foreground mb-2">{t("settings.preferences.currency")}</label>
                 <select
                   value={currency}
                   onChange={(e) => changeCurrency(e.target.value)}
@@ -1508,7 +1541,7 @@ function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">Theme</label>
+                <label className="block text-sm text-muted-foreground mb-2">{t("settings.preferences.theme")}</label>
                 <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as any)}
@@ -1522,11 +1555,19 @@ function SettingsPage() {
             </div>
 
             <div className="pt-6">
-              <label className="block text-sm text-muted-foreground mb-2">Display Language</label>
-              <select className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring">
-                <option>English (US)</option>
-                <option>Spanish (ES)</option>
-                <option>French (FR)</option>
+              <label className="block text-sm text-muted-foreground mb-2">{t("settings.preferences.language")}</label>
+              <select
+                value={profile?.language || "en"}
+                onChange={(e) => updateLanguage(e.target.value)}
+                className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="en">English (US)</option>
+                <option value="es">Spanish (ES)</option>
+                <option value="fr">French (FR)</option>
+                <option value="de">German (DE)</option>
+                <option value="it">Italian (IT)</option>
+                <option value="sw">Swahili (SW)</option>
+                <option value="pt">Portuguese (PT)</option>
               </select>
             </div>
 

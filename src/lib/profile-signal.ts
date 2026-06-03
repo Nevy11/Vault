@@ -11,6 +11,7 @@ export type Profile = {
   kyc_tag?: string;
   pin_hash?: string;
   nationality?: string;
+  language?: string;
   created_at?: string;
   notifications_transfer_received?: boolean;
   notifications_transfer_sent?: boolean;
