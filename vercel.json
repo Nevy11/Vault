@@ -18,6 +18,7 @@
     { "src": "/manifest.webmanifest", "dest": "/manifest.webmanifest" },
     { "src": "/sw.js", "dest": "/sw.js" },
     { "src": "/registerSW.js", "dest": "/registerSW.js" },
+    { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/api/ssr.ts" }
   ]
 }

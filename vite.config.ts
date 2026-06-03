@@ -79,7 +79,7 @@ export default defineConfig({
   ],
   vite: {
     build: {
-      emptyOutDir: false,
+      emptyOutDir: true,
     },
   },
 });

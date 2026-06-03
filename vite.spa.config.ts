@@ -5,6 +5,7 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // Minimal SPA build config to produce a static index.html in dist/client
 export default defineConfig({
+  root: ".",
   plugins: [
     react(),
     tsconfigPaths(),
@@ -70,6 +71,6 @@ export default defineConfig({
   ],
   build: {
     outDir: "dist/client",
-    emptyOutDir: false,
+    emptyOutDir: true,
   },
 });
