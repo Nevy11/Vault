@@ -1281,6 +1281,9 @@ function TransactionsPage() {
         {mode === "send" && <SendPanel searchFilter={globalSearch} />}
         {mode === "deposit" && <DepositPanel />}
         {mode === "withdraw" && <WithdrawPanel />}
+
+        {/* Detailed Transaction History */}
+        <TransactionHistory />
       </main>
     </AppShell>
   );
