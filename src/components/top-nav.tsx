@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, User, Settings, Bell, Sun, Moon } from "lucide-react";
+import { LogOut, User, Settings, Bell, Sun, Moon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
@@ -16,11 +16,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { Logo } from "@/components/logo";
 import { ReceiptActionIcon } from "@/components/receipt-history";
 import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
+import { useTranslation } from "react-i18next";
 
 const navLinks = [
   { label: "Features", href: "/#features" },
@@ -30,9 +30,9 @@ const navLinks = [
 ];
 
 export function TopNav() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useProfileSignal();
-  const [showPhotoPreview, setShowPhotoPreview] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -49,10 +49,10 @@ export function TopNav() {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return { text: "Good morning", emoji: "🌅" };
-    if (hour >= 12 && hour < 17) return { text: "Good afternoon", emoji: "☀️" };
-    return { text: "Good evening", emoji: "🌙" };
-  }, []);
+    if (hour >= 5 && hour < 12) return { text: t("nav.greetings.morning"), emoji: "🌅" };
+    if (hour >= 12 && hour < 17) return { text: t("nav.greetings.afternoon"), emoji: "☀️" };
+    return { text: t("nav.greetings.evening"), emoji: "🌙" };
+  }, [t]);
 
   const userName = profile?.first_name || profile?.email?.split("@")[0] || "User";
 
@@ -117,7 +117,7 @@ export function TopNav() {
                     className="w-80 rounded-2xl p-0 border-border/50 shadow-xl overflow-hidden"
                   >
                     <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
-                      <h3 className="font-semibold text-sm">Notifications</h3>
+                      <h3 className="font-semibold text-sm">{t("nav.notifications.title")}</h3>
                       {unreadCount > 0 && (
                         <button
                           onClick={(e) => {
@@ -126,7 +126,7 @@ export function TopNav() {
                           }}
                           className="text-[10px] uppercase tracking-wider font-bold text-primary hover:text-primary/80 transition-colors"
                         >
-                          Mark all as read
+                          {t("nav.notifications.markAllRead")}
                         </button>
                       )}
                     </div>
@@ -134,7 +134,7 @@ export function TopNav() {
                       {notifications.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">
                           <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                          <p className="text-xs">No notifications yet</p>
+                          <p className="text-xs">{t("nav.notifications.none")}</p>
                         </div>
                       ) : (
                         <div className="flex flex-col">
@@ -254,11 +254,10 @@ export function TopNav() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50" />
                   <DropdownMenuItem
-                    onSelect={() => setShowPhotoPreview(true)}
                     className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
                   >
                     <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                    View Profile
+                    {t("nav.profile.view")}
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link
@@ -266,7 +265,7 @@ export function TopNav() {
                       className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
                     >
                       <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
-                      Settings
+                      {t("nav.profile.settings")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-border/50" />
@@ -275,7 +274,7 @@ export function TopNav() {
                     className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl py-2.5"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sign out
+                    {t("nav.signout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -283,32 +282,6 @@ export function TopNav() {
           )}
         </div>
       </div>
-
-      {open && isLandingPage && (
-        <div className="border-t border-border/60 bg-background/95 md:hidden animate-in slide-in-from-top-2 duration-200">
-          <div className="mx-auto flex max-w-screen-2xl flex-col gap-1 px-4 py-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="rounded-xl px-3 py-2 text-sm font-medium text-foreground hover:bg-accent/40 transition-colors"
-                onClick={() => setOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
-            {mounted && !profile && (
-              <Link
-                to="/login"
-                className="rounded-xl px-3 py-2 text-sm font-bold text-primary hover:bg-primary/5 transition-colors mt-2"
-                onClick={() => setOpen(false)}
-              >
-                Sign In to Vault
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
     </header>
   );
 }

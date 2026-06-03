@@ -1,0 +1,95 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "portfolio": {
+      "balance": "Valore totale del portafoglio",
+      "growth": "Impulso del portafoglio",
+      "performance": "Crescita",
+      "chart": {
+        "value": "Valore",
+        "date": "Data"
+      }
+    },
+    "accounts": {
+      "vault": "Nucleo della volta",
+      "mpesa": "Portafoglio M-Pesa",
+      "equity": "Equity Bank",
+      "kcb": "KCB Bank",
+      "absa": "Absa Kenya",
+      "stanchart": "StanChart",
+      "type": {
+        "primary": "Conto di regolamento principale",
+        "linked": "Binario collegato"
+      }
+    },
+    "ledger": {
+      "title": "Libro mastro unificato",
+      "viewAll": "Visualizza tutte le attività",
+      "noActivity": "Nessuna cronologia delle transazioni registrata per questo periodo.",
+      "transaction": {
+        "verified": "Verificato",
+        "unverified": "Non verificato",
+        "processing": "Elaborazione",
+        "deposit": "Deposito",
+        "withdraw": "Prelievo",
+        "transfer": "Trasferimento",
+        "p2p": "Trasferimento P2P",
+        "savings": "Trasferito ai risparmi"
+      },
+      "filters": {
+        "all": "Tutti",
+        "send": "Invia",
+        "received": "Ricevuto",
+        "deposit": "Deposito",
+        "withdraw": "Prelevare"
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "finance": "Risparmi e prestiti",
+    "transact": "Transazione",
+    "settings": "Impostazioni",
+    "help": "Aiuto",
+    "signout": "Disconnettersi",
+    "greetings": {
+      "morning": "Buongiorno",
+      "afternoon": "Buon pomeriggio",
+      "evening": "Buonasera"
+    },
+    "notifications": {
+      "title": "Notifiche",
+      "markAllRead": "Segna tutti come letti",
+      "none": "Ancora nessuna notifica"
+    },
+    "profile": {
+      "view": "Visualizza profilo",
+      "settings": "Impostazioni"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "subtitle": "Configurazione",
+    "description": "Gestisci il tuo profilo, la tua sicurezza e le tue preferenze personali. Le modifiche si applicano a tutti i dispositivi autorizzati.",
+    "back": "Indietro",
+    "sections": {
+      "profile": "Profilo account e KYC",
+      "business": "Profilo aziendale",
+      "security": "Centro sicurezza",
+      "activity": "Attività recente",
+      "preferences": "Preferenze",
+      "danger": "Zona di pericolo"
+    },
+    "preferences": {
+      "currency": "Valuta principale",
+      "theme": "Tema",
+      "language": "Lingua di visualizzazione",
+      "notifications": "Centro notifiche"
+    }
+  },
+  "common": {
+    "save": "Salva modifiche",
+    "loading": "Caricamento...",
+    "error": "Errore"
+  }
+}

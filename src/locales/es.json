@@ -1,0 +1,95 @@
+{
+  "dashboard": {
+    "title": "Tablero",
+    "portfolio": {
+      "balance": "Valor Total del Portafolio",
+      "growth": "Pulso del Portafolio",
+      "performance": "Crecimiento",
+      "chart": {
+        "value": "Valor",
+        "date": "Fecha"
+      }
+    },
+    "accounts": {
+      "vault": "Bóveda Central",
+      "mpesa": "Billetera M-Pesa",
+      "equity": "Banco Equity",
+      "kcb": "Banco KCB",
+      "absa": "Absa Kenia",
+      "stanchart": "StanChart",
+      "type": {
+        "primary": "Cuenta de Liquidación Primaria",
+        "linked": "Riel Vinculado"
+      }
+    },
+    "ledger": {
+      "title": "Libro Mayor Unificado",
+      "viewAll": "Ver toda la actividad",
+      "noActivity": "No se registró historial de transacciones para este período.",
+      "transaction": {
+        "verified": "Verificado",
+        "unverified": "Sin verificar",
+        "processing": "Procesando",
+        "deposit": "Depósito",
+        "withdraw": "Retiro",
+        "transfer": "Transferencia",
+        "p2p": "Transferencia P2P",
+        "savings": "Transferido a ahorros"
+      },
+      "filters": {
+        "all": "Todo",
+        "send": "Enviar",
+        "received": "Recibido",
+        "deposit": "Depósito",
+        "withdraw": "Retiro"
+      }
+    }
+  },
+  "nav": {
+    "dashboard": "Tablero",
+    "finance": "Ahorros y Préstamos",
+    "transact": "Transacciones",
+    "settings": "Ajustes",
+    "help": "Ayuda",
+    "signout": "Cerrar sesión",
+    "greetings": {
+      "morning": "Buenos días",
+      "afternoon": "Buenas tardes",
+      "evening": "Buenas noches"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "markAllRead": "Marcar todas como leídas",
+      "none": "No hay notificaciones"
+    },
+    "profile": {
+      "view": "Ver Perfil",
+      "settings": "Ajustes"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "subtitle": "Configuración",
+    "description": "Administre su perfil, postura de seguridad y preferencias personales. Los cambios se aplican a todos los dispositivos autorizados.",
+    "back": "Atrás",
+    "sections": {
+      "profile": "Perfil de cuenta y KYC",
+      "business": "Perfil de negocio",
+      "security": "Centro de seguridad",
+      "activity": "Actividad reciente",
+      "preferences": "Preferencias",
+      "danger": "Zona de peligro"
+    },
+    "preferences": {
+      "currency": "Moneda principal",
+      "theme": "Tema",
+      "language": "Idioma de pantalla",
+      "notifications": "Centro de notificaciones"
+    }
+  },
+  "common": {
+    "save": "Guardar cambios",
+    "loading": "Cargando...",
+    "error": "Error"
+  }
+}

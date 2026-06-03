@@ -25,7 +25,7 @@ import { usePortfolioSummary } from "@/hooks/use-portfolio-summary";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/api/supabase";
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, startOfWeek, startOfMonth, subDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -39,6 +39,7 @@ import {
 } from "recharts";
 import { FinancialHealthReport } from "@/components/financial-health-report";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -154,6 +155,7 @@ function QuickSend({
   onAvatarClick,
   title = "Quick Send (P2P)",
   className,
+  loading = false,
 }: {
   avatars: {
     id?: string;
@@ -167,6 +169,7 @@ function QuickSend({
   onAvatarClick?: (tag: string) => void;
   title?: string;
   className?: string;
+  loading?: boolean;
 }) {
   return (
     <div
@@ -182,38 +185,51 @@ function QuickSend({
         <ArrowRight className="w-3 h-3 text-muted-foreground/40" />
       </div>
       <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
-        {withAdd && (
-          <button className="flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all">
-            <Plus className="w-5 h-5" />
-          </button>
-        )}
-        {avatars.map((a, index) => (
-          <div
-            key={a.id ?? `${a.name}-${index}`}
-            className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0"
-            onClick={() => a.tag && onAvatarClick?.(a.tag)}
-          >
-            <div className="relative">
-              {a.avatarUrl ? (
-                <img
-                  src={a.avatarUrl}
-                  alt={a.name}
-                  className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
-                />
-              ) : (
-                <div
-                  className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
-                >
-                  {a.initial}
+        {loading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-muted/50 animate-pulse" />
+                <div className="h-2 w-8 bg-muted/50 rounded-full animate-pulse" />
+              </div>
+            ))}
+          </>
+        ) : (
+          <>
+            {withAdd && (
+              <button className="flex-shrink-0 w-12 h-12 rounded-full border-2 border-dashed border-border/60 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all">
+                <Plus className="w-5 h-5" />
+              </button>
+            )}
+            {avatars.map((a, index) => (
+              <div
+                key={a.id ?? `${a.name}-${index}`}
+                className="flex flex-col items-center gap-2 group cursor-pointer flex-shrink-0"
+                onClick={() => a.tag && onAvatarClick?.(a.tag)}
+              >
+                <div className="relative">
+                  {a.avatarUrl ? (
+                    <img
+                      src={a.avatarUrl}
+                      alt={a.name}
+                      className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
+                    />
+                  ) : (
+                    <div
+                      className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
+                    >
+                      {a.initial}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
                 </div>
-              )}
-              <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
-            </div>
-            <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-              {a.name}
-            </span>
-          </div>
-        ))}
+                <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                  {a.name}
+                </span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -224,79 +240,160 @@ function NetWorthChart({
   currencySymbol,
   currentBalance,
 }: {
-  entries: LedgerEntry[];
+  entries: any[];
   currencySymbol: string;
   currentBalance: number;
 }) {
-  const [viewMode, setViewMode] = useState<"daily" | "transaction">("transaction");
+  const { t } = useTranslation();
+  const [viewMode, setViewMode] = useState<"transaction" | "daily" | "weekly" | "monthly">(
+    "transaction",
+  );
 
   const chartData = useMemo(() => {
+    const safeBalance = typeof currentBalance === "number" ? currentBalance : 0;
+
     if (!entries || entries.length === 0) {
+      const now = new Date();
+      const thirtyDaysAgo = subDays(now, 30);
+
+      // If no entries, show a slight trend from 0 to current balance to avoid a flat line
       return [
+        {
+          name: format(thirtyDaysAgo, "MMM dd"),
+          fullDate: "Starting Point",
+          value: 0,
+          created_at: thirtyDaysAgo.toISOString(),
+        },
         {
           name: "Now",
           fullDate: "Current Balance",
-          value: currentBalance,
-          created_at: new Date().toISOString(),
+          value: safeBalance,
+          created_at: now.toISOString(),
         },
       ];
     }
 
     // Sort entries chronologically (oldest first)
-    const sorted = [...entries].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    );
+    const sorted = [...entries].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.recorded_at).getTime();
+      const dateB = new Date(b.created_at || b.recorded_at).getTime();
+      return dateA - dateB;
+    });
 
-    let runningSum = 0;
-    const history = sorted.map((entry) => {
-      runningSum += Number(entry.amount);
-      return {
-        name: format(new Date(entry.created_at), "MMM dd"),
-        fullDate: format(new Date(entry.created_at), "PPP p"),
-        value: runningSum,
-        created_at: entry.created_at,
+    // Determine if we are using balance history snapshots or ledger entries
+    const isHistorySnapshots = sorted.length > 0 && "recorded_balance" in sorted[0];
+
+    let fullHistory: any[] = [];
+
+    if (isHistorySnapshots) {
+      // If using snapshots, we just map them directly
+      fullHistory = sorted.map((entry) => ({
+        name: format(new Date(entry.recorded_at), "MMM dd"),
+        fullDate: format(new Date(entry.recorded_at), "PPP p"),
+        value: Number(entry.recorded_balance),
+        created_at: entry.recorded_at,
+      }));
+    } else {
+      // If using ledger entries, calculate the running balance backwards from current
+      const totalChange = sorted.reduce((sum, e) => sum + Number(e.amount), 0);
+      const openingBalance = safeBalance - totalChange;
+      let runningBalance = openingBalance;
+
+      const historyWithBalances = sorted.map((entry) => {
+        runningBalance += Number(entry.amount);
+        return {
+          name: format(new Date(entry.created_at), "MMM dd"),
+          fullDate: format(new Date(entry.created_at), "PPP p"),
+          value: runningBalance,
+          created_at: entry.created_at,
+        };
+      });
+
+      // Anchor the graph with the opening balance point
+      const firstEntryDate = new Date(sorted[0].created_at);
+      const anchorPoint = {
+        name: format(subDays(firstEntryDate, 1), "MMM dd"),
+        fullDate: "Opening Balance",
+        value: openingBalance,
+        created_at: subDays(firstEntryDate, 1).toISOString(),
+      };
+
+      fullHistory = [anchorPoint, ...historyWithBalances];
+    }
+
+    // Add current point if it's not already represented
+    const lastPoint = fullHistory[fullHistory.length - 1];
+    const now = new Date();
+    if (
+      !lastPoint ||
+      now.getTime() - new Date(lastPoint.created_at).getTime() > 1000 * 60 * 60
+    ) {
+      fullHistory.push({
+        name: "Now",
+        fullDate: "Current Balance",
+        value: safeBalance,
+        created_at: now.toISOString(),
+      });
+    }
+
+    if (viewMode === "transaction") {
+      return fullHistory;
+    }
+
+    // Aggregation logic for different time periods
+    const aggregatedMap: Record<string, any> = {};
+
+    fullHistory.forEach((point) => {
+      let key = "";
+      let label = "";
+      const date = new Date(point.created_at);
+
+      if (viewMode === "daily") {
+        key = format(date, "yyyy-MM-dd");
+        label = point.name === "Now" ? "Now" : format(date, "MMM dd");
+      } else if (viewMode === "weekly") {
+        key = format(startOfWeek(date), "yyyy-ww");
+        label = `W${format(date, "w, yy")}`;
+      } else if (viewMode === "monthly") {
+        key = format(startOfMonth(date), "yyyy-MM");
+        label = format(date, "MMM yy");
+      }
+
+      // Always take the LATEST balance for the period to show growth accurately
+      aggregatedMap[key] = {
+        ...point,
+        name: label,
       };
     });
 
-    // Add final "Now" point to match the wallets table exactly
-    history.push({
-      name: "Now",
-      fullDate: "Current Balance",
-      value: currentBalance,
-      created_at: new Date().toISOString(),
-    });
-
-    if (viewMode === "transaction") {
-      return history;
-    } else {
-      const dailyMap: Record<string, any> = {};
-      history.forEach((point) => {
-        const day = format(new Date(point.created_at), "yyyy-MM-dd");
-        dailyMap[day] = point;
-      });
-
-      return Object.entries(dailyMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([_, point]) => ({
-          name: point.name === "Now" ? point.name : format(new Date(point.created_at), "MMM dd"),
-          fullDate:
-            point.name === "Now" ? "Current Balance" : format(new Date(point.created_at), "PPP"),
-          value: point.value,
-        }));
-    }
+    return Object.keys(aggregatedMap)
+      .sort()
+      .map((key) => aggregatedMap[key]);
   }, [entries, viewMode, currentBalance]);
 
-  const minValue = Math.min(...chartData.map((d) => d.value || 0));
-  const maxValue = Math.max(...chartData.map((d) => d.value || 0));
+  const values = chartData.map((d) => d.value).filter((v) => typeof v === "number" && !isNaN(v));
+  const minValue = values.length > 0 ? Math.min(...values) : 0;
+  const maxValue = values.length > 0 ? Math.max(...values) : 0;
+
+  // Domain calculation for visualization stability
+  const domainMin =
+    minValue === maxValue
+      ? minValue - (minValue === 0 ? 100 : minValue * 0.1)
+      : minValue * 0.98;
+  const domainMax =
+    minValue === maxValue
+      ? maxValue + (maxValue === 0 ? 100 : maxValue * 0.1)
+      : maxValue * 1.02;
+
   const isPositive =
     chartData.length > 1 ? chartData[chartData.length - 1].value >= chartData[0].value : true;
 
   return (
-    <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-full flex flex-col transition-all hover:border-border/60">
+    <div className="rounded-2xl bg-card/40 border border-border/40 p-5 backdrop-blur-sm h-[280px] flex flex-col transition-all hover:border-border/60 overflow-hidden">
       <div className="flex items-center justify-between mb-4">
         <div>
           <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground/80 flex items-center gap-2">
-            Net Worth Growth
+            {t("dashboard.portfolio.growth")}
             <TrendingUp
               className={`w-3 h-3 ${isPositive ? "text-emerald-500" : "text-destructive"}`}
             />
@@ -307,26 +404,24 @@ function NetWorthChart({
           </div>
         </div>
         <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/20">
-          <button
-            onClick={() => setViewMode("transaction")}
-            className={`px-2 py-1 text-[9px] font-bold rounded-md transition-all ${
-              viewMode === "transaction"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            TX
-          </button>
-          <button
-            onClick={() => setViewMode("daily")}
-            className={`px-2 py-1 text-[9px] font-bold rounded-md transition-all ${
-              viewMode === "daily"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            DAY
-          </button>
+          {[
+            { id: "transaction", label: "TX" },
+            { id: "daily", label: "DAY" },
+            { id: "weekly", label: "WK" },
+            { id: "monthly", label: "MO" },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              onClick={() => setViewMode(mode.id as any)}
+              className={`px-2 py-1 text-[8px] font-bold rounded-md transition-all ${
+                viewMode === mode.id
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -346,7 +441,7 @@ function NetWorthChart({
               opacity={0.1}
             />
             <XAxis dataKey="name" hide />
-            <YAxis hide domain={[minValue * 0.9, maxValue * 1.1]} />
+            <YAxis hide domain={[domainMin, domainMax]} />
             <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
@@ -460,6 +555,8 @@ function SecurityStatus() {
 }
 
 function AIInsightsWidget({ profileId }: { profileId?: string }) {
+  const { t } = useTranslation();
+  const [profile] = useProfileSignal();
   const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -489,7 +586,10 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
-        body: { userId: profileId },
+        body: { 
+          userId: profileId,
+          language: profile?.language || "en"
+        },
       });
       
       if (error) {
@@ -522,7 +622,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       <div className="rounded-3xl bg-muted/20 border border-border/40 p-8 mb-8 animate-pulse h-[160px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" />
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">Initializing AI Advisor...</span>
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">{t("ai_insights.initializing")}</span>
         </div>
       </div>
     );
@@ -556,7 +656,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-foreground">AI Financial Insight</h3>
+            <h3 className="text-lg font-bold text-foreground">{t("ai_insights.title")}</h3>
             {insight ? (
               <div className="mt-2 space-y-1">
                 <div className="text-sm font-semibold text-primary">
@@ -570,7 +670,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
               </div>
             ) : (
               <p className="mt-1 text-xs text-muted-foreground">
-                Click generate to analyze your spending and get AI predictions.
+                {t("ai_insights.placeholder")}
               </p>
             )}
           </div>
@@ -588,16 +688,23 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
           ) : (
             <RefreshCw className="w-4 h-4 mr-2" />
           )}
-          {insight ? "Update Analysis" : "Generate Insight"}
+          {insight ? t("ai_insights.update") : t("ai_insights.generate")}
         </Button>
       </div>
     </div>
   );
 }
 
-const filters = ["All", "Send", "Received", "Deposit", "Withdraw"];
+const filters = [
+  { key: "All", labelKey: "dashboard.ledger.filters.all" },
+  { key: "Send", labelKey: "dashboard.ledger.filters.send" },
+  { key: "Received", labelKey: "dashboard.ledger.filters.received" },
+  { key: "Deposit", labelKey: "dashboard.ledger.filters.deposit" },
+  { key: "Withdraw", labelKey: "dashboard.ledger.filters.withdraw" },
+];
 
 function DashboardPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
   const { transactions, loading: txLoading, error: txError, refetch: refetchTransactions } = useTransactions(!balanceLoading);
@@ -609,15 +716,20 @@ function DashboardPage() {
   const [showReport, setShowReport] = useState(false);
   const [balanceHistory, setBalanceHistory] = useState<any[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [loadingSuggestedUsers, setLoadingSuggestedUsers] = useState(true);
 
   // Fetch suggested users from profiles table
   useEffect(() => {
     const fetchSuggestedUsers = async () => {
+      setLoadingSuggestedUsers(true);
       try {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setLoadingSuggestedUsers(false);
+          return;
+        }
 
         const { data, error } = await supabase
           .from("profiles")
@@ -648,11 +760,13 @@ function DashboardPage() {
         }
       } catch (err) {
         console.error("Error fetching suggested users:", err);
+      } finally {
+        setLoadingSuggestedUsers(false);
       }
     };
 
     fetchSuggestedUsers();
-  }, []);
+  }, [profile?.id]);
 
   // Find unread warning notifications (like sharp drops from AI)
   const warningNotifications = useMemo(
@@ -1057,22 +1171,18 @@ function DashboardPage() {
           <QuickSend
             className="col-span-1"
             onAvatarClick={handleQuickSend}
+            loading={loadingSuggestedUsers && frequentRecipients.length === 0}
             avatars={
               frequentRecipients.length > 0
                 ? frequentRecipients
                 : suggestedUsers.length > 0
                   ? suggestedUsers
-                  : [
-                      { initial: "M", color: "bg-emerald-500", name: "Maria C", tag: "@maria" },
-                      { initial: "J", color: "bg-blue-500", name: "John L", tag: "@john" },
-                      { initial: "L", color: "bg-pink-500", name: "Lisa M", tag: "@lisa" },
-                      { initial: "A", color: "bg-red-500", name: "Ben A", tag: "@ben" },
-                    ]
+                  : []
             }
           />
-          <div className="hidden sm:block col-span-1">
+          <div className="col-span-1">
             <NetWorthChart
-              entries={ledgerEntries}
+              entries={balanceHistory.length > 0 ? balanceHistory : (ledgerEntries as any)}
               currencySymbol={currencySymbol}
               currentBalance={balance || 0}
             />
@@ -1082,7 +1192,7 @@ function DashboardPage() {
         {/* Recent Transactions Heading */}
         <div className="mb-4">
           <h2 className="text-lg font-light tracking-tight text-foreground/90">
-            Recent transactions
+            {t("dashboard.ledger.title")}
           </h2>
         </div>
 
@@ -1092,15 +1202,15 @@ function DashboardPage() {
             <div className="flex flex-wrap gap-2">
               {filters.map((f) => (
                 <button
-                  key={f}
-                  onClick={() => setActiveFilter(f)}
+                  key={f.key}
+                  onClick={() => setActiveFilter(f.key)}
                   className={`px-3 py-1 rounded-full text-xs border ${
-                    activeFilter === f
+                    activeFilter === f.key
                       ? "border-primary text-primary"
                       : "border-border/50 text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {f}
+                  {t(f.labelKey)}
                 </button>
               ))}
             </div>
