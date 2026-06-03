@@ -60,12 +60,85 @@
     "notifications": {
       "title": "Arifa",
       "markAllRead": "Weka zote kuwa zimesomwa",
-      "none": "Bado hakuna arifa"
+      "none": "Bado hakuna arifa",
+      "deposit_success_title": "Amana Imefanikiwa",
+      "deposit_success_msg": "Amana yako ya {{amount}} imewekwa kwenye pochi yako.",
+      "withdrawal_success_title": "Utoaji Umekamilika",
+      "withdrawal_success_msg": "Utoaji wako wa {{amount}} umesindikwa kikamilifu.",
+      "payment_received_title": "Malipo Yamepokelewa",
+      "payment_received_msg": "Umepokea {{amount}} kutoka kwa mtumiaji wa Vault.",
+      "transfer_sent_title": "Uhamisho Umetumwa",
+      "transfer_sent_msg": "Uhamisho wako wa {{amount}} umetumwa kwa mafanikio.",
+      "login_title": "Ingizo Jipya la Akaunti",
+      "login_msg": "Akaunti yako ilifikiwa kutoka kwa {{device}} huko {{location}}.",
+      "security_alert_title": "Tahadhari ya Usalama",
+      "security_alert_msg": "Shughuli ya kutiliwa shaka ilitambuliwa kwenye akaunti yako: {{action}}. Ikiwa hii haikuwa wewe, tafadhali badilisha PIN yako mara moja."
     },
     "profile": {
       "view": "Angalia wasifu",
       "settings": "Mipangilio"
     }
+  },
+  "help": {
+    "title": "Msaada",
+    "support": "Usaidizi",
+    "back": "Rudi",
+    "description": "Tupo hapa saa nane. Chagua njia, vinjari maswali ya kawaida, au ututumie ujumbe — binadamu halisi atajibu.",
+    "search_placeholder": "Tafuta makala za msaada...",
+    "sections": {
+      "contact": {
+        "title": "Njia za Mawasiliano ya Moja kwa Moja",
+        "meta": "Chagua njia unayopendelea ya usaidizi",
+        "call": {
+          "title": "Omba Simu",
+          "note": "Wastani wa kusubiri: chini ya dakika 2",
+          "btn": "Piga Sasa",
+          "dialog": {
+            "title": "Omba Simu",
+            "description": "Anzisha laini salama na wakala wa Vault OS. Chagua njia unayopendelea ya unganisho.",
+            "direct": "Laini ya Moja kwa Moja ya Vault OS",
+            "callback_note": "Au omba kupigiwa simu",
+            "callback_btn": "Omba",
+            "priority_note": "Maombi ya kupigiwa simu yamewekwa kwenye foleni ya siri na kupewa kipaumbele kulingana na kiwango cha KYC.",
+            "toast_scheduled": "Simu imeratibiwa! Wakala wa Vault OS atakupigia simu ndani ya dakika 2."
+          }
+        },
+        "email": {
+          "title": "Usaidizi wa Barua Pepe",
+          "note": "Majibu ndani ya masaa 4"
+        }
+      },
+      "faqs": {
+        "title": "Maswali Yanayoulizwa Sana",
+        "meta": "Gusa swali ili kulipanua",
+        "q1": "Ninawezaje kuweka upya PIN yangu ya Vault kwa usalama?",
+        "a1": "Nenda kwenye Mipangilio → Kituo cha Usalama → weka upya PIN. Utaulizwa uthibitisho wa kibaolojia na nambari ya siri ya mara moja iliyotumwa kwenye kifaa chako kilichoidhinishwa.",
+        "q2": "Je, kuna ada zilizofichwa za uhamisho wa P2P?",
+        "a2": "Hapana. Vault OS ni jukwaa lisilo na ada zilizofichwa. Ada pekee inayoonyeshwa wakati wa kulipa ni ada ya mtandao/ubadilishaji, ambayo imeainishwa kabla ya kuthibitisha.",
+        "q3": "Kwa nini uhamisho wangu kwenye benki umechelewa?",
+        "a3": "Utoaji wa benki unategemea dirisha la usindikaji wa benki unakoenda — kwa kawaida siku 1–3 za kazi. Thibitisha kiwango chako cha KYC kwa mipaka ya juu ya kila siku.",
+        "q4": "Ninawezaje kuona historia ya vipindi vyangu na kumbukumbu?",
+        "a4": "Fungua Mipangilio → Kituo cha Usalama → Historia ya Vipindi. Utaona kila kuingia, kifaa, na hatua kwa mpangilio wa muda.",
+        "q5": "Kiwango cha 2 cha KYC kinafungua nini?",
+        "a5": "Kiwango cha 2 kinafungua utoaji mkubwa, uhamisho wa kimataifa, na mipaka ya juu ya uhamisho wa rika. Thibitisha kitambulisho chako cha serikali chini ya Wasifu wa Akaunti."
+      },
+      "form": {
+        "title": "Fomu ya Mawasiliano ya Moja kwa Moja",
+        "meta": "Jibu la kawaida ndani ya masaa 4",
+        "first_name": "Jina la kwanza",
+        "last_name": "Jina la mwisho",
+        "email": "Barua pepe",
+        "message": "Ujumbe wako",
+        "message_placeholder": "Eleza suala lako kwa undani. Kadiri unavyoshiriki muktadha zaidi, ndivyo tunavyoweza kusaidia haraka.",
+        "agree": "Ninakubali Masharti na Masharti ya Vault na Sera ya Faragha.",
+        "submit": "Tuma ujumbe",
+        "sending": "Inatuma...",
+        "toast_success": "Ujumbe wako umetumwa. Tutakuwasiliana hivi karibuni.",
+        "toast_error": "Tafadhali jaza sehemu zote zinazohitajika kabla ya kutuma ujumbe.",
+        "toast_agree_error": "Lazima ukubaliane na masharti kabla ya kutuma."
+      }
+    },
+    "footer_note": "Unahitaji msaada wa haraka? Piga simu yetu ya 24/7 kwa"
   },
   "ai_insights": {
     "title": "Ushauri wa Kifedha wa AI",
@@ -87,11 +160,148 @@
       "preferences": "Mapendeleo",
       "danger": "Eneo la Hatari"
     },
+    "profile": {
+      "picture": {
+        "label": "Picha ya Wasifu",
+        "description": "Pakia picha ya wasifu ili kubinafsisha akaunti yako",
+        "format": "JPG, PNG au GIF. Upeo wa 5MB.",
+        "view": "Angalia picha",
+        "update": "Sasisha picha",
+        "remove": "Ondoa picha",
+        "dialog": {
+          "title": "Sasisha Picha ya Wasifu",
+          "description": "Chagua jinsi ungependa kusasisha picha yako.",
+          "take": "Piga Picha",
+          "camera": "Tumia kamera ya kifaa chako",
+          "browse": "Vinjari Matunzio",
+          "gallery": "Chagua kutoka kwa faili zako",
+          "capture": "Piga Picha"
+        }
+      },
+      "verification": {
+        "label": "Hali ya Uthibitisho",
+        "verified": "Imethibitishwa · Kiwango cha 2",
+        "unverified": "Haijathibitishwa",
+        "required": "Inahitajika kwa utoaji mkubwa"
+      },
+      "full_name": {
+        "label": "Jina Kamili",
+        "placeholder": "Ingiza jina lako kamili"
+      },
+      "email": {
+        "label": "Anwani ya Barua Pepe"
+      },
+      "kyc_tag": {
+        "label": "Lebo ya KYC"
+      },
+      "save": "Hifadhi Mabadiliko ya Wasifu"
+    },
+    "business": {
+      "meta": "Hali ya Mfanyabiashara na Zana za B2C",
+      "hint": "Washa ili kupokea malipo ya umma kupitia QR",
+      "enable": "Washa Hali ya Mfanyabiashara",
+      "enable_desc": "Washa wasifu wako wa malipo ya umma na uzalishe nambari yako ya kipekee ya Vault QR kwa malipo ya papo hapo ya B2C.",
+      "name": "Jina la Biashara",
+      "name_desc": "Jina ambalo wateja wataona kwenye risiti zao.",
+      "category": "Kitengo",
+      "description": "Maelezo",
+      "description_desc": "Muhtasari wa matoleo yako kwa lango lako la umma.",
+      "qr": {
+        "title": "Nambari ya QR ya Umma",
+        "save_to_gen": "Hifadhi ili Kuzalisha QR",
+        "download": "Pakua",
+        "view": "Angalia"
+      },
+      "how_it_works": {
+        "title": "Jinsi Hali ya Mfanyabiashara Inavyofanya Kazi",
+        "step1_title": "Sanidi Wasifu",
+        "step1_desc": "Weka utambulisho wa biashara yako. Hivi ndivyo wateja wanavyoona wanapochanganua nambari yako au kutembelea kiungo chako.",
+        "step2_title": "Shiriki na Onyesha",
+        "step2_desc": "Pakua nambari yako ya QR kwa onyesho la kimwili au shiriki URL yako ya kipekee ya malipo kwenye majukwaa ya kidijitali.",
+        "step3_title": "Malipo ya Zero-Trust",
+        "step3_desc": "Wateja hulipa kupitia Vault au M-Pesa. Kila muamala unathibitishwa kwa njia ya siri kwa usalama wa hali ya juu.",
+        "step4_title": "Malipo ya Papo Hapo",
+        "step4_desc": "Fedha huwekwa papo hapo kwenye Vault yako. Hakuna vipindi vya kusubiri vya siku 2-3 au ada za juu za mfanyabiashara."
+      },
+      "update": "Sasisha Wasifu wa Biashara",
+      "inactive_title": "Hali ya Mfanyabiashara haijawashwa",
+      "inactive_desc": "Washa Hali ya Mfanyabiashara ili uanze kukubali malipo ya umma na ufungue zana za ukuaji wa biashara."
+    },
+    "security": {
+      "alert_feed": "Mlisho wa Tahadhari za Usalama",
+      "alerts": {
+        "unusual_login": "Mahali pa kuingia kusiko kawaida",
+        "new_device": "Kifaa kipya kimeidhinishwa"
+      },
+      "biometric": {
+        "label": "Face ID / Ingizo la Kibaolojia",
+        "description": "Tumia kibaolojia cha kifaa kufungua vault."
+      },
+      "devices": {
+        "label": "Vifaa Vilivyoidhinishwa",
+        "none": "Hakuna vifaa vilivyoidhinishwa vilivyopatikana.",
+        "last_login": "Ingizo la mwisho",
+        "management": "Usimamizi wa Kifaa",
+        "management_desc": "Kagua na udhibiti vifaa vyote vilivyoidhinishwa sasa kufikia akaunti yako ya Vault OS.",
+        "active_session": "Kipindi Kinachoendelea",
+        "live": "Mubashara",
+        "first_seen": "Ilionekana Mara ya Kwanza",
+        "last_activity": "Shughuli ya Mwisho",
+        "revoke": "Batilisha Ufikiaji",
+        "revoke_note": "Kubatilisha kifaa kutakiondoa mara moja na kuhitaji uthibitisho mpya wa PIN salama ili kukiidhinisha tena."
+      },
+      "pin": {
+        "change": "Badilisha PIN Salama",
+        "dialog_title": "Badilisha PIN Salama",
+        "dialog_desc": "Sasisha nambari yako ya ufikiaji ya tarakimu 6. Utahitaji PIN yako ya sasa ili kuidhinisha mabadiliko haya.",
+        "current": "PIN ya Sasa",
+        "new": "PIN Mpya ya Tarakimu 6",
+        "confirm": "Thibitisha PIN Mpya",
+        "show": "Onyesha PIN",
+        "hide": "Ficha PIN",
+        "update_btn": "Sasisha PIN Salama"
+      },
+      "session_history": "Historia ya Kipindi na Kumbukumbu za Shughuli",
+      "session_history_desc": "Rekodi kamili ya hatua zote zinazohusiana na usalama na shughuli za kipindi.",
+      "audit_note": "Kumbukumbu za ukaguzi za Vault OS zimefungwa kwa njia ya siri na haziwezi kubadilishwa mara tu zinaporekodiwa."
+    },
+    "activity": {
+      "none": "Hakuna shughuli za hivi karibuni zilizorekodiwa.",
+      "view_full": "Angalia kumbukumbu kamili ya shughuli"
+    },
     "preferences": {
       "currency": "Sarafu Kuu",
       "theme": "Mandhari",
       "language": "Lugha ya Kuonyesha",
-      "notifications": "Kituo cha Arifa"
+      "notifications": "Kituo cha Arifa",
+      "transfer_received": "Uhamisho umepokelewa",
+      "account_login": "Ingizo la akaunti",
+      "transfer_sent": "Uhamisho umetumwa",
+      "security_alerts": "Tahadhari za usalama",
+      "ai_insights_label": "Ushauri wa Mshauri wa AI",
+      "ai_insights_desc": "Pokea arifa na ushauri wa afya ya kifedha kwa hiari."
+    },
+    "danger": {
+      "delete_account": "Futa Akaunti",
+      "delete_desc": "Futa kabisa akaunti yako ya Vault OS na data zote zinazohusiana. Hatua hii haiwezi kutenguliwa na itabatilisha mara moja ufikiaji wa vifaa vyote vilivyoidhinishwa.",
+      "irreversible_title": "Hii ni hatua isiyoweza kutenguliwa. Tafadhali hakikisha umepakua au kuhifadhi data yoyote muhimu kabla ya kuendelea.",
+      "delete_btn": "Futa Akaunti Kabisa",
+      "confirm_title": "Una uhakika?",
+      "confirm_desc": "Hii ni hatua muhimu. Unakaribia kuanzisha uondoaji wa kudumu wa utambulisho wako wa Vault OS.",
+      "confirm_purge": "Historia yako yote ya kifedha, maingizo ya leja, na data ya kibinafsi itafutwa kabisa.",
+      "confirm_btn": "Nimeelewa, endelea",
+      "final_warning": "Onyo la Mwisho",
+      "final_desc": "Hatua hii ni **isiyoweza kutenguliwa**. Ikikamilika, fedha zako na ufikiaji wa akaunti haziwezi kurejeshwa na Usaidizi wa Vault.",
+      "final_list": [
+        "Kubatiliswa mara moja kwa vipindi vyote vya kifaa",
+        "Ufutaji wa kudumu wa funguo zote za siri",
+        "Uondoaji wa lebu yako ya kipekee ya KYC na wasifu"
+      ],
+      "go_back": "Rudi Nyuma",
+      "confirm_impact": "Thibitisha Athari",
+      "verify_identity": "Thibitisha Utambulisho",
+      "verify_desc": "Ili kuzuia ufutaji wa bahati mbaya, tafadhali andika {{target}} hapa chini.",
+      "placeholder": "Andika ili kuthibitisha..."
     }
   },
   "common": {

@@ -60,12 +60,92 @@
     "notifications": {
       "title": "Notifications",
       "markAllRead": "Tout marquer comme lu",
-      "none": "Pas encore de notifications"
+      "none": "Pas encore de notifications",
+      "deposit_success_title": "Dépôt réussi",
+      "deposit_success_msg": "Votre dépôt de {{amount}} a été crédité sur votre portefeuille.",
+      "withdrawal_success_title": "Retrait terminé",
+      "withdrawal_success_msg": "Votre retrait de {{amount}} a été traité avec succès.",
+      "payment_received_title": "Paiement reçu",
+      "payment_received_msg": "Vous avez reçu {{amount}} de la part d'un utilisateur Vault.",
+      "transfer_sent_title": "Transfert envoyé",
+      "transfer_sent_msg": "Votre transfert de {{amount}} a été envoyé avec succès.",
+      "login_title": "Nouvelle connexion au compte",
+      "login_msg": "Votre compte a été accédé depuis un {{device}} à {{location}}.",
+      "security_alert_title": "Alerte de sécurité",
+      "security_alert_msg": "Une activité suspecte a été détectée sur votre compte : {{action}}. S'il ne s'agit pas de vous, veuillez changer votre PIN immédiatement."
     },
     "profile": {
       "view": "Voir le profil",
       "settings": "Paramètres"
     }
+  },
+  "help": {
+    "title": "Aide",
+    "support": "Support",
+    "back": "Retour",
+    "description": "Nous sommes là 24h/24. Choisissez un canal, parcourez les questions fréquentes ou envoyez-nous un message — un humain vous répondra.",
+    "search_placeholder": "Rechercher des articles d'aide...",
+    "sections": {
+      "contact": {
+        "title": "Canaux de contact direct",
+        "meta": "Choisissez votre mode de support préféré",
+        "call": {
+          "title": "Demander un appel",
+          "note": "Attente moyenne : moins de 2 minutes",
+          "btn": "Appeler maintenant",
+          "dialog": {
+            "title": "Demander un appel",
+            "description": "Établissez une ligne sécurisée avec un agent Vault OS. Choisissez votre mode de connexion.",
+            "direct": "Ligne directe Vault OS",
+            "callback_note": "Ou demandez un rappel",
+            "callback_btn": "Demander",
+            "priority_note": "Les demandes de rappel sont mises en file d'attente de manière cryptographique et prioritaires selon le niveau KYC.",
+            "toast_scheduled": "Rappel planifié ! Un agent Vault OS vous rappellera d'ici 2 minutes."
+          }
+        },
+        "email": {
+          "title": "Support par e-mail",
+          "note": "Réponse sous 4 heures"
+        }
+      },
+      "faqs": {
+        "title": "Questions Fréquentes",
+        "meta": "Appuyez sur une question pour l'agrandir",
+        "q1": "Comment réinitialiser mon PIN Vault en toute sécurité ?",
+        "a1": "Allez dans Paramètres → Centre de sécurité → Réinitialiser le PIN. Une vérification biométrique et un code unique envoyé à votre appareil autorisé seront demandés.",
+        "q2": "Y a-t-il des frais cachés pour les transferts P2P ?",
+        "a2": "Non. Vault OS est une plateforme sans frais cachés. Le seul frais affiché lors du paiement est le frais de réseau/change, détaillé avant confirmation.",
+        "q3": "Pourquoi mon retrait vers une banque est-il retardé ?",
+        "a3": "Les retraits bancaires dépendent du délai de traitement de votre banque de destination — généralement 1 à 3 jours ouvrables. Vérifiez votre niveau KYC pour des limites quotidiennes plus élevées.",
+        "q4": "Comment puis-je voir mon historique de session et les journaux ?",
+        "a4": "Ouvrez Paramètres → Centre de sécurité → Historique de session. Vous verrez chaque connexion, appareil et action par ordre chronologique.",
+        "q5": "Que débloque le niveau KYC 2 ?",
+        "a5": "Le niveau 2 débloque les retraits importants, les transferts internationaux et des limites de transfert entre pairs plus élevées. Vérifiez votre pièce d'identité officielle sous Profil du compte."
+      },
+      "form": {
+        "title": "Formulaire de contact direct",
+        "meta": "Réponse typique sous 4 heures",
+        "first_name": "Prénom",
+        "last_name": "Nom",
+        "email": "Adresse e-mail",
+        "message": "Votre message",
+        "message_placeholder": "Décrivez votre problème en détail. Plus vous partagez de contexte, plus vite nous pourrons vous aider.",
+        "agree": "J'accepte les conditions générales et la politique de confidentialité de Vault.",
+        "submit": "Envoyer le message",
+        "sending": "Envoi en cours...",
+        "toast_success": "Votre message a été envoyé. Nous vous répondrons bientôt.",
+        "toast_error": "Veuillez remplir tous les champs obligatoires avant d'envoyer le message.",
+        "toast_agree_error": "Vous devez accepter les conditions avant d'envoyer."
+      }
+    },
+    "footer_note": "Besoin d'aide urgente ? Appelez notre ligne 24/7 au"
+  },
+  "ai_insights": {
+    "title": "Analyse Financière IA",
+    "placeholder": "Cliquez sur générer pour analyser vos dépenses et obtenir des prédictions IA.",
+    "initializing": "Initialisation du conseiller IA...",
+    "update": "Mettre à jour l'analyse",
+    "generate": "Générer une analyse"
   },
   "settings": {
     "title": "Paramètres",
@@ -80,11 +160,148 @@
       "preferences": "Préférences",
       "danger": "Zone de danger"
     },
+    "profile": {
+      "picture": {
+        "label": "Photo de profil",
+        "description": "Téléchargez une photo de profil pour personnaliser votre compte",
+        "format": "JPG, PNG ou GIF. Max 5 Mo.",
+        "view": "Voir la photo",
+        "update": "Mettre à jour la photo",
+        "remove": "Supprimer la photo",
+        "dialog": {
+          "title": "Mettre à jour la photo de profil",
+          "description": "Choisissez comment vous souhaitez mettre à jour votre avatar.",
+          "take": "Prendre une photo",
+          "camera": "Utiliser l'appareil photo de votre appareil",
+          "browse": "Parcourir la galerie",
+          "gallery": "Sélectionner dans vos fichiers",
+          "capture": "Capturer la photo"
+        }
+      },
+      "verification": {
+        "label": "Statut de vérification",
+        "verified": "Vérifié · Niveau 2",
+        "unverified": "Non vérifié",
+        "required": "Requis pour les retraits importants"
+      },
+      "full_name": {
+        "label": "Nom complet",
+        "placeholder": "Entrez votre nom complet"
+      },
+      "email": {
+        "label": "Adresse e-mail"
+      },
+      "kyc_tag": {
+        "label": "Tag KYC"
+      },
+      "save": "Enregistrer les modifications du profil"
+    },
+    "business": {
+      "meta": "Mode marchand et outils B2C",
+      "hint": "Activer pour recevoir des paiements publics via QR",
+      "enable": "Activer le mode marchand",
+      "enable_desc": "Activez votre profil de paiement public et générez votre code QR Vault unique pour des règlements B2C instantanés.",
+      "name": "Nom de l'entreprise",
+      "name_desc": "Le nom que les clients verront sur leurs reçus.",
+      "category": "Catégorie",
+      "description": "Description",
+      "description_desc": "Résumez vos offres pour votre portail public.",
+      "qr": {
+        "title": "Code QR public",
+        "save_to_gen": "Enregistrer pour générer le QR",
+        "download": "Télécharger",
+        "view": "Voir"
+      },
+      "how_it_works": {
+        "title": "Fonctionnement du mode marchand",
+        "step1_title": "Configurer le profil",
+        "step1_desc": "Définissez l'identité de votre entreprise. C'est ce que les clients voient lorsqu'ils scannt votre code ou visitent votre lien.",
+        "step2_title": "Partager et afficher",
+        "step2_desc": "Téléchargez votre code QR pour un affichage physique ou partagez votre URL de paiement unique sur les plateformes numériques.",
+        "step3_title": "Paiements Zero-Trust",
+        "step3_desc": "Les clients paient via Vault ou M-Pesa. Chaque transaction est vérifiée de manière cryptographique pour une sécurité maximale.",
+        "step4_title": "Règlement instantané",
+        "step4_desc": "Les fonds sont réglés instantanément dans votre Vault. Pas de délais d'attente de 2-3 jours ni de frais de marchand élevés."
+      },
+      "update": "Mettre à jour le profil de l'entreprise",
+      "inactive_title": "Le mode marchand est inactif",
+      "inactive_desc": "Activez le mode marchand pour commencer à accepter des paiements publics et débloquer des outils de croissance commerciale."
+    },
+    "security": {
+      "alert_feed": "Flux d'alertes de sécurité",
+      "alerts": {
+        "unusual_login": "Lieu de connexion inhabituel",
+        "new_device": "Nouvel appareil autorisé"
+      },
+      "biometric": {
+        "label": "Face ID / Connexion biométrique",
+        "description": "Utilisez la biométrie de l'appareil pour déverrouiller la voûte."
+      },
+      "devices": {
+        "label": "Appareils autorisés",
+        "none": "Aucun appareil autorisé détecté.",
+        "last_login": "Dernière connexion",
+        "management": "Gestion des appareils",
+        "management_desc": "Examinez et gérez tous les appareils actuellement autorisés à accéder à votre compte Vault OS.",
+        "active_session": "Session active",
+        "live": "En direct",
+        "first_seen": "Vu pour la première fois",
+        "last_activity": "Dernière activité",
+        "revoke": "Révoquer l'accès",
+        "revoke_note": "La révocation d'un appareil le déconnectera immédiatement et nécessitera une nouvelle vérification par PIN sécurisé pour le réautoriser."
+      },
+      "pin": {
+        "change": "Changer le PIN sécurisé",
+        "dialog_title": "Changer le PIN sécurisé",
+        "dialog_desc": "Mettez à jour votre code d'accès à 6 chiffres. Vous aurez besoin de votre PIN actuel pour autoriser ce changement.",
+        "current": "PIN actuel",
+        "new": "Nouveau PIN à 6 chiffres",
+        "confirm": "Confirmer le nouveau PIN",
+        "show": "Afficher les PIN",
+        "hide": "Masquer les PIN",
+        "update_btn": "Mettre à jour le PIN sécurisé"
+      },
+      "session_history": "Historique des sessions et journaux d'activité",
+      "session_history_desc": "Un enregistrement complet de toutes les actions liées à la sécurité et de l'activité des sessions.",
+      "audit_note": "Les journaux d'audit Vault OS sont scellés de manière cryptographique et immuables une fois enregistrés."
+    },
+    "activity": {
+      "none": "Aucune activité récente enregistrée.",
+      "view_full": "Voir le journal d'activité complet"
+    },
     "preferences": {
       "currency": "Devise principale",
       "theme": "Thème",
       "language": "Langue d'affichage",
-      "notifications": "Centre de notifications"
+      "notifications": "Centre de notifications",
+      "transfer_received": "Transfert reçu",
+      "account_login": "Connexion au compte",
+      "transfer_sent": "Transfert envoyé",
+      "security_alerts": "Alertes de sécurité",
+      "ai_insights_label": "Analyses de l'IA Advisor",
+      "ai_insights_desc": "Recevez des alertes et des conseils proactifs sur votre santé financière."
+    },
+    "danger": {
+      "delete_account": "Supprimer le compte",
+      "delete_desc": "Supprimez définitivement votre compte Vault OS et toutes les données associées. Cette action ne peut pas être annulée et révoquera immédiatement l'accès à tous les appareils autorisés.",
+      "irreversible_title": "Il s'agit d'une action irréversible. Veuillez vous assurer d'avoir téléchargé ou sauvegardé toutes les données importantes avant de continuer.",
+      "delete_btn": "Supprimer le compte définitivement",
+      "confirm_title": "Êtes-vous sûr ?",
+      "confirm_desc": "C'est une action importante. Vous êtes sur le point d'initier la suppression permanente de votre identité Vault OS.",
+      "confirm_purge": "Tout votre historique financier, vos entrées de grand livre et vos données personnelles seront définitivement purgés.",
+      "confirm_btn": "Je comprends, continuer",
+      "final_warning": "Dernier avertissement",
+      "final_desc": "Cette action est **irréversible**. Une fois terminée, vos fonds et l'accès à votre compte ne pourront pas être récupérés par le support Vault.",
+      "final_list": [
+        "Révocation immédiate de toutes les sessions d'appareil",
+        "Suppression définitive de toutes les clés cryptographiques",
+        "Suppression de votre tag KYC unique et de votre profil"
+      ],
+      "go_back": "Retour",
+      "confirm_impact": "Confirmer l'impact",
+      "verify_identity": "Vérifier l'identité",
+      "verify_desc": "Pour éviter toute suppression accidentelle, veuillez taper {{target}} ci-dessous.",
+      "placeholder": "Tapez pour confirmer..."
     }
   },
   "common": {

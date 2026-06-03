@@ -9,6 +9,9 @@ export interface Notification {
   user_id: string;
   title: string;
   message: string;
+  title_key?: string;
+  message_key?: string;
+  metadata?: any;
   type: NotificationType;
   is_read: boolean;
   created_at: string;

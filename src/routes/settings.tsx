@@ -164,6 +164,7 @@ function ToggleRow({
 }
 
 function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
@@ -172,9 +173,9 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
         className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0"
       >
         <SheetHeader className="p-8 border-b border-border/20">
-          <SheetTitle className="font-serif text-2xl">Session History</SheetTitle>
+          <SheetTitle className="font-serif text-2xl">{t("settings.security.session_history")}</SheetTitle>
           <SheetDescription className="text-muted-foreground">
-            A comprehensive record of all security-related actions and session activity.
+            {t("settings.security.session_history_desc")}
           </SheetDescription>
         </SheetHeader>
         <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-100px)]">
@@ -222,13 +223,13 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
             </div>
           ) : (
             <div className="text-center py-12 text-muted-foreground italic">
-              No activity logs found.
+              {t("settings.activity.none")}
             </div>
           )}
         </div>
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-card to-transparent pt-10">
           <p className="text-[10px] text-center text-muted-foreground leading-relaxed">
-            Vault OS audit logs are cryptographically sealed and immutable once recorded.
+            {t("settings.security.audit_note")}
           </p>
         </div>
       </SheetContent>
@@ -243,6 +244,7 @@ function ChangePinDialog({
   profile: any;
   onSuccess: () => void;
 }) {
+  const { t } = useTranslation();
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
@@ -298,23 +300,23 @@ function ChangePinDialog({
         <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
           <span className="flex items-center gap-3">
             <Lock className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-            Change Secure PIN
+            {t("settings.security.pin.change")}
           </span>
           <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
         <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-serif">Change Secure PIN</DialogTitle>
+          <DialogTitle className="text-2xl font-serif">{t("settings.security.pin.dialog_title")}</DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Update your 6-digit access code. You will need your current PIN to authorize this change.
+            {t("settings.security.pin.dialog_desc")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Current PIN</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.security.pin.current")}</label>
               <div className="relative">
                 <Input
                   type={showPins ? "text" : "password"}
@@ -329,7 +331,7 @@ function ChangePinDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">New 6-Digit PIN</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.security.pin.new")}</label>
               <Input
                 type={showPins ? "text" : "password"}
                 inputMode="numeric"
@@ -342,7 +344,7 @@ function ChangePinDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Confirm New PIN</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.security.pin.confirm")}</label>
               <Input
                 type={showPins ? "text" : "password"}
                 inputMode="numeric"
@@ -361,7 +363,7 @@ function ChangePinDialog({
               className="text-xs text-primary font-medium flex items-center gap-1.5 hover:underline"
             >
               {showPins ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              {showPins ? "Hide PINs" : "Show PINs"}
+              {showPins ? t("settings.security.pin.hide") : t("settings.security.pin.show")}
             </button>
           </div>
 
@@ -371,7 +373,7 @@ function ChangePinDialog({
             className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20"
           >
             {isChanging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-            Update Secure PIN
+            {t("settings.security.pin.update_btn")}
           </Button>
         </div>
       </DialogContent>
@@ -412,6 +414,9 @@ function SettingsPage() {
         es: "Idioma actualizado a Español",
         fr: "Langue mise à jour en Français",
         de: "Sprache auf Deutsch aktualisiert",
+        sw: "Lugha imesasishwa kuwa Kiswahili",
+        it: "Lingua aggiornata in Italiano",
+        pt: "Idioma atualizado para Português",
       };
       toast.success(messages[lang] || `Language updated to ${lang}`);
     } catch (error: any) {
@@ -831,13 +836,13 @@ function SettingsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10">
           {/* Account Profile */}
           <SectionCard icon={User} title={t("settings.sections.profile")}>
-            <Row label="Profile Picture">
+            <Row label={t("settings.profile.picture.label")}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div className="relative group/avatar">
                   <button
                     onClick={() => profile?.profile_photo_url && setShowViewModal(true)}
                     className="relative block rounded-full border-2 border-border/40 overflow-hidden hover:border-primary/60 transition-all active:scale-95"
-                    title={profile?.profile_photo_url ? "View photo" : "No photo set"}
+                    title={profile?.profile_photo_url ? t("settings.profile.picture.view") : "No photo set"}
                     suppressHydrationWarning
                   >
                     <Avatar className="w-16 h-16 rounded-full">
@@ -861,7 +866,7 @@ function SettingsPage() {
                     onClick={() => setShowPhotoOptions(true)}
                     disabled={uploading}
                     className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-md border border-background z-10"
-                    title="Update photo"
+                    title={t("settings.profile.picture.update")}
                   >
                     {uploading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -875,7 +880,7 @@ function SettingsPage() {
                       onClick={removeAvatar}
                       disabled={uploading}
                       className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90 transition-colors shadow-md border border-background z-10"
-                      title="Remove photo"
+                      title={t("settings.profile.picture.remove")}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -884,9 +889,9 @@ function SettingsPage() {
 
                 <div className="flex flex-col gap-2">
                   <div className="text-sm text-muted-foreground">
-                    Upload a profile picture to personalize your account
+                    {t("settings.profile.picture.description")}
                   </div>
-                  <div className="text-xs text-muted-foreground">JPG, PNG or GIF. Max 5MB.</div>
+                  <div className="text-xs text-muted-foreground">{t("settings.profile.picture.format")}</div>
                 </div>
               </div>
             </Row>
@@ -921,9 +926,9 @@ function SettingsPage() {
             <Dialog open={showPhotoOptions} onOpenChange={setShowPhotoOptions}>
               <DialogContent className="sm:max-w-sm bg-card/95 backdrop-blur-xl border-border/40">
                 <DialogHeader>
-                  <DialogTitle>Update Profile Photo</DialogTitle>
+                  <DialogTitle>{t("settings.profile.picture.dialog.title")}</DialogTitle>
                   <DialogDescription>
-                    Choose how you'd like to update your avatar.
+                    {t("settings.profile.picture.dialog.description")}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid grid-cols-1 gap-3 py-4">
@@ -936,9 +941,9 @@ function SettingsPage() {
                       <Camera className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium">Take Photo</div>
+                      <div className="text-sm font-medium">{t("settings.profile.picture.dialog.take")}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        Use your device camera
+                        {t("settings.profile.picture.dialog.camera")}
                       </div>
                     </div>
                   </Button>
@@ -951,9 +956,9 @@ function SettingsPage() {
                       <Upload className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium">Browse Gallery</div>
+                      <div className="text-sm font-medium">{t("settings.profile.picture.dialog.browse")}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        Select from your files
+                        {t("settings.profile.picture.dialog.gallery")}
                       </div>
                     </div>
                   </Button>
@@ -996,7 +1001,7 @@ function SettingsPage() {
                 <canvas ref={canvasRef} className="hidden" />
               </DialogContent>
             </Dialog>
-            <Row label="Verification Status">
+            <Row label={t("settings.profile.verification.label")}>
               <div className="flex flex-wrap items-center gap-3">
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium ${
@@ -1006,30 +1011,30 @@ function SettingsPage() {
                   }`}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  {profile?.kyc_status === "verified" ? "Verified · Level 2" : "Unverified"}
+                  {profile?.kyc_status === "verified" ? t("settings.profile.verification.verified") : t("settings.profile.verification.unverified")}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
-                  <Info className="h-3.5 w-3.5" />
-                  Required for large withdrawals
+                  <span className="h-3.5 w-3.5 rounded-full bg-muted flex items-center justify-center"><Info className="h-2 w-2" /></span>
+                  {t("settings.profile.verification.required")}
                 </span>
               </div>
             </Row>
-            <Row label="Full Name">
+            <Row label={t("settings.profile.full_name.label")}>
               <Input
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder={t("settings.profile.full_name.placeholder")}
                 className="bg-input/40 border-border/60 h-11"
               />
             </Row>
-            <Row label="Email Address">
+            <Row label={t("settings.profile.email.label")}>
               <Input
                 value={profile?.email || ""}
                 disabled
                 className="bg-input/20 border-border/40 h-11 text-muted-foreground cursor-not-allowed"
               />
             </Row>
-            <Row label="KYC Tag">
+            <Row label={t("settings.profile.kyc_tag.label")}>
               <Input
                 value={profile?.kyc_tag || ""}
                 disabled
@@ -1044,7 +1049,7 @@ function SettingsPage() {
                 disabled={saving}
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Save Profile Changes
+                {t("settings.profile.save")}
               </Button>
             </div>
           </SectionCard>
@@ -1052,14 +1057,14 @@ function SettingsPage() {
           {/* Business Profile (Merchant Mode) */}
           <SectionCard
             icon={Store}
-            title="Business Profile"
-            meta="Merchant Mode & B2C Tools"
-            hint="Enable to receive public payments via QR"
+            title={t("settings.sections.business")}
+            meta={t("settings.business.meta")}
+            hint={t("settings.business.hint")}
           >
             <div className="space-y-8">
               <ToggleRow
-                label="Enable Merchant Mode"
-                description="Activate your public payment profile and generate your unique Vault QR code for instant B2C settlements."
+                label={t("settings.business.enable")}
+                description={t("settings.business.enable_desc")}
                 checked={merchantEnabled}
                 onCheckedChange={(val) => {
                   setMerchantEnabled(val);
@@ -1081,8 +1086,8 @@ function SettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-10">
                     <div className="space-y-6">
                       <Row
-                        label="Business Name"
-                        description="The name customers will see on their receipts."
+                        label={t("settings.business.name")}
+                        description={t("settings.business.name_desc")}
                       >
                         <Input
                           value={businessName}
@@ -1094,7 +1099,7 @@ function SettingsPage() {
                           className="bg-input/40 border-border/60 h-11"
                         />
                       </Row>
-                      <Row label="Category">
+                      <Row label={t("settings.business.category")}>
                         <select
                           value={businessCategory}
                           onChange={(e) => {
@@ -1112,8 +1117,8 @@ function SettingsPage() {
                         </select>
                       </Row>
                       <Row
-                        label="Description"
-                        description="Summarize your offerings for your public portal."
+                        label={t("settings.business.description")}
+                        description={t("settings.business.description_desc")}
                       >
                         <textarea
                           value={businessDescription}
@@ -1161,7 +1166,7 @@ function SettingsPage() {
                           </div>
                           <div className="text-center">
                             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
-                              Public QR Code
+                              {t("settings.business.qr.title")}
                             </div>
                             <div className="text-[10px] text-muted-foreground mt-1 font-mono">
                               {profile?.kyc_tag}
@@ -1174,7 +1179,7 @@ function SettingsPage() {
                               className="rounded-xl h-10 px-0"
                               onClick={handleDownloadQR}
                             >
-                              <Download className="w-3.5 h-3.5 mr-2" /> Download
+                              <Download className="w-3.5 h-3.5 mr-2" /> {t("settings.business.qr.download")}
                             </Button>
                             <Button asChild size="sm" variant="outline" className="rounded-xl h-10 px-0">
                               <Link 
@@ -1182,7 +1187,7 @@ function SettingsPage() {
                                 params={{ username: profile?.kyc_tag || "" }} 
                                 target="_blank"
                               >
-                                <ExternalLink className="w-3.5 h-3.5 mr-2" /> View
+                                <ExternalLink className="w-3.5 h-3.5 mr-2" /> {t("settings.business.qr.view")}
                               </Link>
                             </Button>
                           </div>
@@ -1191,7 +1196,7 @@ function SettingsPage() {
                         <div className="w-[212px] h-[212px] rounded-[32px] bg-input/5 border border-dashed border-border/60 flex flex-col items-center justify-center p-6 text-center">
                           <QrCode className="w-10 h-10 text-muted-foreground/40 mb-3" />
                           <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                            Save to Generate QR
+                            {t("settings.business.qr.save_to_gen")}
                           </div>
                         </div>
                       )}
@@ -1201,7 +1206,7 @@ function SettingsPage() {
                   {/* How it works */}
                   <div className="rounded-2xl border border-primary/10 bg-primary/5 p-6">
                     <h3 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <Zap className="w-3.5 h-3.5 text-primary" /> How Merchant Mode Works
+                      <Zap className="w-3.5 h-3.5 text-primary" /> {t("settings.business.how_it_works.title")}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
@@ -1209,11 +1214,10 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             1
                           </div>
-                          <div className="text-xs font-bold">Configure Profile</div>
+                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step1_title")}</div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
-                          Set your business identity. This is what customers see when they scan
-                          your code or visit your link.
+                          {t("settings.business.how_it_works.step1_desc")}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -1221,11 +1225,10 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             2
                           </div>
-                          <div className="text-xs font-bold">Share & Display</div>
+                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step2_title")}</div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
-                          Download your QR code for physical display or share your unique payment
-                          URL across digital platforms.
+                          {t("settings.business.how_it_works.step2_desc")}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -1233,11 +1236,10 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             3
                           </div>
-                          <div className="text-xs font-bold">Zero-Trust Payments</div>
+                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step3_title")}</div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
-                          Customers pay via Vault or M-Pesa. Each transaction is cryptographically
-                          verified for maximum security.
+                          {t("settings.business.how_it_works.step3_desc")}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -1245,11 +1247,10 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             4
                           </div>
-                          <div className="text-xs font-bold">Instant Settlement</div>
+                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step4_title")}</div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
-                          Funds are settled instantly in your Vault. No 2-3 day waiting periods
-                          or high merchant fees.
+                          {t("settings.business.how_it_works.step4_desc")}
                         </p>
                       </div>
                     </div>
@@ -1266,7 +1267,7 @@ function SettingsPage() {
                       ) : (
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                       )}
-                      Update Business Profile
+                      {t("settings.business.update")}
                     </Button>
                   </div>
                 </div>
@@ -1275,10 +1276,9 @@ function SettingsPage() {
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
                     <Store className="w-8 h-8" />
                   </div>
-                  <h3 className="text-lg font-medium mb-2">Merchant Mode is Inactive</h3>
+                  <h3 className="text-lg font-medium mb-2">{t("settings.business.inactive_title")}</h3>
                   <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-                    Enable Merchant Mode to start accepting public payments and unlock business
-                    growth tools.
+                    {t("settings.business.inactive_desc")}
                   </p>
                 </div>
               )}
@@ -1288,25 +1288,25 @@ function SettingsPage() {
           {/* Security Center */}
           <SectionCard
             icon={ShieldCheck}
-            title="Security Center"
-            hint="Required for large withdrawals"
+            title={t("settings.sections.security")}
+            hint={t("settings.security.devices.required")}
           >
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-3">
-                Security Alert Feed
+                {t("settings.security.alert_feed")}
               </div>
               <ul className="space-y-2.5">
                 <li className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                    Unusual login location <span className="text-muted-foreground">(Kenya)</span>
+                    {t("settings.security.alerts.unusual_login")} <span className="text-muted-foreground">(Kenya)</span>
                   </span>
                   <span className="text-xs text-muted-foreground">2h ago</span>
                 </li>
                 <li className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                    New device authorized
+                    {t("settings.security.alerts.new_device authorized")}
                   </span>
                   <span className="text-xs text-muted-foreground">6h ago</span>
                 </li>
@@ -1315,8 +1315,8 @@ function SettingsPage() {
 
             <div className="border-t border-border/40 pt-6 space-y-5">
               <ToggleRow
-                label="Face ID / Biometric Login"
-                description="Use device biometrics to unlock the vault."
+                label={t("settings.security.biometric.label")}
+                description={t("settings.security.biometric.description")}
                 checked={profile?.biometric_enabled}
                 onCheckedChange={(val) => {
                   if (profile) {
@@ -1335,7 +1335,7 @@ function SettingsPage() {
                 }}
               />
               <div className="space-y-4">
-                <div className="text-sm text-foreground">Authorized Devices</div>
+                <div className="text-sm text-foreground">{t("settings.security.devices.label")}</div>
                 <div className="space-y-3">
                   {devices.length > 0 ? (
                     devices.map((device) => (
@@ -1349,7 +1349,7 @@ function SettingsPage() {
                               {device.device_name}
                             </div>
                             <div className="text-[10px] text-muted-foreground">
-                              Last login: {new Date(device.last_login).toLocaleDateString()} at{" "}
+                              {t("settings.security.devices.last_login")}: {new Date(device.last_login).toLocaleDateString()} at{" "}
                               {new Date(device.last_login).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -1362,7 +1362,7 @@ function SettingsPage() {
                     ))
                   ) : (
                     <div className="text-xs text-muted-foreground italic">
-                      No authorized devices detected.
+                      {t("settings.security.devices.none")}
                     </div>
                   )}
                 </div>
@@ -1374,7 +1374,7 @@ function SettingsPage() {
                 <ChangePinDialog
                   profile={profile}
                   onSuccess={() => {
-                    // Update local profile state if needed, though pin_hash is usually opaque to frontend
+                    // Update local profile state if needed, although pin_hash is usually opaque to frontend
                   }}
                 />
               )}
@@ -1383,7 +1383,7 @@ function SettingsPage() {
                   <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
                     <span className="flex items-center gap-3">
                       <Smartphone className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      Device Management
+                      {t("settings.security.devices.management")}
                     </span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                   </button>
@@ -1393,10 +1393,9 @@ function SettingsPage() {
                   className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0"
                 >
                   <SheetHeader className="p-8 border-b border-border/20">
-                    <SheetTitle className="font-serif text-2xl">Device Management</SheetTitle>
+                    <SheetTitle className="font-serif text-2xl">{t("settings.security.devices.management")}</SheetTitle>
                     <SheetDescription className="text-muted-foreground">
-                      Review and manage all devices currently authorized to access your Vault OS
-                      account.
+                      {t("settings.security.devices.management_desc")}
                     </SheetDescription>
                   </SheetHeader>
                   <div className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
@@ -1416,20 +1415,20 @@ function SettingsPage() {
                                   {device.device_name}
                                 </div>
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-tight">
-                                  Active Session
+                                  {t("settings.security.devices.active_session")}
                                 </div>
                               </div>
                             </div>
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-500">
                               <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                              Live
+                              {t("settings.security.devices.live")}
                             </span>
                           </div>
 
                           <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/10">
                             <div>
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
-                                First Seen
+                                {t("settings.security.devices.first_seen")}
                               </div>
                               <div className="text-xs text-foreground/80">
                                 {new Date(device.created_at).toLocaleDateString()}
@@ -1437,7 +1436,7 @@ function SettingsPage() {
                             </div>
                             <div>
                               <div className="text-[10px] uppercase tracking-wider text-muted-foreground/60 mb-1">
-                                Last Activity
+                                {t("settings.security.devices.last_activity")}
                               </div>
                               <div className="text-xs text-foreground/80">
                                 {new Date(device.last_login).toLocaleString([], {
@@ -1454,21 +1453,20 @@ function SettingsPage() {
                               size="sm"
                               className="h-8 text-[11px] text-destructive hover:text-white hover:bg-destructive transition-all"
                             >
-                              Revoke Access
+                              {t("settings.security.devices.revoke")}
                             </Button>
                           </div>
                         </div>
                       ))
                     ) : (
                       <div className="text-center py-12 rounded-xl border border-dashed border-border/60 text-muted-foreground italic">
-                        No authorized devices detected.
+                        {t("settings.security.devices.none")}
                       </div>
                     )}
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-card to-transparent pt-10">
                     <p className="text-[10px] text-center text-muted-foreground leading-relaxed">
-                      Revoking a device will immediately sign it out and require a new secure PIN
-                      verification to re-authorize.
+                      {t("settings.security.devices.revoke_note")}
                     </p>
                   </div>
                 </SheetContent>
@@ -1478,7 +1476,7 @@ function SettingsPage() {
                 <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
                   <span className="flex items-center gap-3">
                     <ScrollText className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    Session History & Activity Logs
+                    {t("settings.security.session_history")}
                   </span>
                   <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 </button>
@@ -1487,7 +1485,7 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Recent Activity */}
-          <SectionCard icon={ScrollText} title="Recent Activity">
+          <SectionCard icon={ScrollText} title={t("settings.sections.activity")}>
             <ul className="divide-y divide-border/40">
               {logs.length > 0 ? (
                 logs.slice(0, 4).map((item) => (
@@ -1515,14 +1513,14 @@ function SettingsPage() {
                 ))
               ) : (
                 <div className="py-4 text-sm text-muted-foreground italic">
-                  No recent activity recorded.
+                  {t("settings.activity.none")}
                 </div>
               )}
             </ul>
 
             <ActivityLogDrawer logs={logs}>
               <button className="w-full text-center text-xs text-primary hover:text-primary/80 pt-4 transition-colors">
-                View full activity log →
+                {t("settings.activity.view_full")} →
               </button>
             </ActivityLogDrawer>
           </SectionCard>
@@ -1573,34 +1571,34 @@ function SettingsPage() {
 
             <div className="border-t border-border/40 mt-6 pt-6">
               <div className="text-xs uppercase tracking-wider text-muted-foreground/70 mb-4">
-                Notification Center
+                {t("settings.preferences.notifications")}
               </div>
               <div className="space-y-4">
                 <ToggleRow
-                  label="Transfer received"
+                  label={t("settings.preferences.transfer_received")}
                   checked={profile?.notifications_transfer_received ?? true}
                   onCheckedChange={(val) =>
                     updatePreference("notifications_transfer_received", val)
                   }
                 />
                 <ToggleRow
-                  label="Account login"
+                  label={t("settings.preferences.account_login")}
                   checked={profile?.notifications_account_login ?? true}
                   onCheckedChange={(val) => updatePreference("notifications_account_login", val)}
                 />
                 <ToggleRow
-                  label="Transfer sent"
+                  label={t("settings.preferences.transfer_sent")}
                   checked={profile?.notifications_transfer_sent ?? true}
                   onCheckedChange={(val) => updatePreference("notifications_transfer_sent", val)}
                 />
                 <ToggleRow
-                  label="Security alerts"
+                  label={t("settings.preferences.security_alerts")}
                   checked={profile?.notifications_security_alerts ?? true}
                   onCheckedChange={(val) => updatePreference("notifications_security_alerts", val)}
                 />
                 <ToggleRow
-                  label="AI Advisor insights"
-                  description="Receive proactive financial health alerts and advice."
+                  label={t("settings.preferences.ai_insights_label")}
+                  description={t("settings.preferences.ai_insights_desc")}
                   checked={profile?.notifications_ai_insights ?? true}
                   onCheckedChange={(val) => updatePreference("notifications_ai_insights", val)}
                 />
@@ -1609,7 +1607,7 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Danger Zone */}
-          <SectionCard icon={X} title="Danger Zone">
+          <SectionCard icon={X} title={t("settings.sections.danger")}>
             <div className="space-y-6">
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">
@@ -1618,19 +1616,16 @@ function SettingsPage() {
                       <X className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-medium text-foreground">Delete Account</h3>
+                      <h3 className="text-base font-medium text-foreground">{t("settings.danger.delete_account")}</h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                        Permanently delete your Vault OS account and all associated data. This
-                        action cannot be undone and will immediately revoke access to all authorized
-                        devices.
+                        {t("settings.danger.delete_desc")}
                       </p>
                     </div>
                   </div>
                   <div className="rounded-lg border border-border/60 bg-card/40 p-4 flex items-start gap-3">
                     <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
                     <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">
-                      This is an irreversible action. Please ensure you have downloaded or backed up
-                      any important data before proceeding.
+                      {t("settings.danger.irreversible_title")}
                     </p>
                   </div>
                 </div>
@@ -1642,25 +1637,23 @@ function SettingsPage() {
                     variant="destructive"
                     className="w-full h-12 rounded-xl transition-all active:scale-95 font-medium text-base shadow-sm hover:shadow-md"
                   >
-                    Delete Account Permanently
+                    {t("settings.danger.delete_btn")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-0 overflow-hidden shadow-2xl">
                   {deleteStage === "initial" && (
                     <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
                       <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif">Are you sure?</DialogTitle>
+                        <DialogTitle className="text-2xl font-serif">{t("settings.danger.confirm_title")}</DialogTitle>
                         <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
-                          This is a significant action. You are about to initiate the permanent
-                          removal of your Vault OS identity.
+                          {t("settings.danger.confirm_desc")}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-4">
                         <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20 flex gap-3 items-start">
                           <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                           <div className="text-sm text-destructive/80 font-medium">
-                            All your financial history, ledger entries, and personal data will be
-                            permanently purged.
+                            {t("settings.danger.confirm_purge")}
                           </div>
                         </div>
                         <Button
@@ -1668,7 +1661,7 @@ function SettingsPage() {
                           className="w-full h-12 rounded-xl font-bold"
                           onClick={() => setDeleteStage("warning")}
                         >
-                          I understand, continue
+                          {t("settings.danger.confirm_btn")}
                         </Button>
                       </div>
                     </div>
@@ -1678,19 +1671,14 @@ function SettingsPage() {
                     <div className="p-8 animate-in slide-in-from-right-4 duration-300">
                       <DialogHeader className="mb-6">
                         <DialogTitle className="text-2xl font-serif text-destructive">
-                          Final Warning
+                          {t("settings.danger.final_warning")}
                         </DialogTitle>
                         <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
-                          This action is **irreversible**. Once completed, your funds and account
-                          access cannot be recovered by Vault Support.
+                          {t("settings.danger.final_desc")}
                         </DialogDescription>
                       </DialogHeader>
                       <ul className="space-y-3 mb-8">
-                        {[
-                          "Immediate revocation of all device sessions",
-                          "Permanent deletion of all cryptographic keys",
-                          "Removal of your unique KYC tag and profile",
-                        ].map((text) => (
+                        {(t("settings.danger.final_list", { returnObjects: true }) as string[]).map((text) => (
                           <li key={text} className="flex items-center gap-3 text-xs font-medium">
                             <div className="w-1.5 h-1.5 rounded-full bg-destructive/40" />
                             {text}
@@ -1703,14 +1691,14 @@ function SettingsPage() {
                           className="flex-1 h-12 rounded-xl"
                           onClick={() => setDeleteStage("initial")}
                         >
-                          Go Back
+                          {t("settings.danger.go_back")}
                         </Button>
                         <Button
                           variant="destructive"
                           className="flex-1 h-12 rounded-xl font-bold"
                           onClick={() => setDeleteStage("verify")}
                         >
-                          Confirm Impact
+                          {t("settings.danger.confirm_impact")}
                         </Button>
                       </div>
                     </div>
@@ -1719,18 +1707,14 @@ function SettingsPage() {
                   {deleteStage === "verify" && (
                     <div className="p-8 animate-in slide-in-from-right-4 duration-300">
                       <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif">Verify Identity</DialogTitle>
+                        <DialogTitle className="text-2xl font-serif">{t("settings.danger.verify_identity")}</DialogTitle>
                         <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
-                          To prevent accidental deletion, please type{" "}
-                          <span className="text-foreground font-mono font-bold select-all bg-muted px-1.5 py-0.5 rounded">
-                            {deleteTargetText}
-                          </span>{" "}
-                          below.
+                          {t("settings.danger.verify_desc", { target: deleteTargetText })}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="space-y-6">
                         <Input
-                          placeholder="Type to confirm..."
+                          placeholder={t("settings.danger.placeholder")}
                           value={deleteConfirmText}
                           onChange={(e) => setDeleteConfirmText(e.target.value)}
                           className="h-12 bg-input/40 border-border/60 rounded-xl font-mono text-sm"
@@ -1742,7 +1726,7 @@ function SettingsPage() {
                           disabled={deleteConfirmText !== deleteTargetText}
                           onClick={handleDeleteAccount}
                         >
-                          Delete Account Permanently
+                          {t("settings.danger.delete_btn")}
                         </Button>
                       </div>
                     </div>

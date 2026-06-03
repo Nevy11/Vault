@@ -29,6 +29,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/help")({
   head: () => ({
@@ -73,47 +74,8 @@ function SectionCard({
   );
 }
 
-const channels = [
-  {
-    id: "call",
-    icon: Phone,
-    title: "Request a Call",
-    detail: "+254 721 735 254",
-    note: "Avg. wait: under 2 minutes",
-  },
-  {
-    id: "email",
-    icon: Mail,
-    title: "Email Support",
-    detail: "alphine886@gmail.com",
-    note: "Replies within 4 hours",
-  },
-];
-
-const faqs = [
-  {
-    q: "How do I reset my Vault PIN securely?",
-    a: "Go to Settings → Security Center → reset PIN. You'll be asked for biometric verification and a one-time code sent to your authorized device.",
-  },
-  {
-    q: "Are there any hidden fees for P2P transfers?",
-    a: "No. Vault OS is a zero-hidden-fee platform. The only fee shown at checkout is the network/exchange fee, which is itemized before you confirm.",
-  },
-  {
-    q: "Why is my withdrawal to a bank delayed?",
-    a: "Bank withdrawals are subject to your destination bank's processing window — typically 1–3 business days. Verify your KYC level for higher daily limits.",
-  },
-  {
-    q: "How can I view my session history and logs?",
-    a: "Open Settings → Security Center → Session History. You'll see every login, device, and action in chronological order.",
-  },
-  {
-    q: "What does KYC Level 2 unlock?",
-    a: "Level 2 unlocks large withdrawals, international transfers, and higher peer-transfer limits. Verify your government ID under Account Profile.",
-  },
-];
-
 function HelpPage() {
+  const { t } = useTranslation();
   const [selectedChannel, setSelectedChannel] = useState("call");
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [agreed, setAgreed] = useState(false);
@@ -128,6 +90,46 @@ function HelpPage() {
   const [callbackNumber, setCallbackNumber] = useState("");
   const [isRequestingCallback, setIsRequestingCallback] = useState(false);
 
+  const channels = [
+    {
+      id: "call",
+      icon: Phone,
+      title: t("help.sections.contact.call.title"),
+      detail: "+254 721 735 254",
+      note: t("help.sections.contact.call.note"),
+    },
+    {
+      id: "email",
+      icon: Mail,
+      title: t("help.sections.contact.email.title"),
+      detail: "alphine886@gmail.com",
+      note: t("help.sections.contact.email.note"),
+    },
+  ];
+
+  const faqs = [
+    {
+      q: t("help.sections.faqs.q1"),
+      a: t("help.sections.faqs.a1"),
+    },
+    {
+      q: t("help.sections.faqs.q2"),
+      a: t("help.sections.faqs.a2"),
+    },
+    {
+      q: t("help.sections.faqs.q3"),
+      a: t("help.sections.faqs.a3"),
+    },
+    {
+      q: t("help.sections.faqs.q4"),
+      a: t("help.sections.faqs.a4"),
+    },
+    {
+      q: t("help.sections.faqs.q5"),
+      a: t("help.sections.faqs.a5"),
+    },
+  ];
+
   const handleRequestCallback = async () => {
     if (!callbackNumber.trim()) {
       toast.error("Please enter a valid phone number for the callback.");
@@ -137,7 +139,7 @@ function HelpPage() {
     try {
       // Simulate backend processing
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      toast.success("Callback scheduled! A Vault OS agent will call you within 2 minutes.");
+      toast.success(t("help.sections.contact.call.dialog.toast_scheduled"));
       setShowCallWorkflow(false);
       setCallbackNumber("");
     } catch (err) {
@@ -151,12 +153,12 @@ function HelpPage() {
     event.preventDefault();
 
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !message.trim()) {
-      toast.error("Please fill in all required fields before submitting the message.");
+      toast.error(t("help.sections.form.toast_error"));
       return;
     }
 
     if (!agreed) {
-      toast.error("You must agree to the terms before submitting.");
+      toast.error(t("help.sections.form.toast_agree_error"));
       return;
     }
 
@@ -176,14 +178,13 @@ function HelpPage() {
         throw error;
       }
 
-      // Our function returns structured JSON with { success: true } or { success: false, ... }
       if (!data || (typeof data === "object" && (data as any).success === false)) {
         const info = (data as any) || {};
         const msg = info.error || info.body || "Failed to send support message.";
         throw new Error(msg);
       }
 
-      toast.success("Your message has been sent. We’ll get back to you soon.");
+      toast.success(t("help.sections.form.toast_success"));
       setFirstName("");
       setLastName("");
       setEmail("");
@@ -207,22 +208,21 @@ function HelpPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t("help.back")}
           </Link>
           <div className="mt-8 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1 className="font-serif text-4xl lg:text-5xl tracking-tight">
-                Help <span className="text-muted-foreground/60">&</span> Support
+                {t("help.title")} <span className="text-muted-foreground/60">&</span> {t("help.support")}
               </h1>
               <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
-                We're here around the clock. Pick a channel, browse common questions, or send us a
-                message — a real human will respond.
+                {t("help.description")}
               </p>
             </div>
             <div className="relative w-full lg:w-80">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search help articles…"
+                placeholder={t("help.search_placeholder")}
                 className="pl-10 h-11 bg-card/40 border-border/60"
               />
             </div>
@@ -235,8 +235,8 @@ function HelpPage() {
           <div className="space-y-8 lg:space-y-10">
             <SectionCard
               icon={ShieldCheck}
-              title="Direct Contact Channels"
-              meta="Choose your preferred support path"
+              title={t("help.sections.contact.title")}
+              meta={t("help.sections.contact.meta")}
             >
               <div className="space-y-3">
                 {channels.map((c) => {
@@ -254,7 +254,7 @@ function HelpPage() {
                         if (c.id === "call") {
                           setShowCallWorkflow(true);
                         } else if (c.id === "email") {
-                          window.location.href = "mailto:alphine886@gmail.com?subject=Vault.OS Support Request";
+                          window.location.href = `mailto:alphine886@gmail.com?subject=Vault.OS Support Request`;
                         }
                       }}
                       onKeyDown={(e) => {
@@ -262,7 +262,7 @@ function HelpPage() {
                           setSelectedChannel(c.id);
                           if (c.id === "call") setShowCallWorkflow(true);
                           if (c.id === "email") {
-                            window.location.href = "mailto:alphine886@gmail.com?subject=Vault.OS Support Request";
+                            window.location.href = `mailto:alphine886@gmail.com?subject=Vault.OS Support Request`;
                           }
                         }
                       }}
@@ -288,12 +288,8 @@ function HelpPage() {
                         <div className="mt-1 text-xs truncate">
                           {isEmail ? (
                             <a 
-                              href="mailto:alphine886@gmail.com?subject=Vault.OS Support Request"
+                              href={`mailto:alphine886@gmail.com?subject=Vault.OS Support Request`}
                               className={`transition-colors font-medium ${active ? "text-emerald-500 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4" : "text-muted-foreground"}`}
-                              onClick={(e) => {
-                                // We don't stop propagation because we still want the card to become active
-                                // but we want to ensure the link click works.
-                              }}
                             >
                               {c.detail}
                             </a>
@@ -320,8 +316,8 @@ function HelpPage() {
 
             <SectionCard
               icon={LifeBuoy}
-              title="Frequently Asked Questions"
-              meta="Tap a question to expand"
+              title={t("help.sections.faqs.title")}
+              meta={t("help.sections.faqs.meta")}
             >
               <div className="space-y-3">
                 {faqs.map((f, i) => {
@@ -361,13 +357,13 @@ function HelpPage() {
           {/* Right column — Contact form */}
           <SectionCard
             icon={Mail}
-            title="Direct Contact Form"
-            meta="Typical response within 4 hours"
+            title={t("help.sections.form.title")}
+            meta={t("help.sections.form.meta")}
           >
             <form className="space-y-7" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">First name</label>
+                  <label className="block text-sm text-muted-foreground mb-2">{t("help.sections.form.first_name")}</label>
                   <Input
                     value={firstName}
                     onChange={(event) => setFirstName(event.target.value)}
@@ -376,7 +372,7 @@ function HelpPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">Last name</label>
+                  <label className="block text-sm text-muted-foreground mb-2">{t("help.sections.form.last_name")}</label>
                   <Input
                     value={lastName}
                     onChange={(event) => setLastName(event.target.value)}
@@ -387,7 +383,7 @@ function HelpPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">Email address</label>
+                <label className="block text-sm text-muted-foreground mb-2">{t("help.sections.form.email")}</label>
                 <Input
                   type="email"
                   value={email}
@@ -399,14 +395,14 @@ function HelpPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm text-muted-foreground">Your message</label>
+                  <label className="block text-sm text-muted-foreground">{t("help.sections.form.message")}</label>
                   <span className="text-xs text-muted-foreground/60">{message.length} / 1000</span>
                 </div>
                 <textarea
                   rows={6}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Describe your issue in detail. The more context you share, the faster we can help."
+                  placeholder={t("help.sections.form.message_placeholder")}
                   className="w-full rounded-md border border-border/60 bg-input/40 px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                 />
               </div>
@@ -419,9 +415,7 @@ function HelpPage() {
                   className="mt-0.5 h-4 w-4 rounded border-border/60 bg-input/40 accent-primary"
                 />
                 <span className="text-xs text-muted-foreground leading-relaxed">
-                  I agree to Vault's{" "}
-                  <span className="text-primary hover:underline">Terms & Conditions</span> and{" "}
-                  <span className="text-primary hover:underline">Privacy Policy</span>.
+                  {t("help.sections.form.agree")}
                 </span>
               </label>
 
@@ -438,7 +432,7 @@ function HelpPage() {
                 className="w-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed gap-2"
               >
                 <Send className="h-4 w-4" />
-                {isSending ? "Sending…" : "Submit message"}
+                {isSending ? t("help.sections.form.sending") : t("help.sections.form.submit")}
               </Button>
             </form>
           </SectionCard>
@@ -447,7 +441,7 @@ function HelpPage() {
         {/* Footer */}
         <div className="mt-12 lg:mt-16 pt-8 border-t border-border/40 text-center">
           <p className="text-xs text-muted-foreground">
-            Need urgent help? Call our 24/7 line at{" "}
+            {t("help.footer_note")}{" "}
             <span className="text-foreground">+254 721 735 254</span>
           </p>
         </div>
@@ -456,9 +450,9 @@ function HelpPage() {
         <Dialog open={showCallWorkflow} onOpenChange={setShowCallWorkflow}>
           <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-serif">Request a Call</DialogTitle>
+              <DialogTitle className="text-2xl font-serif">{t("help.sections.contact.call.dialog.title")}</DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Initiate a secure line with a Vault OS agent. Choose your preferred connection path.
+                {t("help.sections.contact.call.dialog.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 py-4">
@@ -470,7 +464,7 @@ function HelpPage() {
                   <div>
                     <div className="text-sm font-medium text-foreground">+254 721 735 254</div>
                     <div className="text-[11px] text-muted-foreground uppercase tracking-widest">
-                      Vault OS Direct Line
+                      {t("help.sections.contact.call.dialog.direct")}
                     </div>
                   </div>
                 </div>
@@ -478,7 +472,7 @@ function HelpPage() {
                   className="w-full mt-4 h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-all active:scale-95 shadow-lg shadow-primary/20"
                   onClick={() => (window.location.href = "tel:+254721735254")}
                 >
-                  Call Now
+                  {t("help.sections.contact.call.btn")}
                 </Button>
               </div>
 
@@ -486,7 +480,7 @@ function HelpPage() {
                 <div className="flex items-center gap-2">
                   <div className="h-px flex-1 bg-border/40" />
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold">
-                    Or request a callback
+                    {t("help.sections.contact.call.dialog.callback_note")}
                   </span>
                   <div className="h-px flex-1 bg-border/40" />
                 </div>
@@ -505,12 +499,12 @@ function HelpPage() {
                     {isRequestingCallback ? (
                       <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                     ) : (
-                      "Request"
+                      t("help.sections.contact.call.dialog.callback_btn")
                     )}
                   </Button>
                 </div>
                 <p className="text-[10px] text-muted-foreground italic text-center leading-relaxed">
-                  Callback requests are cryptographically queued and prioritized by KYC level.
+                  {t("help.sections.contact.call.dialog.priority_note")}
                 </p>
               </div>
             </div>

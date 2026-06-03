@@ -60,12 +60,85 @@
     "notifications": {
       "title": "Notifications",
       "markAllRead": "Mark all as read",
-      "none": "No notifications yet"
+      "none": "No notifications yet",
+      "deposit_success_title": "Deposit Successful",
+      "deposit_success_msg": "Your deposit of {{amount}} has been credited to your wallet.",
+      "withdrawal_success_title": "Withdrawal Completed",
+      "withdrawal_success_msg": "Your withdrawal of {{amount}} has been processed successfully.",
+      "payment_received_title": "Payment Received",
+      "payment_received_msg": "You have received {{amount}} from a Vault user.",
+      "transfer_sent_title": "Transfer Sent",
+      "transfer_sent_msg": "Your transfer of {{amount}} has been sent successfully.",
+      "login_title": "New Account Login",
+      "login_msg": "Your account was accessed from a {{device}} in {{location}}.",
+      "security_alert_title": "Security Alert",
+      "security_alert_msg": "A suspicious activity was detected on your account: {{action}}. If this wasn't you, please change your PIN immediately."
     },
     "profile": {
       "view": "View Profile",
       "settings": "Settings"
     }
+  },
+  "help": {
+    "title": "Help",
+    "support": "Support",
+    "back": "Back",
+    "description": "We're here around the clock. Pick a channel, browse common questions, or send us a message — a real human will respond.",
+    "search_placeholder": "Search help articles...",
+    "sections": {
+      "contact": {
+        "title": "Direct Contact Channels",
+        "meta": "Choose your preferred support path",
+        "call": {
+          "title": "Request a Call",
+          "note": "Avg. wait: under 2 minutes",
+          "btn": "Call Now",
+          "dialog": {
+            "title": "Request a Call",
+            "description": "Initiate a secure line with a Vault OS agent. Choose your preferred connection path.",
+            "direct": "Vault OS Direct Line",
+            "callback_note": "Or request a callback",
+            "callback_btn": "Request",
+            "priority_note": "Callback requests are cryptographically queued and prioritized by KYC level.",
+            "toast_scheduled": "Callback scheduled! A Vault OS agent will call you within 2 minutes."
+          }
+        },
+        "email": {
+          "title": "Email Support",
+          "note": "Replies within 4 hours"
+        }
+      },
+      "faqs": {
+        "title": "Frequently Asked Questions",
+        "meta": "Tap a question to expand",
+        "q1": "How do I reset my Vault PIN securely?",
+        "a1": "Go to Settings → Security Center → reset PIN. You'll be asked for biometric verification and a one-time code sent to your authorized device.",
+        "q2": "Are there any hidden fees for P2P transfers?",
+        "a2": "No. Vault OS is a zero-hidden-fee platform. The only fee shown at checkout is the network/exchange fee, which is itemized before you confirm.",
+        "q3": "Why is my withdrawal to a bank delayed?",
+        "a3": "Bank withdrawals are subject to your destination bank's processing window — typically 1–3 business days. Verify your KYC level for higher daily limits.",
+        "q4": "How can I view my session history and logs?",
+        "a4": "Open Settings → Security Center → Session History. You'll see every login, device, and action in chronological order.",
+        "q5": "What does KYC Level 2 unlock?",
+        "a5": "Level 2 unlocks large withdrawals, international transfers, and higher peer-transfer limits. Verify your government ID under Account Profile."
+      },
+      "form": {
+        "title": "Direct Contact Form",
+        "meta": "Typical response within 4 hours",
+        "first_name": "First name",
+        "last_name": "Last name",
+        "email": "Email address",
+        "message": "Your message",
+        "message_placeholder": "Describe your issue in detail. The more context you share, the faster we can help.",
+        "agree": "I agree to Vault's Terms & Conditions and Privacy Policy.",
+        "submit": "Submit message",
+        "sending": "Sending...",
+        "toast_success": "Your message has been sent. We’ll get back to you soon.",
+        "toast_error": "Please fill in all required fields before submitting the message.",
+        "toast_agree_error": "You must agree to the terms before submitting."
+      }
+    },
+    "footer_note": "Need urgent help? Call our 24/7 line at"
   },
   "ai_insights": {
     "title": "AI Financial Insight",
@@ -87,11 +160,153 @@
       "preferences": "Preferences",
       "danger": "Danger Zone"
     },
+    "profile": {
+      "picture": {
+        "label": "Profile Picture",
+        "description": "Upload a profile picture to personalize your account",
+        "format": "JPG, PNG or GIF. Max 5MB.",
+        "view": "View photo",
+        "update": "Update photo",
+        "remove": "Remove photo",
+        "dialog": {
+          "title": "Update Profile Photo",
+          "description": "Choose how you'd like to update your avatar.",
+          "take": "Take Photo",
+          "camera": "Use your device camera",
+          "browse": "Browse Gallery",
+          "gallery": "Select from your files",
+          "capture": "Capture Photo"
+        }
+      },
+      "verification": {
+        "label": "Verification Status",
+        "verified": "Verified · Level 2",
+        "unverified": "Unverified",
+        "required": "Required for large withdrawals"
+      },
+      "full_name": {
+        "label": "Full Name",
+        "placeholder": "Enter your full name"
+      },
+      "email": {
+        "label": "Email Address"
+      },
+      "kyc_tag": {
+        "label": "KYC Tag"
+      },
+      "save": "Save Profile Changes"
+    },
+    "business": {
+      "meta": "Merchant Mode & B2C Tools",
+      "hint": "Enable to receive public payments via QR",
+      "enable": "Enable Merchant Mode",
+      "enable_desc": "Activate your public payment profile and generate your unique Vault QR code for instant B2C settlements.",
+      "name": "Business Name",
+      "name_desc": "The name customers will see on their receipts.",
+      "category": "Category",
+      "description": "Description",
+      "description_desc": "Summarize your offerings for your public portal.",
+      "qr": {
+        "title": "Public QR Code",
+        "save_to_gen": "Save to Generate QR",
+        "download": "Download",
+        "view": "View"
+      },
+      "how_it_works": {
+        "title": "How Merchant Mode Works",
+        "step1_title": "Configure Profile",
+        "step1_desc": "Set your business identity. This is what customers see when they scan your code or visit your link.",
+        "step2_title": "Share & Display",
+        "step2_desc": "Download your QR code for physical display or share your unique payment URL across digital platforms.",
+        "step3_title": "Zero-Trust Payments",
+        "step3_desc": "Customers pay via Vault or M-Pesa. Each transaction is cryptographically verified for maximum security.",
+        "step4_title": "Instant Settlement",
+        "step4_desc": "Funds are settled instantly in your Vault. No 2-3 day waiting periods or high merchant fees."
+      },
+      "update": "Update Business Profile",
+      "inactive_title": "Merchant Mode is Inactive",
+      "inactive_desc": "Enable Merchant Mode to start accepting public payments and unlock business growth tools."
+    },
+    "security": {
+      "alert_feed": "Security Alert Feed",
+      "alerts": {
+        "unusual_login": "Unusual login location",
+        "new_device": "New device authorized"
+      },
+      "biometric": {
+        "label": "Face ID / Biometric Login",
+        "description": "Use device biometrics to unlock the vault."
+      },
+      "devices": {
+        "label": "Authorized Devices",
+        "none": "No authorized devices detected.",
+        "last_login": "Last login",
+        "management": "Device Management",
+        "management_desc": "Review and manage all devices currently authorized to access your Vault OS account.",
+        "active_session": "Active Session",
+        "live": "Live",
+        "first_seen": "First Seen",
+        "last_activity": "Last Activity",
+        "revoke": "Revoke Access",
+        "revoke_note": "Revoking a device will immediately sign it out and require a new secure PIN verification to re-authorize."
+      },
+      "pin": {
+        "change": "Change Secure PIN",
+        "dialog_title": "Change Secure PIN",
+        "dialog_desc": "Update your 6-digit access code. You will need your current PIN to authorize this change.",
+        "current": "Current PIN",
+        "new": "New 6-Digit PIN",
+        "confirm": "Confirm New PIN",
+        "show": "Show PINs",
+        "hide": "Hide PINs",
+        "update_btn": "Update Secure PIN"
+      },
+      "session_history": "Session History & Activity Logs",
+      "session_history_desc": "A comprehensive record of all security-related actions and session activity.",
+      "audit_note": "Vault OS audit logs are cryptographically sealed and immutable once recorded.",
+      "auth_success": "Successfully authenticated via {{device}}",
+      "suspicious_flag": "Flagged as suspicious activity",
+      "unknown": "Unknown",
+      "unknown_device": "Unknown Device"
+    },
+    "activity": {
+      "none": "No recent activity recorded.",
+      "view_full": "View full activity log",
+      "via": "via {{device}}"
+    },
     "preferences": {
       "currency": "Primary Currency",
       "theme": "Theme",
       "language": "Display Language",
-      "notifications": "Notification Center"
+      "notifications": "Notification Center",
+      "transfer_received": "Transfer received",
+      "account_login": "Account login",
+      "transfer_sent": "Transfer sent",
+      "security_alerts": "Security alerts",
+      "ai_insights_label": "AI Advisor insights",
+      "ai_insights_desc": "Receive proactive financial health alerts and advice."
+    },
+    "danger": {
+      "delete_account": "Delete Account",
+      "delete_desc": "Permanently delete your Vault OS account and all associated data. This action cannot be undone and will immediately revoke access to all authorized devices.",
+      "irreversible_title": "This is an irreversible action. Please ensure you have downloaded or backed up any important data before proceeding.",
+      "delete_btn": "Delete Account Permanently",
+      "confirm_title": "Are you sure?",
+      "confirm_desc": "This is a significant action. You are about to initiate the permanent removal of your Vault OS identity.",
+      "confirm_purge": "All your financial history, ledger entries, and personal data will be permanently purged.",
+      "confirm_btn": "I understand, continue",
+      "final_warning": "Final Warning",
+      "final_desc": "This action is **irreversible**. Once completed, your funds and account access cannot be recovered by Vault Support.",
+      "final_list": [
+        "Immediate revocation of all device sessions",
+        "Permanent deletion of all cryptographic keys",
+        "Removal of your unique KYC tag and profile"
+      ],
+      "go_back": "Go Back",
+      "confirm_impact": "Confirm Impact",
+      "verify_identity": "Verify Identity",
+      "verify_desc": "To prevent accidental deletion, please type {{target}} below.",
+      "placeholder": "Type to confirm..."
     }
   },
   "common": {

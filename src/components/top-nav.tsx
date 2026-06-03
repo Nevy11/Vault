@@ -151,7 +151,7 @@ export function TopNav() {
                                 <span
                                   className={`text-xs font-semibold ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}
                                 >
-                                  {n.title}
+                                  {n.title_key ? t(n.title_key) : n.title}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                                   {new Date(n.created_at).toLocaleDateString([], {
@@ -161,7 +161,7 @@ export function TopNav() {
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground line-clamp-2">
-                                {n.message}
+                                {n.message_key ? t(n.message_key, n.metadata) : n.message}
                               </p>
                             </button>
                           ))}
