@@ -273,6 +273,8 @@ function RootComponent() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
       }
     });
 
@@ -283,7 +285,7 @@ function RootComponent() {
       console.log("Auth state change:", event);
       if (session?.user) {
         fetchProfile(session.user.id);
-      } else if (event === "SIGNED_OUT") {
+      } else {
         setProfile(null);
       }
     });

@@ -1187,6 +1187,22 @@ function DashboardPage() {
               })
             )}
           </ul>
+
+          {!txLoading && filteredTransactions.length > 0 && (
+            <div className="mt-6 pt-2 flex justify-center border-t border-border/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-all group"
+              >
+                <Link to="/transactions">
+                  View All Transactions
+                  <ArrowRight className="w-3.5 h-3.5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+            </div>
+          )}
         </div>
       </main>
     </AppShell>
