@@ -1,15 +1,15 @@
-import { Request as ExpressRequest, Response as ExpressResponse } from "express";
+import type { IncomingMessage, ServerResponse } from "http";
 // @ts-expect-error -- server is generated during build
-import server from "../dist/server/index.js";
+import server from "../dist/server/server.js";
 
-function getRequestUrl(req: ExpressRequest) {
-  const protocol = req.headers["x-forwarded-proto"] || "https";
-  const host = req.headers.host;
+function getRequestUrl(req: IncomingMessage) {
+  const protocol = (req.headers["x-forwarded-proto"] as string) || "https";
+  const host = req.headers.host as string;
   const url = `${protocol}://${host}${req.url}`;
   return url;
 }
 
-function toRequest(req: ExpressRequest) {
+function toRequest(req: IncomingMessage) {
   const url = getRequestUrl(req);
   const headers = new Headers();
 
@@ -31,16 +31,12 @@ function toRequest(req: ExpressRequest) {
   });
 }
 
-async function sendResponse(res: ExpressResponse, response: Response) {
+async function sendResponse(res: ServerResponse, response: Response) {
   const body = await response.arrayBuffer();
 
-  res.status(response.status);
+  res.writeHead(response.status);
   response.headers.forEach((value, key) => {
-    if (key.toLowerCase() === "set-cookie") {
-      res.setHeader(key, response.headers.get(key) ?? "");
-    } else {
-      res.setHeader(key, value);
-    }
+    res.setHeader(key, value);
   });
 
   if (body.byteLength > 0) {
@@ -50,7 +46,7 @@ async function sendResponse(res: ExpressResponse, response: Response) {
   }
 }
 
-export default async function handler(req: ExpressRequest, res: ExpressResponse) {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
   try {
     const request = toRequest(req);
     const response = await (
@@ -59,6 +55,7 @@ export default async function handler(req: ExpressRequest, res: ExpressResponse)
     await sendResponse(res, response);
   } catch (error: unknown) {
     console.error(error);
-    res.status(500).send("Internal Server Error");
+    res.writeHead(500, { "Content-Type": "text/plain" });
+    res.end("Internal Server Error");
   }
 }
