@@ -196,9 +196,11 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     let yPosition = 20;
 
     // Set colors
-    const primaryColor = [5, 150, 105]; // #059669
-    const textColor = [0, 0, 0];
-    const mutedColor = [102, 102, 102];
+    const primaryColor: [number, number, number] = [5, 150, 105]; // #059669
+    const textColor: [number, number, number] = [0, 0, 0];
+    const mutedColor: [number, number, number] = [102, 102, 102];
+    const setFont = (style: "bold" | "normal") =>
+      (doc.setFont as (font: string, style: string) => void)("helvetica", style);
 
     // Header background
     doc.setFillColor(240, 253, 250); // light green background
