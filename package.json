@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build --config vite.spa.config.ts && vite build",
+    "build": "vite build --config vite.spa.config.ts && vite build && node -e \"const fs = require('fs'); const path = require('path'); const src = 'dist/assets'; const dest = 'dist/client/assets'; if (fs.existsSync(src)) { if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true }); fs.readdirSync(src).forEach(file => { const s = path.join(src, file); const d = path.join(dest, file); if (fs.existsSync(d)) fs.unlinkSync(d); fs.renameSync(s, d); }); }\"",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "build:spa": "vite build --config vite.spa.config.ts",

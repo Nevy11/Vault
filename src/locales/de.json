@@ -162,11 +162,28 @@
     "footer_note": "Benötigen Sie dringende Hilfe? Rufen Sie unsere 24/7-Hotline an unter"
   },
   "ai_insights": {
-    "title": "KI-Finanzanalyse",
+    "title": "KI-Finanzeinblick",
     "placeholder": "Klicken Sie auf Generieren, um Ihre Ausgaben zu analysieren und KI-Vorhersagen zu erhalten.",
     "initializing": "KI-Berater wird initialisiert...",
     "update": "Analyse aktualisieren",
-    "generate": "Analyse generieren"
+    "generate": "Einblick generieren"
+  },
+  "advisor": {
+    "title": "Finanzberater",
+    "status": "Aktiver Stratege",
+    "greeting": "Hallo {{name}}! Ich bin Ihr Vault-Finanzberater. Ich kann Ihnen helfen, Ihre Ausgaben zu analysieren, Ihre Ersparnisse zu optimieren oder Ihre nächste große Investition zu planen. [Meine Ausgaben analysieren] [Wie kann ich mehr sparen?] [Aktuelle Zinssätze]",
+    "placeholder": "Fragen Sie mich alles...",
+    "thinking": "Berater überlegt...",
+    "consulting": "Vault AI wird konsultiert...",
+    "send": "Senden",
+    "error_history": "Verlauf des Beraters konnte nicht geladen werden.",
+    "error_response": "Antwort vom Berater konnte nicht abgerufen werden.",
+    "error_mic": "Mikrofonfehler: ",
+    "error_speech_unsupported": "Spracherkennung wird von diesem Browser nicht unterstützt.",
+    "secure": "Sicher",
+    "disclaimer": "Vault AI kann Fehler machen. Überprüfen Sie wichtige Finanzinformationen.",
+    "floating_label": "Vault AI Berater fragen",
+    "floating_label_mobile": "AI Berater"
   },
   "settings": {
     "title": "Einstellungen",

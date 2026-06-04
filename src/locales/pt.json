@@ -168,6 +168,23 @@
     "update": "Atualizar Análise",
     "generate": "Gerar Insight"
   },
+  "advisor": {
+    "title": "Consultor Financeiro",
+    "status": "Estrategista ativo",
+    "greeting": "Olá {{name}}! Sou o seu Consultor Financeiro Vault. Posso ajudá-lo a analisar gastos, otimizar poupanças ou planejar seu próximo grande investimento. [Analisar meus gastos] [Como posso poupar mais?] [Taxas de juros atuais]",
+    "placeholder": "Pergunte-me qualquer coisa...",
+    "thinking": "O consultor está pensando...",
+    "consulting": "Consultando a Vault AI...",
+    "send": "Enviar",
+    "error_history": "Não foi possível carregar o histórico do consultor.",
+    "error_response": "Falha ao obter resposta do consultor.",
+    "error_mic": "Erro do microfone: ",
+    "error_speech_unsupported": "O reconhecimento de voz não é suportado neste navegador.",
+    "secure": "Seguro",
+    "disclaimer": "A Vault AI pode cometer erros. Verifique informações financeiras importantes.",
+    "floating_label": "Perguntar ao Consultor Vault AI",
+    "floating_label_mobile": "Consultor AI"
+  },
   "settings": {
     "title": "Configurações",
     "subtitle": "Configuração",

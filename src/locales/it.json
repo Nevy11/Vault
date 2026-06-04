@@ -168,6 +168,23 @@
     "update": "Aggiorna analisi",
     "generate": "Genera approfondimento"
   },
+  "advisor": {
+    "title": "Consulente Finanziario",
+    "status": "Stratega attivo",
+    "greeting": "Ciao {{name}}! Sono il tuo consulente finanziario Vault. Posso aiutarti ad analizzare le spese, ottimizzare i risparmi o pianificare il tuo prossimo grande investimento. [Analizza le mie spese] [Come posso risparmiare di più?] [Tassi di interesse attuali]",
+    "placeholder": "Chiedimi qualsiasi cosa...",
+    "thinking": "Il consulente sta pensando...",
+    "consulting": "Consultazione di Vault AI...",
+    "send": "Invia",
+    "error_history": "Impossibile caricare la cronologia del consulente.",
+    "error_response": "Impossibile ottenere una risposta dal consulente.",
+    "error_mic": "Errore del microfono: ",
+    "error_speech_unsupported": "Il riconoscimento vocale non è supportato in questo browser.",
+    "secure": "Sicuro",
+    "disclaimer": "Vault AI può commettere errori. Verifica le informazioni finanziarie importanti.",
+    "floating_label": "Chiedi al consulente Vault AI",
+    "floating_label_mobile": "Consulente AI"
+  },
   "settings": {
     "title": "Impostazioni",
     "subtitle": "Configurazione",

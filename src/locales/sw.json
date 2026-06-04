@@ -180,6 +180,23 @@
     "update": "Sasisha Uchambuzi",
     "generate": "Zalisha Ushauri"
   },
+  "advisor": {
+    "title": "Mshauri wa Fedha",
+    "status": "Mkakati amilifu",
+    "greeting": "Habari {{name}}! Mimi ni Mshauri wako wa Fedha wa Vault. Naweza kukusaidia kuchanganua matumizi, kuboresha akiba, au kupanga uwekezaji wako mkubwa ujao. [Changanua matumizi yangu] [Ninawezaje kuweka akiba zaidi?] [Viwango vya sasa vya riba]",
+    "placeholder": "Niulize chochote...",
+    "thinking": "Mshauri anafikiria...",
+    "consulting": "Kushauriana na Vault AI...",
+    "send": "Tuma",
+    "error_history": "Imeshindikana kupakia historia ya mshauri.",
+    "error_response": "Imeshindikana kupata jibu kutoka kwa mshauri.",
+    "error_mic": "Hitilafu ya kipaza sauti: ",
+    "error_speech_unsupported": "Utambuzi wa sauti hautumiki katika kivinjari hiki.",
+    "secure": "Salama",
+    "disclaimer": "Vault AI inaweza kufanya makosa. Angalia maelezo muhimu ya kifedha.",
+    "floating_label": "Uliza Mshauri wa Vault AI",
+    "floating_label_mobile": "Mshauri wa AI"
+  },
   "settings": {
     "title": "Mipangilio",
     "subtitle": "Usanidi",

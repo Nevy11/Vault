@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface FloatingAdvisorProps {
   onClick: () => void;
@@ -12,6 +13,7 @@ interface FloatingAdvisorProps {
  * Designed as a high-visibility pill capsule that expands on mount to reveal the label.
  */
 export function FloatingAdvisor({ onClick, className }: FloatingAdvisorProps) {
+  const { t } = useTranslation();
   const [showLabel, setShowLabel] = useState(false);
 
   useEffect(() => {
@@ -43,8 +45,8 @@ export function FloatingAdvisor({ onClick, className }: FloatingAdvisorProps) {
         >
           <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse shrink-0" />
           <span className="text-xs md:text-sm font-medium tracking-wide whitespace-nowrap">
-            <span className="hidden sm:inline">Ask Vault AI Advisor</span>
-            <span className="sm:hidden">AI Advisor</span>
+            <span className="hidden sm:inline">{t("advisor.floating_label")}</span>
+            <span className="sm:hidden">{t("advisor.floating_label_mobile")}</span>
           </span>
         </div>
 

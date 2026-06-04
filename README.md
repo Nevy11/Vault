@@ -8,7 +8,7 @@ The project focuses on user authentication, wallet management, deposits/withdraw
 
 ## Live app
 
-- Live production URL: https://vault-finance-os.vercel.app/
+- Live production URL: https://tanstack-start-app.vault-os.workers.dev/
 
 ## How to use
 

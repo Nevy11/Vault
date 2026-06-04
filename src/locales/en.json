@@ -180,6 +180,23 @@
     "update": "Update Analysis",
     "generate": "Generate Insight"
   },
+  "advisor": {
+    "title": "Finance Advisor",
+    "status": "Active strategist",
+    "greeting": "Hi {{name}}! I'm your Vault Finance Advisor. I can help you analyze spending, optimize savings, or plan your next big investment. [Analyze my spending] [How can I save more?] [Current interest rates]",
+    "placeholder": "Ask me anything...",
+    "thinking": "Advisor is thinking...",
+    "consulting": "Consulting Vault AI...",
+    "send": "Send",
+    "error_history": "Unable to load advisor history.",
+    "error_response": "Failed to get response from advisor.",
+    "error_mic": "Microphone error: ",
+    "error_speech_unsupported": "Speech recognition is not supported in this browser.",
+    "secure": "Secure",
+    "disclaimer": "Vault AI can make mistakes. Check important financial info.",
+    "floating_label": "Ask Vault AI Advisor",
+    "floating_label_mobile": "AI Advisor"
+  },
   "settings": {
     "title": "Settings",
     "subtitle": "Configuration",

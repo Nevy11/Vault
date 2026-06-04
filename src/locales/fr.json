@@ -162,11 +162,28 @@
     "footer_note": "Besoin d'aide urgente ? Appelez notre ligne 24/7 au"
   },
   "ai_insights": {
-    "title": "Analyse Financière IA",
-    "placeholder": "Cliquez sur générer pour analyser vos dépenses et obtenir des prédictions IA.",
+    "title": "Aperçu financier de l'IA",
+    "placeholder": "Cliquez sur générer pour analyser vos dépenses et obtenir des prédictions de l'IA.",
     "initializing": "Initialisation du conseiller IA...",
     "update": "Mettre à jour l'analyse",
-    "generate": "Générer une analyse"
+    "generate": "Générer un aperçu"
+  },
+  "advisor": {
+    "title": "Conseiller Financier",
+    "status": "Stratège actif",
+    "greeting": "Salut {{name}} ! Je suis votre conseiller financier Vault. Je peux vous aider à analyser vos dépenses, à optimiser vos économies ou à planifier votre prochain investissement majeur. [Analyser mes dépenses] [Comment puis-je économiser davantage ?] [Taux d'intérêt actuels]",
+    "placeholder": "Demandez-moi n'importe quoi...",
+    "thinking": "Le conseiller réfléchit...",
+    "consulting": "Consultation de Vault AI...",
+    "send": "Envoyer",
+    "error_history": "Impossible de charger l'historique du conseiller.",
+    "error_response": "Échec de l'obtention d'une réponse du conseiller.",
+    "error_mic": "Erreur de microphone : ",
+    "error_speech_unsupported": "La reconnaissance vocale n'est pas prise en charge par ce navigateur.",
+    "secure": "Sécurisé",
+    "disclaimer": "Vault AI peut faire des erreurs. Vérifiez les informations financières importantes.",
+    "floating_label": "Demander au conseiller Vault AI",
+    "floating_label_mobile": "Conseiller AI"
   },
   "settings": {
     "title": "Paramètres",

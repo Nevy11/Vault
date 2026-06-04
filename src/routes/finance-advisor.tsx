@@ -3,6 +3,7 @@ import { FinanceAdvisorContent } from "@/components/finance-advisor-content";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useTranslation } from "react-i18next";
 
 export const Route = createFileRoute("/finance-advisor")({
   component: FinanceAdvisorPage,
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/finance-advisor")({
 
 function FinanceAdvisorPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleClose = () => {
     navigate({ to: "/dashboard" });
@@ -19,7 +21,7 @@ function FinanceAdvisorPage() {
     <Dialog open={true} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden bg-transparent border-none shadow-2xl flex flex-col gap-0 rounded-3xl">
         <VisuallyHidden>
-          <DialogTitle>Finance Advisor AI</DialogTitle>
+          <DialogTitle>{t("advisor.title")}</DialogTitle>
         </VisuallyHidden>
 
         {/* Custom Close Button - Positioned to prevent layout clipping */}
