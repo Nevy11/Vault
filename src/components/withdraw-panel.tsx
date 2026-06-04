@@ -40,6 +40,7 @@ import { Link } from "@tanstack/react-router";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 
 import { useProfileSignal } from "@/lib/profile-signal";
+import { evaluateTransaction } from "@/lib/fraud-protection";
 
 // Mock Data
 const SAVED_BANKS = [
@@ -224,7 +225,13 @@ export function WithdrawPanel() {
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error(t("common.errors.user_not_found"));
 
-      // Call the RPC function
+      // 1. FRAUD DETECTION INTERCEPTOR
+      const fraudCheck = await evaluateTransaction(userId, totalDeduction);
+      if (fraudCheck.isFraudulent) {
+        throw new Error(fraudCheck.reason || "Transaction flagged by fraud detection system.");
+      }
+
+      // 2. Call the RPC function
       const { data, error: txError } = await supabase.rpc("process_secure_withdrawal", {
         p_user_id: userId,
         p_amount: totalDeduction,
