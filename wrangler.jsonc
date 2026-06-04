@@ -4,4 +4,12 @@
   "compatibility_date": "2025-09-24",
   "compatibility_flags": ["nodejs_compat"],
   "main": "src/server.ts",
+  // Serve the built static assets from `dist/client` via Workers Static Assets.
+  // The @cloudflare/vite-plugin builds for this binding — the legacy `site.bucket`
+  // config does not work and causes /assets/*.css and *.js to 404.
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  }
 }
