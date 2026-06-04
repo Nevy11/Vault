@@ -161,7 +161,7 @@ export function TopNav() {
                                 </span>
                               </div>
                               <p className="text-xs text-muted-foreground line-clamp-2">
-                                {n.message_key ? t(n.message_key, n.metadata) : n.message}
+                                {n.message_key ? (t(n.message_key, n.metadata) as string) : n.message}
                               </p>
                             </button>
                           ))}

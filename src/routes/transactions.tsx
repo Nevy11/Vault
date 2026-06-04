@@ -62,20 +62,15 @@ const transactionsSearchSchema = z.object({
 
 export const Route = createFileRoute("/transactions")({
   validateSearch: (search) => transactionsSearchSchema.parse(search),
-  head: (ctx) => {
-    const { t } = ctx.context.i18n || { t: (k: string) => k };
-    return {
-      meta: [
-        { title: t ? t("transactions.page_title") : "Transactions — Vault OS" },
-        {
-          name: "description",
-          content: t
-            ? t("transactions.page_description")
-            : "Send money, deposit funds, and withdraw across your Vault accounts.",
-        },
-      ],
-    };
-  },
+  head: () => ({
+    meta: [
+      { title: "Transactions — Vault OS" },
+      {
+        name: "description",
+        content: "Send money, deposit funds, and withdraw across your Vault accounts.",
+      },
+    ],
+  }),
   component: TransactionsPage,
 });
 
@@ -761,7 +756,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarImage src={r.avatarUrl ?? undefined} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>
@@ -790,7 +785,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarImage src={r.avatarUrl ?? undefined} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>

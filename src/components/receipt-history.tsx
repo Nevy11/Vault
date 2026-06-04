@@ -196,9 +196,11 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     let yPosition = 20;
 
     // Set colors
-    const primaryColor = [5, 150, 105]; // #059669
-    const textColor = [0, 0, 0];
-    const mutedColor = [102, 102, 102];
+    const primaryColor: [number, number, number] = [5, 150, 105]; // #059669
+    const textColor: [number, number, number] = [0, 0, 0];
+    const mutedColor: [number, number, number] = [102, 102, 102];
+    const setFont = (style: "bold" | "normal") =>
+      (doc.setFont as (font: string, style: string) => void)("helvetica", style);
 
     // Header background
     doc.setFillColor(240, 253, 250); // light green background
@@ -209,20 +211,20 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.rect(pageWidth / 2 - 8, yPosition, 16, 16, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("$", pageWidth / 2, yPosition + 11, { align: "center" });
 
     // Title and subtitle
     doc.setTextColor(...textColor);
     doc.setFontSize(24);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     yPosition += 25;
     doc.text("Vault OS", pageWidth / 2, yPosition, { align: "center" });
 
     yPosition += 8;
     doc.setFontSize(8);
     doc.setTextColor(...mutedColor);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("TRANSACTION CERTIFIED", pageWidth / 2, yPosition, { align: "center" });
 
     yPosition += 15;
@@ -230,11 +232,11 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     // Receipt details section
     doc.setTextColor(...mutedColor);
     doc.setFontSize(9);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("RECEIPT NUMBER", 20, yPosition);
 
     doc.setTextColor(...textColor);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.text(receipt.receipt_number, pageWidth - 20, yPosition, { align: "right" });
 
@@ -243,13 +245,13 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     // Amount section
     doc.setTextColor(...mutedColor);
     doc.setFontSize(9);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.text("AMOUNT DEDUCTED", 20, yPosition);
 
     yPosition += 8;
     doc.setTextColor(...primaryColor);
     doc.setFontSize(28);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.text(`${receipt.currency} ${receipt.amount.toLocaleString()}`, 20, yPosition);
 
     yPosition += 18;
@@ -264,7 +266,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
 
     doc.setTextColor(...mutedColor);
     doc.setFontSize(9);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
 
     details.forEach((row, idx) => {
       doc.text(row[0], 20, yPosition);
@@ -283,7 +285,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
 
     doc.setTextColor(...primaryColor);
     doc.setFontSize(9);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     const footerText = `Your transfer of ${receipt.currency} ${receipt.amount.toLocaleString()} has been processed securely.`;
     doc.text(footerText, pageWidth / 2, yPosition + 10, {
       align: "center",
@@ -295,7 +297,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     // Final message
     doc.setTextColor(...mutedColor);
     doc.setFontSize(8);
-    doc.setFont(undefined, "normal");
+    doc.setFont("helvetica", "normal");
     const finalText =
       "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.";
     doc.text(finalText, pageWidth / 2, yPosition, { align: "center", maxWidth: pageWidth - 40 });

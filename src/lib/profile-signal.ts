@@ -18,6 +18,7 @@ export type Profile = {
   notifications_account_login?: boolean;
   notifications_security_alerts?: boolean;
   notifications_ai_insights?: boolean;
+  biometric_enabled?: boolean;
 } | null;
 
 const PROFILE_CACHE_KEY = "vault_profile_cache";
