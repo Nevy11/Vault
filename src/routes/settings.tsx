@@ -173,7 +173,9 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
         className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0"
       >
         <SheetHeader className="p-8 border-b border-border/20">
-          <SheetTitle className="font-serif text-2xl">{t("settings.security.session_history")}</SheetTitle>
+          <SheetTitle className="font-serif text-2xl">
+            {t("settings.security.session_history")}
+          </SheetTitle>
           <SheetDescription className="text-muted-foreground">
             {t("settings.security.session_history_desc")}
           </SheetDescription>
@@ -192,14 +194,16 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
                   />
                   <div className="flex flex-col gap-1">
                     <div className="text-sm font-medium text-foreground lowercase">
-                      {t(`settings.activity.actions.${log.action_type}`, { defaultValue: log.action_type })}
+                      {t(`settings.activity.actions.${log.action_type}`, {
+                        defaultValue: log.action_type,
+                      })}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {log.location || t("settings.security.unknown")}
                     </div>
                     <div className="text-xs text-muted-foreground leading-relaxed">
-                      {t("settings.security.auth_success", { 
-                        device: log.device_info || t("settings.security.unknown_device") 
+                      {t("settings.security.auth_success", {
+                        device: log.device_info || t("settings.security.unknown_device"),
                       })}
                     </div>
                     <div className="text-[10px] text-muted-foreground/60 mt-1">
@@ -234,13 +238,7 @@ function ActivityLogDrawer({ logs, children }: { logs: any[]; children: React.Re
   );
 }
 
-function ChangePinDialog({
-  profile,
-  onSuccess,
-}: {
-  profile: any;
-  onSuccess: () => void;
-}) {
+function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () => void }) {
   const { t } = useTranslation();
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -304,7 +302,9 @@ function ChangePinDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
         <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-serif">{t("settings.security.pin.dialog_title")}</DialogTitle>
+          <DialogTitle className="text-2xl font-serif">
+            {t("settings.security.pin.dialog_title")}
+          </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {t("settings.security.pin.dialog_desc")}
           </DialogDescription>
@@ -313,7 +313,9 @@ function ChangePinDialog({
         <div className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.security.pin.current")}</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {t("settings.security.pin.current")}
+              </label>
               <div className="relative">
                 <Input
                   type={showPins ? "text" : "password"}
@@ -328,7 +330,9 @@ function ChangePinDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.security.pin.new")}</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {t("settings.security.pin.new")}
+              </label>
               <Input
                 type={showPins ? "text" : "password"}
                 inputMode="numeric"
@@ -341,7 +345,9 @@ function ChangePinDialog({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.security.pin.confirm")}</label>
+              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                {t("settings.security.pin.confirm")}
+              </label>
               <Input
                 type={showPins ? "text" : "password"}
                 inputMode="numeric"
@@ -369,7 +375,11 @@ function ChangePinDialog({
             disabled={isChanging || newPin.length !== 6 || newPin !== confirmPin}
             className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20"
           >
-            {isChanging ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
+            {isChanging ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <ShieldCheck className="w-4 h-4 mr-2" />
+            )}
             {t("settings.security.pin.update_btn")}
           </Button>
         </div>
@@ -405,7 +415,7 @@ function SettingsPage() {
         ...profile,
         language: lang,
       });
-      
+
       const messages: Record<string, string> = {
         en: "Language updated to English",
         es: "Idioma actualizado a Español",
@@ -480,9 +490,12 @@ function SettingsPage() {
   async function handleSaveMerchant() {
     try {
       setIsSavingMerchant(true);
-      
+
       // Get the current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!session) throw new Error("No active session. Please log in again.");
 
@@ -505,7 +518,7 @@ function SettingsPage() {
         console.error("handleSaveMerchant: Upsert error:", error);
         throw error;
       }
-      
+
       setIsMerchantSaved(true);
       toast.success("Merchant profile updated!");
     } catch (err: any) {
@@ -822,7 +835,8 @@ function SettingsPage() {
             {t("settings.back")}
           </Link>
           <h1 className="mt-8 font-serif text-4xl lg:text-5xl tracking-tight">
-            {t("settings.title")} <span className="text-muted-foreground/60">&</span> {t("settings.subtitle")}
+            {t("settings.title")} <span className="text-muted-foreground/60">&</span>{" "}
+            {t("settings.subtitle")}
           </h1>
           <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
             {t("settings.description")}
@@ -839,7 +853,11 @@ function SettingsPage() {
                   <button
                     onClick={() => profile?.profile_photo_url && setShowViewModal(true)}
                     className="relative block rounded-full border-2 border-border/40 overflow-hidden hover:border-primary/60 transition-all active:scale-95"
-                    title={profile?.profile_photo_url ? t("settings.profile.picture.view") : "No photo set"}
+                    title={
+                      profile?.profile_photo_url
+                        ? t("settings.profile.picture.view")
+                        : "No photo set"
+                    }
                     suppressHydrationWarning
                   >
                     <Avatar className="w-16 h-16 rounded-full">
@@ -848,10 +866,10 @@ function SettingsPage() {
                         {profile?.first_name?.[0] || <User className="w-8 h-8" />}
                       </AvatarFallback>
                     </Avatar>
-                    <div 
+                    <div
                       className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
-                        profile?.profile_photo_url 
-                          ? "opacity-0 group-hover/avatar:opacity-100" 
+                        profile?.profile_photo_url
+                          ? "opacity-0 group-hover/avatar:opacity-100"
                           : "opacity-0 pointer-events-none"
                       }`}
                     >
@@ -888,7 +906,9 @@ function SettingsPage() {
                   <div className="text-sm text-muted-foreground">
                     {t("settings.profile.picture.description")}
                   </div>
-                  <div className="text-xs text-muted-foreground">{t("settings.profile.picture.format")}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("settings.profile.picture.format")}
+                  </div>
                 </div>
               </div>
             </Row>
@@ -938,7 +958,9 @@ function SettingsPage() {
                       <Camera className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium">{t("settings.profile.picture.dialog.take")}</div>
+                      <div className="text-sm font-medium">
+                        {t("settings.profile.picture.dialog.take")}
+                      </div>
                       <div className="text-[10px] text-muted-foreground">
                         {t("settings.profile.picture.dialog.camera")}
                       </div>
@@ -953,7 +975,9 @@ function SettingsPage() {
                       <Upload className="w-5 h-5" />
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium">{t("settings.profile.picture.dialog.browse")}</div>
+                      <div className="text-sm font-medium">
+                        {t("settings.profile.picture.dialog.browse")}
+                      </div>
                       <div className="text-[10px] text-muted-foreground">
                         {t("settings.profile.picture.dialog.gallery")}
                       </div>
@@ -1008,10 +1032,14 @@ function SettingsPage() {
                   }`}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" />
-                  {profile?.kyc_status === "verified" ? t("settings.profile.verification.verified") : t("settings.profile.verification.unverified")}
+                  {profile?.kyc_status === "verified"
+                    ? t("settings.profile.verification.verified")
+                    : t("settings.profile.verification.unverified")}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground/70">
-                  <span className="h-3.5 w-3.5 rounded-full bg-muted flex items-center justify-center"><Info className="h-2 w-2" /></span>
+                  <span className="h-3.5 w-3.5 rounded-full bg-muted flex items-center justify-center">
+                    <Info className="h-2 w-2" />
+                  </span>
                   {t("settings.profile.verification.required")}
                 </span>
               </div>
@@ -1176,15 +1204,22 @@ function SettingsPage() {
                               className="rounded-xl h-10 px-0"
                               onClick={handleDownloadQR}
                             >
-                              <Download className="w-3.5 h-3.5 mr-2" /> {t("settings.business.qr.download")}
+                              <Download className="w-3.5 h-3.5 mr-2" />{" "}
+                              {t("settings.business.qr.download")}
                             </Button>
-                            <Button asChild size="sm" variant="outline" className="rounded-xl h-10 px-0">
-                              <Link 
-                                to="/pay/$username" 
-                                params={{ username: profile?.kyc_tag || "" }} 
+                            <Button
+                              asChild
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl h-10 px-0"
+                            >
+                              <Link
+                                to="/pay/$username"
+                                params={{ username: profile?.kyc_tag || "" }}
                                 target="_blank"
                               >
-                                <ExternalLink className="w-3.5 h-3.5 mr-2" /> {t("settings.business.qr.view")}
+                                <ExternalLink className="w-3.5 h-3.5 mr-2" />{" "}
+                                {t("settings.business.qr.view")}
                               </Link>
                             </Button>
                           </div>
@@ -1203,7 +1238,8 @@ function SettingsPage() {
                   {/* How it works */}
                   <div className="rounded-2xl border border-primary/10 bg-primary/5 p-6">
                     <h3 className="text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <Zap className="w-3.5 h-3.5 text-primary" /> {t("settings.business.how_it_works.title")}
+                      <Zap className="w-3.5 h-3.5 text-primary" />{" "}
+                      {t("settings.business.how_it_works.title")}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div className="space-y-2">
@@ -1211,7 +1247,9 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             1
                           </div>
-                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step1_title")}</div>
+                          <div className="text-xs font-bold">
+                            {t("settings.business.how_it_works.step1_title")}
+                          </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
                           {t("settings.business.how_it_works.step1_desc")}
@@ -1222,7 +1260,9 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             2
                           </div>
-                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step2_title")}</div>
+                          <div className="text-xs font-bold">
+                            {t("settings.business.how_it_works.step2_title")}
+                          </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
                           {t("settings.business.how_it_works.step2_desc")}
@@ -1233,7 +1273,9 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             3
                           </div>
-                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step3_title")}</div>
+                          <div className="text-xs font-bold">
+                            {t("settings.business.how_it_works.step3_title")}
+                          </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
                           {t("settings.business.how_it_works.step3_desc")}
@@ -1244,7 +1286,9 @@ function SettingsPage() {
                           <div className="w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px] flex items-center justify-center font-bold">
                             4
                           </div>
-                          <div className="text-xs font-bold">{t("settings.business.how_it_works.step4_title")}</div>
+                          <div className="text-xs font-bold">
+                            {t("settings.business.how_it_works.step4_title")}
+                          </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground leading-relaxed pl-7">
                           {t("settings.business.how_it_works.step4_desc")}
@@ -1273,7 +1317,9 @@ function SettingsPage() {
                   <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-4">
                     <Store className="w-8 h-8" />
                   </div>
-                  <h3 className="text-lg font-medium mb-2">{t("settings.business.inactive_title")}</h3>
+                  <h3 className="text-lg font-medium mb-2">
+                    {t("settings.business.inactive_title")}
+                  </h3>
                   <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                     {t("settings.business.inactive_desc")}
                   </p>
@@ -1296,7 +1342,8 @@ function SettingsPage() {
                 <li className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-2.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-                    {t("settings.security.alerts.unusual_login")} <span className="text-muted-foreground">(Kenya)</span>
+                    {t("settings.security.alerts.unusual_login")}{" "}
+                    <span className="text-muted-foreground">(Kenya)</span>
                   </span>
                   <span className="text-xs text-muted-foreground">2h ago</span>
                 </li>
@@ -1332,7 +1379,9 @@ function SettingsPage() {
                 }}
               />
               <div className="space-y-4">
-                <div className="text-sm text-foreground">{t("settings.security.devices.label")}</div>
+                <div className="text-sm text-foreground">
+                  {t("settings.security.devices.label")}
+                </div>
                 <div className="space-y-3">
                   {devices.length > 0 ? (
                     devices.map((device) => (
@@ -1346,7 +1395,8 @@ function SettingsPage() {
                               {device.device_name}
                             </div>
                             <div className="text-[10px] text-muted-foreground">
-                              {t("settings.security.devices.last_login")}: {new Date(device.last_login).toLocaleDateString()} at{" "}
+                              {t("settings.security.devices.last_login")}:{" "}
+                              {new Date(device.last_login).toLocaleDateString()} at{" "}
                               {new Date(device.last_login).toLocaleTimeString([], {
                                 hour: "2-digit",
                                 minute: "2-digit",
@@ -1390,7 +1440,9 @@ function SettingsPage() {
                   className="w-full sm:max-w-md border-l border-border/40 bg-card/95 backdrop-blur-xl p-0"
                 >
                   <SheetHeader className="p-8 border-b border-border/20">
-                    <SheetTitle className="font-serif text-2xl">{t("settings.security.devices.management")}</SheetTitle>
+                    <SheetTitle className="font-serif text-2xl">
+                      {t("settings.security.devices.management")}
+                    </SheetTitle>
                     <SheetDescription className="text-muted-foreground">
                       {t("settings.security.devices.management_desc")}
                     </SheetDescription>
@@ -1525,7 +1577,9 @@ function SettingsPage() {
           <SectionCard icon={SlidersHorizontal} title={t("settings.sections.preferences")}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pb-6 border-b border-border/40">
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">{t("settings.preferences.currency")}</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  {t("settings.preferences.currency")}
+                </label>
                 <select
                   value={currency}
                   onChange={(e) => changeCurrency(e.target.value)}
@@ -1536,7 +1590,9 @@ function SettingsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">{t("settings.preferences.theme")}</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  {t("settings.preferences.theme")}
+                </label>
                 <select
                   value={theme}
                   onChange={(e) => setTheme(e.target.value as any)}
@@ -1550,7 +1606,9 @@ function SettingsPage() {
             </div>
 
             <div className="pt-6">
-              <label className="block text-sm text-muted-foreground mb-2">{t("settings.preferences.language")}</label>
+              <label className="block text-sm text-muted-foreground mb-2">
+                {t("settings.preferences.language")}
+              </label>
               <select
                 value={profile?.language || "en"}
                 onChange={(e) => updateLanguage(e.target.value)}
@@ -1613,7 +1671,9 @@ function SettingsPage() {
                       <X className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-medium text-foreground">{t("settings.danger.delete_account")}</h3>
+                      <h3 className="text-base font-medium text-foreground">
+                        {t("settings.danger.delete_account")}
+                      </h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                         {t("settings.danger.delete_desc")}
                       </p>
@@ -1641,7 +1701,9 @@ function SettingsPage() {
                   {deleteStage === "initial" && (
                     <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
                       <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif">{t("settings.danger.confirm_title")}</DialogTitle>
+                        <DialogTitle className="text-2xl font-serif">
+                          {t("settings.danger.confirm_title")}
+                        </DialogTitle>
                         <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
                           {t("settings.danger.confirm_desc")}
                         </DialogDescription>
@@ -1675,12 +1737,14 @@ function SettingsPage() {
                         </DialogDescription>
                       </DialogHeader>
                       <ul className="space-y-3 mb-8">
-                        {(t("settings.danger.final_list", { returnObjects: true }) as string[]).map((text) => (
-                          <li key={text} className="flex items-center gap-3 text-xs font-medium">
-                            <div className="w-1.5 h-1.5 rounded-full bg-destructive/40" />
-                            {text}
-                          </li>
-                        ))}
+                        {(t("settings.danger.final_list", { returnObjects: true }) as string[]).map(
+                          (text) => (
+                            <li key={text} className="flex items-center gap-3 text-xs font-medium">
+                              <div className="w-1.5 h-1.5 rounded-full bg-destructive/40" />
+                              {text}
+                            </li>
+                          ),
+                        )}
                       </ul>
                       <div className="flex gap-3">
                         <Button
@@ -1704,7 +1768,9 @@ function SettingsPage() {
                   {deleteStage === "verify" && (
                     <div className="p-8 animate-in slide-in-from-right-4 duration-300">
                       <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif">{t("settings.danger.verify_identity")}</DialogTitle>
+                        <DialogTitle className="text-2xl font-serif">
+                          {t("settings.danger.verify_identity")}
+                        </DialogTitle>
                         <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
                           {t("settings.danger.verify_desc", { target: deleteTargetText })}
                         </DialogDescription>

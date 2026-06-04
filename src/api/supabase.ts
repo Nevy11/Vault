@@ -29,6 +29,7 @@ let ws: any = undefined;
 if (isServer) {
   try {
     // Use dynamic import for Node.js environments (SSR/Dev)
+    // @ts-expect-error - no bundled types for 'ws' in this template
     const wsPkg = await import("ws");
     ws = wsPkg.default || wsPkg.WebSocket || wsPkg;
   } catch (e) {

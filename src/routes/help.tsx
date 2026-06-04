@@ -213,7 +213,8 @@ function HelpPage() {
           <div className="mt-8 flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
             <div>
               <h1 className="font-serif text-4xl lg:text-5xl tracking-tight">
-                {t("help.title")} <span className="text-muted-foreground/60">&</span> {t("help.support")}
+                {t("help.title")} <span className="text-muted-foreground/60">&</span>{" "}
+                {t("help.support")}
               </h1>
               <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
                 {t("help.description")}
@@ -243,7 +244,7 @@ function HelpPage() {
                   const Icon = c.icon;
                   const active = selectedChannel === c.id;
                   const isEmail = c.id === "email";
-                  
+
                   return (
                     <div
                       key={c.id}
@@ -274,37 +275,47 @@ function HelpPage() {
                     >
                       <span
                         className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all duration-300 ${
-                          active 
-                            ? "border-emerald-600 bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.4)]" 
+                          active
+                            ? "border-emerald-600 bg-emerald-600 shadow-[0_0_10px_rgba(5,150,105,0.4)]"
                             : "border-muted-foreground/30 bg-transparent"
                         }`}
                       >
                         {active && <span className="h-2.5 w-2.5 rounded-full bg-white shadow-sm" />}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <div className={`text-sm font-bold tracking-tight transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                        <div
+                          className={`text-sm font-bold tracking-tight transition-colors ${active ? "text-foreground" : "text-muted-foreground"}`}
+                        >
                           {c.title}
                         </div>
                         <div className="mt-1 text-xs truncate">
                           {isEmail ? (
-                            <a 
+                            <a
                               href={`mailto:alphine886@gmail.com?subject=Vault.OS Support Request`}
                               className={`transition-colors font-medium ${active ? "text-emerald-500 hover:text-emerald-400 underline decoration-emerald-500/30 underline-offset-4" : "text-muted-foreground"}`}
                             >
                               {c.detail}
                             </a>
                           ) : (
-                            <span className={active ? "text-foreground/90 font-medium" : "text-muted-foreground"}>
+                            <span
+                              className={
+                                active ? "text-foreground/90 font-medium" : "text-muted-foreground"
+                              }
+                            >
                               {c.detail}
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <div className={`p-2 rounded-lg transition-colors ${active ? "bg-emerald-600/20 text-emerald-500" : "bg-muted/10 text-muted-foreground/40"}`}>
+                        <div
+                          className={`p-2 rounded-lg transition-colors ${active ? "bg-emerald-600/20 text-emerald-500" : "bg-muted/10 text-muted-foreground/40"}`}
+                        >
                           <Icon className="h-4.5 w-4.5" />
                         </div>
-                        <span className={`text-[9px] uppercase tracking-widest font-black ${active ? "text-emerald-500/80" : "text-muted-foreground/40"}`}>
+                        <span
+                          className={`text-[9px] uppercase tracking-widest font-black ${active ? "text-emerald-500/80" : "text-muted-foreground/40"}`}
+                        >
                           {c.note}
                         </span>
                       </div>
@@ -363,7 +374,9 @@ function HelpPage() {
             <form className="space-y-7" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">{t("help.sections.form.first_name")}</label>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    {t("help.sections.form.first_name")}
+                  </label>
                   <Input
                     value={firstName}
                     onChange={(event) => setFirstName(event.target.value)}
@@ -372,7 +385,9 @@ function HelpPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-muted-foreground mb-2">{t("help.sections.form.last_name")}</label>
+                  <label className="block text-sm text-muted-foreground mb-2">
+                    {t("help.sections.form.last_name")}
+                  </label>
                   <Input
                     value={lastName}
                     onChange={(event) => setLastName(event.target.value)}
@@ -383,7 +398,9 @@ function HelpPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-muted-foreground mb-2">{t("help.sections.form.email")}</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  {t("help.sections.form.email")}
+                </label>
                 <Input
                   type="email"
                   value={email}
@@ -395,7 +412,9 @@ function HelpPage() {
 
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm text-muted-foreground">{t("help.sections.form.message")}</label>
+                  <label className="block text-sm text-muted-foreground">
+                    {t("help.sections.form.message")}
+                  </label>
                   <span className="text-xs text-muted-foreground/60">{message.length} / 1000</span>
                 </div>
                 <textarea
@@ -441,8 +460,7 @@ function HelpPage() {
         {/* Footer */}
         <div className="mt-12 lg:mt-16 pt-8 border-t border-border/40 text-center">
           <p className="text-xs text-muted-foreground">
-            {t("help.footer_note")}{" "}
-            <span className="text-foreground">+254 721 735 254</span>
+            {t("help.footer_note")} <span className="text-foreground">+254 721 735 254</span>
           </p>
         </div>
 
@@ -450,7 +468,9 @@ function HelpPage() {
         <Dialog open={showCallWorkflow} onOpenChange={setShowCallWorkflow}>
           <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-serif">{t("help.sections.contact.call.dialog.title")}</DialogTitle>
+              <DialogTitle className="text-2xl font-serif">
+                {t("help.sections.contact.call.dialog.title")}
+              </DialogTitle>
               <DialogDescription className="text-muted-foreground">
                 {t("help.sections.contact.call.dialog.description")}
               </DialogDescription>

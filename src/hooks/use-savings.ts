@@ -18,6 +18,7 @@ export type SavingsGoal = {
   status: "active" | "completed" | "missed";
   created_at: string;
   updated_at: string;
+  lockUntil?: string | null;
 };
 
 export type SavingsLedgerEntry = {
@@ -132,7 +133,7 @@ export function useSavings() {
 
         const walletCurrency = wallet.currency || "USD";
         const KES_USD_RATE = 130.0;
-        
+
         // Convert contribution amount (which is in KES/KSH) to wallet currency if needed
         let amountInWalletCurrency = amount;
         if (walletCurrency === "USD") {
@@ -140,10 +141,11 @@ export function useSavings() {
         }
 
         if (Number(wallet.balance) < amountInWalletCurrency) {
-          const displayBalance = walletCurrency === "USD" 
-            ? `KES ${(Number(wallet.balance) * KES_USD_RATE).toLocaleString()}`
-            : `KES ${Number(wallet.balance).toLocaleString()}`;
-            
+          const displayBalance =
+            walletCurrency === "USD"
+              ? `KES ${(Number(wallet.balance) * KES_USD_RATE).toLocaleString()}`
+              : `KES ${Number(wallet.balance).toLocaleString()}`;
+
           toast.error("Insufficient Vault balance", {
             description: `You have ${displayBalance} but tried to save KES ${amount.toLocaleString()}`,
           });
@@ -155,9 +157,9 @@ export function useSavings() {
         // 2. Deduct from wallet
         const { error: deductError } = await supabase
           .from("wallets")
-          .update({ 
+          .update({
             balance: newWalletBalance,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq("id", wallet.id);
 

@@ -91,9 +91,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+      },
       { title: "Vault OS" },
-      { name: "description", content: "Your secure, real-time digital wallet and financial advisor." },
+      {
+        name: "description",
+        content: "Your secure, real-time digital wallet and financial advisor.",
+      },
       { name: "author", content: "Vault" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -101,7 +107,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "Vault OS" },
       { name: "theme-color", content: "#004D2C" },
       { property: "og:title", content: "Vault OS" },
-      { property: "og:description", content: "Your secure, real-time digital wallet and financial advisor." },
+      {
+        property: "og:description",
+        content: "Your secure, real-time digital wallet and financial advisor.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
@@ -159,9 +168,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body>
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
         <Scripts />
       </body>
     </html>
@@ -177,9 +184,12 @@ function MultiWindowOverlay({ onUseHere }: { onUseHere: () => void }) {
             <Layers className="h-8 w-8" />
           </div>
         </div>
-        <h2 className="text-2xl font-serif text-foreground mb-3">Vault is open in another window</h2>
+        <h2 className="text-2xl font-serif text-foreground mb-3">
+          Vault is open in another window
+        </h2>
         <p className="text-muted-foreground mb-8 text-sm leading-relaxed">
-          To ensure your data remains secure and synchronized, Vault can only be active in one window at a time.
+          To ensure your data remains secure and synchronized, Vault can only be active in one
+          window at a time.
         </p>
         <button
           onClick={onUseHere}
@@ -212,7 +222,7 @@ function RootComponent() {
     };
 
     channel.addEventListener("message", handleMessage);
-    
+
     // Initial check: is anyone else here?
     channel.postMessage({ type: "PING", senderId: tabId });
 
@@ -280,7 +290,7 @@ function RootComponent() {
           if (hasChanged) {
             console.log("Profile and preferences updated/synced");
             setProfile(combinedData);
-            
+
             if (combinedData.language && i18n.language !== combinedData.language) {
               i18n.changeLanguage(combinedData.language);
             }

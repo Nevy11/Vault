@@ -8,7 +8,14 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import { FileText, ChevronRight, Download, Share2, Loader2, AlertCircle } from "lucide-react-native";
+import {
+  FileText,
+  ChevronRight,
+  Download,
+  Share2,
+  Loader2,
+  AlertCircle,
+} from "lucide-react-native";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -36,7 +43,9 @@ export default function ReceiptHistoryScreen() {
       setLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("Authentication required");
 
       const { data, error: fetchError } = await supabase
@@ -82,7 +91,9 @@ export default function ReceiptHistoryScreen() {
         <View style={styles.emptyContainer}>
           <FileText size={64} color="#E2E8F0" />
           <Text style={styles.emptyTitle}>No Receipts Yet</Text>
-          <Text style={styles.emptySubtitle}>Completed transactions will appear here automatically.</Text>
+          <Text style={styles.emptySubtitle}>
+            Completed transactions will appear here automatically.
+          </Text>
         </View>
       ) : (
         <FlatList

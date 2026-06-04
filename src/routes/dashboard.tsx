@@ -324,10 +324,7 @@ function NetWorthChart({
     // Add current point if it's not already represented
     const lastPoint = fullHistory[fullHistory.length - 1];
     const now = new Date();
-    if (
-      !lastPoint ||
-      now.getTime() - new Date(lastPoint.created_at).getTime() > 1000 * 60 * 60
-    ) {
+    if (!lastPoint || now.getTime() - new Date(lastPoint.created_at).getTime() > 1000 * 60 * 60) {
       fullHistory.push({
         name: "Now",
         fullDate: "Current Balance",
@@ -377,13 +374,9 @@ function NetWorthChart({
 
   // Domain calculation for visualization stability
   const domainMin =
-    minValue === maxValue
-      ? minValue - (minValue === 0 ? 100 : minValue * 0.1)
-      : minValue * 0.98;
+    minValue === maxValue ? minValue - (minValue === 0 ? 100 : minValue * 0.1) : minValue * 0.98;
   const domainMax =
-    minValue === maxValue
-      ? maxValue + (maxValue === 0 ? 100 : maxValue * 0.1)
-      : maxValue * 1.02;
+    minValue === maxValue ? maxValue + (maxValue === 0 ? 100 : maxValue * 0.1) : maxValue * 1.02;
 
   const isPositive =
     chartData.length > 1 ? chartData[chartData.length - 1].value >= chartData[0].value : true;
@@ -500,7 +493,7 @@ function NetWorthChart({
 
 function SecurityStatus() {
   const openReceipts = () => console.log("Open receipts placeholder");
-  
+
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm flex flex-col justify-between h-full transition-all hover:bg-card/80 hover:border-primary/30">
       <div className="absolute -right-12 -bottom-12 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
@@ -586,12 +579,12 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("financial-health-check", {
-        body: { 
+        body: {
           userId: profileId,
-          language: profile?.language || "en"
+          language: profile?.language || "en",
         },
       });
-      
+
       if (error) {
         let errorMessage = error.message;
         try {
@@ -605,7 +598,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
         }
         throw new Error(errorMessage);
       }
-      
+
       if (data?.insight) {
         setInsight(data.insight);
       }
@@ -622,7 +615,9 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
       <div className="rounded-3xl bg-muted/20 border border-border/40 p-8 mb-8 animate-pulse h-[160px] flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground/40" />
-          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">{t("ai_insights.initializing")}</span>
+          <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/40">
+            {t("ai_insights.initializing")}
+          </span>
         </div>
       </div>
     );
@@ -669,9 +664,7 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
                 )}
               </div>
             ) : (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("ai_insights.placeholder")}
-              </p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("ai_insights.placeholder")}</p>
             )}
           </div>
         </div>
@@ -707,7 +700,12 @@ function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  const { transactions, loading: txLoading, error: txError, refetch: refetchTransactions } = useTransactions(!balanceLoading);
+  const {
+    transactions,
+    loading: txLoading,
+    error: txError,
+    refetch: refetchTransactions,
+  } = useTransactions(!balanceLoading);
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
   const { notifications, markAsRead } = useNotifications();
   const [profile] = useProfileSignal();
@@ -1214,12 +1212,17 @@ function DashboardPage() {
                 </button>
               ))}
             </div>
-            <button 
+            <button
               onClick={() => refetchTransactions()}
               className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 hover:text-primary transition-colors group/sync"
               disabled={txLoading}
             >
-              <RefreshCw className={cn("w-3 h-3 transition-transform group-hover/sync:rotate-180 duration-500", txLoading && "animate-spin")} /> 
+              <RefreshCw
+                className={cn(
+                  "w-3 h-3 transition-transform group-hover/sync:rotate-180 duration-500",
+                  txLoading && "animate-spin",
+                )}
+              />
               {syncTime}
             </button>
           </div>
@@ -1251,7 +1254,7 @@ function DashboardPage() {
                         {t.type === "transfer" ? "P2P" : t.type.substring(0, 3)}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
+                        <AvatarImage src={details.logo || (details as any).avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>

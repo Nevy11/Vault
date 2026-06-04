@@ -24,7 +24,7 @@
     },
     "ledger": {
       "title": "Livro Razão Unificado",
-      "viewAll": "Ver toda a atividade",
+      "viewAll": "Ver toda la atividade",
       "noActivity": "Nenhum histórico de transações registrado para este período.",
       "transaction": {
         "verified": "Verificado",
@@ -306,7 +306,7 @@
       "final_warning": "Aviso final",
       "final_desc": "Esta ação é **irreversível**. Uma vez concluída, seus fundos e acesso à conta não podem ser recuperados pelo Suporte do Vault.",
       "final_list": [
-        "Revogação imediata de todas as sessões de dispositivos",
+        "Revocação imediata de todas as sessões de dispositivos",
         "Exclusão permanente de todas as chaves criptográficas",
         "Remoção da sua tag KYC exclusiva e perfil"
       ],
@@ -318,8 +318,557 @@
     }
   },
   "common": {
-    "save": "Salvar alterações",
+    "save": "Salvar Alterações",
     "loading": "Carregando...",
-    "error": "Erro"
+    "error": "Erro",
+    "back": "Voltar",
+    "amount": "Valor",
+    "status": "Status",
+    "completed": "Concluído",
+    "all": "Tudo",
+    "date": "Data",
+    "type": "Tipo",
+    "errors": {
+      "fill_all": "Preencha todos os campos",
+      "enter_phone": "Insira seu número de telefone",
+      "enter_account": "Insira o número da sua conta",
+      "incomplete_settings": "Configurações Incompletas",
+      "provide_amount_provider": "Forneça o valor e o provedor financeiro.",
+      "transfer_failed": "Transferência falhou",
+      "user_not_found": "Usuário não encontrado",
+      "unexpected_error": "Ocorreu um erro inesperado durante a transferência"
+    },
+    "vault_user": "Usuário Vault",
+    "user": "Usuário"
+  },
+  "transactions": {
+    "title": "Transações",
+    "page_title": "Transações — Vault OS",
+    "page_description": "Envie dinheiro, deposite fundos e retire entre suas contas Vault.",
+    "wallet_card": {
+      "vault_wallet": "Carteira Vault {{currency}}",
+      "active_encrypted": "Ativa e Criptografada"
+    },
+    "errors": {
+      "load_recipients": "Não foi possível carregar as sugestões de destinatários. Por favor, tente novamente.",
+      "fill_required": "Por favor, preencha todos os campos obrigatórios",
+      "not_found": "Não Encontrado",
+      "database_error": "A transferência falhou no nível do banco de dados",
+      "transfer_failed": "A transferência falhou",
+      "unexpected_error": "Ocorreu um erro inesperado durante a transferência"
+    },
+    "success": {
+      "message": "Transferência concluída com sucesso!",
+      "title": "Transferência Bem-sucedida!",
+      "description": "Sua transferência de {{currency}} {{amount}} foi processada com segurança.",
+      "transaction_id": "ID da Transação",
+      "amount_deducted": "Valor Deduzido",
+      "back_to_dashboard": "Voltar ao Painel"
+    },
+    "steps": {
+      "step1": "Passo 1: Escolha o Tipo de Provedor Financeiro",
+      "step2": "Passo 2: Formulário Dinâmico",
+      "step2_vault": "Transferência Vault-para-Vault",
+      "step2_bank": "Enviar Dinheiro para Conta Bancária",
+      "step2_bank_specific": "Enviar Dinheiro para {{bank}}",
+      "step2_mobile": "Enviar Dinheiro para Carteira Móvel"
+    },
+    "providers": {
+      "vault": "Conta Vault (P2P)",
+      "vault_desc": "Transferência interna instantânea",
+      "bank": "Conta Bancária",
+      "bank_desc": "Enviar para qualquer banco queniano",
+      "mobile": "Dinheiro Móvel",
+      "mobile_desc": "Enviar para M-Pesa ou Airtel",
+      "mpesa": "M-Pesa"
+    },
+    "banks": {
+      "kcb": "KCB Bank (Kenya Commercial Bank)",
+      "coop": "Co-operative Bank of Kenya",
+      "ncba": "NCBA Bank",
+      "absa": "Absa Bank Kenya",
+      "stanchart": "Standard Chartered Kenya",
+      "stanbic": "Stanbic Bank Kenya",
+      "im": "I&M Bank",
+      "dtb": "DTB (Diamond Trust Bank)",
+      "family": "Family Bank",
+      "equity": "Equity Bank Kenya"
+    },
+    "mobile_providers": {
+      "mpesa": "M-Pesa",
+      "airtel": "Airtel Money",
+      "tkash": "T-Kash"
+    },
+    "form": {
+      "select_bank": "Selecionar Banco",
+      "choose_bank": "Escolha um banco",
+      "provider": "Provedor",
+      "recipient_username": "Nome de Usuário / Tag do Destinatário",
+      "account_number": "Número da Conta",
+      "phone_number": "Número de Telefone",
+      "username_placeholder": "@usuario",
+      "account_placeholder": "0000000000",
+      "phone_placeholder": "+254 7XX XXX XXX",
+      "amount_label": "Valor ({{currency}})",
+      "amount_placeholder": "0.00",
+      "send_money_btn": "Enviar Dinheiro"
+    },
+    "recipients": {
+      "search_recent": "Resultados da Busca (Recentes)",
+      "recent": "Transações Recentes",
+      "search_frequent": "Resultados da Busca (Frequentes)",
+      "frequent": "Mais Frequentes",
+      "no_match": "Nenhum destinatário corresponde a \"{{searchFilter}}\"",
+      "search_placeholder": "Buscar destinatários..."
+    },
+    "confirmation": {
+      "title": "Confirmar Transação",
+      "description": "Por favor, verifique os detalhes da transferência antes de prosseguir.",
+      "recipient": "Destinatário",
+      "kyc_verified": "Tag KYC Verificada",
+      "via": "Via",
+      "fee": "Taxa de Transação",
+      "total_deducted": "Total Deduzido",
+      "cancel": "NÃO, CANCELAR",
+      "confirm": "SIM, CONFIRMAR"
+    },
+    "processing": {
+      "title": "Processando transferência com segurança...",
+      "description": "Verificando PIN e consultando o saldo do livro-razão"
+    },
+    "authorize": {
+      "title": "Autorizar Transferência",
+      "description": "Confirme com segurança sua transferência de {{currency}} {{amount}} para {{identifier}}."
+    },
+    "history": {
+      "title": "Histórico Detalhado do Livro-razão",
+      "search_placeholder": "Buscar no livro-razão...",
+      "total_records": "{{totalCount}} Registros no Total",
+      "filters": {
+        "all": "Tudo",
+        "transfers": "Transferências",
+        "deposits": "Depósitos",
+        "withdrawals": "Saques"
+      },
+      "syncing": "Sincronizando o livro-razão de transações...",
+      "no_activity": "Nenhuma atividade encontrada correspondente aos seus critérios.",
+      "data_synced": "Dados sincronizados há {{minutes}} minutos",
+      "load_more": "Carregar Mais Transações",
+      "transfer_to": "Transferência para {{receiverName}}",
+      "received_from": "Recebido de {{senderName}}",
+      "deposit_to": "Depósito de {{bankName}} para {{userName}}",
+      "withdrawal_to": "Saque para {{bankName}}",
+      "bank_simple": "Banco",
+      "transfer_to_provider": "Transferência para {{provider}}: {{identifier}}",
+      "bank_transfer_to": "Transferência bancária para {{bank}}: {{identifier}}",
+      "types": {
+        "p2p": "P2P",
+        "dep": "DEP",
+        "wit": "SAQ",
+        "txn": "TXN"
+      }
+    },
+    "modes": {
+      "send": "Enviar Dinheiro",
+      "deposit": "Depositar Fundos",
+      "withdraw": "Saque"
+    },
+    "deposit": {
+      "select_source": "Selecionar Fonte de Depósito",
+      "mobile_money": "Dinheiro Móvel",
+      "bank_account": "Conta Bancária",
+      "credit_card": "Cartão de Crédito",
+      "select_carrier": "Selecionar Operadora",
+      "select_provider": "Selecionar provedor",
+      "primary_number": "Número Principal",
+      "add_new_number": "Adicionar um Novo Número",
+      "phone_number": "Número de Telefone",
+      "search_banks": "Buscar Bancos",
+      "search_kenyan_banks": "Buscar principais bancos quenianos...",
+      "stripe_bank_transfer": "Transferência Bancária Stripe",
+      "us_ach_international": "US ACH / Internacional",
+      "link_new_bank": "Vincular Nova Conta Bancária",
+      "stripe_card_title": "Cartão de Crédito ou Débito",
+      "stripe_card_desc": "Você será redirecionado com segurança para o Stripe para concluir seu depósito usando qualquer cartão de crédito ou débito principal.",
+      "encrypted_by_stripe": "Criptografado pelo Stripe",
+      "amount_to_deposit": "Valor a Depositar",
+      "settlement": "Liquidação",
+      "credit_to_wallet": "Crédito na sua carteira {{currency}}",
+      "vault_pin": "PIN de Transação do Vault",
+      "authorize_deposit": "Autorizar Depósito Seguro",
+      "deposit_btn": "Depositar Fundos",
+      "deposit_footer_note": "Os depósitos são processados instantaneamente através de nossos canais de pagamento seguros. Taxas de rede podem ser aplicadas com base em sua operadora ou banco.",
+      "requesting_funds": "Solicitando fundos com segurança...",
+      "stk_push_note": "Acionando STK Push seguro / Solicitação de débito automatizada",
+      "cancel_request": "CANCELAR SOLICITAÇÃO",
+      "action_required": "Ação Requerida",
+      "mpesa_pin_note": "Insira o seu **PIN do M-Pesa** no seu telefone para concluir o depósito de {{amount}}.",
+      "expected_credit": "Crédito Esperado",
+      "awaiting_pin": "Aguardando PIN",
+      "deposit_success_title": "Depósito Bem-sucedido!",
+      "deposit_success_desc": "Seu pagamento foi confirmado e o saldo do seu Vault atualizado.",
+      "credited_balance": "Saldo Creditado",
+      "complete_deposit": "Concluir Depósito",
+      "payment_confirmed": "Pagamento confirmado! Seu saldo foi atualizado.",
+      "payment_failed": "O pagamento falhou ou foi cancelado.",
+      "valid_amount_error": "Insira um valor válido",
+      "pin_error": "Insira seu PIN de transação de 6 dígitos",
+      "session_error": "Sessão do usuário não encontrada. Faça login novamente.",
+      "identity_error": "Não foi possível verificar sua identidade. Tente novamente.",
+      "invalid_pin_error": "PIN de transação inválido",
+      "stripe_init_error": "Falha ao iniciar o pagamento Stripe: {{error}}",
+      "valid_phone_error": "Forneça um número de telefone válido",
+      "valid_mobile_error": "Selecione ou insira un número de celular válido",
+      "mpesa_init_error": "Falha ao iniciar o pagamento M-Pesa",
+      "check_phone_toast": "Verifique seu telefone para o aviso de PIN do M-Pesa"
+    },
+    "withdraw": {
+      "withdraw_to_bank": "Sacar para Conta Bancária",
+      "withdraw_to_mobile": "Sacar para Carteira Móvel",
+      "bank_accounts": "Contas Bancárias",
+      "mobile_money": "Dinheiro Móvel",
+      "choose_bank": "Escolher Banco",
+      "search_select_bank": "Buscar ou selecionar um banco...",
+      "external_bank_rail": "Canal de Liquidação Bancária Externa",
+      "account_holder_name": "Nome Legal do Titular da Conta",
+      "full_name_records": "Nome completo conforme consta nos registros",
+      "personal_mpesa": "M-Pesa Pessoal",
+      "secondary_line": "Segunda Linha",
+      "withdraw_new_number": "Sacar para um Novo Número",
+      "provider_choice": "Escolha do Provedor",
+      "confirm_mobile_btn": "Confirmar Número de Celular",
+      "vault_balance_label": "Saldo do Vault {{currency}}",
+      "loading_balance": "Carregando saldo...",
+      "withdrawal_amount": "Valor do Saque ({{currency}})",
+      "exchange_rate": "Taxa de Câmbio",
+      "equivalent_kes": "Equivalente em KES",
+      "secure_pin": "PIN de Transação Seguro",
+      "pin_6digit_note": "Código de transação seguro de 6 dígitos",
+      "withdraw_btn": "Sacar Fundos",
+      "withdraw_footer_note": "As transferências bancárias geralmente levam de 1 a 3 dias úteis para serem liquidadas. Os saques de dinheiro móvel geralmente são creditados instantaneamente.",
+      "confirm_title": "Confirmar Saque",
+      "confirm_desc": "Verifique os detalhes abaixo antes de processarmos sua solicitação.",
+      "you_are_withdrawing": "Você está sacando",
+      "platform_fee": "Taxa da Plataforma",
+      "total_deduction": "Dedução Total",
+      "cancel": "CANCELAR",
+      "yes_withdraw": "SIM, SACAR",
+      "secure_encrypted_note": "Transação segura criptografada de ponta a ponta",
+      "authorizing_withdrawal": "Autorizando solicitação de saque...",
+      "verifying_pin_note": "Verificando PIN e atualizando o livro-razão seguro",
+      "withdrawal_success_title": "Saque Bem-sucedido!",
+      "withdrawal_success_desc": "Os fundos estão sendo processados para sua conta. A maioria das transferências é concluída em 2 a 24 horas.",
+      "amount_withdrawn": "Valor Sacado",
+      "equivalent": "Equivalente",
+      "destination": "Destino",
+      "insufficient_balance_error": "Saldo insuficiente. Você precisa de {{currency}}{{amount}} no total (incluindo a taxa).",
+      "fill_bank_error": "Preencha todos os detalhes da conta bancária",
+      "select_mobile_error": "Selecione ou insira um número de carteira móvel",
+      "enter_pin_error": "Insira seu PIN de transação",
+      "incorrect_pin_error": "PIN de transação incorreto",
+      "verification_error": "Ocorreu um erro durante a verificação",
+      "withdrawal_success_toast": "Saque realizado com sucesso!",
+      "withdrawal_failed_error": "Falha ao processar o saque"
+    }
+  },
+  "savings": {
+    "title": "Cofre de Economias",
+    "subtitle": "Economias baseadas em metas protegidas criptograficamente.",
+    "tabs": {
+      "overview": "Visão Geral",
+      "new_goal": "Nova Meta",
+      "completion": "🎉 Conclusão"
+    },
+    "overview": {
+      "my_goals": "Minhas Metas",
+      "complete_badge": "Concluído",
+      "target_label": "Meta: KES {{amount}}",
+      "savings_status": "Status das economias",
+      "of_target": "de KES {{amount}} da meta",
+      "days_left": "Dias restantes",
+      "days": "dias",
+      "progress": "Progresso",
+      "remaining": "Restante",
+      "towards_goal": "para sua meta",
+      "momentum": "Momento",
+      "daily_progress": "Progresso diário",
+      "money_fancy": "Dinheiro Extravagante",
+      "goal_snapshot": "Instantâneo da meta",
+      "visible_progress": "Progresso visível",
+      "reward": "Recompensa",
+      "avg_day": "Média/dia",
+      "funding": "Financiamento",
+      "funding_fallback": "Vault / Dinheiro Móvel",
+      "quick_tip": "Dica rápida",
+      "tip_desc": "Economize um pouco a cada dia",
+      "next_tip": "Próxima Dica",
+      "add_savings_btn": "Adicionar Economias"
+    },
+    "tip": {
+      "title": "Dica de Economia",
+      "description": "O progresso diário torna a meta real."
+    },
+    "ledger": {
+      "title": "Livro-razão de Economias",
+      "no_contributions": "Nenhuma contribuição registrada ainda. Comece a economizar para ver seu livro-razão!",
+      "running_total": "Total Acumulado"
+    },
+    "form": {
+      "title": "Título",
+      "title_placeholder": "Economizando para...",
+      "target_amount": "Meta (KES)",
+      "start_date": "Data de Início",
+      "fixed": "(fixo)",
+      "deadline_date": "Data Limite",
+      "funding_source": "Fonte de Financiamento",
+      "select_source": "Selecionar Fonte",
+      "any_available": "Qualquer Fonte Disponível",
+      "vault": "Vault",
+      "vault_account": "Conta Vault",
+      "categories": "Categorias",
+      "any_mobile": "Qualquer Dinero Móvel",
+      "any_bank": "Qualquer Conta Bancaria",
+      "specifics": "Detalhes",
+      "providers": {
+        "mpesa": "M-Pesa (Safaricom)",
+        "airtel": "Airtel Money",
+        "kcb": "KCB Group",
+        "equity": "Equity Bank",
+        "ncba": "NCBA Bank",
+        "absa": "Absa Quênia",
+        "coop": "Banco Cooperativo",
+        "stanbic": "Stanbic Bank",
+        "im": "I&M Bank",
+        "dtb": "Diamond Trust Bank",
+        "family": "Family Bank Quênia"
+      },
+      "default_phone": "Número de Telefone Padrão",
+      "default_bank": "Conta Bancária Padrão",
+      "lock_rules": "Regras de Bloqueio",
+      "lock_rules_desc": "Os fundos ficam inacessíveis até a data da meta.",
+      "automate_savings": "Automatizar Economias",
+      "automate_desc": "Configurar deduções programadas.",
+      "update_btn": "Atualizar Cofre de Economias",
+      "init_btn": "Inicializar Cofre de Economias"
+    },
+    "completion": {
+      "pending_title": "Economia pendente",
+      "away_message": "Faltam KES {{amount}}.",
+      "adjust_btn": "Ajustar",
+      "achieved_title": "Meta Atingida!",
+      "congrats_message": "Parabéns! Você concluiu com sucesso sua meta de economia: \"{{title}}\". Sua disciplina lhe rendeu uma recompensa especial.",
+      "reward_label": "Recompensa de 2% de Juros",
+      "total_value": "Valor Total",
+      "receive_reward_btn": "Receber Recompensa",
+      "start_new_btn": "Iniciar Nova Meta",
+      "growth_engine": "Mecanismo de Crescimento Automatizado Vault"
+    },
+    "add_savings_modal": {
+      "title": "Adicionar Economias",
+      "amount_label": "Valor da Contribuição (KES)",
+      "amount_placeholder": "Insira o valor para economizar",
+      "source_placeholder": "De onde você está economizando?",
+      "save_now_btn": "Economizar Agora"
+    },
+    "automation_modal": {
+      "title": "Mecanismo de Automação",
+      "description": "Configure seu cronograma de economias programadas.",
+      "frequency": "Frequência",
+      "daily": "diário",
+      "weekly": "semanal",
+      "monthly": "mensal",
+      "yearly": "anual",
+      "deduction_amount": "Valor da Dedução (KES)",
+      "financial_provider": "Provedor Financeiro",
+      "which_provider": "Qual provedor?",
+      "phone_for_deduction": "Número de Telefone para Dedução",
+      "bank_for_deduction": "Conta Bancária para Dedução",
+      "confirm_ok": "Confirmar OK"
+    },
+    "jokes": [
+      "Economize um pouco a cada dia e sua meta chegará mais rápido.",
+      "Depósitos diários criam mais ímpeto do que um único grande esforço.",
+      "Acompanhe seu progresso todos os dias para tornar a economia natural.",
+      "Pequenas vitórias hoje se tornam uma grande vitória no prazo final."
+    ],
+    "saving_lines": [
+      "Pequenas gotas formam um oceano poderoso. Comece a economizar hoje!",
+      "Um centavo economizado é um centavo gano. Veja sua riqueza crescer!",
+      "Seu eu futuro agradecerá pela disciplina que você mostra agora.",
+      "A liberdade financeira começa com uma única moeda no cofre.",
+      "Guardar um pouco agora abre grandes portas depois."
+    ]
+  },
+  "loans": {
+    "title": "Crédito Instantâneo",
+    "subtitle": "Empréstimos algorítmicos baseados na integridade do seu livro-razão.",
+    "tabs": {
+      "request": "Solicitação",
+      "tracker": "Rastreador",
+      "status": "Status"
+    },
+    "request": {
+      "loan_amount": "Valor do Empréstimo",
+      "limit_label": "Limite: KES {{amount}}",
+      "over_limit": "Acima do Limite",
+      "period": "Período",
+      "periods": {
+        "1": "1 Mês (3%)",
+        "3": "3 Meses (4%)",
+        "6": "6 Meses (5%)",
+        "12": "12 Meses (6%)"
+      },
+      "principal": "Principal",
+      "interest": "Juros",
+      "fee": "Taxa",
+      "total": "Total",
+      "active_exists": "Já existe um desembolso ativo",
+      "disburse_btn": "Desembolsar Crédito Instantáneo",
+      "single_active_rule": "Regra de Empréstimo Ativo Único"
+    },
+    "limit_guard": {
+      "title": "Limit Guard™",
+      "description": "Critérios de desembolso",
+      "age_limit": "Idade > 6 Anos",
+      "deposit_limit": "Depósitos > 2K",
+      "cap_note": "O limite é de 50% do saldo médio frequente.",
+      "ledger_verified": "Livro-razão Verificado"
+    },
+    "higher_limits": {
+      "title": "Limites Maiores?",
+      "description": "Aumente os depósitos frequentes para desbloquear níveis de crédito premium."
+    },
+    "tracker": {
+      "credit_line": "Linha de Crédito Pessoal",
+      "active_disbursement": "Desembolso ativo #{{id}}",
+      "original": "Original",
+      "repaid": "Pago",
+      "due": "Vencimento",
+      "repay_btn": "Pagar Valor",
+      "history": "Histórico",
+      "trust": "Confiança",
+      "elite": "Elite",
+      "no_active": "Nenhum livro-razão ativo",
+      "ready_boost": "Pronto para um impulso instantâneo? Solicite hoje.",
+      "get_loan_btn": "Obter Empréstimo Instantâneo",
+      "ledger_history": "Histórico do Livro-razão",
+      "paid": "Pago",
+      "balance": "Saldo",
+      "no_activity": "Nenhuma atividade registrada."
+    },
+    "status": {
+      "pending_title": "VOCÊ TEM UM EMPRÉSTIMO PENDENTE",
+      "pending_description": "Você tem um saldo devedor de KES {{amount}}. Conclua o empréstimo hoje para aumentar seu limite!",
+      "outstanding_balance": "SALDO DEVEDOR",
+      "remaining_note": "Restante no seu empréstimo ativo.",
+      "potential_boost": "POTENCIAL IMPULSO DE LIMITE",
+      "boost_note": "Com base na saúde do pagamento do seu empréstimo ativo.",
+      "pay_now_btn": "Pagar Saldo Agora",
+      "view_tracker_btn": "Ver Rastreador",
+      "progress_title": "Progresso para conclusão",
+      "progress_message": "{{progress}}% pago de KES {{total}}",
+      "no_pending_title": "Nenhum Empréstimo Pendente",
+      "no_pending_desc": "Solicite un empréstimo para ver seu status atual e o progresso do pagamento.",
+      "request_btn": "Solicitar Empréstimo"
+    },
+    "repayment_modal": {
+      "title": "Pagamento",
+      "description": "Liquide o saldo para aumentar seu limite de crédito.",
+      "total_outstanding": "Total Devedor",
+      "payment_source": "Fonte de Pagamento",
+      "process_btn": "Processar"
+    }
+  },
+  "finance_hub": {
+    "title": "Centro Financeiro",
+    "description": "Gerencie sua riqueza a longo prazo e acesse liquidez instantânea. As regras automatizadas do livro-razão do Vault garantem que seu crescimento seja recompensado e o crédito esteja sempre disponível.",
+    "savings": {
+      "vault_title": "Cofre de Riqueza",
+      "title": "Economias Metas",
+      "description": "Estabeleça metas financeiras e desfrute de uma recompensa de 2% de juros por atingir suas metas no prazo.",
+      "items": {
+        "deadlines": "Prazos de Metas",
+        "locking": "Bloqueio de Fundos",
+        "reward": "2% de Recompensa",
+        "funding": "Financiamento Automático"
+      },
+      "view_btn": "Ver Economias",
+      "setup_btn": "Configurar Economias"
+    },
+    "loans": {
+      "credit_title": "Linha de Crédito",
+      "title": "Crédito Instantâneo",
+      "description": "Acesse limites de crédito de até 50% do seu saldo. Sem papelada, desembolso instantâneo com base no histórico.",
+      "items": {
+        "eligibility": "Elegibilidade Verificada",
+        "limits": "Limites Instantâneos",
+        "growth": "Crescimento do Limite",
+        "tracker": "Rastreador de Pagamentos"
+      },
+      "request_btn": "Solicitar Crédito"
+    },
+    "policies": {
+      "title": "Políticas Principais",
+      "interest_title": "Juros",
+      "interest_desc": "Bônus de 2% creditado ao atingir metas no prazo. Verificado pelo mecanismo principal.",
+      "locking_title": "Bloqueio",
+      "locking_desc": "Fundos bloqueados criptograficamente até o prazo para proteger a disciplina.",
+      "lending_title": "Empréstimos",
+      "lending_desc": "Exige verificação de integridade. Estritamente limitado a 50% do saldo frequente."
+    }
+  },
+  "kyc": {
+    "meta_title": "Vault — Verificação KYC",
+    "meta_description": "Verifique sua identidade para proteger sua conta Vault.",
+    "steps": {
+      "select_id": {
+        "title": "Selecionar Tipo de ID",
+        "description": "Escolha o tipo de documento para verificação",
+        "national_id": "ID Nacional",
+        "national_id_desc": "Carteira de Motorista, Cartão de Identidade",
+        "passport": "Passaporte",
+        "passport_desc": "Documento de Viagem Internacional",
+        "alien_card": "Cartão de Estrangeiro",
+        "alien_card_desc": "Cartão de Residente Estrangeiro"
+      },
+      "details": {
+        "title": "Detalhes do Documento",
+        "description": "Insira suas informações",
+        "full_name": "Nome Legal Completo",
+        "full_name_hint": "conforme no seu documento",
+        "id_number": "Número do ID",
+        "country": "País",
+        "passport_number": "Número do Passaporte",
+        "nationality": "Nacionalidade",
+        "individual_number": "Número Individual",
+        "continue_btn": "Continuar"
+      },
+      "upload": {
+        "title": "Fazer Upload do Documento",
+        "id_msg": "Faça upload do seu ID",
+        "passport_msg": "Faça upload do seu passaporte",
+        "alien_msg": "Faça upload do seu cartão de estrangeiro",
+        "click_to_upload": "Clique para fazer upload do documento",
+        "format_note": "PNG, JPG até 10MB",
+        "next_btn": "Próximo: Verificação Biométrica"
+      },
+      "biometric": {
+        "title": "Verificação Biométrica",
+        "description": "Tire uma selfie para verificar sua identidade",
+        "instruction": "Posicione seu rosto dentro da moldura oval e fique parado por alguns segundos",
+        "processing": "Processando...",
+        "capture_btn": "Capturar Selfie",
+        "start_camera_btn": "Iniciar Câmera",
+        "security_note": "Seus dados são criptografados e processados com segurança apenas para verificação de identidade."
+      },
+      "success": {
+        "title": "Verificação Bem-sucedida!",
+        "description": "Sua carteira digital está ativa e protegida com seu PIN",
+        "explore_btn": "Explorar Carteira",
+        "send_money": "Enviar Dinheiro",
+        "deposit_funds": "Depositar Fundos",
+        "withdraw_funds": "Retirar Fundos"
+      }
+    }
   }
 }
