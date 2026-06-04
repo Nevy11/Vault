@@ -75,18 +75,24 @@ export const getDashboardData = async (req: Request, res: Response) => {
     // Atomic data fetching via Promise.all
     const [profileRes, walletRes, subAccountsRes] = await Promise.all([
       // supabase is untyped in this environment, so avoid passing type args to .from()
-      (supabase.from("profiles").select("*").eq("id", userId).single() as Promise<{
+      supabase.from("profiles").select("*").eq("id", userId).single() as Promise<{
         data: { id: string; first_name: string; last_name: string } | null;
         error: any;
-      }>),
-      (supabase.from("wallets").select("*").eq("user_id", userId) as Promise<{
+      }>,
+      supabase.from("wallets").select("*").eq("user_id", userId) as Promise<{
         data: Array<{ balance: string; currency: string; user_id: string }> | null;
         error: any;
-      }>),
-      (supabase.from("sub_accounts").select("*").eq("user_id", userId) as Promise<{
-        data: Array<{ id: string; name: string; balance: string; icon_type: string; user_id: string }> | null;
+      }>,
+      supabase.from("sub_accounts").select("*").eq("user_id", userId) as Promise<{
+        data: Array<{
+          id: string;
+          name: string;
+          balance: string;
+          icon_type: string;
+          user_id: string;
+        }> | null;
         error: any;
-      }>),
+      }>,
     ]);
 
     if (profileRes.error) throw profileRes.error;

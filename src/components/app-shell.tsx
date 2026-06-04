@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import {
-  HelpCircle,
-  Home,
-  Send,
-  Settings,
-  User,
-  LogOut,
-  Landmark,
-} from "lucide-react";
+import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
@@ -119,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className="min-h-screen w-full text-foreground overflow-x-hidden"
       style={{ background: "var(--gradient-bg)" }}
-    suppressHydrationWarning
+      suppressHydrationWarning
     >
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
@@ -183,7 +175,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onClick={() => setIsAdvisorOpen(true)}
         className={cn(
           "bottom-44 right-6 md:bottom-6 md:right-64",
-          isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : ""
+          isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : "",
         )}
       />
 

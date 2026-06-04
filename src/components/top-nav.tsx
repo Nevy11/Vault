@@ -210,7 +210,7 @@ export function TopNav() {
               </button>
 
               <ReceiptActionIcon />
-              
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="rounded-full transition-all hover:ring-4 hover:ring-primary/10 focus:outline-none flex p-0.5 border border-primary/20 bg-primary/5">
@@ -253,9 +253,7 @@ export function TopNav() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator className="bg-border/50" />
-                  <DropdownMenuItem
-                    className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5"
-                  >
+                  <DropdownMenuItem className="cursor-pointer rounded-xl py-2.5 focus:bg-primary/5">
                     <User className="w-4 h-4 mr-2 text-muted-foreground" />
                     {t("nav.profile.view")}
                   </DropdownMenuItem>

@@ -306,9 +306,10 @@ function AdvisorSection() {
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
               Vault AI isn't just a chatbot. It's a proactive strategist that monitors your
-              spending, optimizes your savings, and helps you make smarter financial decisions in real-time.
+              spending, optimizes your savings, and helps you make smarter financial decisions in
+              real-time.
             </p>
-            
+
             <div className="mt-10 space-y-6">
               {[
                 {
@@ -340,7 +341,11 @@ function AdvisorSection() {
             </div>
 
             <div className="mt-10 flex flex-wrap gap-4">
-              <Button asChild size="lg" className="h-12 bg-primary px-8 text-primary-foreground hover:bg-primary/90">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 bg-primary px-8 text-primary-foreground hover:bg-primary/90"
+              >
                 <Link to="/sign-up">Consult the Advisor</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="h-12 px-8">
@@ -360,7 +365,9 @@ function AdvisorSection() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-foreground">Vault Advisor</p>
-                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Active strategist</p>
+                    <p className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                      Active strategist
+                    </p>
                   </div>
                 </div>
 
@@ -368,7 +375,10 @@ function AdvisorSection() {
                 <div className="space-y-4 flex-1">
                   <div className="flex justify-start">
                     <div className="max-w-[85%] rounded-2xl rounded-tl-none bg-white dark:bg-zinc-900 border border-border/60 p-3 text-sm shadow-sm">
-                      <p className="text-foreground">Hi there! I've noticed you've spent 15% more on dining this month. Would you like to see a breakdown?</p>
+                      <p className="text-foreground">
+                        Hi there! I've noticed you've spent 15% more on dining this month. Would you
+                        like to see a breakdown?
+                      </p>
                     </div>
                   </div>
                   <div className="flex justify-end">
@@ -383,10 +393,17 @@ function AdvisorSection() {
                         <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                           <div className="h-full bg-primary w-[75%]" />
                         </div>
-                        <p className="text-xs text-muted-foreground">You've spent $420 on dining. If you reduce this by 20%, you could save $84/mo.</p>
+                        <p className="text-xs text-muted-foreground">
+                          You've spent $420 on dining. If you reduce this by 20%, you could save
+                          $84/mo.
+                        </p>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          <span className="px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">Set Budget</span>
-                          <span className="px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">Compare Months</span>
+                          <span className="px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
+                            Set Budget
+                          </span>
+                          <span className="px-2 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-bold text-primary">
+                            Compare Months
+                          </span>
                         </div>
                       </div>
                     </div>

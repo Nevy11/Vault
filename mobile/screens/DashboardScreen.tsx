@@ -161,10 +161,13 @@ const VaultDashboard: React.FC<any> = (props) => {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.grid}>
             {quickActions.map((action) => (
-              <TouchableOpacity 
-                key={action.id} 
+              <TouchableOpacity
+                key={action.id}
                 style={styles.gridItem}
-                onPress={() => (action.route as any) === "ReceiptHistory" && (props as any).navigation.navigate("ReceiptHistory")}
+                onPress={() =>
+                  (action.route as any) === "ReceiptHistory" &&
+                  (props as any).navigation.navigate("ReceiptHistory")
+                }
               >
                 <View style={[styles.gridIconContainer, { backgroundColor: `${action.color}20` }]}>
                   <action.icon size={24} color={action.color} />

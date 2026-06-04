@@ -75,7 +75,7 @@ serve(async (req) => {
     if (validMessages.length > 0) {
       // Limit context to last 29 messages as requested for better context awareness
       const recentMessages = validMessages.slice(-29);
-      
+
       // Gemini contents must alternate user/model and start with user
       const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
       if (firstUserIndex !== -1) {
@@ -117,7 +117,7 @@ serve(async (req) => {
     const models = [
       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
     ];
 
     const tryCallGemini = async (modelUrl: string) => {
@@ -146,10 +146,10 @@ serve(async (req) => {
     // Iterate through the failover chain
     for (let i = 0; i < models.length; i++) {
       const currentModelUrl = models[i];
-      const modelName = currentModelUrl.split('/models/')[1].split(':')[0];
-      
+      const modelName = currentModelUrl.split("/models/")[1].split(":")[0];
+
       console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
-      
+
       response = await tryCallGemini(currentModelUrl);
       if (!response) continue;
 
@@ -174,7 +174,9 @@ serve(async (req) => {
 
     if (!success) {
       console.error("All models in failover chain failed.", data);
-      throw new Error(data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`);
+      throw new Error(
+        data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`,
+      );
     }
 
     const aiResponse =

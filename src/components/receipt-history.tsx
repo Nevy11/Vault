@@ -154,9 +154,7 @@ function ReceiptHistoryContent() {
                     <div className="text-sm font-semibold truncate max-w-[180px] dark:text-white">
                       {r.transaction_details.description || "Vault Transaction"}
                     </div>
-                    <div className="text-[10px] dark:text-white font-mono">
-                      {r.receipt_number}
-                    </div>
+                    <div className="text-[10px] dark:text-white font-mono">{r.receipt_number}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -287,7 +285,10 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setFontSize(9);
     doc.setFont(undefined, "bold");
     const footerText = `Your transfer of ${receipt.currency} ${receipt.amount.toLocaleString()} has been processed securely.`;
-    doc.text(footerText, pageWidth / 2, yPosition + 10, { align: "center", maxWidth: pageWidth - 50 });
+    doc.text(footerText, pageWidth / 2, yPosition + 10, {
+      align: "center",
+      maxWidth: pageWidth - 50,
+    });
 
     yPosition += 28;
 
@@ -295,11 +296,14 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setTextColor(...mutedColor);
     doc.setFontSize(8);
     doc.setFont(undefined, "normal");
-    const finalText = "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.";
+    const finalText =
+      "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.";
     doc.text(finalText, pageWidth / 2, yPosition, { align: "center", maxWidth: pageWidth - 40 });
 
     // Save the PDF
-    doc.save(`Receipt_${receipt.receipt_number}_${format(new Date(receipt.created_at), "yyyy-MM-dd")}.pdf`);
+    doc.save(
+      `Receipt_${receipt.receipt_number}_${format(new Date(receipt.created_at), "yyyy-MM-dd")}.pdf`,
+    );
   };
 
   return (
@@ -309,7 +313,13 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
           <X size={16} /> Back
         </Button>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full" onClick={handleDownload} title="Download receipt">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full"
+            onClick={handleDownload}
+            title="Download receipt"
+          >
             <Download size={16} />
           </Button>
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">

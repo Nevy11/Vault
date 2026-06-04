@@ -23,14 +23,14 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} options={{ title: "Log In" }} />
           <Stack.Screen name="SignUp" component={SignUpScreen} options={{ title: "Sign Up" }} />
           <Stack.Screen name="Dashboard" component={DashboardScreen} options={{ title: "Vault" }} />
-          <Stack.Screen 
-            name="ReceiptHistory" 
-            component={ReceiptHistoryScreen} 
-            options={{ 
+          <Stack.Screen
+            name="ReceiptHistory"
+            component={ReceiptHistoryScreen}
+            options={{
               title: "Receipt History",
               headerStyle: { backgroundColor: "#0F172A" },
               headerTintColor: "#F8FAFC",
-            }} 
+            }}
           />
         </Stack.Navigator>
       </NavigationContainer>

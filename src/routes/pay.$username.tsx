@@ -1,5 +1,6 @@
 import { createFileRoute, useParams, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useTranslation, Trans } from "react-i18next";
 import { supabase } from "@/api/supabase";
 import { QRCodeSVG } from "qrcode.react";
 import {
@@ -38,6 +39,7 @@ interface MerchantProfile {
 }
 
 function PaymentPortal() {
+  const { t } = useTranslation();
   const { username } = useParams({ from: "/pay/$username" });
   const [merchant, setMerchant] = useState<MerchantProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,9 +48,10 @@ function PaymentPortal() {
   const [method, setMethod] = useState<"vault" | "mpesa">("vault");
 
   const cleanUsername = (username || "").replace(/^@/, "").toLowerCase();
-  const paymentLink = typeof window !== "undefined" 
-    ? `${window.location.origin}/pay/@${cleanUsername}`
-    : `/pay/@${cleanUsername}`;
+  const paymentLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/pay/@${cleanUsername}`
+      : `/pay/@${cleanUsername}`;
 
   useEffect(() => {
     async function fetchMerchant() {
@@ -69,7 +72,7 @@ function PaymentPortal() {
           .eq("kyc_tag", `@${cleanUsername}`)
           .single();
 
-        if (error || !data) throw new Error("Merchant not found");
+        if (error || !data) throw new Error(t("payment_portal.merchant_not_found"));
 
         setMerchant({
           id: data.id,
@@ -81,17 +84,17 @@ function PaymentPortal() {
         });
       } catch (err) {
         console.error(err);
-        toast.error("Could not find this merchant profile.");
+        toast.error(t("payment_portal.find_merchant_error"));
       } finally {
         setLoading(false);
       }
     }
     fetchMerchant();
-  }, [cleanUsername]);
+  }, [cleanUsername, t]);
 
   const handlePay = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(t("payment_portal.enter_valid_amount"));
       return;
     }
 
@@ -104,7 +107,7 @@ function PaymentPortal() {
 
       if (!user) {
         // Redirect to login with intent
-        toast.info("Please sign in to complete your Vault payment.");
+        toast.info(t("payment_portal.signin_to_complete"));
         const redirectPath = `/pay/@${cleanUsername}${amount ? `?amount=${amount}` : ""}`;
         window.location.href = `/login?redirect=${encodeURIComponent(redirectPath)}`;
         return;
@@ -120,13 +123,13 @@ function PaymentPortal() {
       if (rpcError) throw rpcError;
 
       const result = Array.isArray(data) ? data[0] : data;
-      if (!result?.success) throw new Error(result?.message || "Payment failed");
+      if (!result?.success) throw new Error(result?.message || t("common.errors.transfer_failed"));
 
       setStatus("success");
-      toast.success("Payment completed successfully!");
+      toast.success(t("transactions.success.message"));
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "An unexpected error occurred");
+      toast.error(err.message || t("common.errors.unexpected_error"));
       setStatus("idle");
     }
   };
@@ -136,7 +139,7 @@ function PaymentPortal() {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="w-12 h-12 text-primary animate-spin" />
         <p className="mt-4 text-muted-foreground animate-pulse font-medium">
-          Locating Merchant Vault...
+          {t("payment_portal.locating_merchant")}
         </p>
       </div>
     );
@@ -148,12 +151,12 @@ function PaymentPortal() {
         <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-6">
           <User className="w-10 h-10" />
         </div>
-        <h1 className="text-3xl font-light mb-2">Merchant Not Found</h1>
+        <h1 className="text-3xl font-light mb-2">{t("payment_portal.merchant_not_found")}</h1>
         <p className="text-muted-foreground mb-8">
-          The username @{cleanUsername} does not appear to be a valid Vault OS account.
+          {t("payment_portal.username_not_valid", { username: cleanUsername })}
         </p>
         <Button asChild variant="outline" className="rounded-2xl h-12 px-8">
-          <Link to="/">Go Home</Link>
+          <Link to="/">{t("payment_portal.go_home")}</Link>
         </Button>
       </div>
     );
@@ -165,34 +168,31 @@ function PaymentPortal() {
         <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 mb-8">
           <CheckCircle2 className="w-16 h-16" />
         </div>
-        <h1 className="text-4xl font-bold mb-4">Payment Successful!</h1>
+        <h1 className="text-4xl font-bold mb-4">{t("payment_portal.payment_successful")}</h1>
         <p className="text-muted-foreground mb-12 max-w-sm">
-          You have successfully sent{" "}
-          <span className="text-foreground font-semibold">
-            ${parseFloat(amount).toLocaleString()}
-          </span>{" "}
-          to{" "}
-          <span className="text-foreground font-semibold">
-            {merchant.business?.business_name || merchant.first_name}
-          </span>
-          .
+          {t("payment_portal.sent_success", {
+            amount: `$${parseFloat(amount).toLocaleString()}`,
+            merchant: merchant.business?.business_name || merchant.first_name,
+          })}
         </p>
         <div className="bg-card/40 border border-border/50 rounded-3xl p-8 w-full max-w-md backdrop-blur-xl mb-12">
           <div className="flex justify-between text-sm mb-4">
-            <span className="text-muted-foreground">Recipient</span>
+            <span className="text-muted-foreground">{t("payment_portal.recipient")}</span>
             <span className="font-medium">@{cleanUsername}</span>
           </div>
           <div className="flex justify-between text-sm mb-4">
-            <span className="text-muted-foreground">Amount</span>
+            <span className="text-muted-foreground">{t("common.amount")}</span>
             <span className="font-mono text-primary">${parseFloat(amount).toLocaleString()}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Status</span>
-            <span className="text-emerald-500 font-bold uppercase tracking-tighter">Completed</span>
+            <span className="text-muted-foreground">{t("common.status")}</span>
+            <span className="text-emerald-500 font-bold uppercase tracking-tighter">
+              {t("common.completed")}
+            </span>
           </div>
         </div>
         <Button asChild className="rounded-2xl h-14 px-12 text-lg">
-          <Link to="/dashboard">Back to My Vault</Link>
+          <Link to="/dashboard">{t("payment_portal.back_to_vault")}</Link>
         </Button>
       </div>
     );
@@ -211,18 +211,15 @@ function PaymentPortal() {
         <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-12">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-[0.2em]">
-              <ShieldCheck className="w-4 h-4" /> Secure Vault Payment
+              <ShieldCheck className="w-4 h-4" /> {t("payment_portal.secure_vault_payment")}
             </div>
             <h1 className="text-5xl lg:text-7xl font-black tracking-tight text-balance leading-none">
-              Pay{" "}
-              <span className="text-primary">
-                {merchant.business?.business_name || merchant.first_name}
-              </span>{" "}
-              instantly.
+              {t("payment_portal.pay_instantly", {
+                merchant: merchant.business?.business_name || merchant.first_name,
+              })}
             </h1>
             <p className="text-xl text-muted-foreground max-w-lg leading-relaxed">
-              Scan the dynamic QR code or use the link below to send secure funds directly to{" "}
-              {merchant.kyc_tag}.
+              {t("payment_portal.scan_or_link", { tag: merchant.kyc_tag })}
             </p>
           </div>
 
@@ -246,7 +243,7 @@ function PaymentPortal() {
             <div className="flex-1 space-y-4 w-full">
               <div className="space-y-2">
                 <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold ml-1">
-                  Direct Payment Link
+                  {t("payment_portal.direct_link")}
                 </Label>
                 <div className="relative group">
                   <Input
@@ -257,11 +254,11 @@ function PaymentPortal() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(paymentLink);
-                      toast.success("Link copied to clipboard!");
+                      toast.success(t("payment_portal.link_copied"));
                     }}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:scale-110 transition-transform font-bold text-xs"
                   >
-                    COPY
+                    {t("payment_portal.copy")}
                   </button>
                 </div>
               </div>
@@ -270,8 +267,10 @@ function PaymentPortal() {
                   <Zap className="w-4 h-4" />
                 </div>
                 <div className="text-[10px] text-muted-foreground leading-tight">
-                  Funds are settled <span className="text-emerald-500 font-bold">Instantly</span> in
-                  the merchant's vault with Zero-Trust protection.
+                  <Trans i18nKey="payment_portal.settled_instantly">
+                    Funds are settled <span className="text-emerald-500 font-bold">Instantly</span>{" "}
+                    in the merchant's vault with Zero-Trust protection.
+                  </Trans>
                 </div>
               </div>
             </div>
@@ -300,7 +299,7 @@ function PaymentPortal() {
                   <div className="flex items-center gap-1.5 mt-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                      Verified Vault Business
+                      {t("payment_portal.verified_business")}
                     </span>
                   </div>
                 </div>
@@ -316,7 +315,7 @@ function PaymentPortal() {
             <div className="space-y-8 relative z-10">
               <div className="space-y-4">
                 <Label className="text-xs uppercase tracking-widest text-muted-foreground font-black ml-1">
-                  Payment Method
+                  {t("payment_portal.payment_method")}
                 </Label>
                 <div className="grid grid-cols-2 gap-3 p-1.5 bg-background/60 border border-border/60 rounded-3xl">
                   <button
@@ -328,7 +327,7 @@ function PaymentPortal() {
                         : "text-muted-foreground hover:bg-white/5",
                     )}
                   >
-                    <ShieldCheck className="w-4 h-4" /> Vault Wallet
+                    <ShieldCheck className="w-4 h-4" /> {t("payment_portal.vault_wallet")}
                   </button>
                   <button
                     onClick={() => setMethod("mpesa")}
@@ -339,14 +338,14 @@ function PaymentPortal() {
                         : "text-muted-foreground hover:bg-white/5",
                     )}
                   >
-                    <Smartphone className="w-4 h-4" /> M-Pesa
+                    <Smartphone className="w-4 h-4" /> {t("payment_portal.mpesa")}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <Label className="text-xs uppercase tracking-widest text-muted-foreground font-black ml-1">
-                  Payment Amount (USD)
+                  {t("payment_portal.payment_amount")}
                 </Label>
                 <div className="relative group">
                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-4xl font-light text-muted-foreground/40 group-focus-within:text-primary transition-colors">
@@ -362,7 +361,7 @@ function PaymentPortal() {
                 </div>
                 <div className="flex justify-between items-center px-2">
                   <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                    Available Rails
+                    {t("payment_portal.available_rails")}
                   </div>
                   <div className="flex gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                     <div className="w-6 h-6 rounded-md bg-white border p-1">
@@ -392,7 +391,7 @@ function PaymentPortal() {
                   <Loader2 className="w-8 h-8 animate-spin" />
                 ) : (
                   <>
-                    Confirm Payment{" "}
+                    {t("payment_portal.confirm_payment")}{" "}
                     <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 transition-transform" />
                   </>
                 )}
@@ -414,9 +413,9 @@ function PaymentPortal() {
 
           <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Info className="w-4 h-4" />
-            New to Vault?{" "}
+            {t("payment_portal.new_to_vault")}{" "}
             <Link to="/sign-up" className="text-primary font-bold hover:underline">
-              Create your secure wallet in 60 seconds.
+              {t("payment_portal.create_wallet")}
             </Link>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState, type FormEvent, type ReactNode, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Upload,
   CheckCircle2,
@@ -24,15 +25,18 @@ type KYCStep = "id-type" | "document-details" | "upload" | "biometric" | "succes
 // 2. TanStack Router Configuration
 export const Route = createFileRoute("/kyc")({
   component: KYCPage,
-  head: () => ({
-    meta: [
-      { title: "Vault — KYC Verification" },
-      {
-        name: "description",
-        content: "Verify your identity to secure your Vault account.",
-      },
-    ],
-  }),
+  head: () => {
+    const { t } = useTranslation();
+    return {
+      meta: [
+        { title: t("kyc.meta_title") },
+        {
+          name: "description",
+          content: t("kyc.meta_description"),
+        },
+      ],
+    };
+  },
 });
 
 // 3. Helper Components
@@ -100,6 +104,7 @@ function Confetti() {
 
 // 4. Main Page Component
 function KYCPage() {
+  const { t } = useTranslation();
   const [step, setStep] = useState<KYCStep>("id-type");
   const [idType, setIdType] = useState<IDType>(null);
   const [fullName, setFullName] = useState("");
@@ -197,7 +202,7 @@ function KYCPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t("common.back")}
           </Link>
         </div>
         <div
@@ -209,9 +214,11 @@ function KYCPage() {
           {step === "id-type" && (
             <>
               <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">Select ID Type</h1>
+                <h1 className="font-serif text-3xl text-foreground">
+                  {t("kyc.steps.select_id.title")}
+                </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Choose your document type for verification
+                  {t("kyc.steps.select_id.description")}
                 </p>
               </div>
 
@@ -220,9 +227,11 @@ function KYCPage() {
                   onClick={() => handleSelectIDType("national-id")}
                   className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
                 >
-                  <p className="font-medium text-foreground">National ID</p>
+                  <p className="font-medium text-foreground">
+                    {t("kyc.steps.select_id.national_id")}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Driver's License, Identity Card
+                    {t("kyc.steps.select_id.national_id_desc")}
                   </p>
                 </button>
 
@@ -230,9 +239,9 @@ function KYCPage() {
                   onClick={() => handleSelectIDType("passport")}
                   className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
                 >
-                  <p className="font-medium text-foreground">Passport</p>
+                  <p className="font-medium text-foreground">{t("kyc.steps.select_id.passport")}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    International Travel Document
+                    {t("kyc.steps.select_id.passport_desc")}
                   </p>
                 </button>
 
@@ -240,8 +249,12 @@ function KYCPage() {
                   onClick={() => handleSelectIDType("alien-card")}
                   className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
                 >
-                  <p className="font-medium text-foreground">Alien Card</p>
-                  <p className="text-xs text-muted-foreground mt-1">Foreign Resident Card</p>
+                  <p className="font-medium text-foreground">
+                    {t("kyc.steps.select_id.alien_card")}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {t("kyc.steps.select_id.alien_card_desc")}
+                  </p>
                 </button>
               </div>
             </>
@@ -250,12 +263,20 @@ function KYCPage() {
           {step === "document-details" && idType && (
             <>
               <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">Document Details</h1>
-                <p className="mt-1 text-sm text-muted-foreground">Enter your information</p>
+                <h1 className="font-serif text-3xl text-foreground">
+                  {t("kyc.steps.details.title")}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("kyc.steps.details.description")}
+                </p>
               </div>
 
               <form className="mt-7 space-y-4" onSubmit={handleDocumentDetailsSubmit}>
-                <Field label="Full Legal Name" hint="as on your document" required>
+                <Field
+                  label={t("kyc.steps.details.full_name")}
+                  hint={t("kyc.steps.details.full_name_hint")}
+                  required
+                >
                   <Input
                     type="text"
                     value={fullName}
@@ -266,7 +287,7 @@ function KYCPage() {
 
                 {idType === "national-id" && (
                   <>
-                    <Field label="ID Number" required>
+                    <Field label={t("kyc.steps.details.id_number")} required>
                       <Input
                         type="text"
                         value={idNumber}
@@ -274,7 +295,7 @@ function KYCPage() {
                         className="h-11 bg-input/60 border-border focus-visible:ring-primary"
                       />
                     </Field>
-                    <Field label="Country" required>
+                    <Field label={t("kyc.steps.details.country")} required>
                       <Input
                         type="text"
                         value={country}
@@ -287,7 +308,7 @@ function KYCPage() {
 
                 {idType === "passport" && (
                   <>
-                    <Field label="Passport Number" required>
+                    <Field label={t("kyc.steps.details.passport_number")} required>
                       <Input
                         type="text"
                         value={passportNumber}
@@ -295,7 +316,7 @@ function KYCPage() {
                         className="h-11 bg-input/60 border-border focus-visible:ring-primary"
                       />
                     </Field>
-                    <Field label="Nationality" required>
+                    <Field label={t("kyc.steps.details.nationality")} required>
                       <Input
                         type="text"
                         value={nationality}
@@ -308,7 +329,7 @@ function KYCPage() {
 
                 {idType === "alien-card" && (
                   <>
-                    <Field label="Individual Number" required>
+                    <Field label={t("kyc.steps.details.individual_number")} required>
                       <Input
                         type="text"
                         value={individNumber}
@@ -316,7 +337,7 @@ function KYCPage() {
                         className="h-11 bg-input/60 border-border focus-visible:ring-primary"
                       />
                     </Field>
-                    <Field label="Nationality" required>
+                    <Field label={t("kyc.steps.details.nationality")} required>
                       <Input
                         type="text"
                         value={nationality}
@@ -331,7 +352,7 @@ function KYCPage() {
                   type="submit"
                   className="mt-6 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
                 >
-                  Continue
+                  {t("kyc.steps.details.continue_btn")}
                 </Button>
               </form>
             </>
@@ -340,14 +361,15 @@ function KYCPage() {
           {step === "upload" && (
             <>
               <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">Upload Document</h1>
+                <h1 className="font-serif text-3xl text-foreground">
+                  {t("kyc.steps.upload.title")}
+                </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Upload your{" "}
                   {idType === "national-id"
-                    ? "ID"
+                    ? t("kyc.steps.upload.id_msg")
                     : idType === "passport"
-                      ? "passport"
-                      : "alien card"}
+                      ? t("kyc.steps.upload.passport_msg")
+                      : t("kyc.steps.upload.alien_msg")}
                 </p>
               </div>
 
@@ -357,9 +379,11 @@ function KYCPage() {
                     <div className="border-2 border-dashed border-border/50 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
                       <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                       <p className="text-sm font-medium text-foreground">
-                        {documentFile ? documentFile.name : "Click to upload document"}
+                        {documentFile ? documentFile.name : t("kyc.steps.upload.click_to_upload")}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t("kyc.steps.upload.format_note")}
+                      </p>
                     </div>
                     <input
                       type="file"
@@ -375,7 +399,7 @@ function KYCPage() {
                   disabled={!documentFile}
                   className="mt-6 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50"
                 >
-                  Next: Biometric Verification
+                  {t("kyc.steps.upload.next_btn")}
                 </Button>
               </form>
             </>
@@ -384,9 +408,11 @@ function KYCPage() {
           {step === "biometric" && (
             <>
               <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">Biometric Verification</h1>
+                <h1 className="font-serif text-3xl text-foreground">
+                  {t("kyc.steps.biometric.title")}
+                </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Take a selfie to verify your identity
+                  {t("kyc.steps.biometric.description")}
                 </p>
               </div>
 
@@ -408,7 +434,7 @@ function KYCPage() {
                 </div>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Position your face within the oval frame and keep still for a few seconds
+                  {t("kyc.steps.biometric.instruction")}
                 </p>
 
                 <Button
@@ -421,11 +447,15 @@ function KYCPage() {
                   ) : (
                     <Camera className="h-4 w-4" />
                   )}
-                  {isLoadingCamera ? "Processing..." : isCameraActive ? "Capture Selfie" : "Start Camera"}
+                  {isLoadingCamera
+                    ? t("kyc.steps.biometric.processing")
+                    : isCameraActive
+                      ? t("kyc.steps.biometric.capture_btn")
+                      : t("kyc.steps.biometric.start_camera_btn")}
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground/70 italic">
-                  Your data is encrypted and processed securely for identity verification only.
+                  {t("kyc.steps.biometric.security_note")}
                 </p>
               </div>
             </>
@@ -438,9 +468,11 @@ function KYCPage() {
                   <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl" />
                   <CheckCircle2 className="h-20 w-20 text-primary relative mx-auto mb-4" />
                 </div>
-                <h1 className="font-serif text-3xl text-foreground">Verification Successful!</h1>
+                <h1 className="font-serif text-3xl text-foreground">
+                  {t("kyc.steps.success.title")}
+                </h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Your digital wallet is active and secured with your PIN
+                  {t("kyc.steps.success.description")}
                 </p>
               </div>
 
@@ -451,30 +483,30 @@ function KYCPage() {
                   onClick={handleExploreWallet}
                   className="h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
                 >
-                  Explore Wallet
+                  {t("kyc.steps.success.explore_btn")}
                 </Button>
 
                 <div className="grid grid-cols-3 gap-2">
                   <Button
                     variant="outline"
                     className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/dashboard" })}
+                    onClick={() => navigate({ to: "/transactions", search: { mode: "send" } })}
                   >
-                    Send Money
+                    {t("kyc.steps.success.send_money")}
                   </Button>
                   <Button
                     variant="outline"
                     className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/dashboard" })}
+                    onClick={() => navigate({ to: "/transactions", search: { mode: "deposit" } })}
                   >
-                    Deposit Funds
+                    {t("kyc.steps.success.deposit_funds")}
                   </Button>
                   <Button
                     variant="outline"
                     className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/dashboard" })}
+                    onClick={() => navigate({ to: "/transactions", search: { mode: "withdraw" } })}
                   >
-                    Withdraw Funds
+                    {t("kyc.steps.success.withdraw_funds")}
                   </Button>
                 </div>
               </div>

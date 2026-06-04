@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   Lock,
@@ -61,15 +62,20 @@ const transactionsSearchSchema = z.object({
 
 export const Route = createFileRoute("/transactions")({
   validateSearch: (search) => transactionsSearchSchema.parse(search),
-  head: () => ({
-    meta: [
-      { title: "Transactions — Vault OS" },
-      {
-        name: "description",
-        content: "Send money, deposit funds, and withdraw across your Vault accounts.",
-      },
-    ],
-  }),
+  head: (ctx) => {
+    const { t } = ctx.context.i18n || { t: (k: string) => k };
+    return {
+      meta: [
+        { title: t ? t("transactions.page_title") : "Transactions — Vault OS" },
+        {
+          name: "description",
+          content: t
+            ? t("transactions.page_description")
+            : "Send money, deposit funds, and withdraw across your Vault accounts.",
+        },
+      ],
+    };
+  },
   component: TransactionsPage,
 });
 
@@ -77,6 +83,7 @@ type Mode = "send" | "deposit" | "withdraw";
 
 function WalletCard() {
   const { balance, currency, loading } = useWalletBalance();
+  const { t } = useTranslation();
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-primary/30 bg-card/40 p-6 backdrop-blur-sm min-w-[240px] transition-all hover:bg-card/60 hover:border-primary/50 shadow-sm">
@@ -90,7 +97,7 @@ function WalletCard() {
               <CreditCard className="w-4 h-4" />
             </div>
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/80">
-              Vault {currency} Wallet
+              {t("transactions.wallet_card.vault_wallet", { currency })}
             </div>
           </div>
           <Lock className="w-3.5 h-3.5 text-muted-foreground/40" />
@@ -107,7 +114,7 @@ function WalletCard() {
           <div className="mt-1 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">
-              Active & Encrypted
+              {t("transactions.wallet_card.active_encrypted")}
             </span>
           </div>
         </div>
@@ -117,19 +124,19 @@ function WalletCard() {
 }
 
 const BANKS = [
-  "KCB Bank (Kenya Commercial Bank)",
-  "Co-operative Bank of Kenya",
-  "NCBA Bank",
-  "Absa Bank Kenya",
-  "Standard Chartered Kenya",
-  "Stanbic Bank Kenya",
-  "I&M Bank",
-  "DTB (Diamond Trust Bank)",
-  "Family Bank",
-  "Equity Bank Kenya",
+  "kcb",
+  "coop",
+  "ncba",
+  "absa",
+  "stanchart",
+  "stanbic",
+  "im",
+  "dtb",
+  "family",
+  "equity",
 ];
 
-const MOBILE_PROVIDERS = ["M-Pesa", "Airtel Money", "T-Kash"];
+const MOBILE_PROVIDERS = ["mpesa", "airtel", "tkash"];
 
 interface Recipient {
   id: number;
@@ -143,74 +150,8 @@ interface Recipient {
   provider?: string;
 }
 
-const RECENT_TRANSACTIONS: Recipient[] = [
-  {
-    id: 1,
-    name: "Maria C.",
-    type: "vault",
-    identifier: "@maria",
-    avatar: "MC",
-    color: "bg-emerald-500",
-  },
-  {
-    id: 2,
-    name: "KCB Bank",
-    type: "bank",
-    identifier: "1234567890",
-    avatar: "KCB",
-    color: "bg-blue-600",
-    bank: "KCB Bank (Kenya Commercial Bank)",
-  },
-  {
-    id: 3,
-    name: "John L.",
-    type: "mobile",
-    identifier: "+254712345678",
-    avatar: "JL",
-    color: "bg-amber-500",
-    provider: "M-Pesa",
-  },
-  {
-    id: 4,
-    name: "Lisa M.",
-    type: "vault",
-    identifier: "@lisa",
-    avatar: "LM",
-    color: "bg-pink-500",
-  },
-];
-
-const FREQUENT_TRANSACTIONS: Recipient[] = [
-  {
-    id: 1,
-    name: "Maria C.",
-    type: "vault",
-    identifier: "@maria",
-    avatar: "MC",
-    color: "bg-emerald-500",
-  },
-  { id: 5, name: "Ben A.", type: "vault", identifier: "@ben", avatar: "BA", color: "bg-teal-500" },
-  {
-    id: 6,
-    name: "Absa Bank",
-    type: "bank",
-    identifier: "0987654321",
-    avatar: "Absa",
-    color: "bg-red-600",
-    bank: "Absa Bank Kenya",
-  },
-  {
-    id: 7,
-    name: "M-Pesa",
-    type: "mobile",
-    identifier: "+254722222222",
-    avatar: "MP",
-    color: "bg-green-600",
-    provider: "M-Pesa",
-  },
-];
-
 function SendPanel({ searchFilter }: { searchFilter?: string }) {
+  const { t } = useTranslation();
   const { currency, refetch: refetchBalance } = useWalletBalance();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
@@ -226,7 +167,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const [frequentRecipients, setFrequentRecipients] = useState<Recipient[]>([]);
 
   // Recipient Verification
-  const [recipient, setRecipient] = useState<{ id: string; name: string; tag?: string } | null>(null);
+  const [recipient, setRecipient] = useState<{ id: string; name: string; tag?: string } | null>(
+    null,
+  );
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -352,21 +295,23 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         }
       } catch (err) {
         console.error("Error fetching recipients:", err);
-        toast.error("Unable to load recipient suggestions. Please try again.");
+        toast.error(t("transactions.errors.load_recipients"));
       }
     };
 
     fetchRecipients();
-  }, [status === "success"]); // Refresh lists when a new transfer succeeds
+  }, [status === "success", t]); // Refresh lists when a new transfer succeeds
 
   useEffect(() => {
     const searchRecipient = async () => {
       const query = identifier.trim().toLowerCase();
-      
+
       if (method === "vault" && query.length >= 2) {
         setIsSearching(true);
-        const { data: { user } } = await supabase.auth.getUser();
-        
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         // Search by first_name or kyc_tag (which starts with @)
         const { data } = await supabase
           .from("profiles")
@@ -378,11 +323,17 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         if (data && data.length > 0) {
           setSearchResults(data);
           setShowSuggestions(true);
-          
+
           // Check for exact match to show verified badge
-          const exactMatch = data.find(p => p.kyc_tag?.toLowerCase() === `@${query.replace("@", "")}`);
+          const exactMatch = data.find(
+            (p) => p.kyc_tag?.toLowerCase() === `@${query.replace("@", "")}`,
+          );
           if (exactMatch) {
-            setRecipient({ id: exactMatch.id, name: `${exactMatch.first_name} ${exactMatch.last_name}`, tag: exactMatch.kyc_tag });
+            setRecipient({
+              id: exactMatch.id,
+              name: `${exactMatch.first_name} ${exactMatch.last_name}`,
+              tag: exactMatch.kyc_tag,
+            });
           } else {
             setRecipient(null);
           }
@@ -421,7 +372,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
 
   const handleSendClick = () => {
     if (!amount || !identifier || (method === "bank" && !bank)) {
-      toast.error("Please fill all required fields");
+      toast.error(t("transactions.errors.fill_required"));
       return;
     }
     setIsPinModalOpen(true);
@@ -469,9 +420,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           p_user_id: user.id,
           p_amount: total,
           p_method: method === "mobile" ? "mpesa" : "bank",
-          p_description: method === "mobile" 
-            ? `Transfer to ${provider}: ${identifier}` 
-            : `Bank Transfer to ${bank}: ${identifier}`,
+          p_description:
+            method === "mobile"
+              ? `Transfer to ${provider}: ${identifier}`
+              : `Bank Transfer to ${bank}: ${identifier}`,
         });
 
         if (rpcError) {
@@ -494,7 +446,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
       }
 
       setStatus("success");
-      toast.success("Transfer completed successfully!");
+      toast.success(t("transactions.success.message"));
     } catch (error: any) {
       console.error("Transfer error:", error);
       toast.error(error.message || "An unexpected error occurred during transfer");
@@ -508,29 +460,35 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center text-primary mb-6">
           <CheckCircle2 className="w-12 h-12" />
         </div>
-        <h2 className="text-2xl font-semibold mb-2">Transfer Successful!</h2>
+        <h2 className="text-2xl font-semibold mb-2">{t("transactions.success.title")}</h2>
         <p className="text-muted-foreground mb-6 max-w-sm">
-          Your transfer of {currency} {parseFloat(amount).toLocaleString()} has been processed
-          securely.
+          {t("transactions.success.description", {
+            currency,
+            amount: parseFloat(amount).toLocaleString(),
+          })}
         </p>
         <div className="bg-card/40 border border-border/50 rounded-2xl p-6 w-full max-w-sm mb-8">
           <div className="flex justify-between mb-3 text-sm">
-            <span className="text-muted-foreground">Transaction ID</span>
+            <span className="text-muted-foreground">
+              {t("transactions.success.transaction_id")}
+            </span>
             <span className="font-mono font-medium">{refCode}</span>
           </div>
           <div className="flex justify-between mb-3 text-sm">
-            <span className="text-muted-foreground">Amount Deducted</span>
+            <span className="text-muted-foreground">
+              {t("transactions.success.amount_deducted")}
+            </span>
             <span className="font-medium">
               {currency} {total.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Status</span>
-            <span className="text-primary font-medium">Completed</span>
+            <span className="text-muted-foreground">{t("common.status")}</span>
+            <span className="text-primary font-medium">{t("common.completed")}</span>
           </div>
         </div>
         <Button variant="outline" className="w-full max-w-xs" asChild>
-          <Link to="/dashboard">Back to Dashboard</Link>
+          <Link to="/dashboard">{t("transactions.success.back_to_dashboard")}</Link>
         </Button>
       </div>
     );
@@ -540,9 +498,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
     <div className="space-y-8">
       {/* Step 1: Provider Selection */}
       <div className="space-y-4">
-        <h3 className="text-lg font-light tracking-tight">
-          Step 1: Choose Financial Provider Type
-        </h3>
+        <h3 className="text-lg font-light tracking-tight">{t("transactions.steps.step1")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <button
             onClick={() => setMethod("vault")}
@@ -561,8 +517,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             >
               <User className="w-6 h-6" />
             </div>
-            <div className="text-base font-medium">Vault Account (P2P)</div>
-            <p className="text-xs text-muted-foreground mt-1">Instant internal transfer</p>
+            <div className="text-base font-medium">{t("transactions.providers.vault")}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("transactions.providers.vault_desc")}
+            </p>
           </button>
           <button
             onClick={() => setMethod("bank")}
@@ -581,8 +539,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             >
               <Landmark className="w-6 h-6" />
             </div>
-            <div className="text-base font-medium">Bank Account</div>
-            <p className="text-xs text-muted-foreground mt-1">Send to any Kenyan bank</p>
+            <div className="text-base font-medium">{t("transactions.providers.bank")}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("transactions.providers.bank_desc")}
+            </p>
           </button>
           <button
             onClick={() => setMethod("mobile")}
@@ -601,8 +561,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             >
               <Smartphone className="w-6 h-6" />
             </div>
-            <div className="text-base font-medium">Mobile Money</div>
-            <p className="text-xs text-muted-foreground mt-1">Send to M-Pesa or Airtel</p>
+            <div className="text-base font-medium">{t("transactions.providers.mobile")}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("transactions.providers.mobile_desc")}
+            </p>
           </button>
         </div>
       </div>
@@ -612,10 +574,12 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-light tracking-tight">
-              {method === "vault" && "Vault-to-Vault Transfer"}
+              {method === "vault" && t("transactions.steps.step2_vault")}
               {method === "bank" &&
-                (bank ? `Send Money to ${bank.split(" (")[0]}` : "Send Money to Bank Account")}
-              {method === "mobile" && "Send Money to Mobile Wallet"}
+                (bank
+                  ? t("transactions.steps.step2_bank_specific", { bank: bank.split(" (")[0] })
+                  : t("transactions.steps.step2_bank"))}
+              {method === "mobile" && t("transactions.steps.step2_mobile")}
             </h3>
             <WalletCard />
           </div>
@@ -624,15 +588,15 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             <div className="space-y-5">
               {method === "bank" && (
                 <div className="space-y-2">
-                  <Label>Select Bank</Label>
+                  <Label>{t("transactions.form.select_bank")}</Label>
                   <Select value={bank} onValueChange={setBank}>
                     <SelectTrigger className="bg-background/40 h-12 border-border/60">
-                      <SelectValue placeholder="Choose a bank" />
+                      <SelectValue placeholder={t("transactions.form.choose_bank")} />
                     </SelectTrigger>
                     <SelectContent>
                       {BANKS.map((b) => (
                         <SelectItem key={b} value={b}>
-                          {b}
+                          {t(`transactions.banks.${b}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -642,7 +606,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
 
               {method === "mobile" && (
                 <div className="space-y-2">
-                  <Label>Provider</Label>
+                  <Label>{t("transactions.form.provider")}</Label>
                   <div className="grid grid-cols-2 gap-2 p-1 bg-background/40 border border-border/60 rounded-lg">
                     {MOBILE_PROVIDERS.map((p) => (
                       <button
@@ -655,7 +619,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                             : "text-muted-foreground hover:text-foreground",
                         )}
                       >
-                        {p}
+                        {t(`transactions.mobile_providers.${p}`)}
                       </button>
                     ))}
                   </div>
@@ -664,18 +628,18 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
 
               <div className="space-y-2">
                 <Label>
-                  {method === "vault" && "Recipient Username / Tag"}
-                  {method === "bank" && "Account Number"}
-                  {method === "mobile" && "Phone Number"}
+                  {method === "vault" && t("transactions.form.recipient_username")}
+                  {method === "bank" && t("transactions.form.account_number")}
+                  {method === "mobile" && t("transactions.form.phone_number")}
                 </Label>
                 <div className="relative">
                   <Input
                     placeholder={
                       method === "vault"
-                        ? "@username"
+                        ? t("transactions.form.username_placeholder")
                         : method === "bank"
-                          ? "0000000000"
-                          : "+254 7XX XXX XXX"
+                          ? t("transactions.form.account_placeholder")
+                          : t("transactions.form.phone_placeholder")
                     }
                     className="bg-background/40 h-12 border-border/60"
                     value={identifier}
@@ -699,7 +663,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                         </div>
                       ) : identifier.length >= 3 && !showSuggestions ? (
                         <span className="text-[10px] text-destructive font-medium uppercase tracking-tighter">
-                          Not Found
+                          {t("transactions.errors.not_found")}
                         </span>
                       ) : null}
                     </div>
@@ -716,14 +680,19 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                             className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-primary/5 text-left transition-colors group"
                             onClick={() => {
                               setIdentifier(p.kyc_tag.replace("@", ""));
-                              setRecipient({ id: p.id, name: `${p.first_name} ${p.last_name}`, tag: p.kyc_tag });
+                              setRecipient({
+                                id: p.id,
+                                name: `${p.first_name} ${p.last_name}`,
+                                tag: p.kyc_tag,
+                              });
                               setShowSuggestions(false);
                             }}
                           >
                             <Avatar className="w-8 h-8 border border-border/40">
                               <AvatarImage src={p.profile_photo_url} />
                               <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                                {p.first_name[0]}{p.last_name[0]}
+                                {p.first_name[0]}
+                                {p.last_name[0]}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">
@@ -744,14 +713,14 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
               </div>
 
               <div className="space-y-2">
-                <Label>Amount ({currency})</Label>
+                <Label>{t("transactions.form.amount_label", { currency })}</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                     {currency}
                   </span>
                   <Input
                     type="number"
-                    placeholder="0.00"
+                    placeholder={t("transactions.form.amount_placeholder")}
                     className="bg-background/40 h-12 pl-12 border-border/60 text-lg font-medium"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -767,7 +736,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                 onClick={handleSendClick}
                 disabled={method === "vault" && !recipient}
               >
-                Send Money <ArrowRight className="ml-2 w-5 h-5" />
+                {t("transactions.form.send_money_btn")} <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </div>
           </div>
@@ -780,7 +749,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <History className="w-4 h-4" />{" "}
-              {searchFilter ? "Search Results (Recent)" : "Recent Transactions"}
+              {searchFilter
+                ? t("transactions.recipients.search_recent")
+                : t("transactions.recipients.recent")}
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {filteredRecent.map((r) => (
@@ -807,7 +778,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <Zap className="w-4 h-4" />{" "}
-              {searchFilter ? "Search Results (Frequent)" : "Most Frequent"}
+              {searchFilter
+                ? t("transactions.recipients.search_frequent")
+                : t("transactions.recipients.frequent")}
             </div>
             <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
               {filteredFrequent.map((r) => (
@@ -833,7 +806,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         {searchFilter && filteredRecent.length === 0 && filteredFrequent.length === 0 && (
           <div className="py-12 text-center border border-dashed border-border/40 rounded-3xl bg-muted/5">
             <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No recipients match "{searchFilter}"</p>
+            <p className="text-sm text-muted-foreground">
+              {t("transactions.recipients.no_match", { searchFilter })}
+            </p>
           </div>
         )}
       </div>
@@ -842,45 +817,47 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
       <Dialog open={status === "confirming"} onOpenChange={(open) => !open && setStatus("idle")}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm Transaction</DialogTitle>
-            <DialogDescription>
-              Please verify the transfer details before proceeding.
-            </DialogDescription>
+            <DialogTitle>{t("transactions.confirmation.title")}</DialogTitle>
+            <DialogDescription>{t("transactions.confirmation.description")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="rounded-2xl bg-muted/50 p-4 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Recipient</span>
+                <span className="text-muted-foreground">
+                  {t("transactions.confirmation.recipient")}
+                </span>
                 <span className="font-semibold text-foreground">
                   {recipient ? recipient.name : identifier}
                 </span>
               </div>
               {recipient && (
                 <div className="flex justify-between text-[10px] -mt-2">
-                  <span className="text-muted-foreground italic">KYC Tag Verified</span>
+                  <span className="text-muted-foreground italic">
+                    {t("transactions.confirmation.kyc_verified")}
+                  </span>
                   <span className="text-primary font-mono">@{identifier.replace("@", "")}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Via</span>
+                <span className="text-muted-foreground">{t("transactions.confirmation.via")}</span>
                 <span className="font-medium capitalize">
                   {method} {bank && `- ${bank.split(" (")[0]}`}
                 </span>
               </div>
               <div className="border-t border-border/50 pt-3 flex justify-between text-sm">
-                <span className="text-muted-foreground">Amount</span>
+                <span className="text-muted-foreground">{t("common.amount")}</span>
                 <span className="font-medium">
                   {currency} {parseFloat(amount || "0").toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Transaction Fee</span>
+                <span className="text-muted-foreground">{t("transactions.confirmation.fee")}</span>
                 <span className="font-medium text-destructive">
                   {currency} {fee.toLocaleString()}
                 </span>
               </div>
               <div className="border-t border-primary/20 pt-3 flex justify-between text-base font-semibold">
-                <span>Total Deducted</span>
+                <span>{t("transactions.confirmation.total_deducted")}</span>
                 <span className="text-primary font-mono">
                   {currency} {total.toLocaleString()}
                 </span>
@@ -889,10 +866,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           </div>
           <DialogFooter className="flex sm:justify-between gap-3">
             <Button variant="ghost" className="flex-1" onClick={() => setStatus("idle")}>
-              NO, CANCEL
+              {t("transactions.confirmation.cancel")}
             </Button>
             <Button className="flex-1" onClick={handleConfirm}>
-              YES, CONFIRM
+              {t("transactions.confirmation.confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -905,9 +882,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             <div className="w-24 h-24 rounded-full border-4 border-primary/20 animate-pulse" />
             <Loader2 className="w-24 h-24 text-primary animate-spin absolute inset-0" />
           </div>
-          <h2 className="text-xl font-medium mt-8">Processing transfer securely...</h2>
+          <h2 className="text-xl font-medium mt-8">{t("transactions.processing.title")}</h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Verifying PIN and checking ledger balance
+            {t("transactions.processing.description")}
           </p>
         </div>
       )}
@@ -916,26 +893,38 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         isOpen={isPinModalOpen}
         onClose={() => setIsPinModalOpen(false)}
         onVerified={handlePinVerified}
-        title="Authorize Transfer"
-        description={`Securely confirm your transfer of ${currency} ${parseFloat(amount || "0").toLocaleString()} to ${identifier}.`}
+        title={t("transactions.authorize.title")}
+        description={t("transactions.authorize.description", {
+          currency,
+          amount: parseFloat(amount || "0").toLocaleString(),
+          identifier,
+        })}
       />
     </div>
   );
 }
 
 function TransactionHistory() {
+  const { t } = useTranslation();
   const { balance, currency, loading: balanceLoading } = useWalletBalance();
   const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "transfer" | "deposit" | "withdrawal">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "transfer" | "deposit" | "withdrawal">(
+    "all",
+  );
   const [page, setPage] = useState(0);
-  
-  const { transactions, loading: txLoading, totalCount, hasMore } = useTransactions(!balanceLoading, {
+
+  const {
+    transactions,
+    loading: txLoading,
+    totalCount,
+    hasMore,
+  } = useTransactions(!balanceLoading, {
     page,
     pageSize: 10,
     search,
-    type: typeFilter
+    type: typeFilter,
   });
-  
+
   const [profile] = useProfileSignal();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -950,105 +939,122 @@ function TransactionHistory() {
 
   const loadMore = () => {
     if (hasMore && !txLoading) {
-      setPage(prev => prev + 1);
+      setPage((prev) => prev + 1);
     }
   };
 
-  const getTransactionDetails = (t: any) => {
-    console.log("Processing transaction:", t);
-    const isSender = t.sender_id === (profile as any)?.id;
-    const userName = profile?.first_name 
+  const getTransactionDetails = (t_data: any) => {
+    const isSender = t_data.sender_id === (profile as any)?.id;
+    const userName = profile?.first_name
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-      : (profile?.email?.split('@')[0] || "Vault User");
-    const symbol = currency === 'USD' ? '$' : currency + ' ';
+      : profile?.email?.split("@")[0] || t("common.vault_user");
+    const symbol = currency === "USD" ? "$" : currency + " ";
 
     // Method-specific logo helper - enhanced with all banks and mobile services
     const getMethodLogo = (method: string, description: string) => {
-      const desc = (description || '').toLowerCase();
-      const meth = (method || '').toLowerCase();
-      
+      const desc = (description || "").toLowerCase();
+      const meth = (method || "").toLowerCase();
+
       // Mobile money services
-      if (desc.includes('mpesa') || desc.includes('m-pesa') || meth.includes('mpesa')) return '/logos/mpesa.svg';
-      if (desc.includes('airtel') || meth.includes('airtel')) return '/logos/airtel.svg';
-      if (desc.includes('t-kash') || desc.includes('tkash') || meth.includes('tkash')) return '/logos/tkash.svg';
-      
+      if (desc.includes("mpesa") || desc.includes("m-pesa") || meth.includes("mpesa"))
+        return "/logos/mpesa.svg";
+      if (desc.includes("airtel") || meth.includes("airtel")) return "/logos/airtel.svg";
+      if (desc.includes("t-kash") || desc.includes("tkash") || meth.includes("tkash"))
+        return "/logos/tkash.svg";
+
       // Banks
-      if (desc.includes('kcb') || meth.includes('kcb')) return '/logos/kcb.svg';
-      if (desc.includes('co-operative') || desc.includes('coop') || meth.includes('coop')) return '/logos/coop.svg';
-      if (desc.includes('ncba') || meth.includes('ncba')) return '/logos/ncba.svg';
-      if (desc.includes('absa') || meth.includes('absa')) return '/logos/absa.svg';
-      if (desc.includes('standard chartered') || meth.includes('standard')) return '/logos/standard-chartered.svg';
-      if (desc.includes('stanbic') || meth.includes('stanbic')) return '/logos/stanbic.svg';
-      if (desc.includes('i&m') || desc.includes('im bank') || meth.includes('im bank')) return '/logos/im-bank.svg';
-      if (desc.includes('dtb') || desc.includes('diamond trust') || meth.includes('dtb')) return '/logos/dtb.svg';
-      if (desc.includes('family bank') || meth.includes('family')) return '/logos/family-bank.svg';
-      if (desc.includes('chase bank') || meth.includes('chase')) return '/logos/chase.svg';
-      if (desc.includes('bank of america') || meth.includes('america')) return '/logos/bank-of-america.svg';
-      
+      if (desc.includes("kcb") || meth.includes("kcb")) return "/logos/kcb.svg";
+      if (desc.includes("co-operative") || desc.includes("coop") || meth.includes("coop"))
+        return "/logos/coop.svg";
+      if (desc.includes("ncba") || meth.includes("ncba")) return "/logos/ncba.svg";
+      if (desc.includes("absa") || meth.includes("absa")) return "/logos/absa.svg";
+      if (desc.includes("standard chartered") || meth.includes("standard"))
+        return "/logos/standard-chartered.svg";
+      if (desc.includes("stanbic") || meth.includes("stanbic")) return "/logos/stanbic.svg";
+      if (desc.includes("i&m") || desc.includes("im bank") || meth.includes("im bank"))
+        return "/logos/im-bank.svg";
+      if (desc.includes("dtb") || desc.includes("diamond trust") || meth.includes("dtb"))
+        return "/logos/dtb.svg";
+      if (desc.includes("family bank") || meth.includes("family")) return "/logos/family-bank.svg";
+      if (desc.includes("chase bank") || meth.includes("chase")) return "/logos/chase.svg";
+      if (desc.includes("bank of america") || meth.includes("america"))
+        return "/logos/bank-of-america.svg";
+
       // Fallback for generic bank method
-      if (meth === 'bank' || meth === 'mpesa' || meth === 'airtel') return '/logos/bank.svg';
+      if (meth === "bank" || meth === "mpesa" || meth === "airtel") return "/logos/bank.svg";
       return null; // Fallback to initials
     };
 
-    if (t.type === 'transfer') {
+    if (t_data.type === "transfer") {
       if (isSender) {
-        const desc = (t.description || '').toLowerCase();
-        const logo = getMethodLogo(t.method || '', t.description || '');
+        const desc = (t_data.description || "").toLowerCase();
+        const logo = getMethodLogo(t_data.method || "", t_data.description || "");
         const useLogo = Boolean(logo);
-        
-        let titleText = t.description;
+
+        let titleText = t_data.description;
         if (!titleText) {
-          const receiverName = t.receiver?.kyc_tag 
-            ? `@${t.receiver.kyc_tag}`
-            : `${t.receiver?.first_name || 'User'} ${t.receiver?.last_name || ''}`.trim();
-          titleText = `Transfer to ${receiverName}`;
+          const receiverName = t_data.receiver?.kyc_tag
+            ? `@${t_data.receiver.kyc_tag}`
+            : `${t_data.receiver?.first_name || t("common.user")} ${t_data.receiver?.last_name || ""}`.trim();
+          titleText = t("transactions.history.transfer_to", { receiverName });
         }
 
         return {
           title: titleText,
-          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          amount: `-${symbol}${t_data.amount.toLocaleString()}`,
           positive: false,
-          icon: useLogo ? null : (t.receiver?.first_name?.[0] || 'V'),
-          logo: logo || t.receiver?.profile_photo_url,
-          avatarUrl: t.receiver?.profile_photo_url,
+          icon: useLogo ? null : t_data.receiver?.first_name?.[0] || "V",
+          logo: logo || t_data.receiver?.profile_photo_url,
+          avatarUrl: t_data.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
         };
       } else {
-        let senderName = t.sender?.kyc_tag
-          ? `@${t.sender.kyc_tag}`
-          : `${t.sender?.first_name || 'User'} ${t.sender?.last_name || ''}`.trim();
-        const titleText = t.description || `Received from ${senderName}`;
+        let senderName = t_data.sender?.kyc_tag
+          ? `@${t_data.sender.kyc_tag}`
+          : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
+        const titleText =
+          t_data.description || t("transactions.history.received_from", { senderName });
 
         return {
           title: titleText,
-          amount: `+${symbol}${t.amount.toLocaleString()}`,
+          amount: `+${symbol}${t_data.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || 'V',
-          logo: t.sender?.profile_photo_url,
-          avatarUrl: t.sender?.profile_photo_url,
+          icon: t_data.sender?.first_name?.[0] || "V",
+          logo: t_data.sender?.profile_photo_url,
+          avatarUrl: t_data.sender?.profile_photo_url,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
-    } else if (t.type === 'deposit') {
-      const logo = getMethodLogo(t.method, t.description);
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
-      const initials = bankName.substring(0, 2).toUpperCase();
+    } else if (t_data.type === "deposit") {
+      const logo = getMethodLogo(t_data.method, t_data.description);
+      const bankName =
+        t_data.method === "mpesa"
+          ? "M-Pesa"
+          : t_data.description?.includes("Ref:")
+            ? t("transactions.history.bank_simple")
+            : t_data.method;
+      const initials = (bankName || "").substring(0, 2).toUpperCase();
       return {
-        title: t.description || `${bankName} deposit to ${userName}`,
-        amount: `+${symbol}${t.amount.toLocaleString()}`,
+        title: t_data.description || t("transactions.history.deposit_to", { bankName, userName }),
+        amount: `+${symbol}${t_data.amount.toLocaleString()}`,
         positive: true,
         icon: logo ? null : initials,
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-emerald-500/20 text-emerald-500",
       };
-    } else if (t.type === 'withdrawal') {
-      const logo = getMethodLogo(t.method, t.description);
-      const bankName = t.method === 'mpesa' ? 'M-Pesa' : (t.description?.includes('Ref:') ? 'Bank' : t.method);
-      const initials = bankName.substring(0, 2).toUpperCase();
+    } else if (t_data.type === "withdrawal") {
+      const logo = getMethodLogo(t_data.method, t_data.description);
+      const bankName =
+        t_data.method === "mpesa"
+          ? "M-Pesa"
+          : t_data.description?.includes("Ref:")
+            ? t("transactions.history.bank_simple")
+            : t_data.method;
+      const initials = (bankName || "").substring(0, 2).toUpperCase();
       return {
-        title: t.description || `Withdrawal to ${bankName}`,
-        amount: `-${symbol}${t.amount.toLocaleString()}`,
+        title: t_data.description || t("transactions.history.withdrawal_to", { bankName }),
+        amount: `-${symbol}${t_data.amount.toLocaleString()}`,
         positive: false,
         icon: logo ? null : initials,
         logo: logo,
@@ -1057,56 +1063,56 @@ function TransactionHistory() {
       };
     }
     return {
-      title: t.description,
-      amount: `${symbol}${t.amount.toLocaleString()}`,
+      title: t_data.description,
+      amount: `${symbol}${t_data.amount.toLocaleString()}`,
       positive: true,
-      icon: '?',
+      icon: "?",
       logo: null,
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
     };
   };
 
-  const currencySymbol = currency === 'USD' ? '$' : currency + ' ';
+  const currencySymbol = currency === "USD" ? "$" : currency + " ";
 
   return (
     <div className="mt-12 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-light tracking-tight flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" /> 
-          Detailed Ledger History
+          <History className="w-5 h-5 text-primary" />
+          {t("transactions.history.title")}
         </h2>
         <div className="flex items-center gap-2">
           <div className="relative group">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
-            <Input 
-              placeholder="Search ledger..." 
+            <Input
+              placeholder={t("transactions.history.search_placeholder")}
               className="h-8 pl-8 w-48 bg-card/40 text-xs border-border/40 focus:border-primary/50 transition-all"
               value={search}
               onChange={handleSearchChange}
             />
           </div>
           <div className="text-[10px] uppercase tracking-widest text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border border-border/40">
-            {totalCount} Total Records
+            {t("transactions.history.total_records", { totalCount })}
           </div>
         </div>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {[
-          { id: "all", label: "All" },
-          { id: "transfer", label: "Transfers" },
-          { id: "deposit", label: "Deposits" },
-          { id: "withdrawal", label: "Withdrawals" }
-        ].map(f => (
+          { id: "all", label: t("transactions.history.filters.all") },
+          { id: "transfer", label: t("transactions.history.filters.transfers") },
+          { id: "deposit", label: t("transactions.history.filters.deposits") },
+          { id: "withdrawal", label: t("transactions.history.filters.withdrawals") },
+        ].map((f) => (
           <button
             key={f.id}
             onClick={() => handleFilterChange(f.id)}
             className={cn(
               "px-4 py-1.5 rounded-full text-xs font-medium transition-all border",
-              typeFilter === f.id 
-                ? "bg-primary text-primary-foreground border-primary shadow-sm" 
-                : "bg-card/40 text-muted-foreground border-border/40 hover:border-border"
+              typeFilter === f.id
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-card/40 text-muted-foreground border-border/40 hover:border-border",
             )}
           >
             {f.label}
@@ -1118,32 +1124,44 @@ function TransactionHistory() {
         {txLoading && page === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary/60" />
-            <p className="text-xs text-muted-foreground animate-pulse">Syncing transaction ledger...</p>
+            <p className="text-xs text-muted-foreground animate-pulse">
+              {t("transactions.history.syncing")}
+            </p>
           </div>
         ) : transactions.length === 0 ? (
           <div className="py-12 text-center">
             <div className="w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
               <Search className="w-6 h-6 text-muted-foreground/40" />
             </div>
-            <p className="text-sm text-muted-foreground font-medium">No activity found matching your criteria.</p>
+            <p className="text-sm text-muted-foreground font-medium">
+              {t("transactions.history.no_activity")}
+            </p>
           </div>
         ) : (
           <>
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/40">
               <div className="text-xs text-muted-foreground font-medium">
                 <RefreshCw className="w-3 h-3 inline mr-1" />
-                Data Synced {Math.floor(Math.random() * 60)} minutes ago
+                {t("transactions.history.data_synced", { minutes: Math.floor(Math.random() * 60) })}
               </div>
             </div>
             <ul className="space-y-2">
-              {transactions.map((t) => {
-                const details = getTransactionDetails(t);
-                const typeLabel = t.type === 'transfer' ? 'P2P' : 
-                                t.type === 'deposit' ? 'DEP' : 
-                                t.type === 'withdrawal' ? 'WIT' : 'TXN';
-                
+              {transactions.map((t_item) => {
+                const details = getTransactionDetails(t_item);
+                const typeLabel =
+                  t_item.type === "transfer"
+                    ? "P2P"
+                    : t_item.type === "deposit"
+                      ? "DEP"
+                      : t_item.type === "withdrawal"
+                        ? "WIT"
+                        : "TXN";
+
                 return (
-                  <li key={t.id} className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group">
+                  <li
+                    key={t_item.id}
+                    className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group"
+                  >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
                       <div className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-input/40 border border-border/40">
                         <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
@@ -1155,7 +1173,7 @@ function TransactionHistory() {
                           {details.title}
                         </div>
                         <div className="text-[10px] text-muted-foreground/60 mt-1">
-                          {format(new Date(t.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
+                          {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
                         </div>
                       </div>
                     </div>
@@ -1168,18 +1186,19 @@ function TransactionHistory() {
                         {details.amount}
                       </div>
                       <div className="text-[10px] text-muted-foreground/50 font-mono">
-                        Bal: {currencySymbol}{t.balance_after?.toLocaleString() || balance?.toLocaleString()}
+                        Bal: {currencySymbol}
+                        {t_item.balance_after?.toLocaleString() || balance?.toLocaleString()}
                       </div>
                     </div>
                   </li>
                 );
               })}
-              
+
               {hasMore && (
                 <div className="pt-6 flex justify-center">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                  <Button
+                    variant="outline"
+                    size="sm"
                     className="rounded-full text-xs"
                     onClick={loadMore}
                     disabled={txLoading}
@@ -1189,7 +1208,7 @@ function TransactionHistory() {
                     ) : (
                       <RefreshCw className="w-3 h-3 mr-2" />
                     )}
-                    Load More Transactions
+                    {t("transactions.history.load_more")}
                   </Button>
                 </div>
               )}
@@ -1202,6 +1221,7 @@ function TransactionHistory() {
 }
 
 function TransactionsPage() {
+  const { t } = useTranslation();
   const { mode: initialMode } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const [mode, setMode] = useState<Mode>(initialMode || "send");
@@ -1219,15 +1239,15 @@ function TransactionsPage() {
   };
 
   const tabs: { id: Mode; label: string }[] = [
-    { id: "send", label: "Send Money" },
-    { id: "deposit", label: "Deposit" },
-    { id: "withdraw", label: "Withdraw" },
+    { id: "send", label: t("transactions.modes.send") },
+    { id: "deposit", label: t("transactions.modes.deposit") },
+    { id: "withdraw", label: t("transactions.modes.withdraw") },
   ];
 
   const titles: Record<Mode, string> = {
-    send: "Send Money",
-    deposit: "Deposit Funds",
-    withdraw: "Withdrawal",
+    send: t("transactions.modes.send"),
+    deposit: t("transactions.modes.deposit"),
+    withdraw: t("transactions.modes.withdraw"),
   };
 
   return (
@@ -1240,24 +1260,24 @@ function TransactionsPage() {
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {t("common.back")}
           </Link>
         </div>
 
         {/* Toggle */}
         <div className="flex justify-center mb-8">
           <div className="inline-flex rounded-full border border-border/50 bg-card/40 p-1 backdrop-blur-sm">
-            {tabs.map((t) => (
+            {tabs.map((t_tab) => (
               <button
-                key={t.id}
-                onClick={() => handleModeChange(t.id)}
+                key={t_tab.id}
+                onClick={() => handleModeChange(t_tab.id)}
                 className={`px-5 py-2 rounded-full text-sm transition-colors ${
-                  mode === t.id
+                  mode === t_tab.id
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t.label}
+                {t_tab.label}
               </button>
             ))}
           </div>
@@ -1269,7 +1289,7 @@ function TransactionsPage() {
             <div className="relative w-full max-w-xs">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search recipients..."
+                placeholder={t("transactions.recipients.search_placeholder")}
                 className="pl-9 bg-card/40"
                 value={globalSearch}
                 onChange={(e) => setGlobalSearch(e.target.value)}

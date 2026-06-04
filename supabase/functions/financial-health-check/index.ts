@@ -11,19 +11,22 @@ async function fetchWithRetry(
   url: string,
   options: RequestInit,
   retries = 3,
-  backoff = 2000
+  backoff = 2000,
 ): Promise<Response> {
   const response = await fetch(url, options);
 
   // Retry on 429 (Too Many Requests), 503 (Service Unavailable), or 500 (Internal Server Error)
-  if ((response.status === 429 || response.status === 503 || response.status === 500) && retries > 0) {
+  if (
+    (response.status === 429 || response.status === 503 || response.status === 500) &&
+    retries > 0
+  ) {
     let delay = backoff;
 
     // Try to extract retry delay from 429 error
     if (response.status === 429) {
       try {
         const data = await response.clone().json();
-        const retryInfo = data.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
+        const retryInfo = data.error?.details?.find((d: any) => d["@type"]?.includes("RetryInfo"));
         if (retryInfo?.retryDelay) {
           // Convert "37s" or similar to milliseconds
           const match = retryInfo.retryDelay.match(/(\d+)s/);
@@ -36,7 +39,9 @@ async function fetchWithRetry(
       }
     }
 
-    console.warn(`Gemini API returned ${response.status}, retrying in ${delay}ms... (${retries} retries left)`);
+    console.warn(
+      `Gemini API returned ${response.status}, retrying in ${delay}ms... (${retries} retries left)`,
+    );
     await new Promise((resolve) => setTimeout(resolve, delay));
     return fetchWithRetry(url, options, retries - 1, backoff * 2);
   }
@@ -178,14 +183,15 @@ serve(async (req) => {
       "https://generativelanguage.googleapis.com/v1/models/gemini-3.5-flash:generateContent",
       "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent",
       "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-pro:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
     ];
 
-    const promptText = prompt + "\n\nIMPORTANT: Return ONLY valid raw JSON without markdown code blocks.";
+    const promptText =
+      prompt + "\n\nIMPORTANT: Return ONLY valid raw JSON without markdown code blocks.";
     const requestBody = JSON.stringify({
       contents: [{ parts: [{ text: promptText }] }],
-      generationConfig: { 
-        temperature: 0.7
+      generationConfig: {
+        temperature: 0.7,
       },
     });
 
@@ -195,10 +201,10 @@ serve(async (req) => {
 
     for (let i = 0; i < models.length; i++) {
       const currentModelUrl = models[i];
-      const modelName = currentModelUrl.split('/models/')[1].split(':')[0];
-      
+      const modelName = currentModelUrl.split("/models/")[1].split(":")[0];
+
       console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
-      
+
       aiResponse = await fetchWithRetry(`${currentModelUrl}?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -224,7 +230,9 @@ serve(async (req) => {
         const errMsg = aiData?.error?.message;
         if (errMsg) extra += ` ${errMsg}`;
 
-        const retryInfo = aiData?.error?.details?.find((d: any) => d['@type']?.includes('RetryInfo'));
+        const retryInfo = aiData?.error?.details?.find((d: any) =>
+          d["@type"]?.includes("RetryInfo"),
+        );
         if (retryInfo?.retryDelay) {
           const match = retryInfo.retryDelay.match(/(\d+)s/);
           if (match) extra += ` Retry after ${match[1]}s.`;
@@ -233,7 +241,9 @@ serve(async (req) => {
         // ignore parsing errors
       }
 
-      throw new Error(`Gemini API Error: All models unavailable. Last status: ${lastStatus}.${extra}`);
+      throw new Error(
+        `Gemini API Error: All models unavailable. Last status: ${lastStatus}.${extra}`,
+      );
     }
 
     if (!aiData.candidates || !aiData.candidates[0]?.content?.parts?.[0]?.text) {
@@ -265,10 +275,10 @@ serve(async (req) => {
       type: insightType,
       title: insightJson.title || "Financial Insight",
       content: insightJson.content || "No detailed content provided.",
-      metadata: { 
-        severity: insightJson.severity || "low", 
+      metadata: {
+        severity: insightJson.severity || "low",
         generated_at: new Date().toISOString(),
-        original_type: insightJson.type 
+        original_type: insightJson.type,
       },
     });
 
@@ -277,10 +287,13 @@ serve(async (req) => {
       throw new Error(`Failed to store insight: ${insertError.message}`);
     }
 
-    return new Response(JSON.stringify({ success: true, insight: { ...insightJson, type: insightType } }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: true, insight: { ...insightJson, type: insightType } }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: any) {
     console.error("Health Check Error:", error.message);
     return new Response(JSON.stringify({ error: error.message, stack: error.stack }), {

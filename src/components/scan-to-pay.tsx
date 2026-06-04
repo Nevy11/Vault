@@ -28,7 +28,7 @@ export function ScanToPay({ className }: { className?: string }) {
       clearTimeout(timeoutRef.current);
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => {
+      streamRef.current.getTracks().forEach((track) => {
         console.log("[ScanToPay] Stopping track:", track.kind);
         track.stop();
       });
@@ -45,10 +45,10 @@ export function ScanToPay({ className }: { className?: string }) {
     setIsLoading(true);
     setCameraError(null);
     streamAttachedRef.current = false;
-    
+
     try {
       console.log("[ScanToPay] Starting camera...");
-      
+
       // Set a timeout for camera initialization
       const timeoutPromise = new Promise((_, reject) => {
         timeoutRef.current = setTimeout(() => {
@@ -57,25 +57,25 @@ export function ScanToPay({ className }: { className?: string }) {
       });
 
       console.log("[ScanToPay] Requesting camera access...");
-      const cameraPromise = navigator.mediaDevices.getUserMedia({ 
-        video: { 
+      const cameraPromise = navigator.mediaDevices.getUserMedia({
+        video: {
           facingMode: { ideal: "environment" },
           width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
+          height: { ideal: 720 },
+        },
       });
 
-      const stream = await Promise.race([cameraPromise, timeoutPromise]) as MediaStream;
+      const stream = (await Promise.race([cameraPromise, timeoutPromise])) as MediaStream;
       console.log("[ScanToPay] Camera stream acquired:", stream.id);
-      
+
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
       }
-      
+
       // Store stream reference first
       streamRef.current = stream;
-      
+
       // Attach to video element (ref is always available now)
       if (videoRef.current) {
         console.log("[ScanToPay] Attaching stream to video element...");
@@ -90,12 +90,16 @@ export function ScanToPay({ className }: { className?: string }) {
     } catch (err) {
       console.error("[ScanToPay] Camera access error:", err);
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
-      
+
       if (errorMessage.includes("timeout")) {
-        setCameraError("Camera is taking too long to start. Please try again or check if another app is using the camera.");
+        setCameraError(
+          "Camera is taking too long to start. Please try again or check if another app is using the camera.",
+        );
         toast.error("Camera initialization timeout");
       } else if (errorMessage.includes("NotAllowedError")) {
-        setCameraError("Camera permission denied. Please enable camera access in settings and try again.");
+        setCameraError(
+          "Camera permission denied. Please enable camera access in settings and try again.",
+        );
         toast.error("Camera permission denied");
       } else if (errorMessage.includes("NotFoundError")) {
         setCameraError("No camera found on this device.");
@@ -158,7 +162,7 @@ export function ScanToPay({ className }: { className?: string }) {
               <DialogTitle className="text-white flex items-center gap-2">
                 <Camera className="w-4 h-4 text-primary" /> Scan QR Code
               </DialogTitle>
-              <button 
+              <button
                 onClick={() => setIsOpen(false)}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
               >
@@ -166,13 +170,13 @@ export function ScanToPay({ className }: { className?: string }) {
               </button>
             </div>
             <DialogDescription className="text-zinc-400 text-xs mt-1">
-              {isCameraActive 
-                ? "Align QR code within the frame" 
-                : isLoading 
-                ? "Initializing camera..." 
-                : cameraError 
-                ? "Camera Error" 
-                : "Ready to scan"}
+              {isCameraActive
+                ? "Align QR code within the frame"
+                : isLoading
+                  ? "Initializing camera..."
+                  : cameraError
+                    ? "Camera Error"
+                    : "Ready to scan"}
             </DialogDescription>
           </DialogHeader>
 
@@ -196,12 +200,12 @@ export function ScanToPay({ className }: { className?: string }) {
                 <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-primary rounded-tr-lg" />
                 <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-primary rounded-bl-lg" />
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-primary rounded-br-lg" />
-                
+
                 {/* Scanning line animation */}
                 <div className="absolute inset-x-0 top-0 h-0.5 bg-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.5)] animate-scan-slow" />
               </div>
             </div>
-            
+
             {!isCameraActive && (
               <div className="flex flex-col items-center gap-4 text-center p-8 z-30">
                 {cameraError ? (
@@ -213,7 +217,7 @@ export function ScanToPay({ className }: { className?: string }) {
                     <p className="text-zinc-400 text-xs max-w-[240px] leading-relaxed">
                       {cameraError}
                     </p>
-                    <Button 
+                    <Button
                       className="mt-2 rounded-xl h-10 px-8"
                       onClick={startCamera}
                       disabled={isLoading}
@@ -235,12 +239,12 @@ export function ScanToPay({ className }: { className?: string }) {
                       {isLoading ? "Starting Camera..." : "Camera Permissions"}
                     </h3>
                     <p className="text-zinc-500 text-xs max-w-[240px] leading-relaxed">
-                      {isLoading 
-                        ? "Please wait while we initialize your camera..." 
+                      {isLoading
+                        ? "Please wait while we initialize your camera..."
                         : "Vault OS requires camera access to scan merchant codes securely."}
                     </p>
                     {!isLoading && (
-                      <Button 
+                      <Button
                         className="mt-2 rounded-xl h-10 px-8"
                         onClick={startCamera}
                         disabled={isLoading}
@@ -258,11 +262,15 @@ export function ScanToPay({ className }: { className?: string }) {
             <div className="flex items-center justify-center gap-8">
               <div className="flex flex-col items-center gap-2">
                 <Zap className="w-4 h-4 text-amber-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Instant</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  Instant
+                </span>
               </div>
               <div className="flex flex-col items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Secure</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                  Secure
+                </span>
               </div>
             </div>
           </div>
@@ -283,4 +291,3 @@ export function ScanToPay({ className }: { className?: string }) {
     </>
   );
 }
-

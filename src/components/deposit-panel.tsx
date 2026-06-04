@@ -88,10 +88,13 @@ type SourceChannel = "bank" | "mobile" | "stripe";
 type DepositStatus = "idle" | "processing" | "success" | "stripe_pay" | "awaiting_mpesa";
 
 export function DepositPanel() {
+  const { t } = useTranslation();
   const [profile] = useProfileSignal();
   const { currency, balance: walletBalance, refetch: refetchWallet } = useWalletBalance();
   const [channel, setChannel] = useState<SourceChannel>("mobile");
-  const [inputCurrency, setInputCurrency] = useState<"USD" | "KES">(currency === "KES" ? "KES" : "USD");
+  const [inputCurrency, setInputCurrency] = useState<"USD" | "KES">(
+    currency === "KES" ? "KES" : "USD",
+  );
   const [amount, setAmount] = useState<string>("");
   const [pin, setPin] = useState("");
   const [status, setStatus] = useState<DepositStatus>("idle");
@@ -114,7 +117,7 @@ export function DepositPanel() {
     if (!refCode || status !== "awaiting_mpesa") return;
 
     console.log(`Setting up real-time listener for transaction: ${refCode}`);
-    
+
     const channel = supabase
       .channel(`deposit-status-${refCode}`)
       .on(
@@ -128,21 +131,21 @@ export function DepositPanel() {
         (payload) => {
           console.log("Transaction update detected:", payload.new);
           if (payload.new.status === "completed") {
-            toast.success("Payment confirmed! Your balance has been updated.");
+            toast.success(t("transactions.deposit.payment_confirmed"));
             refetchWallet();
             setStatus("success");
           } else if (payload.new.status === "failed") {
-            toast.error("Payment failed or was cancelled.");
+            toast.error(t("transactions.deposit.payment_failed"));
             setStatus("idle");
           }
-        }
+        },
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refCode, status, refetchWallet]);
+  }, [refCode, status, refetchWallet, t]);
 
   const currencySymbol = currency === "USD" ? "$" : currency === "KES" ? "KES " : currency + " ";
 
@@ -176,18 +179,18 @@ export function DepositPanel() {
 
   const handleDepositClick = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      toast.error("Please enter a valid amount");
+      toast.error(t("transactions.deposit.valid_amount_error"));
       return;
     }
 
     if (!pin || pin.length < 6) {
-      toast.error("Please enter your 6-digit transaction PIN");
+      toast.error(t("transactions.deposit.pin_error"));
       return;
     }
 
     const userId = profile?.id;
     if (!userId) {
-      toast.error("User session not found. Please log in again.");
+      toast.error(t("transactions.deposit.session_error"));
       return;
     }
 
@@ -199,13 +202,13 @@ export function DepositPanel() {
       .single();
 
     if (profileError || !profileData) {
-      toast.error("Could not verify your identity. Please try again.");
+      toast.error(t("transactions.deposit.identity_error"));
       return;
     }
 
     const hashedPin = await hashPin(pin);
     if (profileData.pin_hash !== hashedPin) {
-      toast.error("Invalid transaction PIN");
+      toast.error(t("transactions.deposit.invalid_pin_error"));
       setPin(""); // Clear invalid PIN
       return;
     }
@@ -225,7 +228,7 @@ export function DepositPanel() {
           throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe payment: " + err.message);
+        toast.error(t("transactions.deposit.stripe_init_error", { error: err.message }));
         setStatus("idle");
       }
       return;
@@ -246,7 +249,7 @@ export function DepositPanel() {
           throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error("Failed to initiate Stripe payment: " + err.message);
+        toast.error(t("transactions.deposit.stripe_init_error", { error: err.message }));
         setStatus("idle");
       }
       return;
@@ -256,7 +259,7 @@ export function DepositPanel() {
     let phone = "";
     if (isAddingNew) {
       if (!newPhoneNumber || newPhoneNumber.length < 9) {
-        toast.error("Please provide a valid phone number");
+        toast.error(t("transactions.deposit.valid_phone_error"));
         return;
       }
       phone = newPhoneNumber;
@@ -266,7 +269,7 @@ export function DepositPanel() {
     }
 
     if (!phone || phone === "No number set") {
-      toast.error("Please select or enter a valid mobile number");
+      toast.error(t("transactions.deposit.valid_mobile_error"));
       return;
     }
 
@@ -287,7 +290,7 @@ export function DepositPanel() {
       });
 
       if (error) {
-        let errorMessage = "Failed to initiate M-Pesa payment";
+        let errorMessage = t("transactions.deposit.mpesa_init_error");
         try {
           // Try to get the error response body
           const errorResponse = await error.context?.json();
@@ -325,7 +328,7 @@ export function DepositPanel() {
         description: checkoutId,
       });
 
-      toast.success("Check your phone for the M-Pesa PIN prompt");
+      toast.success(t("transactions.deposit.check_phone_toast"));
       setStatus("awaiting_mpesa");
     } catch (error: any) {
       console.error("M-Pesa trigger error:", error);
@@ -342,18 +345,24 @@ export function DepositPanel() {
   }, [pin]);
 
   const getSourceName = () => {
-    if (channel === "stripe") return "Credit/Debit Card";
-    if (selectedSourceId === "stripe-ach") return "Stripe Bank Transfer";
-    if (isAddingNew) return channel === "mobile" ? selectedCarrier : "New Bank Account";
+    if (channel === "stripe") return t("transactions.deposit.credit_card");
+    if (selectedSourceId === "stripe-ach") return t("transactions.deposit.stripe_bank_transfer");
+    if (isAddingNew)
+      return channel === "mobile" ? selectedCarrier : t("transactions.deposit.link_new_bank");
     if (channel === "mobile")
       return SAVED_NUMBERS.find((n) => n.id === selectedSourceId)?.name || selectedCarrier;
-    return SAVED_BANK_ACCOUNTS.find((b) => b.id === selectedSourceId)?.name || "Bank Account";
+    return (
+      SAVED_BANK_ACCOUNTS.find((b) => b.id === selectedSourceId)?.name ||
+      t("transactions.deposit.bank_account")
+    );
   };
 
   if (status === "stripe_pay" && stripeClientSecret) {
     return (
       <div className="max-w-md mx-auto py-8">
-        <h2 className="text-2xl font-light mb-6 text-center">Complete Deposit</h2>
+        <h2 className="text-2xl font-light mb-6 text-center">
+          {t("transactions.deposit.complete_deposit")}
+        </h2>
         <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
           <StripePayment
             amount={walletCredit}
@@ -378,10 +387,13 @@ export function DepositPanel() {
           <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />
         </div>
 
-        <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Action Required</h2>
+        <h2 className="text-3xl font-semibold mb-2 text-emerald-500">
+          {t("transactions.deposit.action_required")}
+        </h2>
         <p className="text-muted-foreground mb-8 max-w-md">
-          Please enter your **M-Pesa PIN** on your phone to complete the deposit of{" "}
-          <span className="text-primary font-bold">KES {kesEquivalent.toLocaleString()}</span>.
+          {t("transactions.deposit.mpesa_pin_note", {
+            amount: `KES ${kesEquivalent.toLocaleString()}`,
+          })}
         </p>
 
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-8 w-full max-w-sm mb-8 backdrop-blur-sm relative overflow-hidden">
@@ -391,19 +403,24 @@ export function DepositPanel() {
 
           <div className="space-y-4 relative">
             <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
-              <span className="text-muted-foreground">Expected Credit</span>
+              <span className="text-muted-foreground">
+                {t("transactions.deposit.expected_credit")}
+              </span>
               <span className="text-2xl font-light text-emerald-500 font-mono">
-                {currencySymbol}{walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol}
+                {walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Transaction ID</span>
+              <span className="text-muted-foreground">
+                {t("transactions.success.transaction_id")}
+              </span>
               <span className="font-mono font-medium">{refCode}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Status</span>
+              <span className="text-muted-foreground">{t("common.status")}</span>
               <span className="text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full animate-pulse">
-                Awaiting PIN
+                {t("transactions.deposit.awaiting_pin")}
               </span>
             </div>
           </div>
@@ -414,10 +431,10 @@ export function DepositPanel() {
           className="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14"
           asChild
         >
-          <Link to="/dashboard">Back to Dashboard</Link>
+          <Link to="/dashboard">{t("transactions.success.back_to_dashboard")}</Link>
         </Button>
         <p className="mt-4 text-[10px] text-muted-foreground uppercase tracking-widest">
-          Your balance will update automatically once confirmed
+          {t("transactions.history.syncing")}
         </p>
       </div>
     );
@@ -433,9 +450,11 @@ export function DepositPanel() {
           <div className="absolute -inset-2 rounded-full border-2 border-emerald-500/30 animate-ping" />
         </div>
 
-        <h2 className="text-3xl font-semibold mb-2 text-emerald-500">Deposit Successful!</h2>
+        <h2 className="text-3xl font-semibold mb-2 text-emerald-500">
+          {t("transactions.deposit.deposit_success_title")}
+        </h2>
         <p className="text-muted-foreground mb-8 max-w-md">
-          Your payment has been confirmed and your Vault balance updated.
+          {t("transactions.deposit.deposit_success_desc")}
         </p>
 
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-3xl p-8 w-full max-w-sm mb-8 backdrop-blur-sm relative overflow-hidden">
@@ -445,19 +464,24 @@ export function DepositPanel() {
 
           <div className="space-y-4 relative">
             <div className="flex justify-between items-center text-sm border-b border-emerald-500/10 pb-3">
-              <span className="text-muted-foreground">Credited Balance</span>
+              <span className="text-muted-foreground">
+                {t("transactions.deposit.credited_balance")}
+              </span>
               <span className="text-2xl font-light text-emerald-500 font-mono">
-                {currencySymbol}{walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {currencySymbol}
+                {walletCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Transaction ID</span>
+              <span className="text-muted-foreground">
+                {t("transactions.success.transaction_id")}
+              </span>
               <span className="font-mono font-medium">{refCode}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Status</span>
+              <span className="text-muted-foreground">{t("common.status")}</span>
               <span className="text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                Completed
+                {t("common.completed")}
               </span>
             </div>
           </div>
@@ -468,7 +492,7 @@ export function DepositPanel() {
           className="w-full max-w-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl h-14"
           asChild
         >
-          <Link to="/dashboard">Back to Dashboard</Link>
+          <Link to="/dashboard">{t("transactions.success.back_to_dashboard")}</Link>
         </Button>
       </div>
     );
@@ -479,12 +503,14 @@ export function DepositPanel() {
       {/* SECTION 2: LEFT PANEL - DEPOSIT SOURCE SELECTION */}
       <div className="rounded-3xl border border-border/50 bg-card/30 p-8 backdrop-blur-sm">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-light tracking-tight">Select Deposit Source</h2>
+          <h2 className="text-2xl font-light tracking-tight">
+            {t("transactions.deposit.select_source")}
+          </h2>
           <div className="flex p-1 bg-background/60 border border-border/60 rounded-2xl">
             {[
-              { id: "mobile", label: "Mobile Money", icon: Smartphone },
-              { id: "bank", label: "Bank Account", icon: Building2 },
-              { id: "stripe", label: "Credit Card", icon: CreditCard },
+              { id: "mobile", label: t("transactions.deposit.mobile_money"), icon: Smartphone },
+              { id: "bank", label: t("transactions.deposit.bank_account"), icon: Building2 },
+              { id: "stripe", label: t("transactions.deposit.credit_card"), icon: CreditCard },
             ].map((t) => {
               const Icon = t.icon;
               return (
@@ -515,11 +541,11 @@ export function DepositPanel() {
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-                  Select Carrier
+                  {t("transactions.deposit.select_carrier")}
                 </Label>
                 <Select value={selectedCarrier} onValueChange={setSelectedCarrier}>
                   <SelectTrigger className="h-14 bg-background/40 border-border/60 rounded-2xl text-base">
-                    <SelectValue placeholder="Select provider" />
+                    <SelectValue placeholder={t("transactions.deposit.select_provider")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     {CARRIERS.map((c) => (
@@ -556,7 +582,7 @@ export function DepositPanel() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                        Primary Number
+                        {t("transactions.deposit.primary_number")}
                       </div>
                       <div className="text-sm font-semibold truncate">{item.name}</div>
                     </div>
@@ -581,7 +607,9 @@ export function DepositPanel() {
                   <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
                     <Plus className="w-6 h-6" />
                   </div>
-                  <div className="text-sm font-medium">Add a New Number</div>
+                  <div className="text-sm font-medium">
+                    {t("transactions.deposit.add_new_number")}
+                  </div>
                 </button>
               </div>
 
@@ -589,7 +617,7 @@ export function DepositPanel() {
                 <div className="p-6 rounded-2xl border border-border/60 bg-background/40 animate-in slide-in-from-top-4 duration-300">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Phone Number</Label>
+                      <Label>{t("transactions.deposit.phone_number")}</Label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">
                           +254
@@ -612,12 +640,12 @@ export function DepositPanel() {
             <div className="space-y-6">
               <div className="space-y-3">
                 <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-                  Search Banks
+                  {t("transactions.deposit.search_banks")}
                 </Label>
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
-                    placeholder="Search major Kenyan banks..."
+                    placeholder={t("transactions.deposit.search_kenyan_banks")}
                     className="pl-12 h-14 bg-background/40 border-border/60 rounded-2xl text-base"
                   />
                 </div>
@@ -674,9 +702,11 @@ export function DepositPanel() {
                     ACH
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">Stripe Bank Transfer</div>
+                    <div className="text-sm font-semibold truncate">
+                      {t("transactions.deposit.stripe_bank_transfer")}
+                    </div>
                     <div className="text-xs text-muted-foreground truncate">
-                      US ACH / International
+                      {t("transactions.deposit.us_ach_international")}
                     </div>
                   </div>
                   {selectedSourceId === "stripe-ach" && !isAddingNew && (
@@ -699,7 +729,9 @@ export function DepositPanel() {
                   <div className="w-12 h-12 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground">
                     <Plus className="w-6 h-6" />
                   </div>
-                  <div className="text-sm font-medium">Link New Bank Account</div>
+                  <div className="text-sm font-medium">
+                    {t("transactions.deposit.link_new_bank")}
+                  </div>
                 </button>
               </div>
             </div>
@@ -711,14 +743,15 @@ export function DepositPanel() {
                 <CreditCard className="w-10 h-10" />
               </div>
               <div className="space-y-2 max-w-sm">
-                <h3 className="text-xl font-medium">Credit or Debit Card</h3>
+                <h3 className="text-xl font-medium">
+                  {t("transactions.deposit.stripe_card_title")}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  You will be securely redirected to Stripe to complete your deposit using any major
-                  credit or debit card.
+                  {t("transactions.deposit.stripe_card_desc")}
                 </p>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest bg-muted/50 px-4 py-2 rounded-full">
-                <LockIcon className="w-3 h-3" /> Encrypted by Stripe
+                <LockIcon className="w-3 h-3" /> {t("transactions.deposit.encrypted_by_stripe")}
               </div>
             </div>
           )}
@@ -731,7 +764,7 @@ export function DepositPanel() {
           <div className="space-y-4">
             <div className="flex items-center justify-between ml-1">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Amount to Deposit
+                {t("transactions.deposit.amount_to_deposit")}
               </Label>
               <div className="flex bg-background/40 border border-border/40 rounded-lg p-0.5">
                 {(["USD", "KES"] as const).map((c) => (
@@ -777,14 +810,14 @@ export function DepositPanel() {
               <History className="w-24 h-24 text-emerald-500" />
             </div>
             <div className="flex justify-between items-center text-xs text-emerald-500/70 uppercase tracking-widest font-bold">
-              <span>Settlement</span>
+              <span>{t("transactions.deposit.settlement")}</span>
               <span className="bg-emerald-500/20 px-2 py-0.5 rounded">
                 1 USD = {EXCHANGE_RATE} KES
               </span>
             </div>
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">
-                Credit to your {currency} Wallet
+                {t("transactions.deposit.credit_to_wallet", { currency })}
               </div>
               <div className="text-2xl font-mono text-emerald-500 font-bold">
                 {currencySymbol}
@@ -798,7 +831,7 @@ export function DepositPanel() {
 
           <div className="space-y-4">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground ml-1">
-              Vault Transaction PIN
+              {t("transactions.deposit.vault_pin")}
             </Label>
             <div className="relative">
               <LockIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
@@ -812,7 +845,7 @@ export function DepositPanel() {
               />
             </div>
             <p className="text-[10px] text-center text-muted-foreground uppercase tracking-widest">
-              Authorize Secure Deposit
+              {t("transactions.deposit.authorize_deposit")}
             </p>
           </div>
 
@@ -821,7 +854,7 @@ export function DepositPanel() {
             className="w-full h-16 bg-primary hover:bg-primary/90 text-primary-foreground rounded-2xl text-lg font-medium shadow-xl shadow-primary/20 group"
             onClick={handleDepositClick}
           >
-            Deposit Funds{" "}
+            {t("transactions.deposit.deposit_btn")}{" "}
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Button>
         </div>
@@ -831,8 +864,7 @@ export function DepositPanel() {
             <Info className="w-5 h-5" />
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Deposits are processed instantly via our secure payment rails. Network fee may apply
-            based on your carrier or bank.
+            {t("transactions.deposit.deposit_footer_note")}
           </p>
         </div>
       </div>
@@ -848,10 +880,10 @@ export function DepositPanel() {
             </div>
           </div>
           <h2 className="text-3xl font-light mt-12 tracking-tight text-foreground animate-pulse">
-            Requesting funds securely...
+            {t("transactions.deposit.requesting_funds")}
           </h2>
           <p className="text-base text-muted-foreground mt-3">
-            Triggering secure STK Push / Automated Debit Request
+            {t("transactions.deposit.stk_push_note")}
           </p>
 
           <div className="mt-16 flex flex-col items-center gap-8">
@@ -860,13 +892,13 @@ export function DepositPanel() {
               <div className="w-3 h-3 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
               <div className="w-3 h-3 rounded-full bg-primary animate-bounce" />
             </div>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="rounded-xl border-primary/20 hover:bg-primary/5 text-xs h-10 px-8"
               onClick={() => setStatus("idle")}
             >
-              CANCEL REQUEST
+              {t("transactions.deposit.cancel_request")}
             </Button>
           </div>
         </div>
