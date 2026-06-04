@@ -23,8 +23,13 @@ import {
   TrendingUp,
   ShieldAlert,
   ChevronRight,
+  Settings as SettingsIcon,
 } from "lucide-react-native";
 import { FloatingAdvisor } from "../components/FloatingAdvisor";
+import { supabase } from "../lib/supabase";
+import { Alert } from "react-native";
+
+import { useFocusEffect } from "@react-navigation/native";
 
 const { width } = Dimensions.get("window");
 
@@ -52,9 +57,14 @@ interface SubAccount {
  */
 
 // A. Time-Aware Header
-const DashboardHeader: React.FC<{ userName: string; initials: string }> = ({
+const DashboardHeader: React.FC<{ 
+  userName: string; 
+  initials: string; 
+  onSettingsPress?: () => void 
+}> = ({
   userName,
   initials,
+  onSettingsPress,
 }) => {
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -77,6 +87,9 @@ const DashboardHeader: React.FC<{ userName: string; initials: string }> = ({
         </View>
       </View>
       <View style={styles.headerRight}>
+        <TouchableOpacity style={styles.headerIcon} onPress={onSettingsPress}>
+          <SettingsIcon size={22} color="#F8FAFC" />
+        </TouchableOpacity>
         <TouchableOpacity style={styles.headerIcon}>
           <Search size={22} color="#F8FAFC" />
         </TouchableOpacity>
@@ -121,6 +134,62 @@ const BalanceCard: React.FC<{ balance: number; currency: string }> = ({ balance,
  * 3. MAIN DASHBOARD SCREEN
  */
 const VaultDashboard: React.FC<any> = (props) => {
+  const [kycStatus, setKycStatus] = useState<string>("unverified");
+  const [transactionCount, setTransactionCount] = useState<number>(0);
+
+  React.useEffect(() => {
+    fetchKycAndTransactions();
+  }, []);
+
+  const fetchKycAndTransactions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch KYC status
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("kyc_status")
+        .eq("id", user.id)
+        .single();
+      
+      if (profile) setKycStatus(profile.kyc_status);
+
+      // Fetch transaction count
+      const { count } = await supabase
+        .from("transactions")
+        .select("*", { count: "exact", head: true })
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+      
+      setTransactionCount(count || 0);
+    } catch (error) {
+      console.error("Error fetching KYC/Transactions:", error);
+    }
+  };
+
+  const handleAction = async (action: QuickAction) => {
+    if (action.route === "Send" || action.route === "Withdraw") {
+      if (transactionCount === 0 && kycStatus !== "verified") {
+        Alert.alert(
+          "KYC Required",
+          "This is your first transaction. Please complete your identity verification to continue.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Verify Now", onPress: () => props.navigation.navigate("KYC") }
+          ]
+        );
+        return;
+      }
+    }
+
+    if ((action.route as any) === "ReceiptHistory") {
+      props.navigation.navigate("ReceiptHistory");
+    } else {
+      // Handle other routes
+      Alert.alert("Coming Soon", `${action.label} feature is coming soon.`);
+    }
+  };
+
   const quickActions: QuickAction[] = [
     { id: "1", label: "Send Money", icon: Send, route: "Send", color: "#3B82F6" },
     { id: "2", label: "Deposit", icon: PlusCircle, route: "Deposit", color: "#10B981" },
@@ -142,7 +211,11 @@ const VaultDashboard: React.FC<any> = (props) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <DashboardHeader userName="Maxwell" initials="MN" />
+      <DashboardHeader 
+        userName="Maxwell" 
+        initials="MN" 
+        onSettingsPress={() => props.navigation.navigate("Settings")}
+      />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Balance Carousel Section */}
@@ -164,10 +237,7 @@ const VaultDashboard: React.FC<any> = (props) => {
               <TouchableOpacity
                 key={action.id}
                 style={styles.gridItem}
-                onPress={() =>
-                  (action.route as any) === "ReceiptHistory" &&
-                  (props as any).navigation.navigate("ReceiptHistory")
-                }
+                onPress={() => handleAction(action)}
               >
                 <View style={[styles.gridIconContainer, { backgroundColor: `${action.color}20` }]}>
                   <action.icon size={24} color={action.color} />
@@ -287,6 +357,105 @@ const styles = StyleSheet.create({
   },
   balanceLabelRow: {
     flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  balanceLabel: {
+    color: "#94A3B8",
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  balanceValue: {
+    color: "#FFFFFF",
+    fontSize: 32,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  viewStatementsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 20,
+    alignSelf: "flex-start",
+  },
+  viewStatementsText: {
+    color: "#10B981",
+    fontWeight: "600",
+    fontSize: 14,
+    marginRight: 4,
+  },
+  gridContainer: {
+    paddingHorizontal: 20,
+    marginTop: 30,
+  },
+  sectionTitle: {
+    color: "#F8FAFC",
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 20,
+  },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  gridItem: {
+    width: (width - 60) / 4,
+    alignItems: "center",
+    marginBottom: 25,
+  },
+  gridIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  gridLabel: {
+    color: "#94A3B8",
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+  },
+  ecosystemContainer: {
+    marginTop: 10,
+    paddingBottom: 40,
+  },
+  ecosystemRow: {
+    paddingLeft: 20,
+  },
+  subAccountCard: {
+    width: 130,
+    backgroundColor: "#1E293B",
+    borderRadius: 20,
+    padding: 16,
+    marginRight: 15,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
+  },
+  subAccountIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#0F172A",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  subAccountName: {
+    color: "#94A3B8",
+    fontSize: 12,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  subAccountBalance: {
+    color: "#F8FAFC",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+});
+ "row",
     alignItems: "center",
     gap: 6,
   },

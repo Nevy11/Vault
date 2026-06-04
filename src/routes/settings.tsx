@@ -243,11 +243,13 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
   const [currentPin, setCurrentPin] = useState("");
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+  const [otp, setOtp] = useState("");
   const [showPins, setShowPins] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
+  const [step, setStep] = useState<"input" | "verify">("input");
   const [open, setOpen] = useState(false);
 
-  const handlePinChange = async () => {
+  const handleRequestChange = async () => {
     if (currentPin.length !== 6 || newPin.length !== 6 || confirmPin.length !== 6) {
       toast.error("All PINs must be 6 digits");
       return;
@@ -262,35 +264,83 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
       setIsChanging(true);
       const hashedCurrent = await hashPin(currentPin);
 
-      if (hashedCurrent !== profile?.pin_hash) {
+      // 1. Securely verify current PIN via RPC
+      const { data: isValid, error: rpcError } = await supabase.rpc("verify_current_pin", {
+        provided_pin_hash: hashedCurrent,
+      });
+
+      if (rpcError || !isValid) {
         toast.error("Current PIN is incorrect");
         return;
       }
 
+      // 2. Trigger OTP via Reset Password flow
+      const { error: otpError } = await supabase.auth.resetPasswordForEmail(profile.email);
+      if (otpError) throw otpError;
+
+      toast.success("Verification code sent to your email");
+      setStep("verify");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate PIN change");
+    } finally {
+      setIsChanging(false);
+    }
+  };
+
+  const handleVerifyAndSave = async () => {
+    if (otp.length !== 6) {
+      toast.error("Please enter the 6-digit code");
+      return;
+    }
+
+    try {
+      setIsChanging(true);
+
+      // 1. Verify the OTP
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: profile.email,
+        token: otp,
+        type: "recovery",
+      });
+
+      if (verifyError) throw verifyError;
+
+      // 2. Hash and save the new PIN
       const hashedNew = await hashPin(newPin);
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from("profiles")
         .update({ pin_hash: hashedNew })
         .eq("id", profile.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       toast.success("PIN changed successfully!");
       setOpen(false);
       onSuccess();
       // Clear fields
+      setStep("input");
       setCurrentPin("");
       setNewPin("");
       setConfirmPin("");
+      setOtp("");
     } catch (err: any) {
-      toast.error(err.message || "Failed to change PIN");
+      toast.error(err.message || "Verification failed");
     } finally {
       setIsChanging(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(val) => {
+        setOpen(val);
+        if (!val) {
+          setStep("input");
+          setOtp("");
+        }
+      }}
+    >
       <DialogTrigger asChild>
         <button className="w-full flex items-center justify-between text-sm text-foreground hover:text-primary transition-colors py-2 group">
           <span className="flex items-center gap-3">
@@ -303,85 +353,129 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
       <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
         <DialogHeader className="mb-6">
           <DialogTitle className="text-2xl font-serif">
-            {t("settings.security.pin.dialog_title")}
+            {step === "input" ? t("settings.security.pin.dialog_title") : "Verify Update"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {t("settings.security.pin.dialog_desc")}
+            {step === "input" 
+              ? t("settings.security.pin.dialog_desc") 
+              : `A 6-digit code was sent to ${profile.email}. Enter it below to confirm your new PIN.`
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {t("settings.security.pin.current")}
-              </label>
-              <div className="relative">
+          {step === "input" ? (
+            <>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {t("settings.security.pin.current")}
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPins ? "text" : "password"}
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={currentPin}
+                      onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
+                      placeholder="••••••"
+                      className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {t("settings.security.pin.new")}
+                  </label>
+                  <Input
+                    type={showPins ? "text" : "password"}
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                    placeholder="••••••"
+                    className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {t("settings.security.pin.confirm")}
+                  </label>
+                  <Input
+                    type={showPins ? "text" : "password"}
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={confirmPin}
+                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
+                    placeholder="••••••"
+                    className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowPins(!showPins)}
+                  className="text-xs text-primary font-medium flex items-center gap-1.5 hover:underline"
+                >
+                  {showPins ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  {showPins ? t("settings.security.pin.hide") : t("settings.security.pin.show")}
+                </button>
+              </div>
+
+              <Button
+                onClick={handleRequestChange}
+                disabled={isChanging || newPin.length !== 6 || newPin !== confirmPin}
+                className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20"
+              >
+                {isChanging ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <ShieldCheck className="w-4 h-4 mr-2" />
+                )}
+                {t("settings.security.pin.update_btn")}
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-6">
+              <div className="space-y-1.5 text-center">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Verification Code
+                </label>
                 <Input
-                  type={showPins ? "text" : "password"}
                   inputMode="numeric"
                   maxLength={6}
-                  value={currentPin}
-                  onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, ""))}
-                  placeholder="••••••"
-                  className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  placeholder="123456"
+                  className="h-16 bg-input/40 border-border/60 rounded-xl text-center font-mono text-3xl tracking-[0.5em]"
+                  autoFocus
                 />
               </div>
+              
+              <Button
+                onClick={handleVerifyAndSave}
+                disabled={isChanging || otp.length !== 6}
+                className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {isChanging ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                )}
+                Confirm PIN Change
+              </Button>
+
+              <button
+                onClick={() => setStep("input")}
+                className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Back to PIN entry
+              </button>
             </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {t("settings.security.pin.new")}
-              </label>
-              <Input
-                type={showPins ? "text" : "password"}
-                inputMode="numeric"
-                maxLength={6}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
-                placeholder="••••••"
-                className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {t("settings.security.pin.confirm")}
-              </label>
-              <Input
-                type={showPins ? "text" : "password"}
-                inputMode="numeric"
-                maxLength={6}
-                value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ""))}
-                placeholder="••••••"
-                className="h-12 bg-input/40 border-border/60 rounded-xl text-center font-mono text-lg tracking-widest"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setShowPins(!showPins)}
-              className="text-xs text-primary font-medium flex items-center gap-1.5 hover:underline"
-            >
-              {showPins ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              {showPins ? t("settings.security.pin.hide") : t("settings.security.pin.show")}
-            </button>
-          </div>
-
-          <Button
-            onClick={handlePinChange}
-            disabled={isChanging || newPin.length !== 6 || newPin !== confirmPin}
-            className="w-full h-12 rounded-xl font-bold shadow-lg shadow-primary/20"
-          >
-            {isChanging ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <ShieldCheck className="w-4 h-4 mr-2" />
-            )}
-            {t("settings.security.pin.update_btn")}
-          </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
