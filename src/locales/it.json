@@ -1,6 +1,27 @@
 {
   "dashboard": {
     "title": "Dashboard",
+    "unified_portfolio": "Portafoglio Unificato",
+    "portfolio_desc": "Aggregato in tempo reale del tuo ecosistema finanziario.",
+    "total_portfolio": "Portafoglio Totale",
+    "analyzing": "Analisi in corso...",
+    "analyzing_portfolio": "Analisi del portafoglio...",
+    "add_external": "Aggiungi Esterno",
+    "detailed_report": "Report Dettagliato",
+    "vault_account_name": "Vault: Sistema Operativo per Portafoglio Digitale",
+    "verified_account": "Account Verificato",
+    "finance_credit": "Finanza e Credito",
+    "savings_loans": "Risparmi e Prestiti",
+    "savings_loans_desc": "Sblocca premi del 2% e credito istantaneo",
+    "no_transactions": "Nessuna transazione trovata.",
+    "balance_label": "Saldo:",
+    "view_all_transactions": "Visualizza Tutte le Transazioni",
+    "syncing": "Sincronizzazione...",
+    "just_now": "Proprio ora",
+    "data_synced": "Dati sincronizzati {{time}}",
+    "security_shield": "Scudo di Sicurezza",
+    "low": "Basso",
+    "high": "Alto",
     "portfolio": {
       "balance": "Valore totale del portafoglio",
       "growth": "Impulso del portafoglio",
@@ -326,7 +347,7 @@
     "status": "Stato",
     "completed": "Completato",
     "all": "Tutto",
-    "date": "Data",
+    "date": "Date",
     "type": "Tipo",
     "errors": {
       "fill_all": "Si prega di compilare tutti i campi",
@@ -752,7 +773,7 @@
       "ready_boost": "Pronto per un boost istantaneo? Richiedi oggi.",
       "get_loan_btn": "Ottieni Prestito Istantaneo",
       "ledger_history": "Cronologia Libro Mastro",
-      "paid": "Pagato",
+      "paid": "Payato",
       "balance": "Saldo",
       "no_activity": "Nessuna attività registrata."
     },
@@ -816,6 +837,24 @@
       "lending_title": "Prestiti",
       "lending_desc": "Richiede la verifica dell'integrità. Rigorosamente limitato al 50% del saldo frequente."
     }
+  },
+  "receipts": {
+    "title": "Cronologia Ricevute",
+    "secure_logs": "Log di Transazione Sicuri",
+    "no_receipts": "Nessuna ricevuta trovata ancora",
+    "vault_transaction": "Transazione Vault",
+    "receipt_number": "Numero Ricevuta",
+    "amount_deducted": "Importo Dedotto",
+    "status": "Stato",
+    "date": "Data",
+    "method": "Metodo",
+    "type": "Tipo",
+    "completed": "COMPLETATO",
+    "transfer_secure_msg": "Il tuo trasferimento di {{currency}} {{amount}} è stato elaborato in modo sicuro.",
+    "legal_note": "Questa ricevuta digitale è firmata crittograficamente e funge da prova ufficiale della transazione per i servizi Vault OS.",
+    "certified": "Transazione Certificata",
+    "back": "Indietro",
+    "download": "Scarica ricevuta"
   },
   "kyc": {
     "meta_title": "Vault — Verifica KYC",

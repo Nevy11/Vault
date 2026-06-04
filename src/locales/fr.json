@@ -1,6 +1,27 @@
 {
   "dashboard": {
     "title": "Tableau de bord",
+    "unified_portfolio": "Portefeuille Unifié",
+    "portfolio_desc": "Agrégat en temps réel de votre écosystème financier.",
+    "total_portfolio": "Portefeuille Total",
+    "analyzing": "Analyse en cours...",
+    "analyzing_portfolio": "Analyse du portefeuille...",
+    "add_external": "Ajouter Externe",
+    "detailed_report": "Rapport Détaillé",
+    "vault_account_name": "Vault : Système d'exploitation de portefeuille numérique",
+    "verified_account": "Compte Vérifié",
+    "finance_credit": "Finance et Crédit",
+    "savings_loans": "Épargne et Prêts",
+    "savings_loans_desc": "Débloquez des récompenses de 2 % et un crédit instantané",
+    "no_transactions": "Aucune transaction trouvée.",
+    "balance_label": "Solde :",
+    "view_all_transactions": "Voir Toutes les Transactions",
+    "syncing": "Synchronisation...",
+    "just_now": "À l'instant",
+    "data_synced": "Données synchronisées {{time}}",
+    "security_shield": "Bouclier de Sécurité",
+    "low": "Faible",
+    "high": "Élevé",
     "portfolio": {
       "balance": "Valeur totale du portefeuille",
       "growth": "Pouls du portefeuille",
@@ -816,6 +837,24 @@
       "lending_title": "Prêts",
       "lending_desc": "Nécessite une vérification d'intégrité. Strictement plafonné à 50 % du solde fréquent."
     }
+  },
+  "receipts": {
+    "title": "Historique des Reçus",
+    "secure_logs": "Journaux de Transactions Sécurisés",
+    "no_receipts": "Aucun reçu trouvé pour le moment",
+    "vault_transaction": "Transaction Vault",
+    "receipt_number": "Numéro de Reçu",
+    "amount_deducted": "Montant Déduit",
+    "status": "Statut",
+    "date": "Date",
+    "method": "Méthode",
+    "type": "Type",
+    "completed": "TERMINÉ",
+    "transfer_secure_msg": "Votre transfert de {{currency}} {{amount}} a été traité en toute sécurité.",
+    "legal_note": "Ce reçu numérique est signé cryptographiquement et sert de preuve officielle de transaction pour les services Vault OS.",
+    "certified": "Transaction Certifiée",
+    "back": "Retour",
+    "download": "Télécharger le reçu"
   },
   "kyc": {
     "meta_title": "Vault — Vérification KYC",

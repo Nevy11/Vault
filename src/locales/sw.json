@@ -1,6 +1,39 @@
 {
   "dashboard": {
     "title": "Dashibodi",
+    "unified_portfolio": "Portfolio Iliyounganishwa",
+    "portfolio_desc": "Muhtasari wa papo hapo wa mfumo wako wa kifedha.",
+    "page_title": "Dashibodi — Vault OS",
+    "page_description": "Salio la portfolio iliyounganishwa na miamala kwenye akaunti zako za kifedha.",
+    "available_balance": "Salio Linalopatikana",
+    "total_portfolio": "Jumla ya Portfolio",
+    "analyzing": "Inachambua...",
+    "analyzing_portfolio": "Inachambua portfolio...",
+    "add_external": "Ongeza Nje",
+    "detailed_report": "Ripoti ya Kina",
+    "vault_account_name": "Vault: Mfumo wa Mkoba wa Kidijitali",
+    "verified_account": "Akaunti Iliyothibitishwa",
+    "finance_credit": "Fedha na Mikopo",
+    "savings_loans": "Akiba na Mikopo",
+    "savings_loans_desc": "Pata tuzo ya 2% na mkopo wa papo hapo",
+    "no_transactions": "Hakuna miamala iliyopatikana.",
+    "balance_label": "Salio:",
+    "view_all_transactions": "Angalia Miamala Zote",
+    "syncing": "Inatayarisha...",
+    "just_now": "Sasa hivi",
+    "data_synced": "Data imetayarishwa {{time}}",
+    "security_shield": "Ngao ya Usalama",
+    "low": "Chini",
+    "high": "Juu",
+    "data_points": "Nukta za data {{count}}",
+    "security": {
+      "system_secure": "MFUMO NI SALAMA",
+      "encryption": "Usimbuaji wa Mwanzo hadi Mwisho",
+      "id_protection": "Ulinzi wa Utambulisho",
+      "device_integrity": "Uadilifu wa Kifaa",
+      "enhanced": "IMEIMARISHWA",
+      "verified": "IMETHIBITISHWA"
+    },
     "portfolio": {
       "balance": "Thamani ya Jumla ya Portfolio",
       "growth": "Mapigo ya Portfolio",
@@ -777,6 +810,25 @@
       "total_outstanding": "Jumla ya Salio",
       "payment_source": "Chanzo cha Malipo",
       "process_btn": "Tekeleza"
+    },
+    "categories": {
+      "mobile": "Pesa kwa Simu",
+      "banks": "Benki",
+      "vault": "Vault"
+    },
+    "toasts": {
+      "limit_exceeded": "Kiwango Kimezidi",
+      "limit_desc": "Kiwango chako cha juu cha mkopo ni KES {{amount}}.",
+      "approved": "Mkopo Umeidhinishwa!",
+      "approved_desc": "KES {{amount}} imewekwa kwenye leja yako.",
+      "failed": "Ombi la Mkopo Limeshindikana",
+      "incomplete": "Maelezo Hayajakamilika",
+      "incomplete_desc": "Tafadhali ingiza kiasi na uchague chanzo.",
+      "missing_id": "Inakosekana {{label}}",
+      "missing_id_desc": "Tafadhali toa {{label}} yako.",
+      "repayment_success": "Malipo Yamechakatwa",
+      "repayment_success_desc": "KES {{amount}} imechakatwa kutoka kwa {{source}} yako.",
+      "repayment_failed": "Malipo Yameshindikana"
     }
   },
   "finance_hub": {
@@ -816,6 +868,24 @@
       "lending_title": "Mikopo",
       "lending_desc": "Inahitaji uthibitisho wa uaminifu. Mkopo hauzidi 50% ya wastani wa salio."
     }
+  },
+  "receipts": {
+    "title": "Historia ya Risiti",
+    "secure_logs": "Kumbukumbu Salama za Miamala",
+    "no_receipts": "Bado hakuna risiti zilizopatikana",
+    "vault_transaction": "Muamala wa Vault",
+    "receipt_number": "Nambari ya Risiti",
+    "amount_deducted": "Kiasi Kilichokatwa",
+    "status": "Hali",
+    "date": "Tarehe",
+    "method": "Njia",
+    "type": "Aina",
+    "completed": "IMEKAMILIKA",
+    "transfer_secure_msg": "Uhamisho wako wa {{currency}} {{amount}} umechakatwa kwa usalama.",
+    "legal_note": "Risiti hii ya kidijitali imetiwa saini na inatumika kama uthibitisho rasmi wa muamala wa huduma za Vault OS.",
+    "certified": "Muamala Umethibitishwa",
+    "back": "Rudi",
+    "download": "Pakua risiti"
   },
   "kyc": {
     "meta_title": "Vault — Uthibitisho wa KYC",

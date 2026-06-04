@@ -1,6 +1,27 @@
 {
   "dashboard": {
     "title": "Dashboard",
+    "unified_portfolio": "Einheitliches Portfolio",
+    "portfolio_desc": "Echtzeit-Aggregat Ihres finanziellen Ökosystems.",
+    "total_portfolio": "Gesamtportfolio",
+    "analyzing": "Analysieren...",
+    "analyzing_portfolio": "Portfolio wird analysiert...",
+    "add_external": "Extern hinzufügen",
+    "detailed_report": "Detaillierter Bericht",
+    "vault_account_name": "Vault: Digitales Wallet-Betriebssystem",
+    "verified_account": "Verifiziertes Konto",
+    "finance_credit": "Finanzen & Kredit",
+    "savings_loans": "Sparen & Kredite",
+    "savings_loans_desc": "Schalten Sie 2% Belohnungen & Sofortkredit frei",
+    "no_transactions": "Keine Transaktionen gefunden.",
+    "balance_label": "Saldo:",
+    "view_all_transactions": "Alle Transaktionen anzeigen",
+    "syncing": "Synchronisierung...",
+    "just_now": "Gerade eben",
+    "data_synced": "Daten synchronisiert {{time}}",
+    "security_shield": "Sicherheitsschild",
+    "low": "Niedrig",
+    "high": "Hoch",
     "portfolio": {
       "balance": "Gesamtportfoliowert",
       "growth": "Portfolio-Puls",
@@ -816,6 +837,24 @@
       "lending_title": "Kreditvergabe",
       "lending_desc": "Erfordert Integritätsprüfung. Streng auf 50% des regelmäßigen Guthabens begrenzt."
     }
+  },
+  "receipts": {
+    "title": "Belegverlauf",
+    "secure_logs": "Sichere Transaktionsprotokolle",
+    "no_receipts": "Noch keine Belege gefunden",
+    "vault_transaction": "Vault-Transaktion",
+    "receipt_number": "Belegnummer",
+    "amount_deducted": "Abgebuchter Betrag",
+    "status": "Status",
+    "date": "Datum",
+    "method": "Methode",
+    "type": "Typ",
+    "completed": "ABGESCHLOSSEN",
+    "transfer_secure_msg": "Ihre Überweisung von {{currency}} {{amount}} wurde sicher verarbeitet.",
+    "legal_note": "Dieser digitale Beleg ist kryptografisch signiert und dient als offizieller Transaktionsnachweis für Vault OS-Dienste.",
+    "certified": "Transaktion zertifiziert",
+    "back": "Zurück",
+    "download": "Beleg herunterladen"
   },
   "kyc": {
     "meta_title": "Vault — KYC-Verifizierung",

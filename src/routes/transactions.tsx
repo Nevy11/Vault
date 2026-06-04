@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { cn, hashPin } from "@/lib/utils";
+import i18n from "@/lib/i18n";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw"]).optional(),
@@ -62,16 +63,14 @@ const transactionsSearchSchema = z.object({
 
 export const Route = createFileRoute("/transactions")({
   validateSearch: (search) => transactionsSearchSchema.parse(search),
-  head: (ctx) => {
-    const { t } = ctx.context.i18n || { t: (k: string) => k };
+  head: () => {
+    const t = i18n.t;
     return {
       meta: [
-        { title: t ? t("transactions.page_title") : "Transactions — Vault OS" },
+        { title: t("transactions.page_title") },
         {
           name: "description",
-          content: t
-            ? t("transactions.page_description")
-            : "Send money, deposit funds, and withdraw across your Vault accounts.",
+          content: t("transactions.page_description"),
         },
       ],
     };
@@ -1150,12 +1149,12 @@ function TransactionHistory() {
                 const details = getTransactionDetails(t_item);
                 const typeLabel =
                   t_item.type === "transfer"
-                    ? "P2P"
+                    ? t("dashboard.ledger.transaction.p2p")
                     : t_item.type === "deposit"
-                      ? "DEP"
+                      ? t("dashboard.ledger.transaction.deposit").substring(0, 3).toUpperCase()
                       : t_item.type === "withdrawal"
-                        ? "WIT"
-                        : "TXN";
+                        ? t("dashboard.ledger.transaction.withdraw").substring(0, 3).toUpperCase()
+                        : t_item.type.substring(0, 3).toUpperCase();
 
                 return (
                   <li
@@ -1186,7 +1185,7 @@ function TransactionHistory() {
                         {details.amount}
                       </div>
                       <div className="text-[10px] text-muted-foreground/50 font-mono">
-                        Bal: {currencySymbol}
+                        {t("dashboard.balance_label")} {currencySymbol}
                         {t_item.balance_after?.toLocaleString() || balance?.toLocaleString()}
                       </div>
                     </div>

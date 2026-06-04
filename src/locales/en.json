@@ -1,6 +1,39 @@
 {
   "dashboard": {
     "title": "Dashboard",
+    "unified_portfolio": "Unified Portfolio",
+    "portfolio_desc": "Real-time aggregate of your financial ecosystem.",
+    "page_title": "Dashboard — Vault OS",
+    "page_description": "Unified portfolio balance and transactions across your finance accounts.",
+    "available_balance": "Available Balance",
+    "total_portfolio": "Total Portfolio",
+    "analyzing": "Analyzing...",
+    "analyzing_portfolio": "Analyzing portfolio...",
+    "add_external": "Add External",
+    "detailed_report": "Detailed Report",
+    "vault_account_name": "Vault: Digital Wallet OS",
+    "verified_account": "Verified Account",
+    "finance_credit": "Finance & Credit",
+    "savings_loans": "Savings & Loans",
+    "savings_loans_desc": "Unlock 2% rewards & instant credit",
+    "no_transactions": "No transactions found.",
+    "balance_label": "Balance:",
+    "view_all_transactions": "View All Transactions",
+    "syncing": "Syncing...",
+    "just_now": "Just now",
+    "data_synced": "Data Synced {{time}}",
+    "security_shield": "Security Shield",
+    "low": "Low",
+    "high": "High",
+    "data_points": "{{count}} data points",
+    "security": {
+      "system_secure": "SYSTEM SECURE",
+      "encryption": "End-to-End Encryption",
+      "id_protection": "Identity Protection",
+      "device_integrity": "Device Integrity",
+      "enhanced": "ENHANCED",
+      "verified": "VERIFIED"
+    },
     "portfolio": {
       "balance": "Total Portfolio Value",
       "growth": "Portfolio Pulse",
@@ -806,6 +839,25 @@
       "total_outstanding": "Total Outstanding",
       "payment_source": "Payment Source",
       "process_btn": "Process"
+    },
+    "categories": {
+      "mobile": "Mobile Money",
+      "banks": "Banks",
+      "vault": "Vault"
+    },
+    "toasts": {
+      "limit_exceeded": "Limit Exceeded",
+      "limit_desc": "Your maximum loan limit is KES {{amount}}.",
+      "approved": "Loan Approved!",
+      "approved_desc": "KES {{amount}} has been credited to your ledger.",
+      "failed": "Loan Request Failed",
+      "incomplete": "Incomplete Details",
+      "incomplete_desc": "Please enter amount and select source.",
+      "missing_id": "Missing {{label}}",
+      "missing_id_desc": "Please provide your {{label}}.",
+      "repayment_success": "Repayment Processed",
+      "repayment_success_desc": "KES {{amount}} has been processed from your {{source}}.",
+      "repayment_failed": "Repayment Failed"
     }
   },
   "finance_hub": {
@@ -845,6 +897,24 @@
       "lending_title": "Lending",
       "lending_desc": "Requires integrity verification. Strictly capped at 50% of frequent balance."
     }
+  },
+  "receipts": {
+    "title": "Receipt History",
+    "secure_logs": "Secure Transaction Logs",
+    "no_receipts": "No receipts found yet",
+    "vault_transaction": "Vault Transaction",
+    "receipt_number": "Receipt Number",
+    "amount_deducted": "Amount Deducted",
+    "status": "Status",
+    "date": "Date",
+    "method": "Method",
+    "type": "Type",
+    "completed": "COMPLETED",
+    "transfer_secure_msg": "Your transfer of {{currency}} {{amount}} has been processed securely.",
+    "legal_note": "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.",
+    "certified": "Transaction Certified",
+    "back": "Back",
+    "download": "Download receipt"
   },
   "kyc": {
     "meta_title": "Vault — KYC Verification",

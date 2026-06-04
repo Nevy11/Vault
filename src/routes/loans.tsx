@@ -168,8 +168,8 @@ function LoansPage() {
     if (!profile?.id) return;
 
     if (isOverLimit) {
-      toast.error("Limit Exceeded", {
-        description: `Your maximum loan limit is KES ${maxLimit.toLocaleString()}.`,
+      toast.error(t("loans.toasts.limit_exceeded"), {
+        description: t("loans.toasts.limit_desc", { amount: maxLimit.toLocaleString() }),
       });
       return;
     }
@@ -184,22 +184,26 @@ function LoansPage() {
       if (error) throw error;
 
       if (data.success) {
-        toast.success("Loan Approved!", {
-          description: `KES ${requestedAmountNum.toLocaleString()} has been credited to your ledger.`,
+        toast.success(t("loans.toasts.approved"), {
+          description: t("loans.toasts.approved_desc", {
+            amount: requestedAmountNum.toLocaleString(),
+          }),
         });
         await fetchLoanData();
         setActiveTab("tracker");
       } else {
-        toast.error("Loan Request Failed", { description: data.message });
+        toast.error(t("loans.toasts.failed"), { description: data.message });
       }
     } catch (err: any) {
-      toast.error("Error", { description: err.message });
+      toast.error(t("common.error"), { description: err.message });
     }
   };
 
   const handleRepayment = async () => {
     if (!repayAmount || !repayProvider || !activeLoan) {
-      toast.error("Incomplete Details", { description: "Please enter amount and select source." });
+      toast.error(t("loans.toasts.incomplete"), {
+        description: t("loans.toasts.incomplete_desc"),
+      });
       return;
     }
 
@@ -208,15 +212,17 @@ function LoansPage() {
 
     // Require identifier for non-vault payments
     if (!isVault && !sourceIdentifier) {
-      const label = isMobile ? "Phone Number" : "Account Number";
-      toast.error(`Missing ${label}`, {
-        description: `Please provide your ${label.toLowerCase()}.`,
+      const label = isMobile
+        ? t("transactions.form.phone_number")
+        : t("transactions.form.account_number");
+      toast.error(t("loans.toasts.missing_id", { label }), {
+        description: t("loans.toasts.missing_id_desc", { label: label.toLowerCase() }),
       });
       return;
     }
 
     const finalSource = isVault
-      ? "Vault Wallet"
+      ? t("loans.categories.vault")
       : `${repayProvider.toUpperCase()} (${sourceIdentifier})`;
 
     try {
@@ -231,8 +237,11 @@ function LoansPage() {
       const result = data;
 
       if (result.success) {
-        toast.success("Repayment Processed", {
-          description: `KES ${parseFloat(repayAmount).toLocaleString()} has been processed from your ${finalSource}.`,
+        toast.success(t("loans.toasts.repayment_success"), {
+          description: t("loans.toasts.repayment_success_desc", {
+            amount: parseFloat(repayAmount).toLocaleString(),
+            source: finalSource,
+          }),
         });
         await fetchLoanData();
         setShowRepayPopup(false);
@@ -243,10 +252,10 @@ function LoansPage() {
           setActiveTab("success");
         }
       } else {
-        toast.error("Repayment Failed", { description: result.message });
+        toast.error(t("loans.toasts.repayment_failed"), { description: result.message });
       }
     } catch (err: any) {
-      toast.error("Repayment Failed", { description: err.message });
+      toast.error(t("loans.toasts.repayment_failed"), { description: err.message });
     }
   };
 
@@ -959,7 +968,7 @@ function LoansPage() {
                   </SelectTrigger>
                   <SelectContent className="rounded-lg shadow-xl backdrop-blur-xl border-white/20 z-[100] max-h-[300px] overflow-y-auto">
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                      <Smartphone className="w-2.5 h-2.5" /> Mobile Money
+                      <Smartphone className="w-2.5 h-2.5" /> {t("loans.categories.mobile")}
                     </div>
                     <SelectItem value="mpesa" className="font-medium text-xs">
                       M-Pesa
@@ -969,7 +978,7 @@ function LoansPage() {
                     </SelectItem>
 
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
-                      <Building2 className="w-2.5 h-2.5" /> Banks
+                      <Building2 className="w-2.5 h-2.5" /> {t("loans.categories.banks")}
                     </div>
                     <SelectItem value="kcb" className="font-medium text-xs">
                       KCB Group
@@ -1000,7 +1009,7 @@ function LoansPage() {
                     </SelectItem>
 
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
-                      <Wallet className="w-2.5 h-2.5" /> Vault
+                      <Wallet className="w-2.5 h-2.5" /> {t("loans.categories.vault")}
                     </div>
                     <SelectItem
                       value="vault_balance"

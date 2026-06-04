@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
+import { useTranslation } from "react-i18next";
+
 import { useReceiptRealtime } from "@/hooks/use-receipt-realtime";
 import { create } from "zustand";
 
@@ -68,6 +70,7 @@ export function ReceiptActionIcon() {
  * ReceiptHistoryContent - Internal drawer logic for listing and viewing receipts
  */
 function ReceiptHistoryContent() {
+  const { t } = useTranslation();
   const [profile] = useProfileSignal();
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,9 +121,11 @@ function ReceiptHistoryContent() {
             <ReceiptIcon size={22} />
           </div>
           <div>
-            <SheetTitle className="text-xl font-bold tracking-tight">Receipt History</SheetTitle>
+            <SheetTitle className="text-xl font-bold tracking-tight">
+              {t("receipts.title")}
+            </SheetTitle>
             <SheetDescription className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
-              Secure Transaction Logs
+              {t("receipts.secure_logs")}
             </SheetDescription>
           </div>
         </div>
@@ -136,7 +141,7 @@ function ReceiptHistoryContent() {
         ) : receipts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
             <FileText size={48} className="mb-4" />
-            <p className="text-sm font-medium">No receipts found yet</p>
+            <p className="text-sm font-medium">{t("receipts.no_receipts")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -152,7 +157,7 @@ function ReceiptHistoryContent() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold truncate max-w-[180px] dark:text-white">
-                      {r.transaction_details.description || "Vault Transaction"}
+                      {r.transaction_details.description || t("receipts.vault_transaction")}
                     </div>
                     <div className="text-[10px] dark:text-white font-mono">{r.receipt_number}</div>
                   </div>
@@ -160,7 +165,7 @@ function ReceiptHistoryContent() {
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <div className="text-sm font-bold text-primary">
-                      ${r.amount.toLocaleString()}
+                      {r.currency} {r.amount.toLocaleString()}
                     </div>
                     <div className="text-[10px] text-muted-foreground">
                       {format(new Date(r.created_at), "MMM d")}
@@ -184,6 +189,7 @@ function ReceiptHistoryContent() {
  * ReceiptDetailView - High-fidelity "Physical" digital receipt rendering
  */
 function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () => void }) {
+  const { t } = useTranslation();
   const handleDownload = () => {
     const doc = new jsPDF({
       orientation: "portrait",
@@ -223,7 +229,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setFontSize(8);
     doc.setTextColor(...mutedColor);
     doc.setFont(undefined, "bold");
-    doc.text("TRANSACTION CERTIFIED", pageWidth / 2, yPosition, { align: "center" });
+    doc.text(t("receipts.certified").toUpperCase(), pageWidth / 2, yPosition, { align: "center" });
 
     yPosition += 15;
 
@@ -231,7 +237,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setTextColor(...mutedColor);
     doc.setFontSize(9);
     doc.setFont(undefined, "bold");
-    doc.text("RECEIPT NUMBER", 20, yPosition);
+    doc.text(t("receipts.receipt_number").toUpperCase(), 20, yPosition);
 
     doc.setTextColor(...textColor);
     doc.setFont(undefined, "bold");
@@ -244,7 +250,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setTextColor(...mutedColor);
     doc.setFontSize(9);
     doc.setFont(undefined, "bold");
-    doc.text("AMOUNT DEDUCTED", 20, yPosition);
+    doc.text(t("receipts.amount_deducted").toUpperCase(), 20, yPosition);
 
     yPosition += 8;
     doc.setTextColor(...primaryColor);
@@ -256,10 +262,10 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
 
     // Details table
     const details = [
-      ["Status", "COMPLETED"],
-      ["Date", format(new Date(receipt.created_at), "PPP p")],
-      ["Method", receipt.transaction_details.method.toUpperCase()],
-      ["Type", receipt.transaction_details.type.toUpperCase()],
+      [t("receipts.status"), t("receipts.completed")],
+      [t("receipts.date"), format(new Date(receipt.created_at), "PPP p")],
+      [t("receipts.method"), receipt.transaction_details.method.toUpperCase()],
+      [t("receipts.type"), receipt.transaction_details.type.toUpperCase()],
     ];
 
     doc.setTextColor(...mutedColor);
@@ -284,7 +290,10 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setTextColor(...primaryColor);
     doc.setFontSize(9);
     doc.setFont(undefined, "bold");
-    const footerText = `Your transfer of ${receipt.currency} ${receipt.amount.toLocaleString()} has been processed securely.`;
+    const footerText = t("receipts.transfer_secure_msg", {
+      currency: receipt.currency,
+      amount: receipt.amount.toLocaleString(),
+    });
     doc.text(footerText, pageWidth / 2, yPosition + 10, {
       align: "center",
       maxWidth: pageWidth - 50,
@@ -296,8 +305,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     doc.setTextColor(...mutedColor);
     doc.setFontSize(8);
     doc.setFont(undefined, "normal");
-    const finalText =
-      "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.";
+    const finalText = t("receipts.legal_note");
     doc.text(finalText, pageWidth / 2, yPosition, { align: "center", maxWidth: pageWidth - 40 });
 
     // Save the PDF
@@ -310,7 +318,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
     <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
       <div className="p-4 border-b border-border/40 flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={onBack} className="rounded-full gap-2">
-          <X size={16} /> Back
+          <X size={16} /> {t("receipts.back")}
         </Button>
         <div className="flex gap-1">
           <Button
@@ -318,7 +326,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
             size="icon"
             className="h-9 w-9 rounded-full"
             onClick={handleDownload}
-            title="Download receipt"
+            title={t("receipts.download")}
           >
             <Download size={16} />
           </Button>
@@ -342,14 +350,14 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
             </div>
             <h2 className="text-2xl font-black tracking-tight">Vault OS</h2>
             <p className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground font-bold">
-              Transaction Certified
+              {t("receipts.certified")}
             </p>
           </div>
 
           <div className="space-y-6">
             <div className="flex justify-between items-baseline border-b border-dashed border-border/60 pb-4">
               <span className="text-xs text-muted-foreground uppercase font-bold">
-                Receipt Number
+                {t("receipts.receipt_number")}
               </span>
               <span className="text-sm font-mono font-bold tracking-tighter">
                 {receipt.receipt_number}
@@ -358,7 +366,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
 
             <div className="py-4">
               <div className="text-[10px] text-muted-foreground uppercase font-black mb-1">
-                Amount Deducted
+                {t("receipts.amount_deducted")}
               </div>
               <div className="text-4xl font-black text-primary tracking-tighter">
                 {receipt.currency} {receipt.amount.toLocaleString()}
@@ -367,25 +375,25 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
 
             <div className="space-y-4 pt-4">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Status</span>
+                <span className="text-muted-foreground">{t("receipts.status")}</span>
                 <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/10">
-                  COMPLETED
+                  {t("receipts.completed")}
                 </Badge>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Date</span>
+                <span className="text-muted-foreground">{t("receipts.date")}</span>
                 <span className="font-semibold">
                   {format(new Date(receipt.created_at), "PPP p")}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Method</span>
+                <span className="text-muted-foreground">{t("receipts.method")}</span>
                 <span className="font-semibold uppercase tracking-wider text-xs">
                   {receipt.transaction_details.method}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm border-t border-border/40 pt-4">
-                <span className="text-muted-foreground">Type</span>
+                <span className="text-muted-foreground">{t("receipts.type")}</span>
                 <span className="font-semibold uppercase tracking-wider text-xs">
                   {receipt.transaction_details.type}
                 </span>
@@ -395,8 +403,10 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
             <div className="mt-12 pt-10 border-t border-dashed border-border/60 text-center">
               <div className="mb-6 px-4 py-3 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold leading-relaxed">
-                  Your transfer of {receipt.currency} {receipt.amount.toLocaleString()} has been
-                  processed securely.
+                  {t("receipts.transfer_secure_msg", {
+                    currency: receipt.currency,
+                    amount: receipt.amount.toLocaleString(),
+                  })}
                 </p>
               </div>
               <div className="inline-block p-4 bg-muted/40 rounded-2xl border border-border/40 mb-4 grayscale opacity-50">
@@ -404,8 +414,7 @@ function ReceiptDetailView({ receipt, onBack }: { receipt: Receipt; onBack: () =
                 <div className="w-24 h-24 bg-foreground/10 rounded-md" />
               </div>
               <p className="text-[9px] text-muted-foreground max-w-[200px] mx-auto leading-relaxed">
-                This digital receipt is cryptographically signed and serves as official proof of
-                transaction for Vault OS services.
+                {t("receipts.legal_note")}
               </p>
             </div>
           </div>

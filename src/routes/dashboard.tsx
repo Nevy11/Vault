@@ -40,20 +40,24 @@ import {
 import { FinancialHealthReport } from "@/components/financial-health-report";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 
 export const Route = createFileRoute("/dashboard")({
   validateSearch: (search: Record<string, unknown>) => {
     return search as { session_id?: string };
   },
-  head: () => ({
-    meta: [
-      { title: "Dashboard — Vault OS" },
-      {
-        name: "description",
-        content: "Unified portfolio balance and transactions across your finance accounts.",
-      },
-    ],
-  }),
+  head: () => {
+    const t = i18n.t;
+    return {
+      meta: [
+        { title: t("dashboard.page_title") },
+        {
+          name: "description",
+          content: t("dashboard.page_description"),
+        },
+      ],
+    };
+  },
   component: DashboardPage,
 });
 
@@ -72,6 +76,7 @@ function AccountBadge({
   updated?: string;
   primary?: boolean;
 }) {
+  const { t: translate } = useTranslation();
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-card/60 border border-border/50 p-6 backdrop-blur-sm transition-all hover:bg-card/80 hover:border-primary/30">
       <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/5 blur-3xl transition-all group-hover:bg-primary/10" />
@@ -101,8 +106,11 @@ function AccountBadge({
 
         <div className="mt-6">
           <div className="text-3xl font-semibold tracking-tight text-primary">{amount}</div>
-          <div className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 opacity-60">
-            Available Balance
+          <div
+            className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1 opacity-60"
+            suppressHydrationWarning
+          >
+            {translate("dashboard.available_balance")}
           </div>
         </div>
 
@@ -468,18 +476,22 @@ function NetWorthChart({
 
       <div className="mt-4 pt-4 border-t border-border/10 flex justify-between items-center">
         <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-          {chartData.length} data points
+          {t("dashboard.data_points", { count: chartData.length })}
         </div>
         <div className="flex gap-4">
           <div className="flex flex-col items-end">
-            <span className="text-[8px] text-muted-foreground uppercase font-bold">Low</span>
+            <span className="text-[8px] text-muted-foreground uppercase font-bold">
+              {t("dashboard.low")}
+            </span>
             <span className="text-[10px] font-bold">
               {currencySymbol}
               {minValue.toLocaleString()}
             </span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[8px] text-muted-foreground uppercase font-bold">High</span>
+            <span className="text-[8px] text-muted-foreground uppercase font-bold">
+              {t("dashboard.high")}
+            </span>
             <span className="text-[10px] font-bold text-emerald-500">
               {currencySymbol}
               {maxValue.toLocaleString()}
@@ -492,6 +504,7 @@ function NetWorthChart({
 }
 
 function SecurityStatus() {
+  const { t } = useTranslation();
   const openReceipts = () => console.log("Open receipts placeholder");
 
   return (
@@ -504,19 +517,33 @@ function SecurityStatus() {
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-base font-medium tracking-tight">Security Shield</span>
+            <span className="text-base font-medium tracking-tight">
+              {t("dashboard.security_shield")}
+            </span>
             <div className="text-[10px] text-emerald-500 font-medium flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-              SYSTEM SECURE
+              {t("dashboard.security.system_secure")}
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
           {[
-            { label: "End-to-End Encryption", val: "AES-256", status: "active" },
-            { label: "Identity Protection", val: "ENHANCED", status: "active" },
-            { label: "Device Integrity", val: "VERIFIED", status: "active" },
+            {
+              label: t("dashboard.security.encryption"),
+              val: "AES-256",
+              status: "active",
+            },
+            {
+              label: t("dashboard.security.id_protection"),
+              val: t("dashboard.security.enhanced"),
+              status: "active",
+            },
+            {
+              label: t("dashboard.security.device_integrity"),
+              val: t("dashboard.security.verified"),
+              status: "active",
+            },
           ].map((item) => (
             <div key={item.label} className="group/item">
               <div className="flex items-center justify-between mb-1.5">
@@ -855,11 +882,11 @@ function DashboardPage() {
     return transactions;
   }, [transactions, activeFilter, profile]);
 
-  const getTransactionDetails = (t: any) => {
-    const isSender = t.sender_id === (profile as any)?.id;
+  const getTransactionDetails = (tx: any) => {
+    const isSender = tx.sender_id === (profile as any)?.id;
     const userName = profile?.first_name
       ? `${profile.first_name} ${profile.last_name || ""}`.trim()
-      : profile?.email?.split("@")[0] || "Vault User";
+      : profile?.email?.split("@")[0] || t("common.vault_user");
     const symbol = currency === "USD" ? "$" : currency + " ";
 
     // Method-specific logo helper - enhanced with all banks
@@ -899,11 +926,11 @@ function DashboardPage() {
       return null; // Fallback to initials
     };
 
-    if (t.type === "transfer") {
-      if (t.description === "Transferred to savings") {
+    if (tx.type === "transfer") {
+      if (tx.description === "Transferred to savings") {
         return {
-          title: "Transferred to savings",
-          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          title: t("dashboard.ledger.transaction.savings"),
+          amount: `-${symbol}${tx.amount.toLocaleString()}`,
           positive: false,
           icon: "S",
           logo: null,
@@ -912,43 +939,52 @@ function DashboardPage() {
       }
       if (isSender) {
         // Check if this is a transfer to a mobile/bank service
-        const desc = (t.description || "").toLowerCase();
-        const logo = getMethodLogo(t.method || "", t.description || "");
+        const desc = (tx.description || "").toLowerCase();
+        const logo = getMethodLogo(tx.method || "", tx.description || "");
         const hasMobileOrBank = logo && desc.includes("transfer to");
 
+        let titleText = tx.description;
+        if (!titleText) {
+          const receiverName = tx.receiver?.first_name || t("common.user");
+          titleText = t("transactions.history.transfer_to", { receiverName });
+        }
+
         return {
-          title: t.description || `Transfer to ${t.receiver?.first_name || "User"}`,
-          amount: `-${symbol}${t.amount.toLocaleString()}`,
+          title: titleText,
+          amount: `-${symbol}${tx.amount.toLocaleString()}`,
           positive: false,
-          icon: hasMobileOrBank ? null : t.receiver?.first_name?.[0] || "T",
-          logo: hasMobileOrBank ? logo : t.receiver?.profile_photo_url || null,
+          icon: hasMobileOrBank ? null : tx.receiver?.first_name?.[0] || "T",
+          logo: hasMobileOrBank ? logo : tx.receiver?.profile_photo_url || null,
           color: "bg-primary/20 text-primary",
         };
       } else {
+        let senderName = tx.sender?.first_name || t("common.user");
+        const titleText =
+          tx.description || t("transactions.history.received_from", { senderName });
         return {
-          title: `Received from ${t.sender?.first_name || "User"}`,
-          amount: `+${symbol}${t.amount.toLocaleString()}`,
+          title: titleText,
+          amount: `+${symbol}${tx.amount.toLocaleString()}`,
           positive: true,
-          icon: t.sender?.first_name?.[0] || "R",
-          logo: t.sender?.profile_photo_url || null,
+          icon: tx.sender?.first_name?.[0] || "R",
+          logo: tx.sender?.profile_photo_url || null,
           color: "bg-emerald-500/20 text-emerald-500",
         };
       }
-    } else if (t.type === "deposit") {
-      const logo = getMethodLogo(t.method, t.description);
+    } else if (tx.type === "deposit") {
+      const logo = getMethodLogo(tx.method, tx.description);
       return {
-        title: t.description,
-        amount: `+${symbol}${t.amount.toLocaleString()}`,
+        title: tx.description,
+        amount: `+${symbol}${tx.amount.toLocaleString()}`,
         positive: true,
         icon: logo ? null : "D",
         logo: logo,
         color: "bg-emerald-500/20 text-emerald-500",
       };
-    } else if (t.type === "withdrawal") {
-      const logo = getMethodLogo(t.method, t.description);
+    } else if (tx.type === "withdrawal") {
+      const logo = getMethodLogo(tx.method, tx.description);
       return {
-        title: t.description,
-        amount: `-${symbol}${t.amount.toLocaleString()}`,
+        title: tx.description,
+        amount: `-${symbol}${tx.amount.toLocaleString()}`,
         positive: false,
         icon: logo ? null : "W",
         logo: logo,
@@ -956,8 +992,8 @@ function DashboardPage() {
       };
     }
     return {
-      title: t.description,
-      amount: `${symbol}${t.amount.toLocaleString()}`,
+      title: tx.description,
+      amount: `${symbol}${tx.amount.toLocaleString()}`,
       positive: true,
       icon: "?",
       logo: null,
@@ -971,11 +1007,17 @@ function DashboardPage() {
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-            Unified Portfolio
+          <h1
+            className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white"
+            suppressHydrationWarning
+          >
+            {t("dashboard.unified_portfolio")}
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium leading-relaxed">
-            Real-time aggregate of your financial ecosystem.
+          <p
+            className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium leading-relaxed"
+            suppressHydrationWarning
+          >
+            {t("dashboard.portfolio_desc")}
           </p>
         </div>
 
@@ -1011,9 +1053,9 @@ function DashboardPage() {
 
         {(balanceError || txError) && (
           <div className="mb-4 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            {balanceError ? `Balance error: ${balanceError}` : null}
+            {balanceError ? `${t("common.error")}: ${balanceError}` : null}
             {balanceError && txError ? " " : null}
-            {txError ? `Transaction error: ${txError}` : null}
+            {txError ? `${t("common.error")}: ${txError}` : null}
           </div>
         )}
 
@@ -1034,18 +1076,25 @@ function DashboardPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80">
-                  Total Portfolio
+                <div
+                  className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground/80"
+                  suppressHydrationWarning
+                >
+                  {t("dashboard.total_portfolio")}
                 </div>
               </div>
               <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:gap-3">
                 {balanceLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                    <span className="text-lg text-muted-foreground font-light">Analyzing...</span>
+                    <span className="text-lg text-muted-foreground font-light">
+                      {t("dashboard.analyzing")}
+                    </span>
                   </div>
                 ) : balanceError ? (
-                  <span className="text-3xl sm:text-4xl font-light text-destructive">Error</span>
+                  <span className="text-3xl sm:text-4xl font-light text-destructive">
+                    {t("common.error")}
+                  </span>
                 ) : (
                   <>
                     <span className="text-4xl sm:text-5xl font-bold tracking-tight tabular-nums">
@@ -1065,7 +1114,7 @@ function DashboardPage() {
                 {portfolioSummary.loading ? (
                   <span className="flex items-center gap-1.5">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Analyzing portfolio...
+                    {t("dashboard.analyzing_portfolio")}
                   </span>
                 ) : (
                   portfolioSummary.message
@@ -1074,14 +1123,14 @@ function DashboardPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2.5">
               <Button className="h-10 px-5 rounded-xl text-xs font-bold shadow-md active:scale-95 transition-all">
-                <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Add External
+                <UserPlus className="w-3.5 h-3.5 mr-1.5" /> {t("dashboard.add_external")}
               </Button>
               <Button
                 variant="outline"
                 className="h-10 px-5 rounded-xl text-xs font-bold border-border/40 backdrop-blur-md hover:bg-muted/50 transition-all active:scale-95"
                 onClick={() => setShowReport(true)}
               >
-                Detailed Report
+                {t("dashboard.detailed_report")}
               </Button>
             </div>
           </div>
@@ -1110,13 +1159,13 @@ function DashboardPage() {
                   />
                 </svg>
               }
-              name="Vault: Digital Wallet OS"
-              type="Verified Account"
+              name={t("dashboard.vault_account_name")}
+              type={t("dashboard.verified_account")}
               amount={
                 balanceLoading
-                  ? "Loading..."
+                  ? t("common.loading")
                   : balanceError
-                    ? "Error"
+                    ? t("common.error")
                     : `${currencySymbol}${balance?.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               }
             />
@@ -1139,7 +1188,7 @@ function DashboardPage() {
             {/* Header with label and icon */}
             <div className="relative flex items-center justify-between mb-6 sm:mb-8">
               <div className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/70 group-hover:text-primary transition-colors">
-                Finance & Credit
+                {t("dashboard.finance_credit")}
               </div>
               <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
                 <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-1 transition-transform" />
@@ -1158,10 +1207,10 @@ function DashboardPage() {
               {/* Text content */}
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg sm:text-xl font-bold text-foreground leading-tight mb-1.5">
-                  Savings & Loans
+                  {t("dashboard.savings_loans")}
                 </h3>
                 <p className="text-sm text-muted-foreground/85 leading-relaxed">
-                  Unlock 2% rewards & instant credit
+                  {t("dashboard.savings_loans_desc")}
                 </p>
               </div>
             </div>
@@ -1223,7 +1272,7 @@ function DashboardPage() {
                   txLoading && "animate-spin",
                 )}
               />
-              {syncTime}
+              {txLoading ? t("dashboard.syncing") : syncTime}
             </button>
           </div>
 
@@ -1234,24 +1283,33 @@ function DashboardPage() {
               </div>
             ) : filteredTransactions.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                No transactions found.
+                {t("dashboard.no_transactions")}
               </div>
             ) : (
-              filteredTransactions.map((t) => {
-                const details = getTransactionDetails(t);
+              filteredTransactions.map((tx) => {
+                const details = getTransactionDetails(tx);
 
                 // Trust the balance_after provided by the useTransactions hook
                 // This value is already the 'Ultimate Truth' (combined DB snapshots + anchored calculation)
-                const displayBalance = t.balance_after || balance || 0;
+                const displayBalance = tx.balance_after || balance || 0;
+
+                const typeLabel =
+                  tx.type === "transfer"
+                    ? t("dashboard.ledger.transaction.p2p")
+                    : tx.type === "deposit"
+                      ? t("dashboard.ledger.transaction.deposit").substring(0, 3).toUpperCase()
+                      : tx.type === "withdrawal"
+                        ? t("dashboard.ledger.transaction.withdraw").substring(0, 3).toUpperCase()
+                        : tx.type.substring(0, 3).toUpperCase();
 
                 return (
                   <li
-                    key={t.id}
+                    key={tx.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3"
                   >
                     <div className="flex items-center gap-4">
                       <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                        {t.type === "transfer" ? "P2P" : t.type.substring(0, 3)}
+                        {typeLabel}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
                         <AvatarImage src={details.logo || details.avatarUrl || undefined} />
@@ -1262,7 +1320,7 @@ function DashboardPage() {
                       <div className="min-w-0">
                         <div className="text-sm truncate">{details.title}</div>
                         <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
-                          {format(new Date(t.created_at), "EEEE, MMM d · h:mm a")}
+                          {format(new Date(tx.created_at), "EEEE, MMM d · h:mm a")}
                         </div>
                       </div>
                     </div>
@@ -1273,7 +1331,7 @@ function DashboardPage() {
                         {details.amount}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Balance: {currencySymbol}
+                        {t("dashboard.balance_label")} {currencySymbol}
                         {displayBalance.toLocaleString()}
                       </div>
                     </div>
@@ -1292,7 +1350,7 @@ function DashboardPage() {
                 className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-all group"
               >
                 <Link to="/transactions">
-                  View All Transactions
+                  {t("dashboard.view_all_transactions")}
                   <ArrowRight className="w-3.5 h-3.5 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>

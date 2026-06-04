@@ -129,18 +129,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
+                  suppressHydrationWarning
                 >
                   <Icon className="h-4 w-4" />
-                  {t(labelKey)}
+                  <span suppressHydrationWarning>{t(labelKey)}</span>
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
         <div className="absolute left-4 bottom-4 w-[calc(100%-2rem)]">
-          <Button variant="ghost" size="sm" className="w-full" onClick={handleSignOut}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={handleSignOut}
+            suppressHydrationWarning
+          >
             <LogOut className="mr-2 h-4 w-4" />
-            {t("nav.signout")}
+            <span suppressHydrationWarning>{t("nav.signout")}</span>
           </Button>
         </div>
       </div>
