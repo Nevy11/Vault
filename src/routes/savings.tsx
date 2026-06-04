@@ -64,9 +64,6 @@ const {
   ResponsiveContainer,
   AreaChart,
   Area,
-  Defs,
-  LinearGradient,
-  Stop,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -661,20 +658,20 @@ function SavingsPage() {
                           <div className="h-[280px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <AreaChart data={barData}>
-                                <Defs>
-                                  <LinearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <Stop
+                                <defs>
+                                  <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop
                                       offset="5%"
                                       stopColor="rgba(16,185,129,0.85)"
                                       stopOpacity={0.85}
                                     />
-                                    <Stop
+                                    <stop
                                       offset="95%"
                                       stopColor="rgba(16,185,129,0)"
                                       stopOpacity={0}
                                     />
-                                  </LinearGradient>
-                                </Defs>
+                                  </linearGradient>
+                                </defs>
                                 <CartesianGrid
                                   strokeDasharray="4 4"
                                   stroke="rgba(148,163,184,0.15)"

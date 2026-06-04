@@ -18,6 +18,7 @@ export type SavingsGoal = {
   status: "active" | "completed" | "missed";
   created_at: string;
   updated_at: string;
+  lockUntil?: string | null;
 };
 
 export type SavingsLedgerEntry = {
