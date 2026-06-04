@@ -12,8 +12,6 @@ let serverEntryPromise: Promise<ServerEntry> | undefined;
 
 async function getServerEntry(): Promise<ServerEntry> {
   if (!serverEntryPromise) {
-    // @ts-expect-error -- package exports are valid at runtime, but TypeScript resolution
-    // here can be brittle across custom module resolution settings.
     serverEntryPromise = import("@tanstack/react-start/server-entry").then(
       (m) => (m as { default?: ServerEntry }).default ?? (m as unknown as ServerEntry),
     );

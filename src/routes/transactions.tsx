@@ -760,7 +760,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarImage src={r.avatarUrl ?? undefined} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>
@@ -789,7 +789,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
                 >
                   <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl} />
+                    <AvatarImage src={r.avatarUrl ?? undefined} />
                     <AvatarFallback className={cn("text-xs font-bold", r.color)}>
                       {r.avatar}
                     </AvatarFallback>

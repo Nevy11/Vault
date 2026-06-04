@@ -43,6 +43,7 @@ type UseWalletBalanceReturn = {
   secondaryBalance?: BalanceBreakdown;
   refetch: () => Promise<void>;
   updateBalance: (newBalance: number) => Promise<void>;
+  changeCurrency: (newCurrency: string) => Promise<void>;
 };
 
 export function useWalletBalance(): UseWalletBalanceReturn {

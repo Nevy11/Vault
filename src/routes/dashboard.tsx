@@ -1312,7 +1312,7 @@ function DashboardPage() {
                         {typeLabel}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.logo || details.avatarUrl || undefined} />
+                        <AvatarImage src={details.logo || (details as any).avatarUrl || undefined} />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>
