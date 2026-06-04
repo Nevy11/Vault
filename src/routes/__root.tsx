@@ -15,6 +15,7 @@ import { useProfileSignal, profileSignal } from "@/lib/profile-signal";
 import { useEffect, useState } from "react";
 import i18n from "@/lib/i18n";
 
+import "../styles.css";
 import appCss from "../styles.css?url";
 
 import { TopNav } from "@/components/top-nav";

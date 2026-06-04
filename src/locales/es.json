@@ -162,11 +162,28 @@
     "footer_note": "¿Necesita ayuda urgente? Llame a nuestra línea 24/7 al"
   },
   "ai_insights": {
-    "title": "Información financiera de IA",
-    "placeholder": "Haga clic en generar para analizar sus gastos y obtener predicciones de IA.",
-    "initializing": "Iniciando asesor de IA...",
+    "title": "Perspectiva financiera de IA",
+    "placeholder": "Haz clic en generar para analizar tus gastos y obtener predicciones de IA.",
+    "initializing": "Inicializando el asesor de IA...",
     "update": "Actualizar análisis",
-    "generate": "Generar información"
+    "generate": "Generar perspectiva"
+  },
+  "advisor": {
+    "title": "Asesor Financiero",
+    "status": "Estratega activo",
+    "greeting": "¡Hola {{name}}! Soy tu Asesor Financiero de Vault. Puedo ayudarte a analizar gastos, optimizar ahorros o planificar tu próxima gran inversión. [Analizar mis gastos] [¿Cómo puedo ahorrar más?] [Tasas de interés actuales]",
+    "placeholder": "Pregúntame cualquier cosa...",
+    "thinking": "El asesor está pensando...",
+    "consulting": "Consultando a Vault AI...",
+    "send": "Enviar",
+    "error_history": "No se pudo cargar el historial del asesor.",
+    "error_response": "Error al obtener respuesta del asesor.",
+    "error_mic": "Error del micrófono: ",
+    "error_speech_unsupported": "El reconocimiento de voz no es compatible con este navegador.",
+    "secure": "Seguro",
+    "disclaimer": "Vault AI puede cometer errores. Verifica la información financiera importante.",
+    "floating_label": "Preguntar al Asesor de Vault AI",
+    "floating_label_mobile": "Asesor AI"
   },
   "settings": {
     "title": "Ajustes",

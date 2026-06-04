@@ -48,6 +48,13 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
+    // Fetch user preferences for language
+    const { data: preferences } = await supabase
+      .from("user_preferences")
+      .select("language")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     // Fetch wallet balance
     const { data: wallet } = await supabase
       .from("wallets")
@@ -65,7 +72,20 @@ serve(async (req) => {
     // Create a personalized instruction string to prepend
     const firstName = profile?.first_name || "User";
     const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
-    const advisorPersona = `[SYSTEM INSTRUCTION: You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport.]\n\n`;
+    
+    const languageCode = preferences?.language || "en";
+    const languageNames: Record<string, string> = {
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      it: "Italian",
+      pt: "Portuguese",
+      sw: "Swahili",
+    };
+    const targetLanguage = languageNames[languageCode] || "English";
+
+    const advisorPersona = `[SYSTEM INSTRUCTION: You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}. Even if the user asks in another language, your reply should be in ${targetLanguage}.]\n\n`;
 
     let contents = [];
     const validMessages = (messages || []).filter(

@@ -5,8 +5,19 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+
+const languageMap: Record<string, string> = {
+  en: "en-US",
+  sw: "sw-KE",
+  es: "es-ES",
+  fr: "fr-FR",
+  de: "de-DE",
+  it: "it-IT",
+  pt: "pt-PT",
+};
 
 function cacheKeyForUser(userId: string) {
   return `finance-advisor-messages:${userId}`;
@@ -130,6 +141,7 @@ function Bubble({
   text: string;
   onSuggestionSelect: (val: string) => void;
 }) {
+  const { t } = useTranslation();
   const isAdvisor = sender === "advisor";
   return (
     <div className={`flex w-full ${isAdvisor ? "justify-start" : "justify-end"} mb-6`}>
@@ -150,7 +162,7 @@ function Bubble({
                 <Sparkles className="h-3.5 w-3.5" />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                Vault Advisor
+                {t("advisor.title")}
               </span>
             </div>
           )}
@@ -171,6 +183,7 @@ function Bubble({
 }
 
 export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }) {
+  const { t, i18n } = useTranslation();
   const [profile] = useProfileSignal();
   const [messages, setMessages] = useState<any[]>([]);
   const [draft, setDraft] = useState("");
@@ -194,14 +207,14 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
-      recognition.lang = "en-US";
+      recognition.lang = languageMap[i18n.language] || "en-US";
 
       recognition.onstart = () => setIsListening(true);
       recognition.onend = () => setIsListening(false);
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error", event.error);
         setIsListening(false);
-        toast.error("Microphone error: " + event.error);
+        toast.error(t("advisor.error_mic") + event.error);
       };
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
@@ -210,21 +223,21 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
 
       recognitionRef.current = recognition;
     }
-  }, []);
+  }, [i18n.language, t]);
 
   const toggleListening = () => {
     if (isListening) {
       recognitionRef.current?.stop();
     } else {
       if (!recognitionRef.current) {
-        toast.error("Speech recognition is not supported in this browser.");
+        toast.error(t("advisor.error_speech_unsupported"));
         return;
       }
       recognitionRef.current.start();
     }
   };
 
-  const defaultGreeting = `Hi ${profile?.first_name || "there"}! I'm your Vault Finance Advisor. I can help you analyze spending, optimize savings, or plan your next big investment. [Analyze my spending] [How can I save more?] [Current interest rates]`;
+  const defaultGreeting = t("advisor.greeting", { name: profile?.first_name || "there" });
 
   const handleScroll = () => {
     const container = scrollRef.current;
@@ -290,14 +303,14 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        toast.error("Unable to load advisor history.");
+        toast.error(t("advisor.error_history"));
       } finally {
         setIsInitialLoading(false);
       }
     };
 
     fetchData();
-  }, [userId, defaultGreeting]);
+  }, [userId, defaultGreeting, t]);
 
   useEffect(() => {
     if (!userId) return;
@@ -317,6 +330,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
     if (!isSpeechEnabled) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = languageMap[i18n.language] || "en-US";
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -379,7 +393,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       speak(aiText);
     } catch (error: any) {
       console.error("Error calling Gemini:", error);
-      toast.error("Failed to get response from advisor.");
+      toast.error(t("advisor.error_response"));
     } finally {
       setIsLoading(false);
     }
@@ -396,7 +410,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
         <div className="flex flex-col items-center gap-4">
           <div className="h-10 w-10 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent" />
           <p className="text-sm font-medium text-muted-foreground animate-pulse">
-            Consulting Vault AI...
+            {t("advisor.consulting")}
           </p>
         </div>
       </div>
@@ -414,10 +428,10 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
             </div>
             <div>
               <h1 className="text-base sm:text-lg font-bold tracking-tight text-foreground leading-none">
-                Finance Advisor
+                {t("advisor.title")}
               </h1>
               <p className="text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-widest mt-1">
-                Active strategist
+                {t("advisor.status")}
               </p>
             </div>
           </div>
@@ -440,7 +454,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
               <Shield className="h-3.5 w-3.5 text-emerald-500" />
               <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-tighter">
-                Secure
+                {t("advisor.secure")}
               </span>
             </div>
           </div>
@@ -483,7 +497,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={isLoading ? "Advisor is thinking..." : "Ask me anything..."}
+            placeholder={isLoading ? t("advisor.thinking") : t("advisor.placeholder")}
             disabled={isLoading}
             className="w-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[28px] py-4 pl-6 pr-24 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 transition-all placeholder:text-zinc-400"
           />
@@ -511,13 +525,13 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
               {isLoading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               ) : (
-                "Send"
+                t("advisor.send")
               )}
             </Button>
           </div>
         </form>
         <p className="text-[10px] text-center text-zinc-400 mt-3 font-medium">
-          Vault AI can make mistakes. Check important financial info.
+          {t("advisor.disclaimer")}
         </p>
       </div>
     </div>
