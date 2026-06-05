@@ -1796,13 +1796,31 @@ function SettingsPage() {
                   {t("settings.preferences.currency")}
                 </label>
                 <select
-                  value={currency}
-                  onChange={(e) => changeCurrency(e.target.value)}
+                  value={(profile as any)?.primary_currency || "USD"}
+                  onChange={async (e) => {
+                    const newCurrency = e.target.value;
+                    const { error } = await supabase
+                      .from("profiles")
+                      .update({ primary_currency: newCurrency })
+                      .eq("id", profile!.id);
+                    if (error) toast.error("Error updating currency");
+                    else {
+                      setProfile({ ...profile!, primary_currency: newCurrency });
+                      toast.success("Currency updated");
+                    }
+                  }}
                   className="w-full h-11 rounded-md border border-border/60 bg-input/40 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="USD">USD ($)</option>
                   <option value="KES">KES (Shillings)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="UGX">UGX (Shillings)</option>
+                  <option value="TZS">TZS (Shillings)</option>
+                  <option value="NGN">NGN (Naira)</option>
+                  <option value="GHS">GHS (Cedi)</option>
                 </select>
+
               </div>
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">

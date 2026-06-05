@@ -61,8 +61,16 @@ function SignUp() {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
+  const [country, setCountry] = useState("Kenya");
   const [code, setCode] = useState("");
   const navigate = useNavigate({ from: Route.fullPath });
+
+  const countryToCurrency: Record<string, string> = {
+    Kenya: "KES",
+    "United States": "USD",
+    "United Kingdom": "GBP",
+    Europe: "EUR",
+  };
 
   useEffect(() => {
     if (initialStep) {
@@ -213,6 +221,8 @@ function SignUp() {
       pin_hash: hashedPin,
       kyc_status: "unverified",
       kyc_tag: kycTag,
+      country: country,
+      primary_currency: countryToCurrency[country] || "USD",
     });
 
     if (profileError) {
@@ -225,7 +235,7 @@ function SignUp() {
     const { error: walletError } = await supabase.from("wallets").insert({
       user_id: user.id,
       balance: 0.0,
-      currency: "USD",
+      currency: countryToCurrency[country] || "USD",
     });
 
     if (walletError && walletError.code !== "23505") {
@@ -318,6 +328,18 @@ function SignUp() {
                   onChange={(e) => setPhone(e.target.value)}
                   required
                 />
+              </Field>
+              <Field label="Country" required>
+                <select
+                  className="w-full h-11 bg-input/60 border border-border rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                >
+                  <option value="Kenya">Kenya</option>
+                  <option value="United States">United States</option>
+                  <option value="United Kingdom">United Kingdom</option>
+                  <option value="Europe">Europe</option>
+                </select>
               </Field>
               <Field label="Secure PIN" hint="required for transactions" required>
                 <div className="grid grid-cols-2 gap-3">

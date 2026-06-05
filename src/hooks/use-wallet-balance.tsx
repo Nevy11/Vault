@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { getCurrencyForNationality } from "@/lib/utils";
+import { getConversionRate } from "@/lib/currency-utils";
 
 const KES_USD_RATE = 130.0;
 const WALLET_CACHE_KEY = "vault_wallet_cache";
@@ -123,7 +124,8 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     return user?.id ?? null;
   }, [profile]);
 
-  const computeBalances = useCallback(async (walletData: WalletBalance, userId: string) => {
+  // Add currency to dependency array to trigger re-calculation
+  const computeBalances = useCallback(async (walletData: WalletBalance, userId: string, preferredCurrency: string) => {
     if (!walletData) {
       setDisplayBalance(null);
       setDisplayCurrency("USD");
@@ -133,20 +135,33 @@ export function useWalletBalance(): UseWalletBalanceReturn {
 
     const nativeCurrency = walletData.currency || "USD";
     const nativeAmount = Number(walletData.balance ?? 0);
+    const targetCurrency = preferredCurrency || nativeCurrency;
 
-    setDisplayBalance(nativeAmount);
-    setDisplayCurrency(nativeCurrency);
+    const rate = await getConversionRate(nativeCurrency, targetCurrency);
+    const convertedAmount = nativeAmount * rate;
 
-    const alternateCurrency = nativeCurrency === "USD" ? "KES" : "USD";
-    const alternateAmount =
-      nativeCurrency === "USD" ? nativeAmount * KES_USD_RATE : nativeAmount / KES_USD_RATE;
+    setDisplayBalance(convertedAmount);
+    setDisplayCurrency(targetCurrency);
 
-    setSecondaryBalance({
-      amount: Number(alternateAmount.toFixed(2)),
-      currency: alternateCurrency,
-      label: alternateCurrency === "USD" ? "USD equivalent" : "KES equivalent",
-    });
+    // Optional: Secondary balance (if native != target)
+    if (nativeCurrency !== targetCurrency) {
+      setSecondaryBalance({
+        amount: nativeAmount,
+        currency: nativeCurrency,
+        label: `Native (${nativeCurrency})`,
+      });
+    } else {
+      setSecondaryBalance(undefined);
+    }
   }, []);
+
+  // Effect to watch for changes
+  useEffect(() => {
+    const preferredCurrency = (profile as any)?.primary_currency;
+    if (wallet && profile) {
+      computeBalances(wallet, profile.id, preferredCurrency);
+    }
+  }, [ (profile as any)?.primary_currency, wallet, computeBalances, profile]);
 
   const fetchWallet = useCallback(
     async (isSilent = false) => {

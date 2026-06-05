@@ -726,16 +726,24 @@ const filters = [
 function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [profile] = useProfileSignal();
+  
+  // Guard against unauthenticated/loading state
+  if (!profile) {
+    return <div className="p-8 text-center">Loading...</div>;
+  }
+
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
+  
   const {
     transactions,
     loading: txLoading,
     error: txError,
     refetch: refetchTransactions,
-  } = useTransactions(!balanceLoading);
-  const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(!balanceLoading, currency);
+  } = useTransactions();
+  
+  const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(currency);
   const { notifications, markAsRead } = useNotifications();
-  const [profile] = useProfileSignal();
   const portfolioSummary = usePortfolioSummary(profile?.id);
   const [activeFilter, setActiveFilter] = useState("All");
   const [showReport, setShowReport] = useState(false);

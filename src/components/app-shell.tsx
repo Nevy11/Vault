@@ -4,7 +4,7 @@ import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
-import { getDeviceMacAddress } from "@/lib/device-detection";
+import { getDeviceMacAddress, getDeviceName } from "@/lib/device-detection";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -125,12 +125,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     const checkStatus = async () => {
       const { data, error } = await supabase
         .from("user_devices")
-        .select("is_active, mac_address")
+        .select("*")
         .eq("user_id", profile.id);
       
       if (error) return;
 
-      const currentDevice = data?.find(d => d.mac_address === mac);
+      // Filter in JS
+      const currentDevice = data?.find(d => 
+        (d.mac_address && d.mac_address === mac) || (d.device_name === getDeviceName())
+      );
       
       if (currentDevice && !currentDevice.is_active) {
         handleSignOut("Your access was revoked.");
