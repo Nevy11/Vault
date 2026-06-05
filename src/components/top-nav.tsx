@@ -177,19 +177,23 @@ export function TopNav() {
           {/* Landing Page Auth Buttons */}
           {isLandingPage && mounted && !profile && (
             <>
-              <Link
-                to="/login"
-                className="hidden rounded-full px-4 py-2 text-sm font-medium text-foreground transition-colors hover:text-primary md:inline-flex hover:bg-primary/5"
-              >
-                Sign In
-              </Link>
-              <Button
-                asChild
-                size="sm"
-                className="h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
-              >
-                <Link to="/sign-up">Get Started</Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full px-4 text-sm font-medium transition-all"
+                >
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button
+                  asChild
+                  size="sm"
+                  className="h-9 px-4 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
+                >
+                  <Link to="/sign-up">Get Started</Link>
+                </Button>
+              </div>
             </>
           )}
 

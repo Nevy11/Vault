@@ -4,6 +4,8 @@ import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
+import { getDeviceMacAddress } from "@/lib/device-detection";
+import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
@@ -97,15 +99,68 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const handleSignOut = async () => {
+  const handleSignOut = async (message?: string) => {
+    if (message) {
+      localStorage.setItem("revocation_message", message);
+    }
     await supabase.auth.signOut();
     setProfile(null);
     navigate({ to: "/" });
   };
+
+  useEffect(() => {
+    const message = localStorage.getItem("revocation_message");
+    if (message) {
+      toast.error(message);
+      localStorage.removeItem("revocation_message");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    const mac = getDeviceMacAddress();
+
+    // 1. Initial check
+    const checkStatus = async () => {
+      const { data, error } = await supabase
+        .from("user_devices")
+        .select("is_active, mac_address")
+        .eq("user_id", profile.id);
+      
+      if (error) return;
+
+      const currentDevice = data?.find(d => d.mac_address === mac);
+      
+      if (currentDevice && !currentDevice.is_active) {
+        handleSignOut("Your access was revoked.");
+      }
+    };
+    checkStatus();
+
+    // 2. Realtime subscription
+    const channel = supabase
+      .channel("device_revocation")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "user_devices",
+          filter: `user_id=eq.${profile.id}`,
+        },
+        (payload) => {
+          if (payload.new && payload.new.mac_address === mac && !payload.new.is_active) {
+            handleSignOut("This device has been revoked by another session.");
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile]);
 
   return (
     <div

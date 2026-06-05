@@ -658,6 +658,32 @@ function SettingsPage() {
     }
   }
 
+  useEffect(() => {
+    fetchDevices();
+
+    if (!profile) return;
+
+    const channel = supabase
+      .channel("user_devices_realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_devices",
+          filter: `user_id=eq.${profile.id}`,
+        },
+        () => {
+          fetchDevices();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile]);
+
   async function fetchLogs() {
     try {
       const {
