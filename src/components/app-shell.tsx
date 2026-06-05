@@ -4,8 +4,6 @@ import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
-import { getDeviceMacAddress } from "@/lib/device-detection";
-import { toast } from "sonner";
 import {
   Sheet,
   SheetContent,
@@ -102,31 +100,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!profile) return;
-    
-    const checkAccess = async () => {
-      const mac = getDeviceMacAddress();
-      const { data, error } = await supabase
-        .from("user_devices")
-        .select("is_active")
-        .eq("user_id", profile.id)
-        .eq("mac_address", mac)
-        .single();
-      
-      // If error or device is inactive, sign out
-      if (error || !data?.is_active) {
-        toast.error("Your device access has been revoked.");
-        handleSignOut();
-      }
-    };
-    
-    checkAccess();
-    // Re-check periodically
-    const interval = setInterval(checkAccess, 60000); // every minute
-    return () => clearInterval(interval);
-  }, [profile]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();

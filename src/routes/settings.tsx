@@ -681,31 +681,6 @@ function SettingsPage() {
     }
   }
 
-  async function handleRevokeDevice(device: any) {
-    try {
-      // 1. Revoke the target device
-      const { error: revokeError } = await supabase
-        .from("user_devices")
-        .update({ is_active: false })
-        .eq("id", device.id);
-      if (revokeError) throw revokeError;
-
-      // 2. Log the action
-      const currentDeviceName = localStorage.getItem("vault_device_name") || "Unknown Device";
-      await supabase.from("activity_logs").insert({
-        user_id: profile?.id,
-        action_type: "device_revoked",
-        device_info: `Revoked ${device.device_name} (MAC: ${device.mac_address}) from ${currentDeviceName}`,
-        location: "Current Device",
-      });
-
-      toast.success(`Successfully revoked ${device.device_name}`);
-      fetchDevices(); // Refresh list
-    } catch (error: any) {
-      toast.error("Failed to revoke device: " + error.message);
-    }
-  }
-
   async function updatePreference(key: string, value: boolean) {
     try {
       const {
@@ -1656,9 +1631,6 @@ function SettingsPage() {
                                   {device.device_name}
                                 </div>
                                 <div className="text-[11px] text-muted-foreground uppercase tracking-tight">
-                                  {device.mac_address && `MAC: ${device.mac_address}`}
-                                </div>
-                                <div className="text-[11px] text-muted-foreground uppercase tracking-tight">
                                   {t("settings.security.devices.active_session")}
                                 </div>
                               </div>
@@ -1696,7 +1668,6 @@ function SettingsPage() {
                               variant="ghost"
                               size="sm"
                               className="h-8 text-[11px] text-destructive hover:text-white hover:bg-destructive transition-all"
-                              onClick={() => handleRevokeDevice(device.id)}
                             >
                               {t("settings.security.devices.revoke")}
                             </Button>

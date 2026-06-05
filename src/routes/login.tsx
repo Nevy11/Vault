@@ -7,7 +7,7 @@ import { TopNav } from "@/components/top-nav";
 import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 import { hashPin } from "@/lib/utils";
-import { getDeviceName, getDeviceMacAddress } from "@/lib/device-detection";
+import { getDeviceName } from "@/lib/device-detection";
 import { Logo } from "@/components/logo";
 import { profileSignal } from "@/lib/profile-signal";
 
@@ -187,13 +187,11 @@ function LoginPage() {
 
         // 4. Record device login
         const deviceName = getDeviceName();
-        const macAddress = getDeviceMacAddress();
         try {
           await supabase.from("user_devices").upsert(
             {
               user_id: user.id,
               device_name: deviceName,
-              mac_address: macAddress,
               last_login: new Date().toISOString(),
               is_active: true,
             },
@@ -205,8 +203,6 @@ function LoginPage() {
             user_id: user.id,
             action_type: "login",
             device_info: deviceName,
-            mac_address: macAddress,
-            ip_address: "0.0.0.0", // Placeholder if required
             location: "Kenya", // This would ideally come from a GeoIP service
             nationality: "Kenyan",
           });
