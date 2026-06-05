@@ -34,3 +34,28 @@ export function getDeviceName(): string {
 
   return `${browser} on ${deviceName}`;
 }
+
+/**
+ * Generates a stable pseudo-MAC address for the current device.
+ * Since real MAC addresses are not accessible via Web APIs, this uses a combination
+ * of local storage and a randomized identifier to simulate a unique hardware ID.
+ */
+export function getDeviceMacAddress(): string {
+  if (typeof window === "undefined") return "00:00:00:00:00:00";
+
+  const STORAGE_KEY = "vault_device_mac";
+  let mac = localStorage.getItem(STORAGE_KEY);
+
+  if (!mac) {
+    // Generate a pseudo-MAC address (e.g., 00:1A:2B:3C:4D:5E)
+    const chars = "0123456789ABCDEF";
+    const parts = [];
+    for (let i = 0; i < 6; i++) {
+      parts.push(chars[Math.floor(Math.random() * 16)] + chars[Math.floor(Math.random() * 16)]);
+    }
+    mac = parts.join(":");
+    localStorage.setItem(STORAGE_KEY, mac);
+  }
+
+  return mac;
+}
