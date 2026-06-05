@@ -313,8 +313,12 @@
       "go_back": "Retour",
       "confirm_impact": "Confirmer l'impact",
       "verify_identity": "Vérifier l'identité",
-      "verify_desc": "Pour éviter toute suppression accidentelle, veuillez taper {{target}} ci-dessous.",
-      "placeholder": "Tapez pour confirmer..."
+      "verify_desc": "Pour éviter toute suppression accidentelle, veuillez taper {{target}} ci-dessous et fournir votre mot de passe.",
+      "placeholder": "Tapez pour confirmer...",
+      "password_label": "Mot de passe du compte",
+      "password_placeholder": "Entrez votre mot de passe pour vérifier",
+      "email_sent_title": "E-mail de confirmation envoyé",
+      "email_sent_desc": "Un e-mail de vérification de sécurité a été envoyé à {{email}}. Veuillez cliquer sur le lien dans l'e-mail pour commencer la période de grâce de 4 jours."
     }
   },
   "common": {

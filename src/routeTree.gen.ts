@@ -13,6 +13,7 @@ import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SavingsRouteImport } from './routes/savings'
+import { Route as RetrieveAccountRouteImport } from './routes/retrieve-account'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as KycRouteImport } from './routes/kyc'
@@ -20,6 +21,7 @@ import { Route as HelpRouteImport } from './routes/help'
 import { Route as FinanceHubRouteImport } from './routes/finance-hub'
 import { Route as FinanceAdvisorRouteImport } from './routes/finance-advisor'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ConfirmDeletionRouteImport } from './routes/confirm-deletion'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PayUsernameRouteImport } from './routes/pay.$username'
 
@@ -41,6 +43,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SavingsRoute = SavingsRouteImport.update({
   id: '/savings',
   path: '/savings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RetrieveAccountRoute = RetrieveAccountRouteImport.update({
+  id: '/retrieve-account',
+  path: '/retrieve-account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -78,6 +85,11 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfirmDeletionRoute = ConfirmDeletionRouteImport.update({
+  id: '/confirm-deletion',
+  path: '/confirm-deletion',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -91,6 +103,7 @@ const PayUsernameRoute = PayUsernameRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/confirm-deletion': typeof ConfirmDeletionRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
   '/finance-hub': typeof FinanceHubRoute
@@ -98,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/retrieve-account': typeof RetrieveAccountRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
@@ -106,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/confirm-deletion': typeof ConfirmDeletionRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
   '/finance-hub': typeof FinanceHubRoute
@@ -113,6 +128,7 @@ export interface FileRoutesByTo {
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/retrieve-account': typeof RetrieveAccountRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
@@ -122,6 +138,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/confirm-deletion': typeof ConfirmDeletionRoute
   '/dashboard': typeof DashboardRoute
   '/finance-advisor': typeof FinanceAdvisorRoute
   '/finance-hub': typeof FinanceHubRoute
@@ -129,6 +146,7 @@ export interface FileRoutesById {
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/retrieve-account': typeof RetrieveAccountRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
   '/sign-up': typeof SignUpRoute
@@ -139,6 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/confirm-deletion'
     | '/dashboard'
     | '/finance-advisor'
     | '/finance-hub'
@@ -146,6 +165,7 @@ export interface FileRouteTypes {
     | '/kyc'
     | '/loans'
     | '/login'
+    | '/retrieve-account'
     | '/savings'
     | '/settings'
     | '/sign-up'
@@ -154,6 +174,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/confirm-deletion'
     | '/dashboard'
     | '/finance-advisor'
     | '/finance-hub'
@@ -161,6 +182,7 @@ export interface FileRouteTypes {
     | '/kyc'
     | '/loans'
     | '/login'
+    | '/retrieve-account'
     | '/savings'
     | '/settings'
     | '/sign-up'
@@ -169,6 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/confirm-deletion'
     | '/dashboard'
     | '/finance-advisor'
     | '/finance-hub'
@@ -176,6 +199,7 @@ export interface FileRouteTypes {
     | '/kyc'
     | '/loans'
     | '/login'
+    | '/retrieve-account'
     | '/savings'
     | '/settings'
     | '/sign-up'
@@ -185,6 +209,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfirmDeletionRoute: typeof ConfirmDeletionRoute
   DashboardRoute: typeof DashboardRoute
   FinanceAdvisorRoute: typeof FinanceAdvisorRoute
   FinanceHubRoute: typeof FinanceHubRoute
@@ -192,6 +217,7 @@ export interface RootRouteChildren {
   KycRoute: typeof KycRoute
   LoansRoute: typeof LoansRoute
   LoginRoute: typeof LoginRoute
+  RetrieveAccountRoute: typeof RetrieveAccountRoute
   SavingsRoute: typeof SavingsRoute
   SettingsRoute: typeof SettingsRoute
   SignUpRoute: typeof SignUpRoute
@@ -227,6 +253,13 @@ declare module '@tanstack/react-router' {
       path: '/savings'
       fullPath: '/savings'
       preLoaderRoute: typeof SavingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/retrieve-account': {
+      id: '/retrieve-account'
+      path: '/retrieve-account'
+      fullPath: '/retrieve-account'
+      preLoaderRoute: typeof RetrieveAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -278,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/confirm-deletion': {
+      id: '/confirm-deletion'
+      path: '/confirm-deletion'
+      fullPath: '/confirm-deletion'
+      preLoaderRoute: typeof ConfirmDeletionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -297,6 +337,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfirmDeletionRoute: ConfirmDeletionRoute,
   DashboardRoute: DashboardRoute,
   FinanceAdvisorRoute: FinanceAdvisorRoute,
   FinanceHubRoute: FinanceHubRoute,
@@ -304,6 +345,7 @@ const rootRouteChildren: RootRouteChildren = {
   KycRoute: KycRoute,
   LoansRoute: LoansRoute,
   LoginRoute: LoginRoute,
+  RetrieveAccountRoute: RetrieveAccountRoute,
   SavingsRoute: SavingsRoute,
   SettingsRoute: SettingsRoute,
   SignUpRoute: SignUpRoute,

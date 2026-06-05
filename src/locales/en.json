@@ -313,8 +313,21 @@
       "go_back": "Go Back",
       "confirm_impact": "Confirm Impact",
       "verify_identity": "Verify Identity",
-      "verify_desc": "To prevent accidental deletion, please type {{target}} below.",
-      "placeholder": "Type to confirm..."
+      "verify_desc": "To prevent accidental deletion, please type {{target}} below and provide your password.",
+      "placeholder": "Type to confirm...",
+      "password_label": "Account Password",
+      "password_placeholder": "Enter your password to verify",
+      "assets": {
+        "title": "Active Assets Found",
+        "desc": "Before deleting your account, you must ensure you have no remaining balance, active loans, or pending savings goals.",
+        "balance": "Positive wallet balance",
+        "loans": "Active unpaid loan",
+        "savings": "Active savings goals",
+        "back_to_dashboard": "Back to Dashboard to Withdraw",
+        "continue_anyway": "I understand, continue anyway"
+      },
+      "email_sent_title": "Confirmation Email Sent",
+      "email_sent_desc": "A security verification email has been sent to {{email}}. Please click the link in the email to start the 4-day grace period."
     }
   },
   "common": {

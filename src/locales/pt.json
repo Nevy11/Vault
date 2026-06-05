@@ -313,8 +313,12 @@
       "go_back": "Voltar",
       "confirm_impact": "Confirmar impacto",
       "verify_identity": "Verificar identidade",
-      "verify_desc": "Para evitar a exclusão acidental, digite {{target}} abaixo.",
-      "placeholder": "Digite para confirmar..."
+      "verify_desc": "Para evitar a exclusão acidental, digite {{target}} abaixo e forneça sua senha.",
+      "placeholder": "Digite para confirmar...",
+      "password_label": "Senha da conta",
+      "password_placeholder": "Digite sua senha para verificar",
+      "email_sent_title": "E-mail de confirmação enviado",
+      "email_sent_desc": "Um e-mail de verificação de segurança foi enviado para {{email}}. Clique no link no e-mail para iniciar o período de carência de 4 dias."
     }
   },
   "common": {

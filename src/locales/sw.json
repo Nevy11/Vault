@@ -313,8 +313,12 @@
       "go_back": "Rudi Nyuma",
       "confirm_impact": "Thibitisha Athari",
       "verify_identity": "Thibitisha Utambulisho",
-      "verify_desc": "Ili kuzuia ufutaji wa bahati mbaya, tafadhali andika {{target}} hapa chini.",
-      "placeholder": "Andika ili kuthibitisha..."
+      "verify_desc": "Ili kuzuia kufuta kwa bahati mbaya, tafadhali andika {{target}} hapa chini na utoe nenosiri lako.",
+      "placeholder": "Andika ili kuthibitisha...",
+      "password_label": "Nenosiri la Akaunti",
+      "password_placeholder": "Weka nenosiri lako ili kuthibitisha",
+      "email_sent_title": "Barua pepe ya Uthibitisho Imetumwa",
+      "email_sent_desc": "Barua pepe ya uthibitishaji wa usalama imetumwa kwa {{email}}. Tafadhali bofya kiungo kwenye barua pepe ili kuanza kipindi cha neema cha siku 4."
     }
   },
   "common": {

@@ -313,8 +313,12 @@
       "go_back": "Volver",
       "confirm_impact": "Confirmar impacto",
       "verify_identity": "Verificar identidad",
-      "verify_desc": "Para evitar la eliminación accidental, escribe {{target}} a continuación.",
-      "placeholder": "Escribe para confirmar..."
+      "verify_desc": "Para evitar una eliminación accidental, escriba {{target}} a continuación y proporcione su contraseña.",
+      "placeholder": "Escribe para confirmar...",
+      "password_label": "Contraseña de la cuenta",
+      "password_placeholder": "Ingrese su contraseña para verificar",
+      "email_sent_title": "Correo electrónico de confirmación enviado",
+      "email_sent_desc": "Se ha enviado un correo electrónico de verificación de seguridad a {{email}}. Haga clic en el enlace del correo electrónico para iniciar el período de gracia de 4 días."
     }
   },
   "common": {

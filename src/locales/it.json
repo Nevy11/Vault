@@ -313,8 +313,12 @@
       "go_back": "Torna indietro",
       "confirm_impact": "Conferma impatto",
       "verify_identity": "Verifica identità",
-      "verify_desc": "Per evitare l'eliminazione accidentale, digita {{target}} qui sotto.",
-      "placeholder": "Digita per confermare..."
+      "verify_desc": "Per prevenire l'eliminazione accidentale, digita {{target}} qui sotto e fornisci la tua password.",
+      "placeholder": "Digita per confermare...",
+      "password_label": "Password dell'account",
+      "password_placeholder": "Inserisci la tua password per verificare",
+      "email_sent_title": "Email di conferma inviata",
+      "email_sent_desc": "Un'email di verifica della sicurezza è stata inviata a {{email}}. Clicca sul link nell'email per avviare il periodo di grazia di 4 giorni."
     }
   },
   "common": {

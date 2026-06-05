@@ -313,8 +313,12 @@
       "go_back": "Zurückgehen",
       "confirm_impact": "Auswirkungen bestätigen",
       "verify_identity": "Identität verifizieren",
-      "verify_desc": "Um ein versehentliches Löschen zu verhindern, geben Sie bitte unten {{target}} ein.",
-      "placeholder": "Tippen zum Bestätigen..."
+      "verify_desc": "Um ein versehentliches Löschen zu verhindern, geben Sie bitte unten {{target}} ein und geben Sie Ihr Passwort an.",
+      "placeholder": "Tippen zum Bestätigen...",
+      "password_label": "Kontopasswort",
+      "password_placeholder": "Geben Sie Ihr Passwort zur Verifizierung ein",
+      "email_sent_title": "Bestätigungs-E-Mail gesendet",
+      "email_sent_desc": "Eine Sicherheits-Bestätigungs-E-Mail wurde an {{email}} gesendet. Bitte klicken Sie auf den Link in der E-Mail, um die 4-tägige Kulanzzeit zu starten."
     }
   },
   "common": {
