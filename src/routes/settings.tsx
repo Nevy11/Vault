@@ -648,7 +648,6 @@ function SettingsPage() {
         .from("user_devices")
         .select("*")
         .eq("user_id", user.id)
-        .eq("is_active", true)
         .order("last_login", { ascending: false });
 
       if (error) throw error;
@@ -678,6 +677,22 @@ function SettingsPage() {
     } catch (error: any) {
       console.error("Error loading logs:", error);
       toast.error(error.message || "Unable to load your activity logs.");
+    }
+  }
+
+  async function handleRevokeDevice(device: any) {
+    try {
+      // 1. Revoke the target device
+      const { error: revokeError } = await supabase
+        .from("user_devices")
+        .update({ is_active: false })
+        .eq("id", device.id);
+      if (revokeError) throw revokeError;
+
+      toast.success(`Successfully revoked ${device.device_name}`);
+      fetchDevices(); // Refresh list
+    } catch (error: any) {
+      toast.error("Failed to revoke device: " + error.message);
     }
   }
 
@@ -1635,9 +1650,13 @@ function SettingsPage() {
                                 </div>
                               </div>
                             </div>
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-500">
-                              <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                              {t("settings.security.devices.live")}
+                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
+                              device.is_active 
+                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                : "border-muted-foreground/30 bg-muted/10 text-muted-foreground"
+                            }`}>
+                              <span className={`h-1 w-1 rounded-full ${device.is_active ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                              {device.is_active ? t("settings.security.devices.live") : "Ended"}
                             </span>
                           </div>
 
@@ -1663,15 +1682,18 @@ function SettingsPage() {
                             </div>
                           </div>
 
-                          <div className="pt-2 flex justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-[11px] text-destructive hover:text-white hover:bg-destructive transition-all"
-                            >
-                              {t("settings.security.devices.revoke")}
-                            </Button>
-                          </div>
+                          {device.is_active && (
+                            <div className="pt-2 flex justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 text-[11px] text-destructive hover:text-white hover:bg-destructive transition-all"
+                                onClick={() => handleRevokeDevice(device)}
+                              >
+                                {t("settings.security.devices.revoke")}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ))
                     ) : (
