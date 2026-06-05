@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Landmark,
   Info,
@@ -65,6 +66,7 @@ const INTEREST_RATES: Record<string, number> = {
 };
 
 function LoansPage() {
+  const { t } = useTranslation();
   const [profile] = useProfileSignal();
   const [activeLoan, setActiveLoan] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("request"); // Will be updated in useEffect
@@ -75,7 +77,7 @@ function LoansPage() {
   const [repayAmount, setRepayAmount] = useState("");
   const [repayProvider, setRepayProvider] = useState("");
   const [sourceIdentifier, setSourceIdentifier] = useState("");
-  
+
   const [loanHistory, setLoanHistory] = useState<any[]>([]);
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +121,7 @@ function LoansPage() {
           .select("*")
           .eq("loan_id", active.id)
           .order("created_at", { ascending: false });
-        
+
         if (ledgerErr) throw ledgerErr;
         setLedgerEntries(ledger || []);
       }
@@ -164,10 +166,10 @@ function LoansPage() {
   const handleRequestLoan = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile?.id) return;
-    
+
     if (isOverLimit) {
-      toast.error("Limit Exceeded", {
-        description: `Your maximum loan limit is KES ${maxLimit.toLocaleString()}.`,
+      toast.error(t("loans.toasts.limit_exceeded"), {
+        description: t("loans.toasts.limit_desc", { amount: maxLimit.toLocaleString() }),
       });
       return;
     }
@@ -182,22 +184,26 @@ function LoansPage() {
       if (error) throw error;
 
       if (data.success) {
-        toast.success("Loan Approved!", {
-          description: `KES ${requestedAmountNum.toLocaleString()} has been credited to your ledger.`,
+        toast.success(t("loans.toasts.approved"), {
+          description: t("loans.toasts.approved_desc", {
+            amount: requestedAmountNum.toLocaleString(),
+          }),
         });
         await fetchLoanData();
         setActiveTab("tracker");
       } else {
-        toast.error("Loan Request Failed", { description: data.message });
+        toast.error(t("loans.toasts.failed"), { description: data.message });
       }
     } catch (err: any) {
-      toast.error("Error", { description: err.message });
+      toast.error(t("common.error"), { description: err.message });
     }
   };
 
   const handleRepayment = async () => {
     if (!repayAmount || !repayProvider || !activeLoan) {
-      toast.error("Incomplete Details", { description: "Please enter amount and select source." });
+      toast.error(t("loans.toasts.incomplete"), {
+        description: t("loans.toasts.incomplete_desc"),
+      });
       return;
     }
 
@@ -206,13 +212,17 @@ function LoansPage() {
 
     // Require identifier for non-vault payments
     if (!isVault && !sourceIdentifier) {
-      const label = isMobile ? "Phone Number" : "Account Number";
-      toast.error(`Missing ${label}`, { description: `Please provide your ${label.toLowerCase()}.` });
+      const label = isMobile
+        ? t("transactions.form.phone_number")
+        : t("transactions.form.account_number");
+      toast.error(t("loans.toasts.missing_id", { label }), {
+        description: t("loans.toasts.missing_id_desc", { label: label.toLowerCase() }),
+      });
       return;
     }
 
-    const finalSource = isVault 
-      ? "Vault Wallet" 
+    const finalSource = isVault
+      ? t("loans.categories.vault")
       : `${repayProvider.toUpperCase()} (${sourceIdentifier})`;
 
     try {
@@ -222,13 +232,16 @@ function LoansPage() {
         p_source: finalSource,
         p_payment_type: "manual",
       });
-      
+
       if (error) throw error;
       const result = data;
 
       if (result.success) {
-        toast.success("Repayment Processed", {
-          description: `KES ${parseFloat(repayAmount).toLocaleString()} has been processed from your ${finalSource}.`,
+        toast.success(t("loans.toasts.repayment_success"), {
+          description: t("loans.toasts.repayment_success_desc", {
+            amount: parseFloat(repayAmount).toLocaleString(),
+            source: finalSource,
+          }),
         });
         await fetchLoanData();
         setShowRepayPopup(false);
@@ -239,10 +252,10 @@ function LoansPage() {
           setActiveTab("success");
         }
       } else {
-        toast.error("Repayment Failed", { description: result.message });
+        toast.error(t("loans.toasts.repayment_failed"), { description: result.message });
       }
     } catch (err: any) {
-      toast.error("Repayment Failed", { description: err.message });
+      toast.error(t("loans.toasts.repayment_failed"), { description: err.message });
     }
   };
 
@@ -274,11 +287,11 @@ function LoansPage() {
               </Button>
               <div>
                 <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
-                  Instant Credit
+                  {t("loans.title")}
                 </h1>
                 <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                  Algorithmic lending based on your ledger integrity.
+                  {t("loans.subtitle")}
                 </p>
               </div>
             </div>
@@ -288,19 +301,19 @@ function LoansPage() {
                   value="request"
                   className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-xs sm:text-sm"
                 >
-                  Request
+                  {t("loans.tabs.request")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="tracker"
                   className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-xs sm:text-sm"
                 >
-                  Tracker
+                  {t("loans.tabs.tracker")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="success"
                   className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-xs sm:text-sm"
                 >
-                  Status
+                  {t("loans.tabs.status")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -318,7 +331,7 @@ function LoansPage() {
                     <form onSubmit={handleRequestLoan} className="space-y-4">
                       <div className="space-y-1.5">
                         <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
-                          Loan Amount
+                          {t("loans.request.loan_amount")}
                         </Label>
                         <div className="relative">
                           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground">
@@ -335,11 +348,11 @@ function LoansPage() {
                         </div>
                         <div className="flex justify-between items-center px-0.5">
                           <span className="text-[8px] text-muted-foreground font-medium">
-                            Limit: <span className="text-foreground font-semibold">KES {maxLimit.toLocaleString()}</span>
+                            {t("loans.request.limit_label", { amount: maxLimit.toLocaleString() })}
                           </span>
                           {isOverLimit && (
                             <span className="text-[8px] text-destructive font-semibold flex items-center gap-1">
-                              <AlertCircle className="w-2 h-2" /> Over Limit
+                              <AlertCircle className="w-2 h-2" /> {t("loans.request.over_limit")}
                             </span>
                           )}
                         </div>
@@ -348,23 +361,31 @@ function LoansPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
-                            Period
+                            {t("loans.request.period")}
                           </Label>
                           <Select value={period} onValueChange={setPeriod}>
                             <SelectTrigger className="h-9 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-medium text-[11px]">
-                              <SelectValue placeholder="Period" />
+                              <SelectValue placeholder={t("loans.request.period")} />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl shadow-xl">
-                              <SelectItem value="1" className="font-medium text-[11px]">1 Month (3%)</SelectItem>
-                              <SelectItem value="3" className="font-medium text-[11px]">3 Months (4%)</SelectItem>
-                              <SelectItem value="6" className="font-medium text-[11px]">6 Months (5%)</SelectItem>
-                              <SelectItem value="12" className="font-medium text-[11px]">12 Months (6%)</SelectItem>
+                              <SelectItem value="1" className="font-medium text-[11px]">
+                                {t("loans.request.periods.1")}
+                              </SelectItem>
+                              <SelectItem value="3" className="font-medium text-[11px]">
+                                {t("loans.request.periods.3")}
+                              </SelectItem>
+                              <SelectItem value="6" className="font-medium text-[11px]">
+                                {t("loans.request.periods.6")}
+                              </SelectItem>
+                              <SelectItem value="12" className="font-medium text-[11px]">
+                                {t("loans.request.periods.12")}
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
-                            Date
+                            {t("common.date")}
                           </Label>
                           <div className="h-9 flex items-center px-3 rounded-xl bg-white/20 dark:bg-slate-900/20 border border-dashed border-white/10 text-muted-foreground font-medium text-[11px]">
                             <Calendar className="w-3.5 h-3.5 mr-2 text-emerald-500" />
@@ -375,20 +396,36 @@ function LoansPage() {
 
                       <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 grid grid-cols-2 sm:grid-cols-4 gap-2">
                         <div className="space-y-0.5">
-                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">Principal</span>
-                          <p className="font-semibold text-[11px] text-slate-950 dark:text-white tabular-nums">KES {requestedAmountNum.toLocaleString()}</p>
+                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {t("loans.request.principal")}
+                          </span>
+                          <p className="font-semibold text-[11px] text-slate-950 dark:text-white tabular-nums">
+                            KES {requestedAmountNum.toLocaleString()}
+                          </p>
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">Interest</span>
-                          <p className="font-semibold text-emerald-500 text-[11px] tabular-nums">+{interestAmount.toLocaleString()}</p>
+                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {t("loans.request.interest")}
+                          </span>
+                          <p className="font-semibold text-emerald-500 text-[11px] tabular-nums">
+                            +{interestAmount.toLocaleString()}
+                          </p>
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">Fee</span>
-                          <p className="font-semibold text-[11px] text-slate-950 dark:text-white">KES 0</p>
+                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {t("loans.request.fee")}
+                          </span>
+                          <p className="font-semibold text-[11px] text-slate-950 dark:text-white">
+                            KES 0
+                          </p>
                         </div>
                         <div className="space-y-0.5">
-                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">Total</span>
-                          <p className="font-bold text-[11px] text-slate-950 dark:text-white tabular-nums">KES {totalDue.toLocaleString()}</p>
+                          <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {t("loans.request.total")}
+                          </span>
+                          <p className="font-bold text-[11px] text-slate-950 dark:text-white tabular-nums">
+                            KES {totalDue.toLocaleString()}
+                          </p>
                         </div>
                       </div>
 
@@ -396,14 +433,19 @@ function LoansPage() {
                         <Button
                           type="submit"
                           size="sm"
-                          disabled={!isEligible || isOverLimit || requestedAmountNum <= 0 || !!activeLoan}
+                          disabled={
+                            !isEligible || isOverLimit || requestedAmountNum <= 0 || !!activeLoan
+                          }
                           className="w-full h-10 rounded-xl text-xs font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-[0.98]"
                         >
-                          {activeLoan ? "Active Disbursement Exists" : "Disburse Instant Credit"}
+                          {activeLoan
+                            ? t("loans.request.active_exists")
+                            : t("loans.request.disburse_btn")}
                         </Button>
                         {activeLoan && (
                           <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-destructive text-white text-[8px] font-bold uppercase tracking-wider rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none border border-white/5 flex items-center gap-1.5">
-                            <AlertCircle className="w-2.5 h-2.5" /> Single Active Loan Rule
+                            <AlertCircle className="w-2.5 h-2.5" />{" "}
+                            {t("loans.request.single_active_rule")}
                           </div>
                         )}
                       </div>
@@ -416,10 +458,10 @@ function LoansPage() {
                   <Card className="rounded-2xl border border-white/20 bg-white/70 dark:bg-slate-950/60 backdrop-blur-xl overflow-hidden shadow-md">
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                        Limit Guard™
+                        {t("loans.limit_guard.title")}
                       </CardTitle>
                       <CardDescription className="font-medium text-[9px]">
-                        Disbursement criteria
+                        {t("loans.limit_guard.description")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 p-4 pt-2">
@@ -432,7 +474,7 @@ function LoansPage() {
                             )}
                           />
                           <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">
-                            Age {">"} 6 Years
+                            {t("loans.limit_guard.age_limit")}
                           </span>
                         </div>
                         <span className="text-[11px] font-bold text-emerald-600">
@@ -448,7 +490,7 @@ function LoansPage() {
                             )}
                           />
                           <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">
-                            Deposits {">"} 2K
+                            {t("loans.limit_guard.deposit_limit")}
                           </span>
                         </div>
                         <span className="text-[11px] font-bold text-emerald-600">
@@ -457,13 +499,13 @@ function LoansPage() {
                       </div>
                       <div className="pt-3 border-t border-white/5">
                         <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-                          Limit is capped at <span className="text-emerald-600 font-bold">50%</span> of median frequent balance.
+                          {t("loans.limit_guard.cap_note")}
                         </p>
                       </div>
                     </CardContent>
                     <CardFooter className="bg-emerald-500/5 p-3 border-t border-emerald-500/10">
                       <div className="flex items-center gap-1.5 text-[8px] text-emerald-600 font-bold uppercase tracking-wider">
-                        <ShieldCheck className="w-3 h-3" /> Ledger Verified
+                        <ShieldCheck className="w-3 h-3" /> {t("loans.limit_guard.ledger_verified")}
                       </div>
                     </CardFooter>
                   </Card>
@@ -473,10 +515,10 @@ function LoansPage() {
                       <Zap className="w-3.5 h-3.5" />
                     </div>
                     <h4 className="font-bold uppercase text-[9px] tracking-wider text-slate-950 dark:text-white">
-                      Higher Limits?
+                      {t("loans.higher_limits.title")}
                     </h4>
                     <p className="text-[10px] text-muted-foreground font-medium leading-tight">
-                      Increase frequent deposits to unlock premium credit tiers.
+                      {t("loans.higher_limits.description")}
                     </p>
                   </div>
                 </div>
@@ -496,10 +538,12 @@ function LoansPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="text-base font-bold text-slate-950 dark:text-white">
-                            Personal Credit Line
+                            {t("loans.tracker.credit_line")}
                           </CardTitle>
                           <CardDescription className="font-medium text-[10px] opacity-60">
-                            Active disbursement #{activeLoan.id.slice(0, 8)}
+                            {t("loans.tracker.active_disbursement", {
+                              id: activeLoan.id.slice(0, 8),
+                            })}
                           </CardDescription>
                         </div>
                         <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-semibold uppercase tracking-wider border border-emerald-500/20 shadow-sm">
@@ -511,7 +555,7 @@ function LoansPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         <div className="space-y-0.5">
                           <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">
-                            Original
+                            {t("loans.tracker.original")}
                           </span>
                           <p className="text-base font-bold text-slate-950 dark:text-white tabular-nums">
                             KES {parseFloat(activeLoan.amount).toLocaleString()}
@@ -519,15 +563,19 @@ function LoansPage() {
                         </div>
                         <div className="space-y-0.5">
                           <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">
-                            Repaid
+                            {t("loans.tracker.repaid")}
                           </span>
                           <p className="text-base font-bold text-emerald-600 tabular-nums">
-                            KES {(parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate/100) - parseFloat(activeLoan.remaining_balance)).toLocaleString()}
+                            KES{" "}
+                            {(
+                              parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate / 100) -
+                              parseFloat(activeLoan.remaining_balance)
+                            ).toLocaleString()}
                           </p>
                         </div>
                         <div className="space-y-0.5">
                           <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">
-                            Due
+                            {t("loans.tracker.due")}
                           </span>
                           <p className="text-base font-bold text-destructive tabular-nums">
                             {format(new Date(activeLoan.due_date), "MMM d, yyyy")}
@@ -538,12 +586,15 @@ function LoansPage() {
                       <div className="space-y-1">
                         <div className="flex justify-between text-[9px] font-semibold">
                           <span className="text-muted-foreground uppercase tracking-wider opacity-60">
-                            Progress
+                            {t("loans.tracker.progress")}
                           </span>
                           <span className="text-emerald-600">
                             {(
-                              ((parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate/100) - parseFloat(activeLoan.remaining_balance)) / 
-                              (parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate/100))) *
+                              ((parseFloat(activeLoan.amount) *
+                                (1 + activeLoan.interest_rate / 100) -
+                                parseFloat(activeLoan.remaining_balance)) /
+                                (parseFloat(activeLoan.amount) *
+                                  (1 + activeLoan.interest_rate / 100))) *
                               100
                             ).toFixed(0)}
                             %
@@ -553,8 +604,14 @@ function LoansPage() {
                           <div
                             className="h-full bg-emerald-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
                             style={{
-                              width: `${((parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate/100) - parseFloat(activeLoan.remaining_balance)) / 
-                              (parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate/100))) * 100}%`,
+                              width: `${
+                                ((parseFloat(activeLoan.amount) *
+                                  (1 + activeLoan.interest_rate / 100) -
+                                  parseFloat(activeLoan.remaining_balance)) /
+                                  (parseFloat(activeLoan.amount) *
+                                    (1 + activeLoan.interest_rate / 100))) *
+                                100
+                              }%`,
                             }}
                           />
                         </div>
@@ -567,7 +624,7 @@ function LoansPage() {
                         className="flex-1 rounded-xl h-9 font-bold text-xs shadow-sm active:scale-95 transition-all"
                         onClick={() => setShowRepayPopup(true)}
                       >
-                        Repay Amount
+                        {t("loans.tracker.repay_btn")}
                       </Button>
                       <Button
                         variant="outline"
@@ -575,7 +632,7 @@ function LoansPage() {
                         className="flex-1 rounded-xl h-9 border-white/10 font-bold text-xs hover:bg-emerald-500/10 active:scale-95 transition-all"
                         onClick={() => setActiveTab("success")}
                       >
-                        Status
+                        {t("loans.tabs.status")}
                       </Button>
                     </CardFooter>
                   </Card>
@@ -587,7 +644,7 @@ function LoansPage() {
                         <div className="flex items-center gap-2">
                           <History className="w-3.5 h-3.5 text-muted-foreground" />
                           <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                            History
+                            {t("loans.tracker.history")}
                           </CardTitle>
                         </div>
                       </CardHeader>
@@ -609,10 +666,12 @@ function LoansPage() {
                               <p className="text-[10px] font-bold text-slate-950 dark:text-white tabular-nums">
                                 KES {parseFloat(loan.amount).toLocaleString()}
                               </p>
-                              <span className={cn(
-                                "text-[8px] font-semibold uppercase tracking-tight",
-                                loan.status === 'paid' ? "text-emerald-500" : "text-primary"
-                              )}>
+                              <span
+                                className={cn(
+                                  "text-[8px] font-semibold uppercase tracking-tight",
+                                  loan.status === "paid" ? "text-emerald-500" : "text-primary",
+                                )}
+                              >
                                 {loan.status}
                               </span>
                             </div>
@@ -627,12 +686,12 @@ function LoansPage() {
                       </div>
                       <div>
                         <h4 className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Trust
+                          {t("loans.tracker.trust")}
                         </h4>
                         <p className="text-base font-bold text-slate-950 dark:text-white leading-none">
                           782{" "}
                           <span className="text-[8px] text-emerald-500 font-bold ml-1 uppercase">
-                            Elite
+                            {t("loans.tracker.elite")}
                           </span>
                         </p>
                       </div>
@@ -644,10 +703,17 @@ function LoansPage() {
                   <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-muted-foreground mb-3 shadow-inner border border-white/5">
                     <Clock className="w-6 h-6" />
                   </div>
-                  <h2 className="text-lg font-bold text-slate-950 dark:text-white mb-1 uppercase italic">No active ledger</h2>
-                  <p className="text-muted-foreground font-medium mb-5 max-w-xs text-[10px]">Ready for an instant boost? Request today.</p>
-                  <Button onClick={() => setActiveTab("request")} className="rounded-xl px-5 h-9 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 shadow-md">
-                    Get Instant Loan
+                  <h2 className="text-lg font-bold text-slate-950 dark:text-white mb-1 uppercase italic">
+                    {t("loans.tracker.no_active")}
+                  </h2>
+                  <p className="text-muted-foreground font-medium mb-5 max-w-xs text-[10px]">
+                    {t("loans.tracker.ready_boost")}
+                  </p>
+                  <Button
+                    onClick={() => setActiveTab("request")}
+                    className="rounded-xl px-5 h-9 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 shadow-md"
+                  >
+                    {t("loans.tracker.get_loan_btn")}
                   </Button>
                 </div>
               )}
@@ -658,7 +724,7 @@ function LoansPage() {
                   <div className="flex items-center gap-1.5 px-1">
                     <History className="w-3.5 h-3.5 text-emerald-500" />
                     <h3 className="text-xs font-bold uppercase tracking-tight text-slate-950 dark:text-white">
-                      Ledger History
+                      {t("loans.tracker.ledger_history")}
                     </h3>
                   </div>
                   <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl overflow-hidden shadow-md">
@@ -666,41 +732,70 @@ function LoansPage() {
                       <table className="w-full text-left">
                         <thead>
                           <tr className="border-b border-white/5 bg-slate-900/5 dark:bg-white/5">
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">Date</th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">Source</th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">Type</th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">Paid</th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-emerald-600">Balance</th>
+                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
+                              {t("common.date")}
+                            </th>
+                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
+                              {t("transactions.form.provider")}
+                            </th>
+                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
+                              {t("common.type")}
+                            </th>
+                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
+                              {t("loans.tracker.paid")}
+                            </th>
+                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-emerald-600">
+                              {t("loans.tracker.balance")}
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                           {ledgerEntries.map((entry) => (
                             <tr key={entry.id} className="hover:bg-emerald-500/5 transition-colors">
-                              <td className="px-4 py-2 font-medium text-[10px] opacity-70">{format(new Date(entry.created_at), "MMM d, HH:mm")}</td>
+                              <td className="px-4 py-2 font-medium text-[10px] opacity-70">
+                                {format(new Date(entry.created_at), "MMM d, HH:mm")}
+                              </td>
                               <td className="px-4 py-2">
                                 <div className="flex items-center gap-2">
                                   <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                    {entry.source.toLowerCase().includes('bank') ? <Building2 className="w-2.5 h-2.5 text-emerald-600" /> : <Smartphone className="w-2.5 h-2.5 text-emerald-600" />}
+                                    {entry.source.toLowerCase().includes("bank") ? (
+                                      <Building2 className="w-2.5 h-2.5 text-emerald-600" />
+                                    ) : (
+                                      <Smartphone className="w-2.5 h-2.5 text-emerald-600" />
+                                    )}
                                   </div>
-                                  <span className="font-semibold uppercase tracking-tighter text-[8px]">{entry.source}</span>
+                                  <span className="font-semibold uppercase tracking-tighter text-[8px]">
+                                    {entry.source}
+                                  </span>
                                 </div>
                               </td>
                               <td className="px-4 py-2">
-                                <span className={cn(
-                                  "px-1.5 py-0.5 rounded-full text-[7px] font-bold uppercase tracking-wider border",
-                                  entry.payment_type === 'automated' ? "bg-primary/10 text-primary border-primary/20" : "bg-slate-500/10 text-slate-500 border-slate-500/20"
-                                )}>
+                                <span
+                                  className={cn(
+                                    "px-1.5 py-0.5 rounded-full text-[7px] font-bold uppercase tracking-wider border",
+                                    entry.payment_type === "automated"
+                                      ? "bg-primary/10 text-primary border-primary/20"
+                                      : "bg-slate-500/10 text-slate-500 border-slate-500/20",
+                                  )}
+                                >
                                   {entry.payment_type}
                                 </span>
                               </td>
-                              <td className="px-4 py-2 font-bold text-[10px] text-slate-950 dark:text-white tabular-nums">KES {parseFloat(entry.amount).toLocaleString()}</td>
-                              <td className="px-4 py-2 font-bold text-[10px] text-emerald-600 tabular-nums">KES {parseFloat(entry.remaining_balance).toLocaleString()}</td>
+                              <td className="px-4 py-2 font-bold text-[10px] text-slate-950 dark:text-white tabular-nums">
+                                KES {parseFloat(entry.amount).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2 font-bold text-[10px] text-emerald-600 tabular-nums">
+                                KES {parseFloat(entry.remaining_balance).toLocaleString()}
+                              </td>
                             </tr>
                           ))}
                           {ledgerEntries.length === 0 && (
                             <tr>
-                              <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground font-semibold italic text-[10px]">
-                                No activity logged.
+                              <td
+                                colSpan={5}
+                                className="px-4 py-8 text-center text-muted-foreground font-semibold italic text-[10px]"
+                              >
+                                {t("loans.tracker.no_activity")}
                               </td>
                             </tr>
                           )}
@@ -729,38 +824,40 @@ function LoansPage() {
 
                     <div className="text-center">
                       <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground mb-3">
-                        Status
+                        {t("common.status")}
                       </p>
                       <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-950 dark:text-white uppercase">
-                        YOU HAVE A PENDING LOAN LEFT
+                        {t("loans.status.pending_title")}
                       </h2>
                       <p className="mt-4 text-sm sm:text-base font-medium text-slate-700 dark:text-slate-300 max-w-2xl mx-auto">
-                        You have an outstanding balance of <span className="font-bold text-destructive">KES {outstandingBalance.toLocaleString()}</span>. Complete the loan today to increase your limit!
+                        {t("loans.status.pending_description", {
+                          amount: outstandingBalance.toLocaleString(),
+                        })}
                       </p>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                       <Card className="rounded-[2rem] border border-white/30 bg-white/90 shadow-2xl p-8 text-center">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground mb-3">
-                          OUTSTANDING BALANCE
+                          {t("loans.status.outstanding_balance")}
                         </p>
                         <p className="text-3xl sm:text-4xl font-black text-slate-950 tabular-nums">
                           KES {outstandingBalance.toLocaleString()}
                         </p>
                         <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">
-                          Remaining on your active loan.
+                          {t("loans.status.remaining_note")}
                         </p>
                       </Card>
 
                       <Card className="rounded-[2rem] border border-white/30 bg-emerald-500/10 shadow-2xl p-8 text-center">
                         <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-700 mb-3">
-                          POTENTIAL LIMIT BOOST
+                          {t("loans.status.potential_boost")}
                         </p>
                         <p className="text-3xl sm:text-4xl font-black text-emerald-700">
                           +{potentialLimitBoost}%
                         </p>
                         <p className="mt-2 text-xs sm:text-sm text-emerald-950/80 font-medium">
-                          Based on your active loan repayment health.
+                          {t("loans.status.boost_note")}
                         </p>
                       </Card>
                     </div>
@@ -770,39 +867,48 @@ function LoansPage() {
                         className="h-12 px-8 rounded-full bg-emerald-600 text-white font-bold shadow-xl hover:bg-emerald-700 transition-all"
                         onClick={() => setShowRepayPopup(true)}
                       >
-                        Pay Balance Now
+                        {t("loans.status.pay_now_btn")}
                       </Button>
                       <Button
                         variant="outline"
                         className="h-12 px-8 rounded-full border-white/30 text-slate-950 dark:text-white font-bold hover:bg-white/10 transition-all"
                         onClick={() => setActiveTab("tracker")}
                       >
-                        View Tracker
+                        {t("loans.status.view_tracker_btn")}
                       </Button>
                     </div>
 
                     <div className="mt-10 rounded-[2rem] border border-white/20 bg-slate-950/5 dark:bg-slate-900/40 p-6 text-center shadow-inner">
                       <p className="text-[11px] uppercase tracking-[0.35em] font-semibold text-muted-foreground mb-3">
-                        Progress to completion
+                        {t("loans.status.progress_title")}
                       </p>
                       <div className="mx-auto h-4 w-full max-w-xl rounded-full bg-muted/20 overflow-hidden border border-white/10">
-                        <div className="h-full bg-emerald-600 transition-all" style={{ width: `${loanProgress}%` }} />
+                        <div
+                          className="h-full bg-emerald-600 transition-all"
+                          style={{ width: `${loanProgress}%` }}
+                        />
                       </div>
                       <p className="mt-3 text-sm font-semibold text-slate-950 dark:text-white">
-                        {loanProgress}% repaid of KES {loanTotalDue.toLocaleString()}
+                        {t("loans.status.progress_message", {
+                          progress: loanProgress,
+                          total: loanTotalDue.toLocaleString(),
+                        })}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-20">
                     <h2 className="text-xl font-bold text-slate-950 dark:text-white mb-3">
-                      No Pending Loan
+                      {t("loans.status.no_pending_title")}
                     </h2>
                     <p className="text-sm text-muted-foreground mb-6">
-                      Request a loan to see your current status and repayment progress.
+                      {t("loans.status.no_pending_desc")}
                     </p>
-                    <Button onClick={() => setActiveTab("request")} className="rounded-full px-6 h-11 font-bold bg-emerald-600 hover:bg-emerald-700 transition-all">
-                      Request Loan
+                    <Button
+                      onClick={() => setActiveTab("request")}
+                      className="rounded-full px-6 h-11 font-bold bg-emerald-600 hover:bg-emerald-700 transition-all"
+                    >
+                      {t("loans.status.request_btn")}
                     </Button>
                   </div>
                 )}
@@ -827,44 +933,90 @@ function LoansPage() {
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-2 border border-emerald-500/20">
                 <CreditCard className="w-5 h-5" />
               </div>
-              <DialogTitle className="text-lg font-bold text-slate-950 dark:text-white">Repayment</DialogTitle>
-              <DialogDescription className="font-medium text-[11px] text-muted-foreground">Settle balance to grow your credit limit.</DialogDescription>
+              <DialogTitle className="text-lg font-bold text-slate-950 dark:text-white">
+                {t("loans.repayment_modal.title")}
+              </DialogTitle>
+              <DialogDescription className="font-medium text-[11px] text-muted-foreground">
+                {t("loans.repayment_modal.description")}
+              </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-5">
               <div className="p-4 rounded-xl bg-slate-900/5 dark:bg-white/5 border border-white/5 text-center">
-                <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-wider">Total Outstanding</span>
-                <p className="text-xl font-bold text-slate-950 dark:text-white tabular-nums">KES {activeLoan ? parseFloat(activeLoan.remaining_balance).toLocaleString() : "0.00"}</p>
+                <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-wider">
+                  {t("loans.repayment_modal.total_outstanding")}
+                </span>
+                <p className="text-xl font-bold text-slate-950 dark:text-white tabular-nums">
+                  KES{" "}
+                  {activeLoan ? parseFloat(activeLoan.remaining_balance).toLocaleString() : "0.00"}
+                </p>
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Payment Source</Label>
-                <Select value={repayProvider} onValueChange={(val) => { setRepayProvider(val); setSourceIdentifier(""); }}>
-                  <SelectTrigger className="h-10 rounded-lg bg-muted/10 border-white/10 font-semibold text-xs"><SelectValue placeholder="Select Source" /></SelectTrigger>
+                <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("loans.repayment_modal.payment_source")}
+                </Label>
+                <Select
+                  value={repayProvider}
+                  onValueChange={(val) => {
+                    setRepayProvider(val);
+                    setSourceIdentifier("");
+                  }}
+                >
+                  <SelectTrigger className="h-10 rounded-lg bg-muted/10 border-white/10 font-semibold text-xs">
+                    <SelectValue placeholder={t("loans.repayment_modal.payment_source")} />
+                  </SelectTrigger>
                   <SelectContent className="rounded-lg shadow-xl backdrop-blur-xl border-white/20 z-[100] max-h-[300px] overflow-y-auto">
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                      <Smartphone className="w-2.5 h-2.5" /> Mobile Money
+                      <Smartphone className="w-2.5 h-2.5" /> {t("loans.categories.mobile")}
                     </div>
-                    <SelectItem value="mpesa" className="font-medium text-xs">M-Pesa</SelectItem>
-                    <SelectItem value="airtel" className="font-medium text-xs">Airtel Money</SelectItem>
+                    <SelectItem value="mpesa" className="font-medium text-xs">
+                      M-Pesa
+                    </SelectItem>
+                    <SelectItem value="airtel" className="font-medium text-xs">
+                      Airtel Money
+                    </SelectItem>
 
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
-                      <Building2 className="w-2.5 h-2.5" /> Banks
+                      <Building2 className="w-2.5 h-2.5" /> {t("loans.categories.banks")}
                     </div>
-                    <SelectItem value="kcb" className="font-medium text-xs">KCB Group</SelectItem>
-                    <SelectItem value="equity" className="font-medium text-xs">Equity Bank</SelectItem>
-                    <SelectItem value="ncba" className="font-medium text-xs">NCBA Bank</SelectItem>
-                    <SelectItem value="absa" className="font-medium text-xs">Absa Kenya</SelectItem>
-                    <SelectItem value="coop" className="font-medium text-xs">Co-operative Bank</SelectItem>
-                    <SelectItem value="stanbic" className="font-medium text-xs">Stanbic Bank</SelectItem>
-                    <SelectItem value="im" className="font-medium text-xs">I&M Bank</SelectItem>
-                    <SelectItem value="dtb" className="font-medium text-xs">Diamond Trust Bank</SelectItem>
-                    <SelectItem value="family" className="font-medium text-xs">Family Bank Kenya</SelectItem>
+                    <SelectItem value="kcb" className="font-medium text-xs">
+                      KCB Group
+                    </SelectItem>
+                    <SelectItem value="equity" className="font-medium text-xs">
+                      Equity Bank
+                    </SelectItem>
+                    <SelectItem value="ncba" className="font-medium text-xs">
+                      NCBA Bank
+                    </SelectItem>
+                    <SelectItem value="absa" className="font-medium text-xs">
+                      Absa Kenya
+                    </SelectItem>
+                    <SelectItem value="coop" className="font-medium text-xs">
+                      Co-operative Bank
+                    </SelectItem>
+                    <SelectItem value="stanbic" className="font-medium text-xs">
+                      Stanbic Bank
+                    </SelectItem>
+                    <SelectItem value="im" className="font-medium text-xs">
+                      I&M Bank
+                    </SelectItem>
+                    <SelectItem value="dtb" className="font-medium text-xs">
+                      Diamond Trust Bank
+                    </SelectItem>
+                    <SelectItem value="family" className="font-medium text-xs">
+                      Family Bank Kenya
+                    </SelectItem>
 
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
-                      <Wallet className="w-2.5 h-2.5" /> Vault
+                      <Wallet className="w-2.5 h-2.5" /> {t("loans.categories.vault")}
                     </div>
-                    <SelectItem value="vault_balance" className="font-bold text-emerald-600 text-xs">Vault Account</SelectItem>
+                    <SelectItem
+                      value="vault_balance"
+                      className="font-bold text-emerald-600 text-xs"
+                    >
+                      Vault Account
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -872,7 +1024,9 @@ function LoansPage() {
               {repayProvider && repayProvider !== "vault_balance" && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-300">
                   <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {["mpesa", "airtel"].includes(repayProvider) ? "Phone Number" : "Account Number"}
+                    {["mpesa", "airtel"].includes(repayProvider)
+                      ? t("transactions.form.phone_number")
+                      : t("transactions.form.account_number")}
                   </Label>
                   <div className="relative">
                     {["mpesa", "airtel"].includes(repayProvider) ? (
@@ -881,7 +1035,9 @@ function LoansPage() {
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                     )}
                     <Input
-                      placeholder={["mpesa", "airtel"].includes(repayProvider) ? "07123..." : "1234567..."}
+                      placeholder={
+                        ["mpesa", "airtel"].includes(repayProvider) ? "07123..." : "1234567..."
+                      }
                       value={sourceIdentifier}
                       onChange={(e) => setSourceIdentifier(e.target.value)}
                       className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-medium text-xs text-slate-950 dark:text-white"
@@ -891,17 +1047,36 @@ function LoansPage() {
               )}
 
               <div className="space-y-1.5">
-                <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">Amount (KES)</Label>
+                <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t("common.amount")} (KES)
+                </Label>
                 <div className="relative">
                   <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input type="number" placeholder="0.00" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-bold text-xs text-slate-950 dark:text-white tabular-nums" />
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={repayAmount}
+                    onChange={(e) => setRepayAmount(e.target.value)}
+                    className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-bold text-xs text-slate-950 dark:text-white tabular-nums"
+                  />
                 </div>
               </div>
             </div>
 
             <div className="mt-6 flex gap-2">
-              <Button variant="outline" className="flex-1 h-10 rounded-lg font-bold text-xs border-white/10" onClick={() => setShowRepayPopup(false)}>Back</Button>
-              <Button className="flex-1 h-10 rounded-lg font-bold text-xs shadow-md bg-emerald-600 hover:bg-emerald-700" onClick={handleRepayment}>Process <Check className="ml-1.5 w-3.5 h-3.5" /></Button>
+              <Button
+                variant="outline"
+                className="flex-1 h-10 rounded-lg font-bold text-xs border-white/10"
+                onClick={() => setShowRepayPopup(false)}
+              >
+                {t("common.back")}
+              </Button>
+              <Button
+                className="flex-1 h-10 rounded-lg font-bold text-xs shadow-md bg-emerald-600 hover:bg-emerald-700"
+                onClick={handleRepayment}
+              >
+                {t("loans.repayment_modal.process_btn")} <Check className="ml-1.5 w-3.5 h-3.5" />
+              </Button>
             </div>
           </div>
         </DialogContent>

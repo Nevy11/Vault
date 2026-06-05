@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
-import {
-  HelpCircle,
-  Home,
-  Send,
-  Settings,
-  User,
-  LogOut,
-  Landmark,
-} from "lucide-react";
+import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
@@ -119,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div
       className="min-h-screen w-full text-foreground overflow-x-hidden"
       style={{ background: "var(--gradient-bg)" }}
-    suppressHydrationWarning
+      suppressHydrationWarning
     >
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
@@ -137,18 +129,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
+                  suppressHydrationWarning
                 >
                   <Icon className="h-4 w-4" />
-                  {t(labelKey)}
+                  <span suppressHydrationWarning>{t(labelKey)}</span>
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
         <div className="absolute left-4 bottom-4 w-[calc(100%-2rem)]">
-          <Button variant="ghost" size="sm" className="w-full" onClick={handleSignOut}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full"
+            onClick={handleSignOut}
+            suppressHydrationWarning
+          >
             <LogOut className="mr-2 h-4 w-4" />
-            {t("nav.signout")}
+            <span suppressHydrationWarning>{t("nav.signout")}</span>
           </Button>
         </div>
       </div>
@@ -183,7 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onClick={() => setIsAdvisorOpen(true)}
         className={cn(
           "bottom-44 right-6 md:bottom-6 md:right-64",
-          isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : ""
+          isAdvisorOpen ? "ring-4 ring-emerald-500 ring-offset-4 ring-offset-background" : "",
         )}
       />
 

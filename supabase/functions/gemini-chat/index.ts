@@ -48,6 +48,13 @@ serve(async (req) => {
       .eq("id", user.id)
       .single();
 
+    // Fetch user preferences for language
+    const { data: preferences } = await supabase
+      .from("user_preferences")
+      .select("language")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
     // Fetch wallet balance
     const { data: wallet } = await supabase
       .from("wallets")
@@ -65,7 +72,20 @@ serve(async (req) => {
     // Create a personalized instruction string to prepend
     const firstName = profile?.first_name || "User";
     const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
-    const advisorPersona = `[SYSTEM INSTRUCTION: You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport.]\n\n`;
+    
+    const languageCode = preferences?.language || "en";
+    const languageNames: Record<string, string> = {
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      it: "Italian",
+      pt: "Portuguese",
+      sw: "Swahili",
+    };
+    const targetLanguage = languageNames[languageCode] || "English";
+
+    const advisorPersona = `[SYSTEM INSTRUCTION: You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}. Even if the user asks in another language, your reply should be in ${targetLanguage}.]\n\n`;
 
     let contents = [];
     const validMessages = (messages || []).filter(
@@ -75,7 +95,7 @@ serve(async (req) => {
     if (validMessages.length > 0) {
       // Limit context to last 29 messages as requested for better context awareness
       const recentMessages = validMessages.slice(-29);
-      
+
       // Gemini contents must alternate user/model and start with user
       const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
       if (firstUserIndex !== -1) {
@@ -117,7 +137,7 @@ serve(async (req) => {
     const models = [
       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
       "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent"
+      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
     ];
 
     const tryCallGemini = async (modelUrl: string) => {
@@ -146,10 +166,10 @@ serve(async (req) => {
     // Iterate through the failover chain
     for (let i = 0; i < models.length; i++) {
       const currentModelUrl = models[i];
-      const modelName = currentModelUrl.split('/models/')[1].split(':')[0];
-      
+      const modelName = currentModelUrl.split("/models/")[1].split(":")[0];
+
       console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
-      
+
       response = await tryCallGemini(currentModelUrl);
       if (!response) continue;
 
@@ -174,7 +194,9 @@ serve(async (req) => {
 
     if (!success) {
       console.error("All models in failover chain failed.", data);
-      throw new Error(data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`);
+      throw new Error(
+        data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`,
+      );
     }
 
     const aiResponse =

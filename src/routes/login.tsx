@@ -211,7 +211,7 @@ function LoginPage() {
         }
 
         toast.success("Login successful!");
-        
+
         if (redirect) {
           // Use window.location.href for absolute redirects or navigate for relative ones
           if (redirect.startsWith("http")) {

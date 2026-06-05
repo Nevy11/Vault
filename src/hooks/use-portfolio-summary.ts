@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 
+import { useTranslation } from "react-i18next";
+
 interface PortfolioSummary {
   message: string;
   growthPercentage: number;
@@ -15,8 +17,9 @@ interface PortfolioSummary {
  * Generates a progress-based portfolio message showing growth and improvement
  */
 export function usePortfolioSummary(userId: string | null | undefined): PortfolioSummary {
+  const { t, i18n } = useTranslation();
   const [summary, setSummary] = useState<PortfolioSummary>({
-    message: "Your portfolio is performing well this month. You're building your wealth steadily.",
+    message: t("dashboard.analyzing_portfolio"),
     growthPercentage: 0,
     trend: "positive",
     loading: true,
@@ -64,7 +67,7 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
           setSummary((prev) => ({
             ...prev,
             loading: false,
-            message: "Welcome to Vault! Start making transactions to see your growth summary.",
+            message: t("dashboard.ledger.noActivity"),
           }));
           return;
         }
@@ -79,27 +82,34 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
         if (historyError) throw historyError;
 
         // Get current month and previous month balances
-        const currentMonthBalances = balanceHistory?.filter(
-          (b) => new Date(b.recorded_at) >= thirtyDaysAgo
-        ) || [];
-        const previousMonthBalances = balanceHistory?.filter(
-          (b) => new Date(b.recorded_at) < thirtyDaysAgo && new Date(b.recorded_at) >= sixtyDaysAgo
-        ) || [];
+        const currentMonthBalances =
+          balanceHistory?.filter((b) => new Date(b.recorded_at) >= thirtyDaysAgo) || [];
+        const previousMonthBalances =
+          balanceHistory?.filter(
+            (b) =>
+              new Date(b.recorded_at) < thirtyDaysAgo && new Date(b.recorded_at) >= sixtyDaysAgo,
+          ) || [];
 
         const currentMonthAvg =
           currentMonthBalances.length > 0
-            ? currentMonthBalances.reduce((sum, b) => sum + parseFloat(b.recorded_balance.toString()), 0) / currentMonthBalances.length
+            ? currentMonthBalances.reduce(
+                (sum, b) => sum + parseFloat(b.recorded_balance.toString()),
+                0,
+              ) / currentMonthBalances.length
             : 0;
 
         const previousMonthAvg =
           previousMonthBalances.length > 0
-            ? previousMonthBalances.reduce((sum, b) => sum + parseFloat(b.recorded_balance.toString()), 0) / previousMonthBalances.length
+            ? previousMonthBalances.reduce(
+                (sum, b) => sum + parseFloat(b.recorded_balance.toString()),
+                0,
+              ) / previousMonthBalances.length
             : 0;
 
         // Calculate growth percentage
         let growthPercentage = 0;
         let trend: "positive" | "neutral" | "negative" = "neutral";
-        let message = "Great job this month! You're building your wealth steadily.";
+        let message = t("dashboard.analyzing_portfolio");
 
         if (previousMonthAvg > 0) {
           growthPercentage = ((currentMonthAvg - previousMonthAvg) / previousMonthAvg) * 100;
@@ -121,18 +131,25 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
 
         // 4. Get AI generated message for a personalized experience
         try {
-          const aiPrompt = `My portfolio growth is ${growthPercentage.toFixed(1)}% this month (trend: ${trend}). Provide a short, encouraging ONE-SENTENCE portfolio summary for my dashboard. No markdown, just plain text.`;
-          const { data: aiResponse, error: aiError } = await supabase.functions.invoke("gemini-chat", {
-            body: { userInput: aiPrompt }
-          });
-          
-          if (!aiError && aiResponse?.text) {
+          const lang = i18n.language || "en";
+          const aiPrompt = `My portfolio growth is ${growthPercentage.toFixed(1)}% this month (trend: ${trend}). Provide a short, encouraging ONE-SENTENCE portfolio summary for my dashboard. Respond in ${lang}. No markdown, just plain text.`;
+
+          const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
+            "gemini-chat",
+            {
+              body: { userInput: aiPrompt },
+            },
+          );
+
+          if (aiError) {
+            console.warn("AI function returned error, using fallback:", aiError);
+          } else if (aiResponse?.text) {
             // Ensure it's truly one sentence and not too long
             const cleanedMessage = aiResponse.text.split(/[.!?]/)[0] + ".";
             message = cleanedMessage;
           }
         } catch (e) {
-          console.warn("AI portfolio summary failed, using fallback:", e);
+          console.warn("AI portfolio summary invocation failed, using fallback:", e);
         }
 
         setSummary({
@@ -148,7 +165,7 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
           ...prev,
           loading: false,
           error: error.message || "Failed to generate portfolio summary",
-          message: "Your portfolio is performing well this month. You're building your wealth steadily.",
+          message: t("dashboard.analyzing_portfolio"),
           growthPercentage: 0,
           trend: "positive",
         }));
@@ -160,4 +177,3 @@ export function usePortfolioSummary(userId: string | null | undefined): Portfoli
 
   return summary;
 }
-

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import {
   ShieldCheck,
   ArrowRight,
@@ -22,9 +23,14 @@ export const Route = createFileRoute("/finance-hub")({
 });
 
 function FinanceHubPage() {
+  const { t } = useTranslation();
   const { goals, loading } = useSavings();
   const savingsTab = !loading && goals.length > 0 ? "overview" : "setup";
-  const buttonText = loading ? "Loading..." : goals.length > 0 ? "View Savings" : "Setup Savings";
+  const buttonText = loading
+    ? t("common.loading")
+    : goals.length > 0
+      ? t("finance_hub.savings.view_btn")
+      : t("finance_hub.savings.setup_btn");
 
   return (
     <AppShell>
@@ -44,11 +50,10 @@ function FinanceHubPage() {
           {/* Unified Finance Header */}
           <div className="mb-10 text-center max-w-2xl mx-auto">
             <h1 className="text-3xl font-extrabold tracking-tight mb-2 drop-shadow-md text-slate-950 dark:text-white">
-              Finance Hub
+              {t("finance_hub.title")}
             </h1>
             <p className="text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-              Manage your long-term wealth and access instant liquidity. Vault's automated ledger
-              rules ensure your growth is rewarded and credit is always available.
+              {t("finance_hub.description")}
             </p>
           </div>
 
@@ -66,7 +71,7 @@ function FinanceHubPage() {
                     </div>
                     <div className="mt-1.5 flex flex-col items-center">
                       <span className="text-emerald-700 dark:text-emerald-500 font-bold text-[9px] tracking-[0.3em] uppercase">
-                        Wealth Vault
+                        {t("finance_hub.savings.vault_title")}
                       </span>
                     </div>
                   </div>
@@ -75,20 +80,18 @@ function FinanceHubPage() {
 
               <div className="p-5 flex-1 flex flex-col">
                 <h2 className="text-xl font-bold mb-3 text-slate-950 dark:text-white">
-                  Target Savings
+                  {t("finance_hub.savings.title")}
                 </h2>
                 <div className="space-y-4 flex-1">
                   <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                    Set financial goals and enjoy a{" "}
-                    <span className="text-primary font-semibold">2% interest reward</span> for
-                    hitting your targets on time.
+                    {t("finance_hub.savings.description")}
                   </p>
                   <ul className="grid grid-cols-2 gap-2">
                     {[
-                      { icon: Target, text: "Goal Deadlines" },
-                      { icon: LockIcon, text: "Fund Locking" },
-                      { icon: TrendingUp, text: "2% Reward" },
-                      { icon: Wallet, text: "Auto Funding" },
+                      { icon: Target, text: t("finance_hub.savings.items.deadlines") },
+                      { icon: LockIcon, text: t("finance_hub.savings.items.locking") },
+                      { icon: TrendingUp, text: t("finance_hub.savings.items.reward") },
+                      { icon: Wallet, text: t("finance_hub.savings.items.funding") },
                     ].map((item, i) => (
                       <li
                         key={i}
@@ -128,7 +131,7 @@ function FinanceHubPage() {
                     </div>
                     <div className="mt-1.5 flex flex-col items-center">
                       <span className="text-emerald-700 dark:text-emerald-500 font-bold text-[9px] tracking-[0.3em] uppercase">
-                        Credit Line
+                        {t("finance_hub.loans.credit_title")}
                       </span>
                     </div>
                   </div>
@@ -137,20 +140,18 @@ function FinanceHubPage() {
 
               <div className="p-5 flex-1 flex flex-col">
                 <h2 className="text-xl font-bold mb-3 text-slate-950 dark:text-white">
-                  Instant Credit
+                  {t("finance_hub.loans.title")}
                 </h2>
                 <div className="space-y-4 flex-1">
                   <p className="text-xs text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                    Access credit limits up to{" "}
-                    <span className="text-emerald-500 font-semibold">50% of your balance</span>. No
-                    paperwork, instant disbursement based on history.
+                    {t("finance_hub.loans.description")}
                   </p>
                   <ul className="grid grid-cols-2 gap-2">
                     {[
-                      { icon: ShieldCheck, text: "Verified Eligibility" },
-                      { icon: Wallet, text: "Instant Limits" },
-                      { icon: TrendingUp, text: "Limit Growth" },
-                      { icon: History, text: "Repayment Tracker" },
+                      { icon: ShieldCheck, text: t("finance_hub.loans.items.eligibility") },
+                      { icon: Wallet, text: t("finance_hub.loans.items.limits") },
+                      { icon: TrendingUp, text: t("finance_hub.loans.items.growth") },
+                      { icon: History, text: t("finance_hub.loans.items.tracker") },
                     ].map((item, i) => (
                       <li
                         key={i}
@@ -171,7 +172,8 @@ function FinanceHubPage() {
                     className="w-full rounded-xl h-10 text-xs font-bold shadow-md bg-emerald-600 text-white hover:bg-emerald-700 transition-all active:scale-95"
                   >
                     <Link to="/loans">
-                      Request Credit <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                      {t("finance_hub.loans.request_btn")}{" "}
+                      <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
                     </Link>
                   </Button>
                 </div>
@@ -185,31 +187,33 @@ function FinanceHubPage() {
               <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-slate-950 dark:text-white">Core Policies</h3>
+              <h3 className="text-lg font-bold text-slate-950 dark:text-white">
+                {t("finance_hub.policies.title")}
+              </h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Interest
+                  {t("finance_hub.policies.interest_title")}
                 </h4>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                  2% bonus credited achieving targets on time. Verified by core engine.
+                  {t("finance_hub.policies.interest_desc")}
                 </p>
               </div>
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Locking
+                  {t("finance_hub.policies.locking_title")}
                 </h4>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                  Funds cryptographically locked until deadline to protect discipline.
+                  {t("finance_hub.policies.locking_desc")}
                 </p>
               </div>
               <div className="space-y-2">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Lending
+                  {t("finance_hub.policies.lending_title")}
                 </h4>
                 <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                  Requires integrity verification. Strictly capped at 50% of frequent balance.
+                  {t("finance_hub.policies.lending_desc")}
                 </p>
               </div>
             </div>

@@ -1,6 +1,39 @@
 {
   "dashboard": {
     "title": "Dashibodi",
+    "unified_portfolio": "Portfolio Iliyounganishwa",
+    "portfolio_desc": "Muhtasari wa papo hapo wa mfumo wako wa kifedha.",
+    "page_title": "Dashibodi — Vault OS",
+    "page_description": "Salio la portfolio iliyounganishwa na miamala kwenye akaunti zako za kifedha.",
+    "available_balance": "Salio Linalopatikana",
+    "total_portfolio": "Jumla ya Portfolio",
+    "analyzing": "Inachambua...",
+    "analyzing_portfolio": "Inachambua portfolio...",
+    "add_external": "Ongeza Nje",
+    "detailed_report": "Ripoti ya Kina",
+    "vault_account_name": "Vault: Mfumo wa Mkoba wa Kidijitali",
+    "verified_account": "Akaunti Iliyothibitishwa",
+    "finance_credit": "Fedha na Mikopo",
+    "savings_loans": "Akiba na Mikopo",
+    "savings_loans_desc": "Pata tuzo ya 2% na mkopo wa papo hapo",
+    "no_transactions": "Hakuna miamala iliyopatikana.",
+    "balance_label": "Salio:",
+    "view_all_transactions": "Angalia Miamala Zote",
+    "syncing": "Inatayarisha...",
+    "just_now": "Sasa hivi",
+    "data_synced": "Data imetayarishwa {{time}}",
+    "security_shield": "Ngao ya Usalama",
+    "low": "Chini",
+    "high": "Juu",
+    "data_points": "Nukta za data {{count}}",
+    "security": {
+      "system_secure": "MFUMO NI SALAMA",
+      "encryption": "Usimbuaji wa Mwanzo hadi Mwisho",
+      "id_protection": "Ulinzi wa Utambulisho",
+      "device_integrity": "Uadilifu wa Kifaa",
+      "enhanced": "IMEIMARISHWA",
+      "verified": "IMETHIBITISHWA"
+    },
     "portfolio": {
       "balance": "Thamani ya Jumla ya Portfolio",
       "growth": "Mapigo ya Portfolio",
@@ -120,7 +153,7 @@
         "q4": "Ninawezaje kuona historia ya vipindi vyangu na kumbukumbu?",
         "a4": "Fungua Mipangilio → Kituo cha Usalama → Historia ya Vipindi. Utaona kila kuingia, kifaa, na hatua kwa mpangilio wa muda.",
         "q5": "Kiwango cha 2 cha KYC kinafungua nini?",
-        "a5": "Kiwango cha 2 kinafungua utoaji mkubwa, uhamisho wa kimataifa, na mipaka ya juu ya uhamisho wa rika. Thibitisha kitambulisho chako cha serikali chini ya Wasifu wa Akaunti."
+        "a5": "Kiwango cha 2 kinafungua utoaji mkubwa, uhamisho wa kimataifa, na mipaka ya juu ya uhamisho wa rika. Thibitisha kitambulisho chako zako serikali chini ya Wasifu wa Akaunti."
       },
       "form": {
         "title": "Fomu ya Mawasiliano ya Moja kwa Moja",
@@ -146,6 +179,23 @@
     "initializing": "Inaanzisha Mshauri wa AI...",
     "update": "Sasisha Uchambuzi",
     "generate": "Zalisha Ushauri"
+  },
+  "advisor": {
+    "title": "Mshauri wa Fedha",
+    "status": "Mkakati amilifu",
+    "greeting": "Habari {{name}}! Mimi ni Mshauri wako wa Fedha wa Vault. Naweza kukusaidia kuchanganua matumizi, kuboresha akiba, au kupanga uwekezaji wako mkubwa ujao. [Changanua matumizi yangu] [Ninawezaje kuweka akiba zaidi?] [Viwango vya sasa vya riba]",
+    "placeholder": "Niulize chochote...",
+    "thinking": "Mshauri anafikiria...",
+    "consulting": "Kushauriana na Vault AI...",
+    "send": "Tuma",
+    "error_history": "Imeshindikana kupakia historia ya mshauri.",
+    "error_response": "Imeshindikana kupata jibu kutoka kwa mshauri.",
+    "error_mic": "Hitilafu ya kipaza sauti: ",
+    "error_speech_unsupported": "Utambuzi wa sauti hautumiki katika kivinjari hiki.",
+    "secure": "Salama",
+    "disclaimer": "Vault AI inaweza kufanya makosa. Angalia maelezo muhimu ya kifedha.",
+    "floating_label": "Uliza Mshauri wa Vault AI",
+    "floating_label_mobile": "Mshauri wa AI"
   },
   "settings": {
     "title": "Mipangilio",
@@ -322,8 +372,594 @@
     }
   },
   "common": {
-    "save": "Hifadhi mabadiliko",
+    "save": "Hifadhi Mabadiliko",
     "loading": "Inapakia...",
-    "error": "Hitilafu"
+    "error": "Hitilafu",
+    "back": "Rudi",
+    "amount": "Kiasi",
+    "status": "Hali",
+    "completed": "Imekamilika",
+    "all": "Zote",
+    "date": "Tarehe",
+    "type": "Aina",
+    "errors": {
+      "fill_all": "Tafadhali jaza sehemu zote",
+      "enter_phone": "Tafadhali ingiza nambari yako ya simu",
+      "enter_account": "Tafadhali ingiza nambari yako ya akaunti",
+      "incomplete_settings": "Mipangilio Haijakamilika",
+      "provide_amount_provider": "Tafadhali toa kiasi na mtoa huduma wa kifedha.",
+      "transfer_failed": "Uhamisho umeshindikana",
+      "user_not_found": "Mtumiaji hajapatikana",
+      "unexpected_error": "Hitilafu isiyotarajiwa imetokea wakati wa uhamisho"
+    },
+    "vault_user": "Mtumiaji wa Vault",
+    "user": "Mtumiaji"
+  },
+  "transactions": {
+    "title": "Miamala",
+    "page_title": "Miamala — Vault OS",
+    "page_description": "Tuma pesa, weka akiba, na utoe pesa kwenye akaunti zako za Vault.",
+    "wallet_card": {
+      "vault_wallet": "Mkoba wa Vault {{currency}}",
+      "active_encrypted": "Inatumika na Imelindwa"
+    },
+    "errors": {
+      "load_recipients": "Imeshindikana kupata mapendekezo ya wapokeaji. Tafadhali jaribu tena.",
+      "fill_required": "Tafadhali jaza sehemu zote zinazohitajika",
+      "not_found": "Haijapatikana",
+      "database_error": "Uhamisho umeshindikana kwenye mfumo wa hifadhidata",
+      "transfer_failed": "Uhamisho umeshindikana",
+      "unexpected_error": "Hitilafu isiyotarajiwa imetokea wakati wa uhamisho"
+    },
+    "success": {
+      "message": "Uhamisho umekamilika kikamilifu!",
+      "title": "Uhamisho Umefanikiwa!",
+      "description": "Uhamisho wako wa {{currency}} {{amount}} umechakatwa kwa usalama.",
+      "transaction_id": "ID ya Muamala",
+      "amount_deducted": "Kiasi Kilichokatwa",
+      "back_to_dashboard": "Rudi kwenye Dashibodi"
+    },
+    "steps": {
+      "step1": "Hatua ya 1: Chagua Aina ya Mtoa Huduma wa Kifedha",
+      "step2": "Hatua ya 2: Fomu ya Kidijitali",
+      "step2_vault": "Uhamisho wa Vault-kwa-Vault",
+      "step2_bank": "Tuma Pesa kwenye Akaunti ya Benki",
+      "step2_bank_specific": "Tuma Pesa kwenda {{bank}}",
+      "step2_mobile": "Tuma Pesa kwenye Mkoba wa Simu"
+    },
+    "providers": {
+      "vault": "Akaunti ya Vault (P2P)",
+      "vault_desc": "Uhamisho wa papo hapo wa ndani",
+      "bank": "Akaunti ya Benki",
+      "bank_desc": "Tuma kwa benki yoyote ya Kenya",
+      "mobile": "Pesa kwa Simu",
+      "mobile_desc": "Tuma kwa M-Pesa au Airtel",
+      "mpesa": "M-Pesa"
+    },
+    "banks": {
+      "kcb": "Benki ya KCB (Kenya Commercial Bank)",
+      "coop": "Benki ya Co-operative ya Kenya",
+      "ncba": "Benki ya NCBA",
+      "absa": "Benki ya Absa Kenya",
+      "stanchart": "Standard Chartered Kenya",
+      "stanbic": "Benki ya Stanbic Kenya",
+      "im": "Benki ya I&M",
+      "dtb": "DTB (Diamond Trust Bank)",
+      "family": "Benki ya Family",
+      "equity": "Benki ya Equity Kenya"
+    },
+    "mobile_providers": {
+      "mpesa": "M-Pesa",
+      "airtel": "Airtel Money",
+      "tkash": "T-Kash"
+    },
+    "form": {
+      "select_bank": "Chagua Benki",
+      "choose_bank": "Chagua benki",
+      "provider": "Mtoa Huduma",
+      "recipient_username": "Jina la Mtumiaji / Tag ya Mpokeaji",
+      "account_number": "Nambari ya Akaunti",
+      "phone_number": "Nambari ya Simu",
+      "username_placeholder": "@jina",
+      "account_placeholder": "0000000000",
+      "phone_placeholder": "+254 7XX XXX XXX",
+      "amount_label": "Kiasi ({{currency}})",
+      "amount_placeholder": "0.00",
+      "send_money_btn": "Tuma Pesa"
+    },
+    "recipients": {
+      "search_recent": "Matokeo ya Utafutaji (Hivi Karibuni)",
+      "recent": "Miamala ya Hivi Karibuni",
+      "search_frequent": "Matokeo ya Utafutaji (Zinazotumiwa Sana)",
+      "frequent": "Zinazotumiwa Sana",
+      "no_match": "Hakuna wapokeaji wanaolingana na \"{{searchFilter}}\"",
+      "search_placeholder": "Tafuta wapokeaji..."
+    },
+    "confirmation": {
+      "title": "Thibitisha Muamala",
+      "description": "Tafadhali kagua maelezo ya uhamisho kabla ya kuendelea.",
+      "recipient": "Mpokeaji",
+      "kyc_verified": "Tag ya KYC Imethibitishwa",
+      "via": "Kupitia",
+      "fee": "Ada ya Muamala",
+      "total_deducted": "Jumla Iliyokatwa",
+      "cancel": "HAPANA, GHAIRISHA",
+      "confirm": "NDIYO, THIBITISHA"
+    },
+    "processing": {
+      "title": "Tunachakata uhamisho kwa usalama...",
+      "description": "Tunathibitisha PIN na kukagua salio"
+    },
+    "authorize": {
+      "title": "Idhinisha Uhamisho",
+      "description": "Thibitisha kwa usalama uhamisho wako wa {{currency}} {{amount}} kwenda kwa {{identifier}}."
+    },
+    "history": {
+      "title": "Historia ya Kina ya Miamala",
+      "search_placeholder": "Tafuta kwenye historia...",
+      "total_records": "Jumla ya Kumbukumbu {{totalCount}}",
+      "filters": {
+        "all": "Zote",
+        "transfers": "Uhamisho",
+        "deposits": "Amana",
+        "withdrawals": "Matoo"
+      },
+      "syncing": "Tunatayarisha historia ya miamala...",
+      "no_activity": "Hakuna shughuli iliyopatana kulingana na vigezo vyako.",
+      "data_synced": "Data ilisasishwa dakika {{minutes}} zilizopita",
+      "load_more": "Pakia Miamala Zaidi",
+      "transfer_to": "Uhamisho kwenda kwa {{receiverName}}",
+      "received_from": "Imepokelewa kutoka kwa {{senderName}}",
+      "deposit_to": "Amana ya {{bankName}} kwenda kwa {{userName}}",
+      "withdrawal_to": "Utoaji kwenda kwa {{bankName}}",
+      "bank_simple": "Benki",
+      "transfer_to_provider": "Uhamisho kwenda kwa {{provider}}: {{identifier}}",
+      "bank_transfer_to": "Uhamisho wa Benki kwenda kwa {{bank}}: {{identifier}}",
+      "types": {
+        "p2p": "P2P",
+        "dep": "AMA",
+        "wit": "UTO",
+        "txn": "MUA"
+      }
+    },
+    "modes": {
+      "send": "Tuma Pesa",
+      "deposit": "Weka Amana",
+      "withdraw": "Toa Pesa"
+    },
+    "deposit": {
+      "select_source": "Chagua Chanzo cha Amana",
+      "mobile_money": "Pesa kwa Simu",
+      "bank_account": "Akaunti ya Benki",
+      "credit_card": "Kadi ya Mkopo",
+      "select_carrier": "Chagua Mtoa Huduma",
+      "select_provider": "Chagua mtoa huduma",
+      "primary_number": "Nambari Kuu",
+      "add_new_number": "Ongeza Nambari Mpya",
+      "phone_number": "Nambari ya Simu",
+      "search_banks": "Tafuta Benki",
+      "search_kenyan_banks": "Tafuta benki kuu za Kenya...",
+      "stripe_bank_transfer": "Uhamisho wa Benki wa Stripe",
+      "us_ach_international": "US ACH / Kimataifa",
+      "link_new_bank": "Unganisha Akaunti Mpya ya Benki",
+      "stripe_card_title": "Kadi ya Mkopo au Deni",
+      "stripe_card_desc": "Utaelekezwa kwa usalama kwenye mfumo wa Stripe ili kukamilisha amana yako kwa kutumia kadi yoyote ya mkopo au deni.",
+      "encrypted_by_stripe": "Imelindwa na Stripe",
+      "amount_to_deposit": "Kiasi cha Kuweka",
+      "settlement": "Malipo",
+      "credit_to_wallet": "Iwekwe kwenye mkoba wako wa {{currency}}",
+      "vault_pin": "PIN ya Muamala ya Vault",
+      "authorize_deposit": "Idhinisha Amana kwa Usalama",
+      "deposit_btn": "Weka Amana",
+      "deposit_footer_note": "Amana huchakatwa papo hapo kupitia mifumo yetu salama ya malipo. Ada za mtandao zinaweza kutozwa kulingana na mtoa huduma au benki yako.",
+      "requesting_funds": "Tunaomba fedha kwa usalama...",
+      "stk_push_note": "Tunatuma ombi la malipo (STK Push) kwa usalama",
+      "cancel_request": "GHAIRISHA OMBI",
+      "action_required": "Hatua Inahitajika",
+      "mpesa_pin_note": "Tafadhali ingiza **PIN yako ya M-Pesa** kwenye simu yako ili kukamilisha amana ya {{amount}}.",
+      "expected_credit": "Kiasi Kinachotarajiwa",
+      "awaiting_pin": "Tunasubiri PIN",
+      "deposit_success_title": "Amana Imefanikiwa!",
+      "deposit_success_desc": "Malipo yako yamethibitishwa na salio lako la Vault limesasishwa.",
+      "credited_balance": "Salio Lililoongezwa",
+      "complete_deposit": "Kamilisha Amana",
+      "payment_confirmed": "Malipo yamethibitishwa! Salio lako limesasishwa.",
+      "payment_failed": "Malipo yameshindikana au yameghairiwa.",
+      "valid_amount_error": "Tafadhali ingiza kiasi sahihi",
+      "pin_error": "Tafadhali ingiza PIN yako ya miamala ya tarakimu 6",
+      "session_error": "Kipindi cha mtumiaji hakijapatikana. Tafadhali ingia tena.",
+      "identity_error": "Imeshindikana kuthibitisha utambulisho wako. Tafadhali jaribu tena.",
+      "invalid_pin_error": "PIN ya muamala si sahihi",
+      "stripe_init_error": "Imeshindikana kuanzisha malipo ya Stripe: {{error}}",
+      "valid_phone_error": "Tafadhali toa nambari ya simu sahihi",
+      "valid_mobile_error": "Tafadhali chagua au ingiza nambari sahihi ya simu",
+      "mpesa_init_error": "Imeshindikana kuanzisha malipo ya M-Pesa",
+      "check_phone_toast": "Angalia simu yako kwa ajili ya kuingiza PIN ya M-Pesa"
+    },
+    "withdraw": {
+      "withdraw_to_bank": "Toa Pesa kwenye Akaunti ya Benki",
+      "withdraw_to_mobile": "Toa Pesa kwenye Mkoba wa Simu",
+      "bank_accounts": "Akaunti za Benki",
+      "mobile_money": "Pesa kwa Simu",
+      "choose_bank": "Chagua Benki",
+      "search_select_bank": "Tafuta au chagua benki...",
+      "external_bank_rail": "Mfumo wa Malipo wa Benki ya Nje",
+      "account_holder_name": "Jina Kamili la Mmiliki wa Akaunti",
+      "full_name_records": "Jina kamili kama linavyoonekana kwenye rekodi",
+      "personal_mpesa": "M-Pesa Binafsi",
+      "secondary_line": "Nambari ya Pili",
+      "withdraw_new_number": "Toa Pesa kwenye Nambari Mpya",
+      "provider_choice": "Uchaguzi wa Mtoa Huduma",
+      "confirm_mobile_btn": "Thibitisha Nambari ya Simu",
+      "vault_balance_label": "Salio la Vault la {{currency}}",
+      "loading_balance": "Tunapakia salio...",
+      "withdrawal_amount": "Kiasi cha Kutoa ({{currency}})",
+      "exchange_rate": "Kiwango cha Ubadilishaji",
+      "equivalent_kes": "Sawa na KES",
+      "secure_pin": "PIN Salama ya Muamala",
+      "pin_6digit_note": "Nambari salama ya muamala ya tarakimu 6",
+      "withdraw_btn": "Toa Fedha",
+      "withdraw_footer_note": "Uhamisho wa benki huchukua siku 1-3 za kazi kukamilika. Utoaji wa pesa kwa simu huchakatwa papo hapo.",
+      "confirm_title": "Thibitisha Utoaji",
+      "confirm_desc": "Tafadhali kagua maelezo hapa chini kabla hatujachakata ombi lako.",
+      "you_are_withdrawing": "Unatoa",
+      "platform_fee": "Ada ya Huduma",
+      "total_deduction": "Jumla ya Makato",
+      "cancel": "GHAIRISHA",
+      "yes_withdraw": "NDIYO, TOA PESA",
+      "secure_encrypted_note": "Muamala salama uliolindwa mwanzo hadi mwisho",
+      "authorizing_withdrawal": "Tunathibitisha ombi la utoaji...",
+      "verifying_pin_note": "Tunathibitisha PIN na kusasisha leja",
+      "withdrawal_success_title": "Utoaji Umefanikiwa!",
+      "withdrawal_success_desc": "Fedha zinachakatwa kuelekea kwenye akaunti yako. Miamala mingi hukamilika ndani ya masaa 2-24.",
+      "amount_withdrawn": "Kiasi Kilichotolewa",
+      "equivalent": "Sawa na",
+      "destination": "Kupokelewa",
+      "insufficient_balance_error": "Salio halitoshi. Unahitaji jumla ya {{currency}}{{amount}} (pamoja na ada).",
+      "fill_bank_error": "Tafadhali jaza maelezo yote ya akaunti ya benki",
+      "select_mobile_error": "Tafadhali chagua au ingiza nambari ya mkoba wa simu",
+      "enter_pin_error": "Tafadhali ingiza PIN yako ya muamala",
+      "incorrect_pin_error": "PIN ya muamala si sahihi",
+      "verification_error": "Hitilafu imetokea wakati wa uthibitisho",
+      "withdrawal_success_toast": "Utoaji umefanikiwa!",
+      "withdrawal_failed_error": "Imeshindikana kuchakata utoaji pesa"
+    }
+  },
+  "savings": {
+    "title": "Akaunti ya Akiba",
+    "subtitle": "Akiba zinazolindwa kidijitali kulingana na malengo yako.",
+    "tabs": {
+      "overview": "Maelezo",
+      "new_goal": "Lengo Jipya",
+      "completion": "🎉 Ukamilishaji"
+    },
+    "overview": {
+      "my_goals": "Malengo Yangu",
+      "complete_badge": "Imekamilika",
+      "target_label": "Lengo: KES {{amount}}",
+      "savings_status": "Hali ya akiba",
+      "of_target": "kati ya lengo la KES {{amount}}",
+      "days_left": "Siku zilizobaki",
+      "days": "siku",
+      "progress": "Maendeleo",
+      "remaining": "Iliyobaki",
+      "towards_goal": "kufikia lengo lako",
+      "momentum": "Kasi",
+      "daily_progress": "Maendeleo ya kila siku",
+      "money_fancy": "Urembo wa Pesa",
+      "goal_snapshot": "Muhtasari wa lengo",
+      "visible_progress": "Maendeleo yanayoonekana",
+      "reward": "Tuzo",
+      "avg_day": "Wastani/siku",
+      "funding": "Ufadhili",
+      "funding_fallback": "Vault / Pesa kwa Simu",
+      "quick_tip": "Kidokezo cha haraka",
+      "tip_desc": "Weka akiba kidogo kila siku",
+      "next_tip": "Kidokezo Kinachofuata",
+      "add_savings_btn": "Ongeza Akiba"
+    },
+    "tip": {
+      "title": "Kidokezo cha Akiba",
+      "description": "Maendeleo ya kila siku hufanya ndoto kuwa kweli."
+    },
+    "ledger": {
+      "title": "Historia ya Akiba",
+      "no_contributions": "Bado hakuna akiba iliyorekodiwa. Anza kuweka akiba sasa!",
+      "running_total": "Jumla ya Sasa"
+    },
+    "form": {
+      "title": "Kichwa",
+      "title_placeholder": "Ninaweka akiba kwa ajili ya...",
+      "target_amount": "Lengo (KES)",
+      "start_date": "Tarehe ya Kuanza",
+      "fixed": "(haibadiliki)",
+      "deadline_date": "Tarehe ya Mwisho",
+      "funding_source": "Chanzo cha Pesa",
+      "select_source": "Chagua Chanzo",
+      "any_available": "Chanzo chochote kinachopatikana",
+      "vault": "Vault",
+      "vault_account": "Akaunti ya Vault",
+      "categories": "Makundi",
+      "any_mobile": "Pesa yoyote ya Simu",
+      "any_bank": "Akaunti yoyote ya Benki",
+      "specifics": "Maelezo Maalum",
+      "providers": {
+        "mpesa": "M-Pesa (Safaricom)",
+        "airtel": "Airtel Money",
+        "kcb": "KCB Group",
+        "equity": "Equity Bank",
+        "ncba": "NCBA Bank",
+        "absa": "Absa Kenya",
+        "coop": "Co-operative Bank",
+        "stanbic": "Stanbic Bank",
+        "im": "I&M Bank",
+        "dtb": "Diamond Trust Bank",
+        "family": "Family Bank Kenya"
+      },
+      "default_phone": "Nambari ya Simu ya Kawaida",
+      "default_bank": "Akaunti ya Benki ya Kawaida",
+      "lock_rules": "Sheria za Kufunga",
+      "lock_rules_desc": "Pesa haziwezi kutolewa hadi tarehe ya lengo.",
+      "automate_savings": "Weka Akiba Kiotomatiki",
+      "automate_desc": "Weka makato ya kila mara.",
+      "update_btn": "Sasisha Akaunti ya Akiba",
+      "init_btn": "Anzisha Akaunti ya Akiba"
+    },
+    "completion": {
+      "pending_title": "Akiba inasubiri",
+      "away_message": "Umebakiza KES {{amount}}.",
+      "adjust_btn": "Rekebisha",
+      "achieved_title": "Lengo Limetimia!",
+      "congrats_message": "Hongera! Umefanikiwa kukamilisha lengo lako la akiba: \"{{title}}\". Nidhamu yako imekuletea tuzo maalum.",
+      "reward_label": "Tuzo ya Riba ya 2%",
+      "total_value": "Jumla ya Thamani",
+      "receive_reward_btn": "Pokea Tuzo",
+      "start_new_btn": "Anza Lengo Jipya",
+      "growth_engine": "Mtambo wa Kukuza Akiba wa Vault"
+    },
+    "add_savings_modal": {
+      "title": "Ongeza Akiba",
+      "amount_label": "Kiasi cha Akiba (KES)",
+      "amount_placeholder": "Ingiza kiasi cha kuweka",
+      "source_placeholder": "Unatoa wapi pesa?",
+      "save_now_btn": "Weka Akiba Sasa"
+    },
+    "automation_modal": {
+      "title": "Mtambo wa Kiotomatiki",
+      "description": "Weka ratiba yako ya makato ya akiba.",
+      "frequency": "Mzunguko",
+      "daily": "kila siku",
+      "weekly": "kila wiki",
+      "monthly": "kila mwezi",
+      "yearly": "kila mwaka",
+      "deduction_amount": "Kiasi cha Kukatwa (KES)",
+      "financial_provider": "Mtoa Huduma",
+      "which_provider": "Mtoa huduma yupi?",
+      "phone_for_deduction": "Nambari ya Simu ya Makato",
+      "bank_for_deduction": "Akaunti ya Benki kwa Makato",
+      "confirm_ok": "Thibitisha"
+    },
+    "jokes": [
+      "Weka akiba kidogo kila siku na lengo lako litakaribia haraka.",
+      "Amana za kila siku hujenga kasi zaidi kuliko juhudi moja kubwa.",
+      "Fuatilia maendeleo yako kila siku ili kufanya uwekaji akiba kuwa rahisi.",
+      "Ushindi mdogo wa leo unakuwa ushindi mkubwa ifikapo tarehe ya mwisho."
+    ],
+    "saving_lines": [
+      "Tone dogo la maji huwa mto mkubwa. Anza akiba leo!",
+      "Akiba kidogo ni hazina kubwa. Tazama utajiri wako ukikua!",
+      "Nafsi yako ya baadaye itakushukuru kwa nidhamu unayoonyesha sasa.",
+      "Uhuru wa kifedha huanza na sarafu moja kwenye vault.",
+      "Kuweka kidogo pembeni sasa hufungua milango mikubwa baadaye."
+    ]
+  },
+  "loans": {
+    "title": "Mkopo wa Papo Hapo",
+    "subtitle": "Mikopo kulingana na uaminifu wa miamala yako.",
+    "tabs": {
+      "request": "Ombi",
+      "tracker": "Kifuatiliaji",
+      "status": "Hali"
+    },
+    "request": {
+      "loan_amount": "Kiasi cha Mkopo",
+      "limit_label": "Kiwango cha Juu: KES {{amount}}",
+      "over_limit": "Umezidi Kiwango",
+      "period": "Muda",
+      "periods": {
+        "1": "Mwezi 1 (3%)",
+        "3": "Miezi 3 (4%)",
+        "6": "Miezi 6 (5%)",
+        "12": "Miezi 12 (6%)"
+      },
+      "principal": "Kiwango cha Mkopo",
+      "interest": "Riba",
+      "fee": "Ada",
+      "total": "Jumla",
+      "active_exists": "Kuna mkopo unaoendelea",
+      "disburse_btn": "Toa Mkopo wa Papo Hapo",
+      "single_active_rule": "Sheria ya Mkopo Mmoja tu kwa Wakati"
+    },
+    "limit_guard": {
+      "title": "Limit Guard™",
+      "description": "Vigezo vya kutoa mkopo",
+      "age_limit": "Umri > Miaka 6",
+      "deposit_limit": "Amana > 2K",
+      "cap_note": "Kiwango cha juu ni 50% ya wastani wa salio lako.",
+      "ledger_verified": "Miamala Imethibitishwa"
+    },
+    "higher_limits": {
+      "title": "Viwango vya Juu?",
+      "description": "Ongeza amana zako ili kupata viwango vya juu vya mikopo."
+    },
+    "tracker": {
+      "credit_line": "Mkopo Wako Binafsi",
+      "active_disbursement": "Mkopo unaoendelea #{{id}}",
+      "original": "Kiwango Asilia",
+      "repaid": "Kilicholipwa",
+      "due": "Tarehe ya Mwisho",
+      "repay_btn": "Lipa Mkopo",
+      "history": "Historia",
+      "trust": "Uaminifu",
+      "elite": "Bora",
+      "no_active": "Hakuna mkopo unaoendelea",
+      "ready_boost": "Je, uko tayari kuongeza uwezo wako? Omba leo.",
+      "get_loan_btn": "Pata Mkopo wa Papo Hapo",
+      "ledger_history": "Historia ya Malipo",
+      "paid": "Imelipwa",
+      "balance": "Salio",
+      "no_activity": "Hakuna shughuli iliyorekodiwa."
+    },
+    "status": {
+      "pending_title": "UNA MKOPO AMBAO HUJAMALIZA",
+      "pending_description": "Una salio la KES {{amount}}. Maliza kulipa mkopo leo ili uongeze uwezo wako!",
+      "outstanding_balance": "SALIO LA MKOPO",
+      "remaining_note": "Kiasi kilichobaki kwenye mkopo wako.",
+      "potential_boost": "UWEZEKANO WA KUONGEZEWA KIWANGO",
+      "boost_note": "Kulingana na nidhamu yako ya kulipa mkopo.",
+      "pay_now_btn": "Lipa Salio Sasa",
+      "view_tracker_btn": "Angalia Kifuatiliaji",
+      "progress_title": "Maendeleo ya malipo",
+      "progress_message": "{{progress}}% imelipwa kati ya KES {{total}}",
+      "no_pending_title": "Hakuna Mkopo Unaosubiri",
+      "no_pending_desc": "Omba mkopo ili uone hali yako na maendeleo ya malipo.",
+      "request_btn": "Omba Mkopo"
+    },
+    "repayment_modal": {
+      "title": "Malipo",
+      "description": "Lipa salio ili kukuza kiwango chako cha mkopo.",
+      "total_outstanding": "Jumla ya Salio",
+      "payment_source": "Chanzo cha Malipo",
+      "process_btn": "Tekeleza"
+    },
+    "categories": {
+      "mobile": "Pesa kwa Simu",
+      "banks": "Benki",
+      "vault": "Vault"
+    },
+    "toasts": {
+      "limit_exceeded": "Kiwango Kimezidi",
+      "limit_desc": "Kiwango chako cha juu cha mkopo ni KES {{amount}}.",
+      "approved": "Mkopo Umeidhinishwa!",
+      "approved_desc": "KES {{amount}} imewekwa kwenye leja yako.",
+      "failed": "Ombi la Mkopo Limeshindikana",
+      "incomplete": "Maelezo Hayajakamilika",
+      "incomplete_desc": "Tafadhali ingiza kiasi na uchague chanzo.",
+      "missing_id": "Inakosekana {{label}}",
+      "missing_id_desc": "Tafadhali toa {{label}} yako.",
+      "repayment_success": "Malipo Yamechakatwa",
+      "repayment_success_desc": "KES {{amount}} imechakatwa kutoka kwa {{source}} yako.",
+      "repayment_failed": "Malipo Yameshindikana"
+    }
+  },
+  "finance_hub": {
+    "title": "Kituo cha Fedha",
+    "description": "Simamia utajiri wako wa muda mrefu na upate pesa kwa urahisi. Sheria za Vault zinahakikisha ukuaji wako unazawadiwa na mikopo inapatikana kila wakati.",
+    "savings": {
+      "vault_title": "Vault ya Utajiri",
+      "title": "Akiba ya Malengo",
+      "description": "Weka malengo ya kifedha na upate tuzo ya riba ya 2% kwa kutimiza malengo yako kwa wakati.",
+      "items": {
+        "deadlines": "Muda wa Malengo",
+        "locking": "Kufunga Pesa",
+        "reward": "Tuzo ya 2%",
+        "funding": "Uwekaji Akiba wa Kiotomatiki"
+      },
+      "view_btn": "Angalia Akiba",
+      "setup_btn": "Anza Akiba"
+    },
+    "loans": {
+      "credit_title": "Njia ya Mkopo",
+      "title": "Mkopo wa Papo Hapo",
+      "description": "Pata mkopo wa hadi 50% ya salio lako. Hakuna makaratasi, pesa hutolewa papo hapo kulingana na historia yako.",
+      "items": {
+        "eligibility": "Uthibitisho wa Sifa",
+        "limits": "Mikopo ya Papo Hapo",
+        "growth": "Kukua kwa Kiwango",
+        "tracker": "Kifuatiliaji cha Malipo"
+      },
+      "request_btn": "Omba Mkopo"
+    },
+    "policies": {
+      "title": "Sera Muhimu",
+      "interest_title": "Riba",
+      "interest_desc": "Tuzo ya 2% hutolewa kwa kutimiza malengo kwa wakati. Inathibitishwa na mfumo wetu.",
+      "locking_title": "Kufunga Pesa",
+      "locking_desc": "Pesa hufungwa kidijitali hadi tarehe ya mwisho ili kukuza nidhamu.",
+      "lending_title": "Mikopo",
+      "lending_desc": "Inahitaji uthibitisho wa uaminifu. Mkopo hauzidi 50% ya wastani wa salio."
+    }
+  },
+  "receipts": {
+    "title": "Historia ya Risiti",
+    "secure_logs": "Kumbukumbu Salama za Miamala",
+    "no_receipts": "Bado hakuna risiti zilizopatikana",
+    "vault_transaction": "Muamala wa Vault",
+    "receipt_number": "Nambari ya Risiti",
+    "amount_deducted": "Kiasi Kilichokatwa",
+    "status": "Hali",
+    "date": "Tarehe",
+    "method": "Njia",
+    "type": "Aina",
+    "completed": "IMEKAMILIKA",
+    "transfer_secure_msg": "Uhamisho wako wa {{currency}} {{amount}} umechakatwa kwa usalama.",
+    "legal_note": "Risiti hii ya kidijitali imetiwa saini na inatumika kama uthibitisho rasmi wa muamala wa huduma za Vault OS.",
+    "certified": "Muamala Umethibitishwa",
+    "back": "Rudi",
+    "download": "Pakua risiti"
+  },
+  "kyc": {
+    "meta_title": "Vault — Uthibitisho wa KYC",
+    "meta_description": "Thibitisha utambulisho wako ili kulinda akaunti yako ya Vault.",
+    "steps": {
+      "select_id": {
+        "title": "Chagua Aina ya Kitambulisho",
+        "description": "Chagua aina ya kitambulisho kwa ajili ya uthibitisho",
+        "national_id": "Kitambulisho cha Taifa",
+        "national_id_desc": "Leseni ya Udereva, Kitambulisho",
+        "passport": "Pasipoti",
+        "passport_desc": "Hati ya Kusafiria ya Kimataifa",
+        "alien_card": "Kadi ya Mgeni",
+        "alien_card_desc": "Kadi ya Mkazi wa Kigeni"
+      },
+      "details": {
+        "title": "Maelezo ya Kitambulisho",
+        "description": "Ingiza maelezo yako",
+        "full_name": "Jina Kamili la Kisheria",
+        "full_name_hint": "kama linavyoonekana kwenye kitambulisho",
+        "id_number": "Nambari ya Kitambulisho",
+        "country": "Nchi",
+        "passport_number": "Nambari ya Pasipoti",
+        "nationality": "Uraia",
+        "individual_number": "Nambari ya Binafsi",
+        "continue_btn": "Endelea"
+      },
+      "upload": {
+        "title": "Pakia Kitambulisho",
+        "id_msg": "Pakia Kitambulisho chako",
+        "passport_msg": "Pakia Pasipoti yako",
+        "alien_msg": "Pakia Kadi yako ya mgeni",
+        "click_to_upload": "Bofya ili kupakia kitambulisho",
+        "format_note": "PNG, JPG hadi 10MB",
+        "next_btn": "Inayofuata: Uthibitisho wa Sura"
+      },
+      "biometric": {
+        "title": "Uthibitisho wa Sura",
+        "description": "Piga picha (selfie) ili kuthibitisha utambulisho wako",
+        "instruction": "Weka sura yako ndani ya duara na usitulie kwa sekunde chache",
+        "processing": "Inashughulikiwa...",
+        "capture_btn": "Piga Picha",
+        "start_camera_btn": "Washa Kamera",
+        "security_note": "Data zako zinalindwa na zinatumiwa tu kwa ajili ya uthibitisho wa utambulisho."
+      },
+      "success": {
+        "title": "Uthibitisho Umekamilika!",
+        "description": "Mkoba wako wa kidijitali umewashwa na kulindwa kwa PIN yako",
+        "explore_btn": "Fungua Mkoba",
+        "send_money": "Tuma Pesa",
+        "deposit_funds": "Weka Amana",
+        "withdraw_funds": "Toa Pesa"
+      }
+    }
   }
 }

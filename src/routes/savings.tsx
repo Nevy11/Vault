@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/api/supabase";
 import {
   PiggyBank,
@@ -63,9 +64,6 @@ const {
   ResponsiveContainer,
   AreaChart,
   Area,
-  Defs,
-  LinearGradient,
-  Stop,
   CartesianGrid,
   XAxis,
   YAxis,
@@ -83,24 +81,19 @@ export const Route = createFileRoute("/savings")({
   component: SavingsPage,
 });
 
-const FINANCIAL_JOKES = [
-  "Save a little every day and your goal gets closer faster.",
-  "Daily deposits build momentum more than one big push.",
-  "Track your progress each day to make saving feel effortless.",
-  "Small wins today become a big victory by deadline.",
-];
-
-const SAVING_LINES = [
-  "Small drops make a mighty ocean. Start savings today!",
-  "A penny saved is a penny earned. Watch your wealth grow!",
-  "Your future self will thank you for the discipline you show now.",
-  "Financial freedom starts with a single coin in the vault.",
-  "Locking away a little now opens big doors later.",
-];
-
 function SavingsPage() {
+  const { t } = useTranslation();
   const { tab } = Route.useSearch();
   const [activeTab, setActiveTab] = useState("overview");
+
+  const financialJokes = useMemo(
+    () => t("savings.jokes", { returnObjects: true }) as string[],
+    [t],
+  );
+  const savingLines = useMemo(
+    () => t("savings.saving_lines", { returnObjects: true }) as string[],
+    [t],
+  );
 
   const {
     goals,
@@ -184,9 +177,7 @@ function SavingsPage() {
     ? differenceInCalendarDays(new Date(deadlineDate), startOfToday())
     : null;
   const averageContribution = ledger.length
-    ? Math.round(
-        ledger.reduce((sum, entry) => sum + Number(entry.amount), 0) / ledger.length,
-      )
+    ? Math.round(ledger.reduce((sum, entry) => sum + Number(entry.amount), 0) / ledger.length)
     : 0;
 
   const progressValue = Math.max(0, Math.min(100, progress));
@@ -218,19 +209,19 @@ function SavingsPage() {
   }, [ledger]);
 
   const [jokeIndex, setJokeIndex] = useState(0);
-  const joke = useMemo(() => FINANCIAL_JOKES[jokeIndex], [jokeIndex]);
+  const joke = useMemo(() => financialJokes[jokeIndex], [jokeIndex, financialJokes]);
 
   const [lineIndex, setLineIndex] = useState(0);
-  const savingLine = useMemo(() => SAVING_LINES[lineIndex], [lineIndex]);
+  const savingLine = useMemo(() => savingLines[lineIndex], [lineIndex, savingLines]);
 
   useEffect(() => {
     if (showContributionModal) {
-      setLineIndex(Math.floor(Math.random() * SAVING_LINES.length));
+      setLineIndex(Math.floor(Math.random() * savingLines.length));
     }
-  }, [showContributionModal]);
+  }, [showContributionModal, savingLines]);
 
   const nextJoke = () => {
-    setJokeIndex((prev) => (prev + 1) % FINANCIAL_JOKES.length);
+    setJokeIndex((prev) => (prev + 1) % financialJokes.length);
   };
 
   const handleCreateGoal = async (e: React.FormEvent) => {
@@ -262,17 +253,9 @@ function SavingsPage() {
       if (["mpesa", "airtel", "any"].includes(autoProvider) && autoPhone) {
         finalAutoProvider = `${autoProvider.toUpperCase()} (${autoPhone})`;
       } else if (
-        [
-          "kcb",
-          "equity",
-          "ncba",
-          "absa",
-          "coop",
-          "stanbic",
-          "im",
-          "dtb",
-          "family",
-        ].includes(autoProvider) &&
+        ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
+          autoProvider,
+        ) &&
         autoAccount
       ) {
         finalAutoProvider = `${autoProvider.toUpperCase()} (${autoAccount})`;
@@ -327,15 +310,15 @@ function SavingsPage() {
 
   const handleRestrictedFieldClick = (fieldName: string) => {
     if (isEditing && savingsGoal) {
-      toast.info(`${fieldName} is fixed`, {
-        description: "This field cannot be changed once the goal is active.",
+      toast.info(t("savings.overview.fixed_field", { field: fieldName }), {
+        description: t("savings.overview.fixed_field_desc"),
       });
     }
   };
 
   const handleAddContribution = async () => {
     if (!contribAmount || !contribSource) {
-      toast.error("Please fill in all fields");
+      toast.error(t("common.errors.fill_all"));
       return;
     }
 
@@ -354,12 +337,12 @@ function SavingsPage() {
     ].includes(contribSource);
 
     if (isMobileMoney && !contribPhone) {
-      toast.error("Please enter your phone number");
+      toast.error(t("common.errors.enter_phone"));
       return;
     }
 
     if (isBank && !contribAccount) {
-      toast.error("Please enter your account number");
+      toast.error(t("common.errors.enter_account"));
       return;
     }
 
@@ -388,8 +371,8 @@ function SavingsPage() {
 
   const confirmAutomation = () => {
     if (!autoAmount || !autoProvider) {
-      toast.error("Incomplete Settings", {
-        description: "Please provide amount and financial provider.",
+      toast.error(t("common.errors.incomplete_settings"), {
+        description: t("common.errors.provide_amount_provider"),
       });
       return;
     }
@@ -398,17 +381,9 @@ function SavingsPage() {
     if (["mpesa", "airtel", "any"].includes(autoProvider) && autoPhone) {
       displayProvider = `${autoProvider.toUpperCase()} (${autoPhone})`;
     } else if (
-      [
-        "kcb",
-        "equity",
-        "ncba",
-        "absa",
-        "coop",
-        "stanbic",
-        "im",
-        "dtb",
-        "family",
-      ].includes(autoProvider) &&
+      ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
+        autoProvider,
+      ) &&
       autoAccount
     ) {
       displayProvider = `${autoProvider.toUpperCase()} (${autoAccount})`;
@@ -455,11 +430,11 @@ function SavingsPage() {
               </Button>
               <div>
                 <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
-                  Savings Vault
+                  {t("savings.title")}
                 </h1>
                 <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
                   <ShieldCheck className="w-4 h-4 text-primary" />
-                  Cryptographically secured target-based savings.
+                  {t("savings.subtitle")}
                 </p>
               </div>
             </div>
@@ -476,19 +451,19 @@ function SavingsPage() {
                   value="overview"
                   className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
                 >
-                  Overview
+                  {t("savings.tabs.overview")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="setup"
                   className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
                 >
-                  New Goal
+                  {t("savings.tabs.new_goal")}
                 </TabsTrigger>
                 <TabsTrigger
                   value="congrats"
                   className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-xs"
                 >
-                  🎉 Completion
+                  {t("savings.tabs.completion")}
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -506,7 +481,7 @@ function SavingsPage() {
                   <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
                     <Target className="w-5 h-5 text-primary" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                      My Goals
+                      {t("savings.overview.my_goals")}
                     </span>
                   </div>
                   <div className="flex gap-3">
@@ -566,12 +541,14 @@ function SavingsPage() {
 
                       <div className="flex gap-2">
                         <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-widest flex items-center">
-                          {progress.toFixed(0)}% Complete
+                          {progress.toFixed(0)}% {t("savings.overview.complete_badge")}
                         </div>
                       </div>
                     </div>
                     <CardDescription className="font-bold text-slate-700 dark:text-slate-300">
-                      Target: KES {savingsGoal?.target_amount?.toLocaleString() || "0"}
+                      {t("savings.overview.target_label", {
+                        amount: savingsGoal?.target_amount?.toLocaleString() || "0",
+                      })}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -583,19 +560,21 @@ function SavingsPage() {
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                               <div>
                                 <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
-                                  Savings status
+                                  {t("savings.overview.savings_status")}
                                 </p>
                                 <h2 className="mt-3 text-4xl font-bold tracking-tight">
                                   KES {savingsGoal?.current_amount?.toLocaleString() || "0"}
                                 </h2>
                                 <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                                  of KES {savingsGoal?.target_amount?.toLocaleString() || "0"} target
+                                  {t("savings.overview.of_target", {
+                                    amount: savingsGoal?.target_amount?.toLocaleString() || "0",
+                                  })}
                                 </p>
                               </div>
                               <div className="relative rounded-3xl bg-white p-4 border border-slate-200 shadow-sm text-center dark:bg-slate-900 dark:border-slate-800">
                                 <Calendar className="absolute right-4 top-4 w-4 h-4 text-emerald-500" />
                                 <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 text-center">
-                                  Days left
+                                  {t("savings.overview.days_left")}
                                 </p>
                                 <div className="mt-4 flex items-center justify-center">
                                   <div className="relative">
@@ -626,7 +605,7 @@ function SavingsPage() {
                                         {displayDaysLeft !== null ? displayDaysLeft : "--"}
                                       </span>
                                       <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">
-                                        days
+                                        {t("savings.overview.days")}
                                       </span>
                                     </div>
                                   </div>
@@ -637,17 +616,26 @@ function SavingsPage() {
                             <div className="grid gap-4 sm:grid-cols-2">
                               <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
                                 <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                                  Progress
+                                  {t("savings.overview.progress")}
                                 </p>
-                                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">{progress.toFixed(0)}%</p>
-                                <Progress value={Math.min(100, progress)} className="mt-4 h-3 rounded-full bg-slate-200 dark:bg-slate-800" />
+                                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                                  {progress.toFixed(0)}%
+                                </p>
+                                <Progress
+                                  value={Math.min(100, progress)}
+                                  className="mt-4 h-3 rounded-full bg-slate-200 dark:bg-slate-800"
+                                />
                               </div>
                               <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
                                 <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                                  Remaining
+                                  {t("savings.overview.remaining")}
                                 </p>
-                                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">KES {remaining.toLocaleString()}</p>
-                                <p className="mt-1 text-xs text-slate-500">towards your goal</p>
+                                <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                                  KES {remaining.toLocaleString()}
+                                </p>
+                                <p className="mt-1 text-xs text-slate-500">
+                                  {t("savings.overview.towards_goal")}
+                                </p>
                               </div>
                             </div>
                           </div>
@@ -657,26 +645,37 @@ function SavingsPage() {
                           <div className="flex items-center justify-between gap-4 mb-4">
                             <div className="space-y-1">
                               <p className="text-[10px] uppercase tracking-[0.4em] font-bold text-muted-foreground">
-                                Momentum
+                                {t("savings.overview.momentum")}
                               </p>
                               <h3 className="text-lg font-bold text-slate-950 dark:text-white">
-                                Daily progress
+                                {t("savings.overview.daily_progress")}
                               </h3>
                             </div>
                             <div className="rounded-3xl bg-primary/10 px-3 py-2 text-primary font-bold text-xs uppercase">
-                              Money Fancy
+                              {t("savings.overview.money_fancy")}
                             </div>
                           </div>
                           <div className="h-[280px]">
                             <ResponsiveContainer width="100%" height="100%">
                               <AreaChart data={barData}>
-                                <Defs>
-                                  <LinearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <Stop offset="5%" stopColor="rgba(16,185,129,0.85)" stopOpacity={0.85} />
-                                    <Stop offset="95%" stopColor="rgba(16,185,129,0)" stopOpacity={0} />
-                                  </LinearGradient>
-                                </Defs>
-                                <CartesianGrid strokeDasharray="4 4" stroke="rgba(148,163,184,0.15)" />
+                                <defs>
+                                  <linearGradient id="savingsGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop
+                                      offset="5%"
+                                      stopColor="rgba(16,185,129,0.85)"
+                                      stopOpacity={0.85}
+                                    />
+                                    <stop
+                                      offset="95%"
+                                      stopColor="rgba(16,185,129,0)"
+                                      stopOpacity={0}
+                                    />
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid
+                                  strokeDasharray="4 4"
+                                  stroke="rgba(148,163,184,0.15)"
+                                />
                                 <XAxis
                                   dataKey="label"
                                   tick={{ fill: "var(--muted)", fontSize: 12 }}
@@ -723,30 +722,37 @@ function SavingsPage() {
                               </div>
                               <div>
                                 <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-bold">
-                                  Goal snapshot
+                                  {t("savings.overview.goal_snapshot")}
                                 </p>
-                                <h3 className="text-2xl font-bold">Visible progress</h3>
+                                <h3 className="text-2xl font-bold">
+                                  {t("savings.overview.visible_progress")}
+                                </h3>
                               </div>
                             </div>
                             <div className="relative z-10 mt-6 grid gap-4">
                               <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
                                 <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                                  Reward
+                                  {t("savings.overview.reward")}
                                 </p>
-                                <p className="mt-3 text-2xl font-bold">KES {rewardAmount.toLocaleString()}</p>
+                                <p className="mt-3 text-2xl font-bold">
+                                  KES {rewardAmount.toLocaleString()}
+                                </p>
                               </div>
                               <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
                                 <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                                  Avg/day
+                                  {t("savings.overview.avg_day")}
                                 </p>
-                                <p className="mt-3 text-2xl font-bold">KES {averageContribution.toLocaleString()}</p>
+                                <p className="mt-3 text-2xl font-bold">
+                                  KES {averageContribution.toLocaleString()}
+                                </p>
                               </div>
                               <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
                                 <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
-                                  Funding
+                                  {t("savings.overview.funding")}
                                 </p>
                                 <p className="mt-3 text-lg font-bold">
-                                  {savingsGoal?.funding_source || "Vault / Mobile Money"}
+                                  {savingsGoal?.funding_source ||
+                                    t("savings.overview.funding_fallback")}
                                 </p>
                               </div>
                             </div>
@@ -761,21 +767,19 @@ function SavingsPage() {
                             </div>
                             <div>
                               <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-bold">
-                                Quick tip
+                                {t("savings.overview.quick_tip")}
                               </p>
-                              <p className="text-lg font-bold">Save a little each day</p>
+                              <p className="text-lg font-bold">{t("savings.overview.tip_desc")}</p>
                             </div>
                           </div>
-                          <p className="mt-4 text-sm text-slate-600 leading-relaxed">
-                            Daily progress adds up faster than one big push.
-                          </p>
+                          <p className="mt-4 text-sm text-slate-600 leading-relaxed">{joke}</p>
                           <div className="mt-5">
                             <Button
                               variant="outline"
                               className="w-full rounded-xl border-primary/30 font-bold hover:bg-primary/5 transition-all"
                               onClick={nextJoke}
                             >
-                              Next Tip
+                              {t("savings.overview.next_tip")}
                             </Button>
                           </div>
                         </Card>
@@ -788,7 +792,7 @@ function SavingsPage() {
                       onClick={() => setShowContributionModal(true)}
                     >
                       <PiggyBank className="w-5 h-5 mr-2" />
-                      Add Savings
+                      {t("savings.overview.add_savings_btn")}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -805,10 +809,10 @@ function SavingsPage() {
                         </div>
                         <div>
                           <CardTitle className="font-semibold text-slate-950 dark:text-white uppercase tracking-tight text-base">
-                            Savings Tip
+                            {t("savings.tip.title")}
                           </CardTitle>
                           <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
-                            Daily progress makes it real.
+                            {t("savings.tip.description")}
                           </CardDescription>
                         </div>
                       </div>
@@ -826,7 +830,7 @@ function SavingsPage() {
                       className="w-full rounded-xl border-primary/30 font-bold hover:bg-primary/5 transition-all py-3"
                       onClick={nextJoke}
                     >
-                      Next Tip
+                      {t("savings.overview.next_tip")}
                     </Button>
                   </div>
                 </Card>
@@ -835,26 +839,26 @@ function SavingsPage() {
               {/* Ledger Table */}
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-slate-950 dark:text-white uppercase tracking-tight">
-                  Savings Ledger
+                  {t("savings.ledger.title")}
                 </h3>
                 <div className="rounded-2xl border border-white/30 bg-white/80 dark:bg-slate-950/80 overflow-hidden backdrop-blur-2xl shadow-2xl">
                   <table className="w-full text-left">
                     <thead>
                       <tr className="border-b border-white/20 bg-primary/5">
                         <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                          Date
+                          {t("common.date")}
                         </th>
                         <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                          Source
+                          {t("common.source")}
                         </th>
                         <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                          Type
+                          {t("common.type")}
                         </th>
                         <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                          Amount
+                          {t("common.amount")}
                         </th>
                         <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white text-right">
-                          Running Total
+                          {t("savings.ledger.running_total")}
                         </th>
                       </tr>
                     </thead>
@@ -892,7 +896,7 @@ function SavingsPage() {
                             colSpan={5}
                             className="px-6 py-12 text-center text-muted-foreground font-medium"
                           >
-                            No contributions recorded yet. Start saving to see your ledger!
+                            {t("savings.ledger.no_contributions")}
                           </td>
                         </tr>
                       )}
@@ -913,24 +917,40 @@ function SavingsPage() {
                     type="button"
                     onClick={handleCancel}
                     className="absolute top-4 right-4 p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors z-20 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-                    title="Cancel"
+                    title={t("common.cancel")}
                   >
                     <X className="w-5 h-5" />
                   </button>
                   <form onSubmit={handleCreateGoal} className="space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                       <div className="space-y-2">
-                        <Label className="text-[9px] font-semibold uppercase tracking-wider">Title</Label>
+                        <Label className="text-[9px] font-semibold uppercase tracking-wider">
+                          {t("savings.form.title")}
+                        </Label>
                         <div className="relative">
                           <Target className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-600" />
-                          <Input placeholder="Saving for..." value={goalTitle} onChange={(e) => setGoalTitle(e.target.value)} className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm" required />
+                          <Input
+                            placeholder={t("savings.form.title_placeholder")}
+                            value={goalTitle}
+                            onChange={(e) => setGoalTitle(e.target.value)}
+                            className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm"
+                            required
+                          />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[9px] font-semibold uppercase tracking-wider">Target (KES)</Label>
+                        <Label className="text-[9px] font-semibold uppercase tracking-wider">
+                          {t("savings.form.target_amount")}
+                        </Label>
                         <div className="relative">
                           <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                          <Input placeholder="0.00" value={targetAmount} onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))} className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm tabular-nums" required />
+                          <Input
+                            placeholder="0.00"
+                            value={targetAmount}
+                            onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))}
+                            className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-bold text-sm tabular-nums"
+                            required
+                          />
                         </div>
                       </div>
                     </div>
@@ -941,14 +961,16 @@ function SavingsPage() {
                           htmlFor="start"
                           className="text-sm font-bold uppercase tracking-[0.1em]"
                         >
-                          Start Date{" "}
+                          {t("savings.form.start_date")}{" "}
                           {isEditing && savingsGoal && (
-                            <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>
+                            <span className="text-[10px] text-amber-600 lowercase">
+                              {t("savings.form.fixed")}
+                            </span>
                           )}
                         </Label>
                         <div
                           className="relative"
-                          onClick={() => handleRestrictedFieldClick("Start date")}
+                          onClick={() => handleRestrictedFieldClick(t("savings.form.start_date"))}
                         >
                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
@@ -971,14 +993,18 @@ function SavingsPage() {
                           htmlFor="deadline"
                           className="text-sm font-bold uppercase tracking-[0.1em]"
                         >
-                          Deadline Date{" "}
+                          {t("savings.form.deadline_date")}{" "}
                           {isEditing && savingsGoal && (
-                            <span className="text-[10px] text-amber-600 lowercase">(fixed)</span>
+                            <span className="text-[10px] text-amber-600 lowercase">
+                              {t("savings.form.fixed")}
+                            </span>
                           )}
                         </Label>
                         <div
                           className="relative"
-                          onClick={() => handleRestrictedFieldClick("Deadline date")}
+                          onClick={() =>
+                            handleRestrictedFieldClick(t("savings.form.deadline_date"))
+                          }
                         >
                           <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                           <Input
@@ -1003,69 +1029,69 @@ function SavingsPage() {
                         htmlFor="source"
                         className="text-sm font-bold uppercase tracking-[0.1em]"
                       >
-                        Funding Source
+                        {t("savings.form.funding_source")}
                       </Label>
                       <Select value={goalSource} onValueChange={setGoalSource}>
                         <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-bold">
-                          <SelectValue placeholder="Select Source" />
+                          <SelectValue placeholder={t("savings.form.select_source")} />
                         </SelectTrigger>
                         <SelectContent className="rounded-2xl border-white/30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl max-h-[400px] overflow-y-auto">
                           <SelectItem
                             value="any"
                             className="font-bold text-emerald-600 dark:text-emerald-400"
                           >
-                            Any Available Source
+                            {t("savings.form.any_available")}
                           </SelectItem>
                           <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                            <Wallet className="w-3 h-3" /> Vault
+                            <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
                           </div>
                           <SelectItem value="vault_balance" className="font-bold text-primary">
-                            Vault Account
+                            {t("savings.form.vault_account")}
                           </SelectItem>
                           <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
-                            Categories
+                            {t("savings.form.categories")}
                           </div>
                           <SelectItem value="any_mobile" className="font-bold text-primary">
-                            Any Mobile Money
+                            {t("savings.form.any_mobile")}
                           </SelectItem>
                           <SelectItem value="any_bank" className="font-bold text-primary">
-                            Any Bank Account
+                            {t("savings.form.any_bank")}
                           </SelectItem>
                           <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
-                            Specifics
+                            {t("savings.form.specifics")}
                           </div>
                           <SelectItem value="mpesa" className="font-bold">
-                            M-Pesa (Safaricom)
+                            {t("savings.form.providers.mpesa")}
                           </SelectItem>
                           <SelectItem value="airtel" className="font-bold">
-                            Airtel Money
+                            {t("savings.form.providers.airtel")}
                           </SelectItem>
                           <SelectItem value="kcb" className="font-bold">
-                            KCB Group
+                            {t("savings.form.providers.kcb")}
                           </SelectItem>
                           <SelectItem value="equity" className="font-bold">
-                            Equity Bank
+                            {t("savings.form.providers.equity")}
                           </SelectItem>
                           <SelectItem value="ncba" className="font-bold">
-                            NCBA Bank
+                            {t("savings.form.providers.ncba")}
                           </SelectItem>
                           <SelectItem value="absa" className="font-bold">
-                            Absa Kenya
+                            {t("savings.form.providers.absa")}
                           </SelectItem>
                           <SelectItem value="coop" className="font-bold">
-                            Co-operative Bank
+                            {t("savings.form.providers.coop")}
                           </SelectItem>
                           <SelectItem value="stanbic" className="font-bold">
-                            Stanbic Bank
+                            {t("savings.form.providers.stanbic")}
                           </SelectItem>
                           <SelectItem value="im" className="font-bold">
-                            I&M Bank
+                            {t("savings.form.providers.im")}
                           </SelectItem>
                           <SelectItem value="dtb" className="font-bold">
-                            Diamond Trust Bank
+                            {t("savings.form.providers.dtb")}
                           </SelectItem>
                           <SelectItem value="family" className="font-bold">
-                            Family Bank Kenya
+                            {t("savings.form.providers.family")}
                           </SelectItem>
                         </SelectContent>
                       </Select>
@@ -1075,7 +1101,7 @@ function SavingsPage() {
                     {["mpesa", "airtel", "any_mobile"].includes(goalSource) && (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          Default Phone Number
+                          {t("savings.form.default_phone")}
                         </Label>
                         <div className="relative">
                           <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1104,7 +1130,7 @@ function SavingsPage() {
                     ].includes(goalSource) && (
                       <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                         <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          Default Bank Account
+                          {t("savings.form.default_bank")}
                         </Label>
                         <div className="relative">
                           <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1123,10 +1149,10 @@ function SavingsPage() {
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
                           <h4 className="font-bold text-emerald-900 dark:text-emerald-300">
-                            Lock Rules
+                            {t("savings.form.lock_rules")}
                           </h4>
                           <p className="text-xs text-muted-foreground font-medium">
-                            Funds are inaccessible until target date.
+                            {t("savings.form.lock_rules_desc")}
                           </p>
                         </div>
                         <Switch
@@ -1137,9 +1163,9 @@ function SavingsPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="space-y-1">
-                          <h4 className="font-bold">Automate Savings</h4>
+                          <h4 className="font-bold">{t("savings.form.automate_savings")}</h4>
                           <p className="text-xs text-muted-foreground font-medium">
-                            Configure scheduled deductions.
+                            {t("savings.form.automate_desc")}
                           </p>
                         </div>
                         <Switch
@@ -1154,7 +1180,7 @@ function SavingsPage() {
                       type="submit"
                       className="w-full h-18 rounded-[1.5rem] text-xl font-bold bg-gradient-to-r from-emerald-600 via-primary to-emerald-600"
                     >
-                      {isEditing ? "Update Savings Vault" : "Initialize Savings Vault"}
+                      {isEditing ? t("savings.form.update_btn") : t("savings.form.init_btn")}
                     </Button>
                   </form>
                 </Card>
@@ -1176,25 +1202,56 @@ function SavingsPage() {
                       </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold text-slate-950 dark:text-white mb-2 tracking-tight">Pending saving</h2>
+                    <h2 className="text-2xl font-bold text-slate-950 dark:text-white mb-2 tracking-tight">
+                      {t("savings.completion.pending_title")}
+                    </h2>
                     <p className="text-sm text-slate-900 dark:text-slate-100 font-semibold mb-8 max-w-sm mx-auto leading-relaxed">
-                      You are KES <span className="text-primary tabular-nums">{(savingsGoal.target_amount - savingsGoal.current_amount).toLocaleString()}</span> away.
+                      {t("savings.completion.away_message", {
+                        amount: (
+                          savingsGoal.target_amount - savingsGoal.current_amount
+                        ).toLocaleString(),
+                      })}
                     </p>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
                       <Card className="rounded-2xl border border-white/10 bg-white/40 dark:bg-slate-900/40 p-4 shadow-md">
-                        <h4 className="text-[8px] font-bold uppercase text-muted-foreground mb-1 tracking-widest">Remaining</h4>
-                        <p className="text-xl font-bold text-slate-950 dark:text-white tabular-nums">KES {(savingsGoal.target_amount - savingsGoal.current_amount).toLocaleString()}</p>
+                        <h4 className="text-[8px] font-bold uppercase text-muted-foreground mb-1 tracking-widest">
+                          {t("savings.overview.remaining")}
+                        </h4>
+                        <p className="text-xl font-bold text-slate-950 dark:text-white tabular-nums">
+                          KES{" "}
+                          {(
+                            savingsGoal.target_amount - savingsGoal.current_amount
+                          ).toLocaleString()}
+                        </p>
                       </Card>
                       <Card className="rounded-2xl border border-emerald-500/10 bg-emerald-500/5 p-4 shadow-md">
-                        <h4 className="text-[8px] font-bold uppercase text-muted-foreground mb-1 tracking-widest">Reward</h4>
-                        <p className="text-xl font-bold text-emerald-600 tabular-nums">KES {rewardAmount.toLocaleString()}</p>
+                        <h4 className="text-[8px] font-bold uppercase text-muted-foreground mb-1 tracking-widest">
+                          {t("savings.overview.reward")}
+                        </h4>
+                        <p className="text-xl font-bold text-emerald-600 tabular-nums">
+                          KES {rewardAmount.toLocaleString()}
+                        </p>
                       </Card>
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Button className="h-10 px-8 rounded-xl text-xs font-bold shadow-md bg-primary active:scale-95 transition-all" onClick={() => setActiveTab("overview")}>Overview</Button>
-                      <Button variant="outline" className="h-10 px-8 rounded-xl text-xs font-bold border-white/10 backdrop-blur-md active:scale-95" onClick={() => { setIsEditing(true); setActiveTab("setup"); }}>Adjust</Button>
+                      <Button
+                        className="h-10 px-8 rounded-xl text-xs font-bold shadow-md bg-primary active:scale-95 transition-all"
+                        onClick={() => setActiveTab("overview")}
+                      >
+                        {t("savings.tabs.overview")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="h-10 px-8 rounded-xl text-xs font-bold border-white/10 backdrop-blur-md active:scale-95"
+                        onClick={() => {
+                          setIsEditing(true);
+                          setActiveTab("setup");
+                        }}
+                      >
+                        {t("savings.completion.adjust_btn")}
+                      </Button>
                     </div>
                   </>
                 ) : (
@@ -1207,18 +1264,16 @@ function SavingsPage() {
                     </div>
 
                     <h2 className="text-5xl font-bold text-slate-950 dark:text-white mb-4 tracking-tight drop-shadow-sm">
-                      Goal Achieved!
+                      {t("savings.completion.achieved_title")}
                     </h2>
                     <p className="text-xl text-slate-900 dark:text-slate-100 font-bold mb-12 max-w-2xl mx-auto leading-relaxed">
-                      Congratulations! You have successfully completed your savings goal:{" "}
-                      <span className="text-emerald-600">"{savingsGoal?.title}"</span>. Your
-                      discipline has earned you a special reward.
+                      {t("savings.completion.congrats_message", { title: savingsGoal?.title })}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                       <Card className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-xl p-8 shadow-xl relative overflow-hidden group">
                         <Sparkles className="w-10 h-10 text-emerald-600 mb-4 mx-auto relative z-10" />
                         <h4 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 relative z-10 tracking-widest">
-                          2% Interest Reward
+                          {t("savings.completion.reward_label")}
                         </h4>
                         <p className="text-4xl font-bold text-emerald-600 relative z-10">
                           KES {rewardAmount.toLocaleString()}
@@ -1227,7 +1282,7 @@ function SavingsPage() {
                       <Card className="rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-xl p-8 shadow-xl">
                         <PiggyBank className="w-10 h-10 text-primary mb-4 mx-auto" />
                         <h4 className="text-[10px] font-bold uppercase text-muted-foreground mb-2 tracking-widest">
-                          Total Value
+                          {t("savings.completion.total_value")}
                         </h4>
                         <p className="text-4xl font-bold text-slate-950 dark:text-white">
                           KES {((savingsGoal?.target_amount || 0) + rewardAmount).toLocaleString()}
@@ -1242,7 +1297,7 @@ function SavingsPage() {
                           className="h-18 px-12 rounded-[1.5rem] text-xl font-bold shadow-2xl shadow-emerald-500/30 bg-emerald-600 hover:bg-emerald-700 transition-all duration-300 hover:scale-105 active:scale-95"
                           onClick={handleReceiveReward}
                         >
-                          Receive Reward
+                          {t("savings.completion.receive_reward_btn")}
                         </Button>
                         <Button
                           variant="outline"
@@ -1250,7 +1305,7 @@ function SavingsPage() {
                           className="h-18 px-12 rounded-[1.5rem] text-xl font-bold border-white/40 backdrop-blur-md transition-all duration-300 hover:bg-white/10"
                           onClick={() => setActiveTab("setup")}
                         >
-                          Start New Goal
+                          {t("savings.completion.start_new_btn")}
                         </Button>
                       </div>
                     </div>
@@ -1259,7 +1314,7 @@ function SavingsPage() {
 
                 <div className="mt-16 pt-8 border-t border-white/10 inline-block px-12">
                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em]">
-                    Vault Automated Growth Engine
+                    {t("savings.completion.growth_engine")}
                   </p>
                 </div>
               </div>
@@ -1284,7 +1339,7 @@ function SavingsPage() {
                 <PiggyBank className="w-7 h-7" />
               </div>
               <DialogTitle className="text-2xl font-bold text-slate-950 dark:text-white">
-                Add Savings
+                {t("savings.add_savings_modal.title")}
               </DialogTitle>
               <DialogDescription className="font-bold text-emerald-600 dark:text-emerald-400 italic">
                 "{savingLine}"
@@ -1294,14 +1349,14 @@ function SavingsPage() {
             <div className="space-y-8">
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Contribution Amount (KES)
+                  {t("savings.add_savings_modal.amount_label")}
                 </Label>
                 <div className="relative">
                   <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     type="text"
                     inputMode="numeric"
-                    placeholder="Enter amount to save"
+                    placeholder={t("savings.add_savings_modal.amount_placeholder")}
                     value={contribAmount}
                     onChange={(e) => setContribAmount(formatWithCommas(e.target.value))}
                     className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-bold"
@@ -1311,36 +1366,60 @@ function SavingsPage() {
 
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Funding Source
+                  {t("savings.form.funding_source")}
                 </Label>
                 <Select value={contribSource} onValueChange={setContribSource}>
                   <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-bold">
-                    <SelectValue placeholder="Where are you saving from?" />
+                    <SelectValue placeholder={t("savings.add_savings_modal.source_placeholder")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                      <Smartphone className="w-3 h-3" /> Mobile Money
+                      <Smartphone className="w-3 h-3" /> {t("savings.form.any_mobile")}
                     </div>
-                    <SelectItem value="mpesa" className="font-bold">M-Pesa</SelectItem>
-                    <SelectItem value="airtel" className="font-bold">Airtel Money</SelectItem>
+                    <SelectItem value="mpesa" className="font-bold">
+                      {t("savings.form.providers.mpesa")}
+                    </SelectItem>
+                    <SelectItem value="airtel" className="font-bold">
+                      {t("savings.form.providers.airtel")}
+                    </SelectItem>
 
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Building2 className="w-3 h-3" /> Banks
+                      <Building2 className="w-3 h-3" /> {t("savings.form.any_bank")}
                     </div>
-                    <SelectItem value="kcb" className="font-bold">KCB Group</SelectItem>
-                    <SelectItem value="equity" className="font-bold">Equity Bank</SelectItem>
-                    <SelectItem value="ncba" className="font-bold">NCBA Bank</SelectItem>
-                    <SelectItem value="absa" className="font-bold">Absa Kenya</SelectItem>
-                    <SelectItem value="coop" className="font-bold">Co-operative Bank</SelectItem>
-                    <SelectItem value="stanbic" className="font-bold">Stanbic Bank</SelectItem>
-                    <SelectItem value="im" className="font-bold">I&M Bank</SelectItem>
-                    <SelectItem value="dtb" className="font-bold">Diamond Trust Bank</SelectItem>
-                    <SelectItem value="family" className="font-bold">Family Bank Kenya</SelectItem>
+                    <SelectItem value="kcb" className="font-bold">
+                      {t("savings.form.providers.kcb")}
+                    </SelectItem>
+                    <SelectItem value="equity" className="font-bold">
+                      {t("savings.form.providers.equity")}
+                    </SelectItem>
+                    <SelectItem value="ncba" className="font-bold">
+                      {t("savings.form.providers.ncba")}
+                    </SelectItem>
+                    <SelectItem value="absa" className="font-bold">
+                      {t("savings.form.providers.absa")}
+                    </SelectItem>
+                    <SelectItem value="coop" className="font-bold">
+                      {t("savings.form.providers.coop")}
+                    </SelectItem>
+                    <SelectItem value="stanbic" className="font-bold">
+                      {t("savings.form.providers.stanbic")}
+                    </SelectItem>
+                    <SelectItem value="im" className="font-bold">
+                      {t("savings.form.providers.im")}
+                    </SelectItem>
+                    <SelectItem value="dtb" className="font-bold">
+                      {t("savings.form.providers.dtb")}
+                    </SelectItem>
+                    <SelectItem value="family" className="font-bold">
+                      {t("savings.form.providers.family")}
+                    </SelectItem>
 
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Wallet className="w-3 h-3" /> Vault
+                      <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
                     </div>
-                    <SelectItem value="vault_balance" className="font-bold">Vault Account</SelectItem>
+                    <SelectItem value="vault_balance" className="font-bold">
+                      {t("savings.form.vault_account")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1349,7 +1428,7 @@ function SavingsPage() {
               {["mpesa", "airtel"].includes(contribSource) && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Phone Number
+                    {t("savings.form.providers.phone_number")}
                   </Label>
                   <div className="relative">
                     <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1364,20 +1443,12 @@ function SavingsPage() {
                 </div>
               )}
 
-              {[
-                "kcb",
-                "equity",
-                "ncba",
-                "absa",
-                "coop",
-                "stanbic",
-                "im",
-                "dtb",
-                "family",
-              ].includes(contribSource) && (
+              {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
+                contribSource,
+              ) && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Bank Account Number
+                    {t("savings.form.providers.bank_account")}
                   </Label>
                   <div className="relative">
                     <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1398,7 +1469,8 @@ function SavingsPage() {
                 className="w-full h-11 rounded-xl font-bold shadow-lg bg-emerald-600 hover:bg-emerald-700 text-sm"
                 onClick={handleAddContribution}
               >
-                Save Now <ArrowUpRight className="ml-1.5 w-3.5 h-3.5" />
+                {t("savings.add_savings_modal.save_now_btn")}{" "}
+                <ArrowUpRight className="ml-1.5 w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
@@ -1426,17 +1498,17 @@ function SavingsPage() {
                 <Zap className="w-7 h-7" />
               </div>
               <DialogTitle className="text-2xl font-bold text-slate-950 dark:text-white">
-                Automation Engine
+                {t("savings.automation_modal.title")}
               </DialogTitle>
               <DialogDescription className="font-bold text-slate-700 dark:text-slate-300">
-                Configure your scheduled savings schedule.
+                {t("savings.automation_modal.description")}
               </DialogDescription>
             </DialogHeader>
 
             <div className="space-y-8">
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Frequency
+                  {t("savings.automation_modal.frequency")}
                 </Label>
                 <RadioGroup
                   value={autoFreq}
@@ -1455,11 +1527,8 @@ function SavingsPage() {
                       onClick={() => setAutoFreq(freq)}
                     >
                       <RadioGroupItem value={freq} id={freq} className="sr-only" />
-                      <Label
-                        htmlFor={freq}
-                        className="capitalize font-bold text-sm cursor-pointer"
-                      >
-                        {freq}
+                      <Label htmlFor={freq} className="capitalize font-bold text-sm cursor-pointer">
+                        {t(`savings.automation_modal.${freq}`)}
                       </Label>
                     </div>
                   ))}
@@ -1468,7 +1537,7 @@ function SavingsPage() {
 
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Deduction Amount (KES)
+                  {t("savings.automation_modal.deduction_amount")}
                 </Label>
                 <div className="relative">
                   <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1485,63 +1554,63 @@ function SavingsPage() {
 
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                  Financial Provider
+                  {t("savings.automation_modal.financial_provider")}
                 </Label>
                 <Select value={autoProvider} onValueChange={setAutoProvider}>
                   <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-bold">
-                    <SelectValue placeholder="Which provider?" />
+                    <SelectValue placeholder={t("savings.automation_modal.which_provider")} />
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
                     <SelectItem
                       value="any"
                       className="font-bold text-emerald-600 dark:text-emerald-400"
                     >
-                      Any Available Source
+                      {t("savings.form.any_available")}
                     </SelectItem>
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Wallet className="w-3 h-3" /> Vault
+                      <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
                     </div>
                     <SelectItem value="vault_balance" className="font-bold">
-                      Vault Account
+                      {t("savings.form.vault_account")}
                     </SelectItem>
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Smartphone className="w-3 h-3" /> Mobile
+                      <Smartphone className="w-3 h-3" /> {t("savings.form.categories")}
                     </div>
                     <SelectItem value="mpesa" className="font-bold">
-                      M-Pesa (Safaricom)
+                      {t("savings.form.providers.mpesa")}
                     </SelectItem>
                     <SelectItem value="airtel" className="font-bold">
-                      Airtel Money
+                      {t("savings.form.providers.airtel")}
                     </SelectItem>
                     <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Building2 className="w-3 h-3" /> Banks
+                      <Building2 className="w-3 h-3" /> {t("savings.form.any_bank")}
                     </div>
                     <SelectItem value="kcb" className="font-bold">
-                      KCB Group
+                      {t("savings.form.providers.kcb")}
                     </SelectItem>
                     <SelectItem value="equity" className="font-bold">
-                      Equity Bank
+                      {t("savings.form.providers.equity")}
                     </SelectItem>
                     <SelectItem value="ncba" className="font-bold">
-                      NCBA Bank
+                      {t("savings.form.providers.ncba")}
                     </SelectItem>
                     <SelectItem value="absa" className="font-bold">
-                      Absa Kenya
+                      {t("savings.form.providers.absa")}
                     </SelectItem>
                     <SelectItem value="coop" className="font-bold">
-                      Co-operative Bank
+                      {t("savings.form.providers.coop")}
                     </SelectItem>
                     <SelectItem value="stanbic" className="font-bold">
-                      Stanbic Bank
+                      {t("savings.form.providers.stanbic")}
                     </SelectItem>
                     <SelectItem value="im" className="font-bold">
-                      I&M Bank
+                      {t("savings.form.providers.im")}
                     </SelectItem>
                     <SelectItem value="dtb" className="font-bold">
-                      Diamond Trust Bank
+                      {t("savings.form.providers.dtb")}
                     </SelectItem>
                     <SelectItem value="family" className="font-bold">
-                      Family Bank Kenya
+                      {t("savings.form.providers.family")}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -1551,7 +1620,7 @@ function SavingsPage() {
               {["mpesa", "airtel", "any"].includes(autoProvider) && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Phone Number for Deduction
+                    {t("savings.automation_modal.phone_for_deduction")}
                   </Label>
                   <div className="relative">
                     <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1566,20 +1635,12 @@ function SavingsPage() {
                 </div>
               )}
 
-              {[
-                "kcb",
-                "equity",
-                "ncba",
-                "absa",
-                "coop",
-                "stanbic",
-                "im",
-                "dtb",
-                "family",
-              ].includes(autoProvider) && (
+              {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
+                autoProvider,
+              ) && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    Bank Account for Deduction
+                    {t("savings.automation_modal.bank_for_deduction")}
                   </Label>
                   <div className="relative">
                     <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1601,13 +1662,13 @@ function SavingsPage() {
                 className="flex-1 h-14 rounded-2xl font-bold border-white/20"
                 onClick={() => setShowAutoPopup(false)}
               >
-                <ArrowLeft className="w-4 h-4 mr-2" /> Back
+                <ArrowLeft className="w-4 h-4 mr-2" /> {t("common.back")}
               </Button>
               <Button
                 className="flex-1 h-14 rounded-2xl font-bold shadow-xl"
                 onClick={confirmAutomation}
               >
-                Confirm OK <Check className="ml-2 w-4 h-4" />
+                {t("savings.automation_modal.confirm_ok")} <Check className="ml-2 w-4 h-4" />
               </Button>
             </div>
           </div>
