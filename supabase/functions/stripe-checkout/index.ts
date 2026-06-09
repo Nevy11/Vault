@@ -12,25 +12,29 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  try {
-    let stripeKey = Deno.env.get("STRIPE_SECRET_KEY")?.trim();
-    if (!stripeKey) {
-      throw new Error("STRIPE_SECRET_KEY is not set");
-    }
-
-    // Clean the key: remove any wrapping quotes or brackets
-    stripeKey = stripeKey.replace(/^["'[]+|["'\]]+$/g, "");
-
-    console.log(`Stripe Key Length: ${stripeKey.length} characters`);
-    console.log(
-      `Key Check: Starts with ${stripeKey.substring(0, 8)} and ends with ${stripeKey.substring(stripeKey.length - 4)}`,
+  let stripeKey = Deno.env.get("STRIPE_SECRET_KEY")?.trim();
+  if (!stripeKey || stripeKey === "sk_test_YOUR_KEY_HERE" || stripeKey.includes("y8z9") || stripeKey.length < 20) {
+    console.error("CRITICAL: STRIPE_SECRET_KEY is not set or is a placeholder");
+    return new Response(
+      JSON.stringify({ 
+        error: "Server configuration error: Valid Stripe secret key missing. Please set STRIPE_SECRET_KEY in Supabase secrets." 
+      }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
+  }
 
-    const stripe = new Stripe(stripeKey, {
-      apiVersion: "2023-10-16",
-      httpClient: Stripe.createFetchHttpClient(),
-    });
+  // Clean the key: remove any wrapping quotes or brackets that might have been added accidentally
+  stripeKey = stripeKey.replace(/^["'[]+|["'\]]+$/g, "");
 
+  const stripe = new Stripe(stripeKey, {
+    apiVersion: "2023-10-16",
+    httpClient: Stripe.createFetchHttpClient(),
+  });
+
+  try {
     // Validate request method
     if (req.method !== "POST") {
       throw new Error(`Method ${req.method} not allowed`);

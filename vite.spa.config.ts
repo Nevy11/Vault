@@ -1,12 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
+import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 // Minimal SPA build config to produce a static index.html in dist/client
 export default defineConfig({
   root: ".",
   plugins: [
+    tailwindcss(),
     react(),
     tsconfigPaths(),
     VitePWA({
