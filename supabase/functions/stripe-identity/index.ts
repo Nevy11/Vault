@@ -55,14 +55,15 @@ serve(async (req) => {
 
     console.log(`Creating Identity VerificationSession for user: ${user_id}`);
 
-    // Create a VerificationSession
+    // Create a VerificationSession with strict options for biometric verification
     const session = await stripe.identity.verificationSessions.create({
       type: "document",
       options: {
         document: {
           require_id_number: true,
-          require_matching_selfie: true,
-          require_live_capture: true,
+          require_matching_selfie: true, // Triggers selfie capture
+          require_live_capture: true,    // Forces liveness detection (prevents photo-of-photo)
+          // allow_selfie_capture_method: "auto", // Note: This is usually handled by the SDK
         },
       },
       metadata: {

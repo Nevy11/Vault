@@ -17,6 +17,13 @@ import { Logo } from "@/components/logo";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
+import { loadStripe } from "@stripe/stripe-js";
+
+// Initialize Stripe
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51Ro0ysE4K5QIsyl6tFrDH7oCDENuxy0P1iq7wWIvwiI5jyUtrf2Tsb0bizDjX0NIaTjiV1gzmGNVPj7GbqeyF4yX005RF2puYW",
+);
 
 // 1. TanStack Router Configuration
 export const Route = createFileRoute("/kyc")({
@@ -36,6 +43,7 @@ export const Route = createFileRoute("/kyc")({
 
 // 2. Helper Components
 function Confetti() {
+// ... rest of Confetti component
   const [confetti] = useState<
     Array<{ id: number; x: number; y: number; delay: number; duration: number }>
   >(
@@ -92,6 +100,9 @@ function KYCPage() {
     setIsLoading(true);
     setErrorOccurred(false);
     try {
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe failed to load");
+
       console.log("Initializing Stripe Identity session for user:", profile.id);
       const { data, error } = await supabase.functions.invoke("stripe-identity", {
         body: {
@@ -112,11 +123,27 @@ function KYCPage() {
         throw new Error(errorMessage);
       }
       
-      if (data?.url) {
-        // Redirect to Stripe Identity hosted flow
+      if (data?.client_secret) {
+        // Open the Stripe Identity modal flow instead of redirecting
+        const { error: verifyError } = await stripe.verifyIdentity(data.client_secret);
+        
+        if (verifyError) {
+          console.error("Stripe Identity Error:", verifyError);
+          toast.error(verifyError.message || "Identity verification failed to start.");
+        } else {
+          // The verification modal was closed. We should inform the user.
+          toast.success("Verification session completed. We are processing your documents.");
+          
+          // Update local state to pending if it wasn't already
+          if (profile && profile.kyc_status !== "verified") {
+            setProfile({ ...profile, kyc_status: "pending" });
+          }
+        }
+      } else if (data?.url) {
+        // Fallback to redirect if client_secret is missing but URL is present
         window.location.href = data.url;
       } else {
-        throw new Error("No verification URL returned");
+        throw new Error("No verification session data returned");
       }
     } catch (err: any) {
       console.error("KYC Error:", err);
@@ -131,6 +158,7 @@ function KYCPage() {
       setIsLoading(false);
     }
   };
+
 
   const handleMockVerification = async () => {
     if (!profile?.id) return;
@@ -297,9 +325,9 @@ function KYCPage() {
                       <AlertCircle className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Cross-Platform</p>
+                      <p className="font-medium text-foreground">Mobile Recommended</p>
                       <p className="text-sm text-muted-foreground">
-                        Works seamlessly on your desktop browser and mobile device.
+                        Use your smartphone for the best experience. Mobile cameras support biometric auto-capture.
                       </p>
                     </div>
                   </div>
@@ -307,9 +335,8 @@ function KYCPage() {
 
                 <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    By clicking "Start Verification", you will be redirected to Stripe's secure
-                    environment. Stripe will process your biometric data and ID to verify your
-                    identity for Vault OS.
+                    By clicking "Start Verification", a secure modal will open. Stripe will process
+                    your biometric data and ID to verify your identity for Vault OS.
                   </p>
                 </div>
 
