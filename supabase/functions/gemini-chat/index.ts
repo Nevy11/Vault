@@ -45,20 +45,24 @@ serve(async (req) => {
     const { data: preferences } = await supabase.from("user_preferences").select("language").eq("user_id", user.id).maybeSingle();
     const { data: wallet } = await supabase.from("wallets").select("id, balance, currency").eq("user_id", user.id).maybeSingle();
 
-    // 1. Fetch active savings goals
-    const { data: savingsGoals } = await supabase
-      .from("savings_goals")
-      .select("id, title, target_amount, current_amount, deadline_date, status")
+    // 1. Fetch active savings goals & ledger
+    const { data: savingsGoals } = await supabase.from("savings_goals").select("id, title, target_amount, current_amount, deadline_date, status").eq("user_id", user.id).eq("status", "active");
+    const { data: savingsLedger } = await supabase.from("savings_ledger").select("amount, type, created_at, goal_id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5);
+
+    // 2. Fetch active loans
+    const { data: loans } = await supabase
+      .from("loans")
+      .select("id, amount, interest_rate, due_date, remaining_balance, status")
       .eq("user_id", user.id)
       .eq("status", "active");
 
-    // 2. Fetch recent savings activity (ledger) - Last 10 entries for context
-    const { data: savingsLedger } = await supabase
-      .from("savings_ledger")
-      .select("amount, type, created_at, goal_id")
+    // 3. Fetch recent loan payments
+    const { data: loansLedger } = await supabase
+      .from("loans_ledger")
+      .select("amount, payment_type, created_at, loan_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(5);
 
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
@@ -67,31 +71,34 @@ serve(async (req) => {
     const currency = wallet?.currency || "USD";
     const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "unknown";
     
-    // Format Savings Goals Knowledge
+    // Format Knowledge Strings
     const goalsText = savingsGoals && savingsGoals.length > 0
-      ? savingsGoals.map(g => `- ${g.title}: ${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()} (By: ${g.deadline_date})`).join("\n")
+      ? savingsGoals.map(g => `- Goal: ${g.title} (${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()})`).join("\n")
       : "No active savings goals.";
 
-    // Format Savings Ledger Knowledge (matching goal names if possible)
-    const goalMap = Object.fromEntries(savingsGoals?.map(g => [g.id, g.title]) || []);
-    const activityText = savingsLedger && savingsLedger.length > 0
-      ? savingsLedger.map(l => `- ${new Date(l.created_at).toLocaleDateString()}: ${currency} ${l.amount.toLocaleString()} (${l.type}) to ${goalMap[l.goal_id] || 'a goal'}`).join("\n")
-      : "No recent savings activity.";
+    const loansText = loans && loans.length > 0
+      ? loans.map(l => `- Loan: ${currency} ${l.remaining_balance.toLocaleString()} (Due: ${new Date(l.due_date).toLocaleDateString()}, Rate: ${l.interest_rate}%)`).join("\n")
+      : "No active loans.";
+
+    const recentActivity = [
+      ...(savingsLedger?.map(l => `- Saved: ${currency} ${l.amount.toLocaleString()} (${l.type}) on ${new Date(l.created_at).toLocaleDateString()}`) || []),
+      ...(loansLedger?.map(l => `- Loan Payment: ${currency} ${l.amount.toLocaleString()} (${l.payment_type}) on ${new Date(l.created_at).toLocaleDateString()}`) || [])
+    ].slice(0, 10);
 
     const languageCode = preferences?.language || "en";
-    const languageNames: Record<string, string> = {
-      en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili",
-    };
+    const languageNames: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili" };
     const targetLanguage = languageNames[languageCode] || "English";
 
-    const systemPrompt = `You are a professional Finance Advisor for Vault OS. You are assisting ${firstName}. 
+    const systemPrompt = `You are the professional Finance Advisor for Vault OS. You are assisting ${firstName}.
 - Wallet Balance: ${balance}
-- Active Savings Goals:
+- Active Savings:
 ${goalsText}
-- Recent Savings History:
-${activityText}
+- Active Loans:
+${loansText}
+- Recent Activity:
+${recentActivity.length > 0 ? recentActivity.join("\n") : "No recent activity."}
 
-Your goal is to help users manage their money and savings. Use the history provided to identify if they are saving consistently (automated vs manual). Keep responses concise, actionable, and friendly. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}.`;
+Your goal is to provide holistic financial advice. Help the user balance between saving for their goals and paying off their loans. Keep responses friendly and actionable. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}.`;
 
     const validMessages = (messages || []).filter((m: any) => (m.sender === "user" || m.sender === "advisor") && m.text);
     const recentMessages = validMessages.slice(-29);
@@ -102,7 +109,6 @@ Your goal is to help users manage their money and savings. Use the history provi
       { provider: "openrouter", model: "mistralai/mistral-7b-instruct:free" },
       { provider: "gemini", model: "gemini-1.5-pro" },
       { provider: "openrouter", model: "google/gemma-7b-it:free" },
-      { provider: "groq", model: "llama-3.1-8b-instant" },
       { provider: "openai", model: "gpt-4o-mini" },
     ];
 
