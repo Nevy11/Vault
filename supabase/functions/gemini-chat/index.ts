@@ -19,7 +19,7 @@ serve(async (req) => {
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
     if (!GEMINI_API_KEY && !GROQ_API_KEY && !OPENROUTER_API_KEY && !OPENAI_API_KEY) {
-      throw new Error("No AI API keys are set. Please set at least one key (GEMINI, GROQ, or OPENROUTER).");
+      throw new Error("No AI API keys are set. Please set at least one key.");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -40,33 +40,68 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
+    // Fetch user profile, preferences, and wallet
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
     const { data: preferences } = await supabase.from("user_preferences").select("language").eq("user_id", user.id).maybeSingle();
     const { data: wallet } = await supabase.from("wallets").select("id, balance, currency").eq("user_id", user.id).maybeSingle();
+
+    // 1. Fetch active savings goals
+    const { data: savingsGoals } = await supabase
+      .from("savings_goals")
+      .select("id, title, target_amount, current_amount, deadline_date, status")
+      .eq("user_id", user.id)
+      .eq("status", "active");
+
+    // 2. Fetch recent savings activity (ledger) - Last 10 entries for context
+    const { data: savingsLedger } = await supabase
+      .from("savings_ledger")
+      .select("amount, type, created_at, goal_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
 
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
     const firstName = profile?.first_name || "User";
-    const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
+    const currency = wallet?.currency || "USD";
+    const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "unknown";
+    
+    // Format Savings Goals Knowledge
+    const goalsText = savingsGoals && savingsGoals.length > 0
+      ? savingsGoals.map(g => `- ${g.title}: ${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()} (By: ${g.deadline_date})`).join("\n")
+      : "No active savings goals.";
+
+    // Format Savings Ledger Knowledge (matching goal names if possible)
+    const goalMap = Object.fromEntries(savingsGoals?.map(g => [g.id, g.title]) || []);
+    const activityText = savingsLedger && savingsLedger.length > 0
+      ? savingsLedger.map(l => `- ${new Date(l.created_at).toLocaleDateString()}: ${currency} ${l.amount.toLocaleString()} (${l.type}) to ${goalMap[l.goal_id] || 'a goal'}`).join("\n")
+      : "No recent savings activity.";
+
     const languageCode = preferences?.language || "en";
     const languageNames: Record<string, string> = {
       en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili",
     };
     const targetLanguage = languageNames[languageCode] || "English";
 
-    const systemPrompt = `You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}. Even if the user asks in another language, your reply should be in ${targetLanguage}.`;
+    const systemPrompt = `You are a professional Finance Advisor for Vault OS. You are assisting ${firstName}. 
+- Wallet Balance: ${balance}
+- Active Savings Goals:
+${goalsText}
+- Recent Savings History:
+${activityText}
+
+Your goal is to help users manage their money and savings. Use the history provided to identify if they are saving consistently (automated vs manual). Keep responses concise, actionable, and friendly. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}.`;
 
     const validMessages = (messages || []).filter((m: any) => (m.sender === "user" || m.sender === "advisor") && m.text);
     const recentMessages = validMessages.slice(-29);
 
-    // THE ULTIMATE FAILOVER LIST (All Free except OpenAI)
     const models = [
       { provider: "gemini", model: "gemini-1.5-flash" },
       { provider: "groq", model: "llama-3.3-70b-versatile" },
-      { provider: "openrouter", model: "mistralai/mistral-7b-instruct:free" }, // Free backup 1
+      { provider: "openrouter", model: "mistralai/mistral-7b-instruct:free" },
       { provider: "gemini", model: "gemini-1.5-pro" },
-      { provider: "openrouter", model: "google/gemma-7b-it:free" }, // Free backup 2
+      { provider: "openrouter", model: "google/gemma-7b-it:free" },
       { provider: "groq", model: "llama-3.1-8b-instant" },
       { provider: "openai", model: "gpt-4o-mini" },
     ];
@@ -81,109 +116,49 @@ serve(async (req) => {
       if (modelConfig.provider === "groq" && !GROQ_API_KEY) continue;
       if (modelConfig.provider === "openrouter" && !OPENROUTER_API_KEY) continue;
 
-      console.log(`[Chat] Trying ${modelConfig.provider}: ${modelConfig.model}`);
-
       try {
         if (modelConfig.provider === "groq" || modelConfig.provider === "openai" || modelConfig.provider === "openrouter") {
           let baseUrl = "https://api.openai.com/v1/chat/completions";
           let apiKey = OPENAI_API_KEY;
-
-          if (modelConfig.provider === "groq") {
-            baseUrl = "https://api.groq.com/openai/v1/chat/completions";
-            apiKey = GROQ_API_KEY;
-          } else if (modelConfig.provider === "openrouter") {
-            baseUrl = "https://openrouter.ai/api/v1/chat/completions";
-            apiKey = OPENROUTER_API_KEY;
-          }
+          if (modelConfig.provider === "groq") { baseUrl = "https://api.groq.com/openai/v1/chat/completions"; apiKey = GROQ_API_KEY; }
+          else if (modelConfig.provider === "openrouter") { baseUrl = "https://openrouter.ai/api/v1/chat/completions"; apiKey = OPENROUTER_API_KEY; }
 
           const res = await fetch(baseUrl, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-              "HTTP-Referer": "https://vault-os.vercel.app", // Required for OpenRouter
-              "X-Title": "Vault OS",
-            },
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "HTTP-Referer": "https://vault-os.vercel.app", "X-Title": "Vault OS" },
             body: JSON.stringify({
               model: modelConfig.model,
-              messages: [
-                { role: "system", content: systemPrompt },
-                ...recentMessages.map((m: any) => ({
-                  role: m.sender === "user" ? "user" : "assistant",
-                  content: m.text,
-                })),
-                ...(userInput ? [{ role: "user", content: userInput }] : []),
-              ],
+              messages: [{ role: "system", content: systemPrompt }, ...recentMessages.map((m: any) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text })), ...(userInput ? [{ role: "user", content: userInput }] : [])],
               temperature: 0.7,
             }),
           });
-
-          if (res.ok) {
-            const data = await res.json();
-            aiResponse = data.choices[0].message.content;
-            success = true;
-            console.log(`[Chat] Success with ${modelConfig.provider}: ${modelConfig.model}`);
-            break;
-          } else {
-            const errorData = await res.json();
-            lastErrorMessage = errorData?.error?.message || res.statusText;
-            console.warn(`[Chat] ${modelConfig.provider} failed: ${lastErrorMessage}`);
-          }
+          if (res.ok) { const data = await res.json(); aiResponse = data.choices[0].message.content; success = true; break; }
+          else { const errorData = await res.json(); lastErrorMessage = errorData?.error?.message || res.statusText; }
         } else if (modelConfig.provider === "gemini") {
           const advisorPersona = `[SYSTEM INSTRUCTION: ${systemPrompt}]\n\n`;
           let contents = [];
           const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
           if (firstUserIndex !== -1) {
-            contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => ({
-              role: msg.sender === "user" ? "user" : "model",
-              parts: [{ text: idx === 0 ? advisorPersona + msg.text : msg.text }],
-            }));
+            contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => ({ role: msg.sender === "user" ? "user" : "model", parts: [{ text: idx === 0 ? advisorPersona + msg.text : msg.text }] }));
           }
           if (userInput) {
-            if (contents.length > 0 && contents[contents.length - 1].role === "user") {
-              contents[contents.length - 1].parts[0].text += `\n${userInput}`;
-            } else {
-              contents.push({ role: "user", parts: [{ text: contents.length === 0 ? advisorPersona + userInput : userInput }] });
-            }
+            if (contents.length > 0 && contents[contents.length - 1].role === "user") { contents[contents.length - 1].parts[0].text += `\n${userInput}`; }
+            else { contents.push({ role: "user", parts: [{ text: contents.length === 0 ? advisorPersona + userInput : userInput }] }); }
           }
-
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`, {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 2048 } }),
           });
-
-          if (res.ok) {
-            const data = await res.json();
-            aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (aiResponse) {
-              success = true;
-              console.log(`[Chat] Success with Gemini: ${modelConfig.model}`);
-              break;
-            }
-          } else {
-            const errorData = await res.json();
-            lastErrorMessage = errorData?.error?.message || res.statusText;
-            console.warn(`[Chat] Gemini failed: ${lastErrorMessage}`);
-          }
+          if (res.ok) { const data = await res.json(); aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text; if (aiResponse) { success = true; break; } }
+          else { const errorData = await res.json(); lastErrorMessage = errorData?.error?.message || res.statusText; }
         }
-      } catch (err: any) {
-        console.error(`[Chat] Error with ${modelConfig.model}:`, err.message);
-        lastErrorMessage = err.message;
-      }
+      } catch (err: any) { lastErrorMessage = err.message; }
     }
 
     if (!success) throw new Error(lastErrorMessage || "All AI models were unavailable.");
-
-    return new Response(JSON.stringify({ text: aiResponse }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ text: aiResponse }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error: any) {
-    console.error("[Chat] Function Error:", error.message);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
