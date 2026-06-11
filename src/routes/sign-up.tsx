@@ -102,6 +102,60 @@ function SignUp() {
 
     setStatus("sending");
     try {
+      console.log("Checking for existing account...");
+      
+      // Check if phone number is already in use
+      const { data: existingPhone, error: phoneError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("phone_number", phone)
+        .maybeSingle();
+
+      if (phoneError) {
+        console.error("Error checking phone number:", phoneError);
+      }
+
+      if (existingPhone) {
+        toast.error("This phone number is already registered. Please try another or log in.");
+        setStatus("idle");
+        return;
+      }
+
+      // Check if email is already in use in profiles (optional but good for consistency)
+      const { data: existingEmail, error: emailError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (emailError) {
+        console.error("Error checking email:", emailError);
+      }
+
+      if (existingEmail) {
+        toast.error("This email is already registered. Please try another or log in.");
+        setStatus("idle");
+        return;
+      }
+
+      // Check if username is already taken (via kyc_tag check)
+      const baseTag = `@${username.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
+      const { data: existingUsername, error: usernameError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("kyc_tag", baseTag)
+        .maybeSingle();
+
+      if (usernameError) {
+        console.error("Error checking username:", usernameError);
+      }
+
+      if (existingUsername) {
+        toast.error("This username is already taken. Please try another.");
+        setStatus("idle");
+        return;
+      }
+
       console.log("Hashing PIN...");
       const hashedPin = await hashPin(pin);
 
@@ -227,7 +281,18 @@ function SignUp() {
 
     if (profileError) {
       console.error("Profile creation error:", profileError);
-      throw profileError;
+      if (profileError.code === "23505") {
+        if (profileError.message.includes("phone_number")) {
+          toast.error("This phone number is already registered to another account.");
+        } else if (profileError.message.includes("kyc_tag")) {
+          toast.error("This username/tag is already taken.");
+        } else {
+          toast.error("A conflict occurred while creating your profile. Please try again.");
+        }
+      } else {
+        throw profileError;
+      }
+      return;
     }
 
     // 2. Initialize Wallet
