@@ -14,9 +14,12 @@ serve(async (req) => {
 
   try {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) {
-      console.error("Missing GEMINI_API_KEY");
-      throw new Error("GEMINI_API_KEY is not set in Edge Function secrets.");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+
+    if (!GEMINI_API_KEY && !GROQ_API_KEY && !OPENROUTER_API_KEY && !OPENAI_API_KEY) {
+      throw new Error("No AI API keys are set. Please set at least one key (GEMINI, GROQ, or OPENROUTER).");
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
@@ -34,181 +37,150 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get user from token
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    // Fetch user profile
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    // Fetch user preferences for language
-    const { data: preferences } = await supabase
-      .from("user_preferences")
-      .select("language")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    // Fetch wallet balance
-    const { data: wallet } = await supabase
-      .from("wallets")
-      .select("id, balance, currency")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    const { data: preferences } = await supabase.from("user_preferences").select("language").eq("user_id", user.id).maybeSingle();
+    const { data: wallet } = await supabase.from("wallets").select("id, balance, currency").eq("user_id", user.id).maybeSingle();
 
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
-    if (!userInput && (!messages || messages.length === 0)) {
-      throw new Error("No conversation history or input provided.");
-    }
-
-    // Create a personalized instruction string to prepend
     const firstName = profile?.first_name || "User";
     const balance = wallet ? `${wallet.currency} ${wallet.balance.toLocaleString()}` : "unknown";
-    
     const languageCode = preferences?.language || "en";
     const languageNames: Record<string, string> = {
-      en: "English",
-      es: "Spanish",
-      fr: "French",
-      de: "German",
-      it: "Italian",
-      pt: "Portuguese",
-      sw: "Swahili",
+      en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili",
     };
     const targetLanguage = languageNames[languageCode] || "English";
 
-    const advisorPersona = `[SYSTEM INSTRUCTION: You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}. Even if the user asks in another language, your reply should be in ${targetLanguage}.]\n\n`;
+    const systemPrompt = `You are a helpful and professional Finance Advisor for Vault OS. You are assisting ${firstName}. User's current wallet balance: ${balance}. Your goal is to help users manage their money, plan budgets, and understand their finances. Keep your responses concise, actionable, and friendly. Refer to the user by name occasionally to build rapport. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}. Even if the user asks in another language, your reply should be in ${targetLanguage}.`;
 
-    let contents = [];
-    const validMessages = (messages || []).filter(
-      (m: any) => (m.sender === "user" || m.sender === "advisor") && m.text,
-    );
+    const validMessages = (messages || []).filter((m: any) => (m.sender === "user" || m.sender === "advisor") && m.text);
+    const recentMessages = validMessages.slice(-29);
 
-    if (validMessages.length > 0) {
-      // Limit context to last 29 messages as requested for better context awareness
-      const recentMessages = validMessages.slice(-29);
-
-      // Gemini contents must alternate user/model and start with user
-      const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
-      if (firstUserIndex !== -1) {
-        contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => {
-          let text = msg.text;
-          // Prepend persona to the very first user message in this window
-          if (idx === 0) {
-            text = advisorPersona + text;
-          }
-          return {
-            role: msg.sender === "user" ? "user" : "model",
-            parts: [{ text }],
-          };
-        });
-      }
-    }
-
-    // Ensure the last role is 'user' before adding model response
-    if (userInput) {
-      if (contents.length > 0 && contents[contents.length - 1].role === "user") {
-        contents[contents.length - 1].parts[0].text += `\n${userInput}`;
-      } else {
-        // If this is the first and only message, prepend persona
-        const text = contents.length === 0 ? advisorPersona + userInput : userInput;
-        contents.push({
-          role: "user",
-          parts: [{ text }],
-        });
-      }
-    }
-
-    if (contents.length === 0) {
-      throw new Error("Conversation must start with a user message.");
-    }
-
-    console.log(`Calling Gemini with ${contents.length} messages for user ${user.id}`);
-
-    // High-Reliability Multi-Tier Failover Logic
+    // THE ULTIMATE FAILOVER LIST (All Free except OpenAI)
     const models = [
-      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro:generateContent",
-      "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
+      { provider: "gemini", model: "gemini-1.5-flash" },
+      { provider: "groq", model: "llama-3.3-70b-versatile" },
+      { provider: "openrouter", model: "mistralai/mistral-7b-instruct:free" }, // Free backup 1
+      { provider: "gemini", model: "gemini-1.5-pro" },
+      { provider: "openrouter", model: "google/gemma-7b-it:free" }, // Free backup 2
+      { provider: "groq", model: "llama-3.1-8b-instant" },
+      { provider: "openai", model: "gpt-4o-mini" },
     ];
 
-    const tryCallGemini = async (modelUrl: string) => {
-      try {
-        const res = await fetch(`${modelUrl}?key=${GEMINI_API_KEY}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents,
-            generationConfig: {
-              temperature: 0.7,
-              maxOutputTokens: 2048,
-            },
-          }),
-        });
-        return res;
-      } catch (err) {
-        return null;
-      }
-    };
-
-    let response = null;
-    let data = null;
+    let aiResponse = "";
     let success = false;
+    let lastErrorMessage = "";
 
-    // Iterate through the failover chain
-    for (let i = 0; i < models.length; i++) {
-      const currentModelUrl = models[i];
-      const modelName = currentModelUrl.split("/models/")[1].split(":")[0];
+    for (const modelConfig of models) {
+      if (modelConfig.provider === "openai" && !OPENAI_API_KEY) continue;
+      if (modelConfig.provider === "gemini" && !GEMINI_API_KEY) continue;
+      if (modelConfig.provider === "groq" && !GROQ_API_KEY) continue;
+      if (modelConfig.provider === "openrouter" && !OPENROUTER_API_KEY) continue;
 
-      console.log(`Attempting model ${i + 1}/${models.length}: ${modelName}`);
+      console.log(`[Chat] Trying ${modelConfig.provider}: ${modelConfig.model}`);
 
-      response = await tryCallGemini(currentModelUrl);
-      if (!response) continue;
+      try {
+        if (modelConfig.provider === "groq" || modelConfig.provider === "openai" || modelConfig.provider === "openrouter") {
+          let baseUrl = "https://api.openai.com/v1/chat/completions";
+          let apiKey = OPENAI_API_KEY;
 
-      data = await response.json();
+          if (modelConfig.provider === "groq") {
+            baseUrl = "https://api.groq.com/openai/v1/chat/completions";
+            apiKey = GROQ_API_KEY;
+          } else if (modelConfig.provider === "openrouter") {
+            baseUrl = "https://openrouter.ai/api/v1/chat/completions";
+            apiKey = OPENROUTER_API_KEY;
+          }
 
-      // If successful, break the loop
-      if (response.ok) {
-        success = true;
-        console.log(`Success with model: ${modelName}`);
-        break;
+          const res = await fetch(baseUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+              "HTTP-Referer": "https://vault-os.vercel.app", // Required for OpenRouter
+              "X-Title": "Vault OS",
+            },
+            body: JSON.stringify({
+              model: modelConfig.model,
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...recentMessages.map((m: any) => ({
+                  role: m.sender === "user" ? "user" : "assistant",
+                  content: m.text,
+                })),
+                ...(userInput ? [{ role: "user", content: userInput }] : []),
+              ],
+              temperature: 0.7,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            aiResponse = data.choices[0].message.content;
+            success = true;
+            console.log(`[Chat] Success with ${modelConfig.provider}: ${modelConfig.model}`);
+            break;
+          } else {
+            const errorData = await res.json();
+            lastErrorMessage = errorData?.error?.message || res.statusText;
+            console.warn(`[Chat] ${modelConfig.provider} failed: ${lastErrorMessage}`);
+          }
+        } else if (modelConfig.provider === "gemini") {
+          const advisorPersona = `[SYSTEM INSTRUCTION: ${systemPrompt}]\n\n`;
+          let contents = [];
+          const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
+          if (firstUserIndex !== -1) {
+            contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => ({
+              role: msg.sender === "user" ? "user" : "model",
+              parts: [{ text: idx === 0 ? advisorPersona + msg.text : msg.text }],
+            }));
+          }
+          if (userInput) {
+            if (contents.length > 0 && contents[contents.length - 1].role === "user") {
+              contents[contents.length - 1].parts[0].text += `\n${userInput}`;
+            } else {
+              contents.push({ role: "user", parts: [{ text: contents.length === 0 ? advisorPersona + userInput : userInput }] });
+            }
+          }
+
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 2048 } }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (aiResponse) {
+              success = true;
+              console.log(`[Chat] Success with Gemini: ${modelConfig.model}`);
+              break;
+            }
+          } else {
+            const errorData = await res.json();
+            lastErrorMessage = errorData?.error?.message || res.statusText;
+            console.warn(`[Chat] Gemini failed: ${lastErrorMessage}`);
+          }
+        }
+      } catch (err: any) {
+        console.error(`[Chat] Error with ${modelConfig.model}:`, err.message);
+        lastErrorMessage = err.message;
       }
-
-      // If we get an error that isn't a 400 (Bad Request), try next model
-      if (response.status === 503 || response.status === 429 || response.status === 404) {
-        console.warn(`Model ${modelName} returned ${response.status}. Trying next in chain...`);
-        continue;
-      }
-
-      // For other serious errors (400 Bad Request), don't retry as the payload might be the issue
-      break;
     }
 
-    if (!success) {
-      console.error("All models in failover chain failed.", data);
-      throw new Error(
-        data?.error?.message || `All AI models were unavailable (Last status: ${response?.status})`,
-      );
-    }
-
-    const aiResponse =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "I'm sorry, I couldn't generate a response.";
+    if (!success) throw new Error(lastErrorMessage || "All AI models were unavailable.");
 
     return new Response(JSON.stringify({ text: aiResponse }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Function Error:", error.message);
+    console.error("[Chat] Function Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
