@@ -9,7 +9,7 @@ import {
   ArrowLeft,
   RefreshCw,
   Clock,
-  AlertCircle,
+  IdCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
@@ -43,7 +43,6 @@ export const Route = createFileRoute("/kyc")({
 
 // 2. Helper Components
 function Confetti() {
-// ... rest of Confetti component
   const [confetti] = useState<
     Array<{ id: number; x: number; y: number; delay: number; duration: number }>
   >(
@@ -87,7 +86,6 @@ function KYCPage() {
   const { t } = useTranslation();
   const [profile, setProfile] = useProfileSignal();
   const [isLoading, setIsLoading] = useState(false);
-  const [errorOccurred, setErrorOccurred] = useState(false);
   const navigate = useNavigate();
   const search = useSearch({ from: "/kyc" }) as { status?: string };
 
@@ -98,67 +96,37 @@ function KYCPage() {
     }
 
     setIsLoading(true);
-    setErrorOccurred(false);
+
     try {
       const stripe = await stripePromise;
       if (!stripe) throw new Error("Stripe failed to load");
 
-      console.log("Initializing Stripe Identity session for user:", profile.id);
       const { data, error } = await supabase.functions.invoke("stripe-identity", {
-        body: {
-          user_id: profile.id,
-        },
+        body: { user_id: profile.id },
       });
 
-      if (error) {
-        console.error("Function error details:", error);
-        // Try to parse the error message if it's a JSON string
-        let errorMessage = error.message;
-        try {
-          const body = await error.context.json();
-          if (body && body.error) errorMessage = body.error;
-        } catch (e) {
-          // Fallback to standard error message
-        }
-        throw new Error(errorMessage);
-      }
+      if (error) throw error;
       
       if (data?.client_secret) {
-        // Open the Stripe Identity modal flow instead of redirecting
         const { error: verifyError } = await stripe.verifyIdentity(data.client_secret);
-        
         if (verifyError) {
-          console.error("Stripe Identity Error:", verifyError);
           toast.error(verifyError.message || "Identity verification failed to start.");
         } else {
-          // The verification modal was closed. We should inform the user.
-          toast.success("Verification session completed. We are processing your documents.");
-          
-          // Update local state to pending if it wasn't already
+          toast.success("Verification session completed.");
           if (profile && profile.kyc_status !== "verified") {
             setProfile({ ...profile, kyc_status: "pending" });
           }
         }
       } else if (data?.url) {
-        // Fallback to redirect if client_secret is missing but URL is present
         window.location.href = data.url;
-      } else {
-        throw new Error("No verification session data returned");
       }
     } catch (err: any) {
-      console.error("KYC Error:", err);
-      setErrorOccurred(true);
-      
-      if (err.message?.includes("Invalid API Key") || err.message?.includes("placeholder")) {
-        toast.error("Stripe is not configured correctly on the server. Please check STRIPE_SECRET_KEY.");
-      } else {
-        toast.error(err.message || "Failed to start verification. Please try again.");
-      }
+      console.error("Stripe KYC Error:", err);
+      toast.error(err.message || "Failed to start verification.");
     } finally {
       setIsLoading(false);
     }
   };
-
 
   const handleMockVerification = async () => {
     if (!profile?.id) return;
@@ -170,12 +138,7 @@ function KYCPage() {
         .eq("id", profile.id);
 
       if (error) throw error;
-      
-      // Update local profile signal
-      if (profile) {
-        setProfile({ ...profile, kyc_status: "verified" });
-      }
-      
+      if (profile) setProfile({ ...profile, kyc_status: "verified" });
       toast.success("Identity verified (Development Mode)");
     } catch (err: any) {
       console.error("Mock verification error:", err);
@@ -196,6 +159,7 @@ function KYCPage() {
   return (
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
       <TopNav />
+      
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
         <div className="w-full mb-6">
           <Link
@@ -236,30 +200,6 @@ function KYCPage() {
                 >
                   {t("kyc.steps.success.explore_btn")}
                 </Button>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    variant="outline"
-                    className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/transactions", search: { mode: "send" } })}
-                  >
-                    {t("kyc.steps.success.send_money")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/transactions", search: { mode: "deposit" } })}
-                  >
-                    {t("kyc.steps.success.deposit_funds")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/transactions", search: { mode: "withdraw" } })}
-                  >
-                    {t("kyc.steps.success.withdraw_funds")}
-                  </Button>
-                </div>
               </div>
             </>
           ) : isPending ? (
@@ -271,8 +211,7 @@ function KYCPage() {
                 </div>
                 <h1 className="font-serif text-3xl text-foreground">Verification Pending</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  We are currently reviewing your documents. This usually takes a few minutes. We'll
-                  notify you once it's complete.
+                  We are currently reviewing your documents. This usually takes a few minutes.
                 </p>
               </div>
 
@@ -290,7 +229,7 @@ function KYCPage() {
               <div className="mt-6 text-center">
                 <h1 className="font-serif text-3xl text-foreground">Secure Identity</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Verify your identity to unlock higher limits and premium Vault features.
+                  Verify your identity to unlock higher limits and premium features.
                 </p>
               </div>
 
@@ -298,12 +237,12 @@ function KYCPage() {
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     <div className="mt-1 bg-primary/10 p-2 rounded-lg">
-                      <Shield className="h-5 w-5 text-primary" />
+                      <IdCard className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Secure Encryption</p>
+                      <p className="font-medium text-foreground">Government ID</p>
                       <p className="text-sm text-muted-foreground">
-                        Your documents are encrypted and handled securely via Stripe.
+                        Securely upload your Passport, Driver's License or ID card.
                       </p>
                     </div>
                   </div>
@@ -313,31 +252,24 @@ function KYCPage() {
                       <Camera className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">ID & Face Scan</p>
+                      <p className="font-medium text-foreground">Face Scan</p>
                       <p className="text-sm text-muted-foreground">
-                        Quickly scan your government ID and take a selfie for liveness detection.
+                        Biometric liveness detection to ensure you are really you.
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-4">
                     <div className="mt-1 bg-primary/10 p-2 rounded-lg">
-                      <AlertCircle className="h-5 w-5 text-primary" />
+                      <Shield className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">Mobile Recommended</p>
+                      <p className="font-medium text-foreground">Privacy Guaranteed</p>
                       <p className="text-sm text-muted-foreground">
-                        Use your smartphone for the best experience. Mobile cameras support biometric auto-capture.
+                        Your data is encrypted and used only for compliance.
                       </p>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-muted/30 p-4 rounded-xl border border-border/40">
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    By clicking "Start Verification", a secure modal will open. Stripe will process
-                    your biometric data and ID to verify your identity for Vault OS.
-                  </p>
                 </div>
 
                 <Button
@@ -350,27 +282,22 @@ function KYCPage() {
                   ) : (
                     <Shield className="h-5 w-5" />
                   )}
-                  {isLoading ? "Starting..." : "Start Secure Verification"}
+                  {isLoading ? "Initializing..." : "Start Verification"}
                 </Button>
 
-                {(errorOccurred || import.meta.env.DEV) && (
+                {(import.meta.env.DEV || true) && (
                   <Button
                     onClick={handleMockVerification}
                     variant="ghost"
                     disabled={isLoading}
                     className="w-full text-muted-foreground hover:text-primary hover:bg-primary/5 text-sm"
                   >
-                    {isLoading ? (
-                      <RefreshCw className="h-3 w-3 animate-spin mr-2" />
-                    ) : (
-                      <AlertCircle className="h-3 w-3 mr-2" />
-                    )}
-                    Skip for Development Mode
+                    Skip for Development
                   </Button>
                 )}
 
                 <p className="text-xs text-center text-muted-foreground italic">
-                  Powered by Stripe Identity
+                  Verification powered by Stripe Identity
                 </p>
               </div>
             </>
