@@ -67,20 +67,21 @@ serve(async (req) => {
       .replace(/[^0-9]/g, "")
       .slice(0, 14);
 
-    const shortCode = Deno.env.get("DARAJA_SHORTCODE") || "174379";
+    const storeNumber = Deno.env.get("DARAJA_STORE_NUMBER") || Deno.env.get("DARAJA_SHORTCODE") || "4237581";
+    const tillNumber = Deno.env.get("DARAJA_TILL_NUMBER") || "3491665";
     const passKey =
       Deno.env.get("DARAJA_PASSKEY") ||
       "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
-    const password = btoa(`${shortCode}${passKey}${timestamp}`);
+    const password = btoa(`${storeNumber}${passKey}${timestamp}`);
 
     const payload = {
-      BusinessShortCode: shortCode,
+      BusinessShortCode: storeNumber,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
+      TransactionType: "CustomerBuyGoodsOnline",
       Amount: Math.round(amount),
       PartyA: phoneNumber,
-      PartyB: shortCode,
+      PartyB: tillNumber,
       PhoneNumber: phoneNumber,
       CallBackURL: `${Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL")}/functions/v1/mpesa-callback`,
       AccountReference: "VaultDeposit",
