@@ -7,6 +7,7 @@ import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { useTheme } from "@/hooks/use-theme";
 import { useNotifications } from "@/hooks/use-notifications";
+import { useJointSavings } from "@/hooks/use-joint-savings";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -61,6 +62,20 @@ export function TopNav() {
     setProfile(null);
     setOpen(false);
     window.location.href = "/";
+  };
+
+  const { acceptInvite, declineInvite } = useJointSavings();
+
+  const handlePotAction = async (notification: any, action: "accept" | "decline") => {
+    const potId = notification.metadata?.pot_id;
+    if (!potId) return;
+
+    if (action === "accept") {
+      await acceptInvite(potId);
+    } else {
+      await declineInvite(potId);
+    }
+    await markAsRead(notification.id);
   };
 
   return (
@@ -138,33 +153,65 @@ export function TopNav() {
                         </div>
                       ) : (
                         <div className="flex flex-col">
-                          {notifications.map((n) => (
-                            <button
-                              key={n.id}
-                              onClick={() => !n.is_read && markAsRead(n.id)}
-                              className={`flex flex-col gap-1 p-4 text-left border-b border-border/40 last:border-0 transition-colors hover:bg-muted/50 relative ${!n.is_read ? "bg-primary/5" : ""}`}
-                            >
-                              {!n.is_read && (
-                                <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full" />
-                              )}
-                              <div className="flex items-center justify-between gap-2">
-                                <span
-                                  className={`text-xs font-semibold ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}
-                                >
-                                  {n.title_key ? t(n.title_key) : n.title}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                                  {new Date(n.created_at).toLocaleDateString([], {
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </span>
+                          {notifications.map((n) => {
+                            const isPotInvite = n.metadata?.type === "pot_invite";
+
+                            return (
+                              <div
+                                key={n.id}
+                                onClick={() => !n.is_read && markAsRead(n.id)}
+                                className={`flex flex-col gap-2 p-4 text-left border-b border-border/40 last:border-0 transition-colors hover:bg-muted/50 relative cursor-pointer ${!n.is_read ? "bg-primary/5" : ""}`}
+                              >
+                                {!n.is_read && (
+                                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-full" />
+                                )}
+                                <div className="flex items-center justify-between gap-2">
+                                  <span
+                                    className={`text-xs font-semibold ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}
+                                  >
+                                    {n.title_key ? t(n.title_key) : n.title}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                    {new Date(n.created_at).toLocaleDateString([], {
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {n.message_key
+                                    ? (t(n.message_key, n.metadata) as string)
+                                    : n.message}
+                                </p>
+
+                                {isPotInvite && !n.is_read && (
+                                  <div className="flex gap-2 mt-1">
+                                    <Button
+                                      size="sm"
+                                      className="h-8 flex-1 text-[10px] uppercase tracking-wider font-bold"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePotAction(n, "accept");
+                                      }}
+                                    >
+                                      Accept
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 flex-1 text-[10px] uppercase tracking-wider font-bold"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePotAction(n, "decline");
+                                      }}
+                                    >
+                                      Decline
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {n.message_key ? (t(n.message_key, n.metadata) as string) : n.message}
-                              </p>
-                            </button>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </ScrollArea>

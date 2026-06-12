@@ -417,7 +417,7 @@ function SavingsPage() {
         />
         <div className="absolute inset-0 z-0 bg-background/10 backdrop-blur-[2px]" />
 
-        <main className="relative z-10 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
+        <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
             <div className="flex items-center gap-3">
               <Button
@@ -429,7 +429,7 @@ function SavingsPage() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div>
-                <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
+                <h1 className="text-3xl font-semibold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
                   {t("savings.title")}
                 </h1>
                 <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
@@ -444,7 +444,7 @@ function SavingsPage() {
               <Button
                 variant="ghost"
                 className={cn(
-                  "flex-1 md:flex-none h-12 rounded-[1.5rem] font-semibold px-8 transition-all duration-300",
+                  "flex-1 md:flex-none h-11 rounded-[1.5rem] font-medium px-8 transition-all duration-300",
                   viewMode === "individual"
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "text-muted-foreground hover:text-foreground",
@@ -457,7 +457,7 @@ function SavingsPage() {
               <Button
                 variant="ghost"
                 className={cn(
-                  "flex-1 md:flex-none h-12 rounded-[1.5rem] font-semibold px-8 transition-all duration-300",
+                  "flex-1 md:flex-none h-11 rounded-[1.5rem] font-medium px-8 transition-all duration-300",
                   viewMode === "joint"
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "text-muted-foreground hover:text-foreground",
@@ -478,23 +478,23 @@ function SavingsPage() {
               className="space-y-8 animate-in slide-in-from-right-4 duration-500"
             >
               <div className="flex justify-center mb-8">
-                <TabsList className="h-12 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
+                <TabsList className="h-11 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
                   <TabsTrigger
                     value="overview"
-                    className="rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
+                    className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
                   >
                     {t("savings.tabs.overview")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="setup"
-                    className="rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
+                    className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
                     onClick={() => setIsEditing(false)}
                   >
                     {t("savings.tabs.new_goal")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="congrats"
-                    className="rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
+                    className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg"
                   >
                     {t("savings.tabs.completion")}
                   </TabsTrigger>
@@ -511,7 +511,7 @@ function SavingsPage() {
                   <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 shadow-xl overflow-x-auto no-scrollbar">
                     <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
                       <Target className="w-5 h-5 text-primary" />
-                      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                         {t("savings.overview.my_goals")}
                       </span>
                     </div>
@@ -521,10 +521,10 @@ function SavingsPage() {
                           key={g.id}
                           variant={selectedGoalIndex === index ? "default" : "outline"}
                           className={cn(
-                            "h-12 rounded-2xl font-semibold transition-all duration-500",
+                            "h-11 rounded-2xl font-medium transition-all duration-500",
                             selectedGoalIndex === index
                               ? "px-6 bg-primary text-primary-foreground shadow-2xl scale-105 border-none"
-                              : "w-12 p-0 bg-white/50 dark:bg-slate-800/50 border-white/10 hover:bg-primary/10 text-slate-700 dark:text-slate-300",
+                              : "w-11 p-0 bg-white/50 dark:bg-slate-800/50 border-white/10 hover:bg-primary/10 text-slate-700 dark:text-slate-300",
                           )}
                           onClick={() => {
                             setSelectedGoalIndex(index);
@@ -545,7 +545,7 @@ function SavingsPage() {
                       {goals.length < 2 && (
                         <Button
                           variant="outline"
-                          className="h-12 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary shrink-0 font-semibold flex items-center transition-all duration-300"
+                          className="h-11 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary shrink-0 font-medium flex items-center transition-all duration-300"
                           onClick={() => {
                             setIsEditing(false);
                             setIndividualTab("setup");
@@ -564,18 +564,18 @@ function SavingsPage() {
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between flex-wrap gap-4">
                         <div className="space-y-1">
-                          <CardTitle className="text-2xl font-bold text-slate-950 dark:text-white">
+                          <CardTitle className="text-2xl font-medium text-slate-950 dark:text-white">
                             {savingsGoal?.title || "Savings Goal"}
                           </CardTitle>
                         </div>
 
                         <div className="flex gap-2">
-                          <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-widest flex items-center">
+                          <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium uppercase tracking-widest flex items-center">
                             {progress.toFixed(0)}% {t("savings.overview.complete_badge")}
                           </div>
                         </div>
                       </div>
-                      <CardDescription className="font-semibold text-slate-700 dark:text-slate-300">
+                      <CardDescription className="font-medium text-slate-700 dark:text-slate-300">
                         {t("savings.overview.target_label", {
                           amount: savingsGoal?.target_amount?.toLocaleString() || "0",
                         })}

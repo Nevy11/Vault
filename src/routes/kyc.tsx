@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/api/supabase";
 import { useProfileSignal } from "@/lib/profile-signal";
 import { loadStripe } from "@stripe/stripe-js";
+import { Onfido } from "onfido-sdk-ui";
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -86,10 +87,11 @@ function KYCPage() {
   const { t } = useTranslation();
   const [profile, setProfile] = useProfileSignal();
   const [isLoading, setIsLoading] = useState(false);
+  const [showOnfido, setShowOnfido] = useState(false);
   const navigate = useNavigate();
   const search = useSearch({ from: "/kyc" }) as { status?: string };
 
-  const handleStartVerification = async () => {
+  const handleStartStripeVerification = async () => {
     if (!profile?.id) {
       toast.error("User session not found. Please log in again.");
       return;
@@ -128,6 +130,47 @@ function KYCPage() {
     }
   };
 
+  const handleStartOnfidoVerification = async () => {
+    if (!profile?.id) {
+      toast.error("User session not found. Please log in again.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("onfido-token", {
+        body: { user_id: profile.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.sdk_token) {
+        setShowOnfido(true);
+        Onfido.init({
+          token: data.sdk_token,
+          containerId: "onfido-mount",
+          onComplete: (data) => {
+            console.log("Onfido verification complete:", data);
+            toast.success("Documents submitted successfully.");
+            setShowOnfido(false);
+            if (profile) setProfile({ ...profile, kyc_status: "pending" });
+          },
+          onError: (err) => {
+            console.error("Onfido error:", err);
+            toast.error("Onfido verification error occurred.");
+            setShowOnfido(false);
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error("Onfido KYC Error:", err);
+      toast.error(err.message || "Failed to start Onfido verification.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleMockVerification = async () => {
     if (!profile?.id) return;
     setIsLoading(true);
@@ -161,7 +204,7 @@ function KYCPage() {
       <TopNav />
       
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
-        <div className="w-full mb-6">
+        <div className="w-full mb-6 text-center">
           <Link
             to="/dashboard"
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
@@ -176,7 +219,18 @@ function KYCPage() {
         >
           <Logo />
 
-          {isVerified ? (
+          {showOnfido ? (
+            <div className="mt-6">
+              <div id="onfido-mount" className="rounded-xl overflow-hidden" />
+              <Button
+                variant="ghost"
+                onClick={() => setShowOnfido(false)}
+                className="mt-4 w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : isVerified ? (
             <>
               <div className="mt-10 text-center">
                 <div className="relative">
@@ -272,18 +326,29 @@ function KYCPage() {
                   </div>
                 </div>
 
-                <Button
-                  onClick={handleStartVerification}
-                  disabled={isLoading}
-                  className="h-14 w-full bg-primary text-primary-foreground text-lg font-bold hover:bg-primary/90 flex items-center justify-center gap-3 shadow-lg shadow-primary/20"
-                >
-                  {isLoading ? (
-                    <RefreshCw className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Shield className="h-5 w-5" />
-                  )}
-                  {isLoading ? "Initializing..." : "Start Verification"}
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleStartOnfidoVerification}
+                    disabled={isLoading}
+                    className="h-14 w-full bg-primary text-primary-foreground text-lg font-bold hover:bg-primary/90 flex items-center justify-center gap-3 shadow-lg shadow-primary/20"
+                  >
+                    {isLoading ? (
+                      <RefreshCw className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Shield className="h-5 w-5" />
+                    )}
+                    {isLoading ? "Initializing..." : "Start Onfido Verification"}
+                  </Button>
+
+                  <Button
+                    onClick={handleStartStripeVerification}
+                    variant="outline"
+                    disabled={isLoading}
+                    className="h-14 w-full border-2 text-foreground font-bold hover:bg-primary/5 flex items-center justify-center gap-3"
+                  >
+                    Use Stripe Identity
+                  </Button>
+                </div>
 
                 {(import.meta.env.DEV || true) && (
                   <Button
@@ -297,7 +362,7 @@ function KYCPage() {
                 )}
 
                 <p className="text-xs text-center text-muted-foreground italic">
-                  Verification powered by Stripe Identity
+                  Verification powered by Onfido & Stripe
                 </p>
               </div>
             </>
@@ -307,3 +372,4 @@ function KYCPage() {
     </main>
   );
 }
+
