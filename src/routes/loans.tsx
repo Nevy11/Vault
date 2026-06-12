@@ -826,7 +826,7 @@ function LoansPage() {
                       <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground mb-3">
                         {t("common.status")}
                       </p>
-                      <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-950 dark:text-white uppercase">
+                      <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-950 dark:text-white uppercase">
                         {t("loans.status.pending_title")}
                       </h2>
                       <p className="mt-4 text-sm sm:text-base font-medium text-slate-700 dark:text-slate-300 max-w-2xl mx-auto">
@@ -841,7 +841,7 @@ function LoansPage() {
                         <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground mb-3">
                           {t("loans.status.outstanding_balance")}
                         </p>
-                        <p className="text-3xl sm:text-4xl font-black text-slate-950 tabular-nums">
+                        <p className="text-3xl sm:text-4xl font-bold text-slate-950 tabular-nums">
                           KES {outstandingBalance.toLocaleString()}
                         </p>
                         <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">
@@ -853,7 +853,7 @@ function LoansPage() {
                         <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-700 mb-3">
                           {t("loans.status.potential_boost")}
                         </p>
-                        <p className="text-3xl sm:text-4xl font-black text-emerald-700">
+                        <p className="text-3xl sm:text-4xl font-bold text-emerald-700">
                           +{potentialLimitBoost}%
                         </p>
                         <p className="mt-2 text-xs sm:text-sm text-emerald-950/80 font-medium">
