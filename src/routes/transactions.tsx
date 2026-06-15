@@ -1167,6 +1167,10 @@ function SplitPanel() {
     }
   };
 
+  const handlePinVerified = () => {
+    handlePaySplitShare();
+  };
+
   // Pay share
   const handlePaySplitShare = async () => {
     if (!selectedMemberIdToPay) return;
