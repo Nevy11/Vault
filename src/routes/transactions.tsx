@@ -29,6 +29,7 @@ import {
   Utensils,
   ShoppingBag,
   Tv,
+  Tag,
   AlertCircle,
   ArrowUpRight,
   ArrowDownLeft,
@@ -927,8 +928,11 @@ function SplitPanel() {
   const [title, setTitle] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [category, setCategory] = useState("food");
+  const [splitMethod, setSplitMethod] = useState<"equal" | "custom">("equal");
   const [includeCreator, setIncludeCreator] = useState(true);
   const [participants, setParticipants] = useState<{ id: string; first_name: string; last_name: string; kyc_tag: string; profile_photo_url?: string }[]>([]);
+  const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
+  const [creatorCustomAmount, setCreatorCustomAmount] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -1084,7 +1088,50 @@ function SplitPanel() {
 
   // Calculations
   const shareCount = participants.length + (includeCreator ? 1 : 0);
-  const calculatedShare = shareCount > 0 && totalAmount ? (parseFloat(totalAmount) / shareCount) : 0;
+  const equalShare = shareCount > 0 && totalAmount ? (parseFloat(totalAmount) / shareCount) : 0;
+  
+  // Custom split totals
+  const friendsCustomTotal = useMemo(() => {
+    let total = 0;
+    Object.values(customAmounts).forEach((val) => {
+      total += parseFloat(val || "0");
+    });
+    return total;
+  }, [customAmounts]);
+
+  // The creator's share is now automatically whatever is left
+  const autoCalculatedCreatorShare = useMemo(() => {
+    const total = parseFloat(totalAmount || "0");
+    return Math.max(0, total - friendsCustomTotal);
+  }, [totalAmount, friendsCustomTotal]);
+
+  const remainingToSplit = parseFloat(totalAmount || "0") - friendsCustomTotal - (includeCreator ? autoCalculatedCreatorShare : 0);
+
+  // Sync custom amounts with equal split if method is changed
+  useEffect(() => {
+    if (splitMethod === "equal") {
+      const newCustoms: Record<string, string> = {};
+      participants.forEach((p) => {
+        newCustoms[p.id] = equalShare.toFixed(2);
+      });
+      setCustomAmounts(newCustoms);
+      setCreatorCustomAmount(equalShare.toFixed(2));
+    } else if (splitMethod === "custom" && includeCreator) {
+      // Initialize creator amount with remaining if switching to custom
+      setCreatorCustomAmount(autoCalculatedCreatorShare.toFixed(2));
+    }
+  }, [splitMethod, equalShare, participants.length]);
+
+  // Update creator amount whenever dependencies change
+  useEffect(() => {
+    if (splitMethod === "custom" && includeCreator) {
+      setCreatorCustomAmount(autoCalculatedCreatorShare.toFixed(2));
+    }
+  }, [autoCalculatedCreatorShare, includeCreator, splitMethod]);
+
+  const handleCustomAmountChange = (id: string, value: string) => {
+    setCustomAmounts((prev) => ({ ...prev, [id]: value }));
+  };
 
   // Click outside listener for suggestions
   useEffect(() => {
@@ -1098,13 +1145,23 @@ function SplitPanel() {
       toast.error("User already added to split");
       return;
     }
-    setParticipants([...participants, u]);
+    const newParticipants = [...participants, u];
+    setParticipants(newParticipants);
+    
+    // Initialize custom amount for new participant
+    if (splitMethod === "custom") {
+      setCustomAmounts(prev => ({ ...prev, [u.id]: "0" }));
+    }
+    
     setSearchQuery("");
     setShowSuggestions(false);
   };
 
   const handleRemoveParticipant = (id: string) => {
     setParticipants(participants.filter((p) => p.id !== id));
+    const newCustoms = { ...customAmounts };
+    delete newCustoms[id];
+    setCustomAmounts(newCustoms);
   };
 
   // Create Split Bill Request
@@ -1122,22 +1179,45 @@ function SplitPanel() {
       return;
     }
 
+    // Validation for custom split
+    if (splitMethod === "custom" && Math.abs(customTotal - parseFloat(totalAmount)) > 0.01) {
+      toast.error(`Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${customTotal.toFixed(2)}.`);
+      return;
+    }
+
     setIsCreating(true);
     try {
-      const { data, error } = await supabase.rpc("create_bill_split_v2", {
-        p_title: title.trim(),
-        p_total_amount: parseFloat(totalAmount),
-        p_category: category,
-        p_member_ids: participants.map((p) => p.id),
-        p_include_creator: includeCreator
-      });
-
-      if (error) throw error;
+      if (splitMethod === "equal") {
+        const { error } = await supabase.rpc("create_bill_split_v2", {
+          p_title: title.trim(),
+          p_total_amount: parseFloat(totalAmount),
+          p_category: category,
+          p_member_ids: participants.map((p) => p.id),
+          p_include_creator: includeCreator
+        });
+        if (error) throw error;
+      } else {
+        const membersPayload = participants.map((p) => ({
+          user_id: p.id,
+          amount: parseFloat(customAmounts[p.id] || "0")
+        }));
+        
+        const { error } = await supabase.rpc("create_bill_split_v3", {
+          p_title: title.trim(),
+          p_total_amount: parseFloat(totalAmount),
+          p_category: category,
+          p_members: membersPayload,
+          p_creator_amount: includeCreator ? parseFloat(creatorCustomAmount || "0") : 0
+        });
+        if (error) throw error;
+      }
 
       toast.success("Bill split request created successfully!");
       setTitle("");
       setTotalAmount("");
       setParticipants([]);
+      setCustomAmounts({});
+      setCreatorCustomAmount("");
       fetchSplits();
     } catch (error: any) {
       console.error("Error creating split:", error);
@@ -1219,197 +1299,355 @@ function SplitPanel() {
         </h3>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 bg-card/30 border border-border/50 rounded-3xl p-6 sm:p-8 backdrop-blur-sm">
-          {/* Bill Form details */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="split-title">Bill Description / Title</Label>
-                <Input
-                  id="split-title"
-                  placeholder="e.g. Rent, Grocery shopping, Lunch"
-                  className="bg-background/40 h-12 border-border/60"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+          {/* Left Side: Configuration */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Section 1: Bill Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/70 bg-primary/5 w-fit px-2.5 py-1 rounded-md border border-primary/10">
+                <Tag className="w-3 h-3" /> 1. Bill Details
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <Label htmlFor="split-title" className="text-xs font-semibold">Bill Description</Label>
+                  <Input
+                    id="split-title"
+                    placeholder="e.g. Dinner at Mama's"
+                    className="bg-background/40 h-12 border-border/60 focus:border-primary/50 transition-all"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="split-amount" className="text-xs font-semibold">Total Amount</Label>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">
+                      {currency}
+                    </span>
+                    <Input
+                      id="split-amount"
+                      type="number"
+                      placeholder="0.00"
+                      className="bg-background/40 h-12 pl-12 border-border/60 text-lg font-bold"
+                      value={totalAmount}
+                      onChange={(e) => setTotalAmount(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="split-amount">Total Amount ({currency})</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
-                    {currency}
-                  </span>
-                  <Input
-                    id="split-amount"
-                    type="number"
-                    placeholder="0.00"
-                    className="bg-background/40 h-12 pl-12 border-border/60 text-lg font-medium"
-                    value={totalAmount}
-                    onChange={(e) => setTotalAmount(e.target.value)}
-                  />
+                <Label className="text-xs font-semibold text-muted-foreground">Select Category</Label>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">
+                  {categories.map((c) => {
+                    const Icon = c.icon;
+                    const isSelected = category === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setCategory(c.id);
+                          if (c.id === "other") setTitle("");
+                          else setTitle(c.label);
+                        }}
+                        className={cn(
+                          "flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center gap-2 group",
+                          isSelected
+                            ? "border-primary bg-primary/10 text-primary shadow-sm"
+                            : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground hover:border-border/60"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                          isSelected ? "bg-primary text-white" : "bg-muted/30"
+                        )}>
+                          <Icon className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-bold uppercase tracking-tight">{c.label.split(" ")[0]}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
-            {/* Category Select */}
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {categories.map((c) => {
-                  const Icon = c.icon;
-                  const isSelected = category === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setCategory(c.id)}
-                      className={cn(
-                        "flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center gap-1.5",
-                        isSelected
-                          ? "border-primary bg-primary/10 text-primary shadow-sm"
-                          : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground"
-                      )}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[10px] font-medium">{c.label.split(" ")[0]}</span>
-                    </button>
-                  );
-                })}
+            {/* Section 2: Participants */}
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/70 bg-primary/5 w-fit px-2.5 py-1 rounded-md border border-primary/10">
+                <Users className="w-3 h-3" /> 2. Who's involved?
               </div>
-            </div>
+              
+              <div className="space-y-2 relative" onClick={(e) => e.stopPropagation()}>
+                <Label className="text-xs font-semibold">Add Friends (Vault Users)</Label>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by first name or @tag..."
+                    className="pl-11 bg-background/40 h-12 border-border/60 rounded-xl focus:ring-1 focus:ring-primary/20"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => {
+                      if (searchResults.length > 0) setShowSuggestions(true);
+                    }}
+                  />
+                  {isSearching && (
+                    <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-primary/60" />
+                  )}
+                </div>
 
-            {/* Search Participant */}
-            <div className="space-y-2 relative" onClick={(e) => e.stopPropagation()}>
-              <Label>Add Friends (Vault Users)</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by first name or KYC tag..."
-                  className="pl-10 bg-background/40 h-12 border-border/60"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => {
-                    if (searchResults.length > 0) setShowSuggestions(true);
-                  }}
-                />
-                {isSearching && (
-                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                {showSuggestions && searchResults.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 top-[calc(100%+8px)] overflow-hidden rounded-2xl border border-border/60 bg-card/95 backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="p-1.5">
+                      {searchResults.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          className="flex items-center gap-3.5 w-full p-3 rounded-xl hover:bg-primary/10 text-left transition-all group"
+                          onClick={() => handleAddParticipant(u)}
+                        >
+                          <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
+                            <AvatarImage src={u.profile_photo_url} />
+                            <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                              {u.first_name[0]}{u.last_name[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                              {u.first_name} {u.last_name}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground font-mono tracking-tight">{u.kyc_tag}</div>
+                          </div>
+                          <Plus className="w-5 h-5 text-muted-foreground/30 group-hover:text-primary transition-all group-hover:rotate-90" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
-              {/* Autocomplete suggestions dropdown */}
-              {showSuggestions && searchResults.length > 0 && (
-                <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="p-1">
-                    {searchResults.map((u) => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-primary/5 text-left transition-colors group"
-                        onClick={() => handleAddParticipant(u)}
-                      >
-                        <Avatar className="w-8 h-8 border border-border/40">
-                          <AvatarImage src={u.profile_photo_url} />
-                          <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                            {u.first_name[0]}{u.last_name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                            {u.first_name} {u.last_name}
+              {/* List of selected participants */}
+              <div className="min-h-[60px] p-3 rounded-2xl bg-background/20 border border-dashed border-border/60">
+                {participants.length > 0 || includeCreator ? (
+                  <div className="space-y-3">
+                    {/* Creator Row (if included) */}
+                    {includeCreator && (
+                      <div className="flex items-center justify-between bg-primary/5 border border-primary/20 p-2.5 rounded-xl animate-in zoom-in duration-200">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Avatar className="w-8 h-8 border border-background">
+                            <AvatarImage src={currentUser?.profile_photo_url} />
+                            <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">ME</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <div className="text-[11px] font-bold text-primary uppercase tracking-tighter leading-none">You (Creator)</div>
+                            <div className="text-[10px] text-muted-foreground truncate">{currentUser?.first_name} {currentUser?.last_name}</div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground font-mono">{u.kyc_tag}</div>
                         </div>
-                        <Plus className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      </button>
-                    ))}
+                        {splitMethod === "custom" ? (
+                          <div className="flex items-center gap-2 ml-4">
+                            <span className="text-[10px] font-bold text-primary">{currency}</span>
+                            <Input
+                              type="number"
+                              className="h-8 w-24 bg-background/60 border-primary/30 text-xs font-mono font-bold text-primary"
+                              value={creatorCustomAmount}
+                              onChange={(e) => setCreatorCustomAmount(e.target.value)}
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-xs font-bold text-primary font-mono bg-primary/10 px-2 py-1 rounded-md">
+                            {currency} {equalShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Participant Rows */}
+                    <div className="flex flex-col gap-2">
+                      {participants.map((p) => (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between bg-background border border-border/40 p-2.5 rounded-xl shadow-sm animate-in zoom-in duration-200"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Avatar className="w-8 h-8 border border-background shadow-xs">
+                              <AvatarImage src={p.profile_photo_url} />
+                              <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">
+                                {p.first_name[0]}{p.last_name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-bold text-foreground leading-none">{p.first_name} {p.last_name}</div>
+                              <div className="text-[10px] text-muted-foreground font-mono truncate">{p.kyc_tag}</div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            {splitMethod === "custom" ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-muted-foreground">{currency}</span>
+                                <Input
+                                  type="number"
+                                  className="h-8 w-24 bg-background/60 border-border/60 text-xs font-mono font-bold"
+                                  value={customAmounts[p.id] || "0"}
+                                  onChange={(e) => handleCustomAmountChange(p.id, e.target.value)}
+                                />
+                              </div>
+                            ) : (
+                              <div className="text-xs font-bold text-foreground font-mono bg-muted/30 px-2 py-1 rounded-md">
+                                {currency} {equalShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </div>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveParticipant(p.id)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center bg-muted/40 text-muted-foreground hover:bg-destructive hover:text-white transition-all"
+                            >
+                              <Plus className="w-4 h-4 rotate-45" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="h-full flex items-center justify-center py-6 text-xs text-muted-foreground/40 font-medium italic">
+                    Search above to add friends to this split...
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* List of selected participants */}
-            {participants.length > 0 && (
-              <div className="space-y-2">
-                <Label>Selected Friends</Label>
-                <div className="flex flex-wrap gap-2">
-                  {participants.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-2 bg-background/50 border border-border/60 pl-2 pr-1.5 py-1 rounded-full text-xs font-medium animate-in scale-in duration-200"
-                    >
-                      <Avatar className="w-5 h-5">
-                        <AvatarImage src={p.profile_photo_url} />
-                        <AvatarFallback className="text-[8px] bg-primary/20 text-primary font-bold">
-                          {p.first_name[0]}{p.last_name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{p.first_name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveParticipant(p.id)}
-                        className="w-4 h-4 rounded-full flex items-center justify-center bg-muted/60 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ml-1"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            {/* Section 3: Split Method */}
+            <div className="space-y-4 pt-4 border-t border-border/40">
+              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/70 bg-primary/5 w-fit px-2.5 py-1 rounded-md border border-primary/10">
+                <Smartphone className="w-3 h-3" /> 3. Split Method
               </div>
-            )}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSplitMethod("equal")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all font-semibold",
+                    splitMethod === "equal"
+                      ? "border-primary bg-primary/10 text-primary shadow-inner"
+                      : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40"
+                  )}
+                >
+                  <Users className="w-5 h-5" />
+                  Split Equally
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSplitMethod("custom")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all font-semibold",
+                    splitMethod === "custom"
+                      ? "border-primary bg-primary/10 text-primary shadow-inner"
+                      : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40"
+                  )}
+                >
+                  <Plus className="w-5 h-5" />
+                  Custom Amount
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Right Summary Block */}
-          <div className="flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-border/40 pt-6 lg:pt-0 lg:pl-8 space-y-6">
-            <div className="space-y-4">
-              <div className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Split Breakdown</div>
+          {/* Right Summary Block: "The Receipt" style */}
+          <div className="flex flex-col border-t lg:border-t-0 lg:border-l border-border/40 pt-8 lg:pt-0 lg:pl-8">
+            <div className="flex-1 space-y-6">
+              <div className="text-center space-y-1">
+                <div className="text-[10px] uppercase tracking-[0.3em] font-black text-primary/60">Final Breakdown</div>
+                <div className="text-2xl font-bold font-mono tracking-tighter">PREVIEW</div>
+              </div>
 
-              <div className="rounded-2xl bg-background/25 border border-border/40 p-4 space-y-3.5">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-semibold text-foreground">{currency} {parseFloat(totalAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
+              <div className="rounded-3xl bg-primary/5 border border-primary/10 p-6 space-y-5 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-3xl -mr-12 -mt-12 transition-all group-hover:bg-primary/20" />
+                
+                <div className="space-y-4 relative z-10">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Bill</span>
+                    <span className="text-lg font-black text-foreground font-mono">
+                      {currency} {parseFloat(totalAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
 
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Include Me in Split</span>
-                  <button
-                    type="button"
-                    onClick={() => setIncludeCreator(!includeCreator)}
-                    className={cn(
-                      "w-9 h-5 rounded-full p-0.5 transition-colors focus:outline-none",
-                      includeCreator ? "bg-primary" : "bg-muted"
+                  <div className="h-px bg-border/40 border-dashed border-t" />
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        <span className="text-muted-foreground font-medium">Split with me</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIncludeCreator(!includeCreator)}
+                        className={cn(
+                          "w-10 h-6 rounded-full p-1 transition-all duration-300 focus:outline-none ring-offset-background focus:ring-2 focus:ring-primary/20",
+                          includeCreator ? "bg-primary shadow-sm" : "bg-muted"
+                        )}
+                      >
+                        <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300", includeCreator ? "translate-x-4" : "translate-x-0")} />
+                      </button>
+                    </div>
+
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        <span className="text-muted-foreground font-medium">Participants</span>
+                      </div>
+                      <span className="font-bold text-foreground bg-primary/10 px-2.5 py-0.5 rounded-full text-xs">{shareCount} total</span>
+                    </div>
+
+                    {splitMethod === "custom" && (
+                      <div className="flex justify-between items-center text-[11px]">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", Math.abs(remainingToSplit) < 0.01 ? "bg-emerald-500" : "bg-rose-500")} />
+                          <span className="text-muted-foreground">Status</span>
+                        </div>
+                        <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-emerald-500" : "text-rose-500")}>
+                          {Math.abs(remainingToSplit) < 0.01 ? "Fully Allocated" : `${currency} ${remainingToSplit.toFixed(2)} remaining`}
+                        </span>
+                      </div>
                     )}
-                  >
-                    <div className={cn("w-4 h-4 rounded-full bg-white transition-transform", includeCreator ? "translate-x-4" : "translate-x-0")} />
-                  </button>
-                </div>
+                  </div>
 
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Participants</span>
-                  <span className="font-medium text-foreground">{shareCount} people</span>
-                </div>
-
-                <div className="border-t border-border/40 pt-3 flex justify-between items-end">
-                  <div className="text-xs text-muted-foreground font-medium">Individual Share</div>
-                  <div className="text-xl font-semibold text-primary font-mono">
-                    {currency} {calculatedShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <div className="pt-4 mt-2">
+                    <div className="bg-white/40 dark:bg-black/20 rounded-2xl p-4 border border-white/60 dark:border-white/5 shadow-sm">
+                      <div className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 text-center">
+                        {splitMethod === "equal" ? "Cost Per Person" : "Your Contribution"}
+                      </div>
+                      <div className="text-3xl font-black text-primary text-center font-mono tracking-tighter">
+                        {currency} {splitMethod === "equal" 
+                          ? equalShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                          : parseFloat(creatorCustomAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+
+              <div className="text-[10px] text-center text-muted-foreground/60 font-medium italic px-4 leading-tight">
+                {splitMethod === "equal" 
+                  ? "Vault Split automatically handles penny rounding to ensure exact settlement."
+                  : "Ensure all custom shares sum up to the total bill amount before proceeding."}
               </div>
             </div>
 
             <Button
-              className="w-full h-12 shadow-md shadow-primary/10"
+              className="w-full h-16 rounded-2xl text-base font-bold shadow-xl shadow-primary/20 mt-8 transition-all hover:scale-[1.02] active:scale-[0.98]"
               onClick={handleCreateSplit}
               disabled={isCreating || participants.length === 0}
             >
               {isCreating ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating splits...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Finalizing...
                 </>
               ) : (
                 <>
-                  Create Split Request <Plus className="ml-2 w-4 h-4" />
+                  Send Split Requests <ArrowRight className="ml-2 w-5 h-5" />
                 </>
               )}
             </Button>
