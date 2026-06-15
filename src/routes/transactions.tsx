@@ -1180,8 +1180,9 @@ function SplitPanel() {
     }
 
     // Validation for custom split
-    if (splitMethod === "custom" && Math.abs(customTotal - parseFloat(totalAmount)) > 0.01) {
-      toast.error(`Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${customTotal.toFixed(2)}.`);
+    const currentTotal = friendsCustomTotal + (includeCreator ? autoCalculatedCreatorShare : 0);
+    if (splitMethod === "custom" && Math.abs(currentTotal - parseFloat(totalAmount)) > 0.01) {
+      toast.error(`Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${currentTotal.toFixed(2)}.`);
       return;
     }
 
