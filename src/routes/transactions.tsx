@@ -963,7 +963,15 @@ function SplitPanel() {
 
   // Fetch splits function
   const fetchSplits = async () => {
-    if (!currentUser?.id) return;
+    // Robustly get user ID - fallback to session if profile signal is lagging
+    let userId = currentUser?.id;
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+
+    if (!userId) return;
+    
     try {
       // 1. Fetch splits you owe
       const { data: memberRecords, error: errOwed } = await supabase
@@ -987,7 +995,7 @@ function SplitPanel() {
             )
           )
         `)
-        .eq("user_id", currentUser.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (errOwed) throw errOwed;
@@ -1017,7 +1025,7 @@ function SplitPanel() {
             )
           )
         `)
-        .eq("creator_id", currentUser.id)
+        .eq("creator_id", userId)
         .order("created_at", { ascending: false });
 
       if (errCreated) throw errCreated;
@@ -1687,8 +1695,28 @@ function SplitPanel() {
               ) : (
                 <div className="space-y-2">
                   {splitsOwed
-                    .filter((m) => m.status === "pending" && m.bill_splits)
+                    .filter((m) => m.status === "pending")
                     .map((m) => {
+                      if (!m.bill_splits) {
+                        return (
+                          <div
+                            key={m.id}
+                            className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-500 flex flex-col gap-1"
+                          >
+                            <div className="font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                              <AlertCircle className="w-3 h-3" /> Security Policy Restriction
+                            </div>
+                            <p className="opacity-80">
+                              Found your pending split share of {currency} {m.amount.toLocaleString()}, 
+                              but the database is restricting access to the bill details.
+                            </p>
+                            <div className="mt-1 font-mono text-[8px] opacity-50">
+                              ID: {m.id}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       const CatIcon = getCategoryIcon(m.bill_splits.category);
                       const catColor = getCategoryColor(m.bill_splits.category);
                       const creatorName = m.bill_splits.profiles
