@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   Plus,
   Trash2,
+  Flame,
   Users,
   Clock,
   Home,
@@ -58,6 +59,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Select,
   SelectContent,
@@ -123,7 +134,7 @@ function WalletCard() {
             )}
           </div>
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">
               {t("transactions.wallet_card.active_encrypted")}
             </span>
@@ -923,6 +934,11 @@ function SplitPanel() {
   const { currency, refetch: refetchBalance } = useWalletBalance();
   const [profile] = useProfileSignal();
   const currentUser = profile as any;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form states
   const [title, setTitle] = useState("");
@@ -950,15 +966,16 @@ function SplitPanel() {
   const [selectedSplitTitle, setSelectedSplitTitle] = useState("");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [splitToCancel, setSplitToCancel] = useState<string | null>(null);
 
   // Categories helper
   const categories = [
-    { id: "food", label: "Food & Drinks", icon: Utensils, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-    { id: "rent", label: "Rent & Stay", icon: Home, color: "text-purple-500 bg-purple-500/10 border-purple-500/20" },
-    { id: "shopping", label: "Shopping", icon: ShoppingBag, color: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
-    { id: "utilities", label: "Utilities", icon: Zap, color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" },
-    { id: "entertainment", label: "Entertainment", icon: Tv, color: "text-pink-500 bg-pink-500/10 border-pink-500/20" },
-    { id: "other", label: "Other", icon: Tag, color: "text-slate-500 bg-slate-500/10 border-slate-500/20" }
+    { id: "food", label: "Food & Drinks", icon: Utensils, color: "text-primary bg-primary/10 border-primary/20" },
+    { id: "rent", label: "Rent & Stay", icon: Home, color: "text-secondary-foreground bg-secondary border-secondary/20" },
+    { id: "shopping", label: "Shopping", icon: ShoppingBag, color: "text-accent-foreground bg-accent/20 border-accent/20" },
+    { id: "utilities", label: "Utilities", icon: Zap, color: "text-primary bg-primary/10 border-primary/20" },
+    { id: "entertainment", label: "Entertainment", icon: Tv, color: "text-secondary-foreground bg-secondary border-secondary/20" },
+    { id: "other", label: "Other", icon: Tag, color: "text-muted-foreground bg-muted border-border/20" }
   ];
 
   // Fetch splits function
@@ -1236,12 +1253,16 @@ function SplitPanel() {
   };
 
   // Cancel Split
-  const handleCancelSplit = async (splitId: string) => {
-    if (!window.confirm("Are you sure you want to cancel this split request? This will remove it for all participants.")) return;
+  const handleCancelSplit = (splitId: string) => {
+    setSplitToCancel(splitId);
+  };
+
+  const confirmCancelSplit = async () => {
+    if (!splitToCancel) return;
     
     try {
       const { error } = await supabase.rpc("cancel_bill_split", {
-        p_split_id: splitId
+        p_split_id: splitToCancel
       });
 
       if (error) throw error;
@@ -1251,6 +1272,8 @@ function SplitPanel() {
     } catch (error: any) {
       console.error("Error cancelling split:", error);
       toast.error(error.message || "Failed to cancel split request");
+    } finally {
+      setSplitToCancel(null);
     }
   };
 
@@ -1448,9 +1471,14 @@ function SplitPanel() {
                             <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">ME</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <div className="text-[11px] font-bold text-primary uppercase tracking-tighter leading-none">You (Creator)</div>
-                            <div className="text-[10px] text-muted-foreground truncate">{currentUser?.first_name} {currentUser?.last_name}</div>
+                            <div className="text-[11px] font-bold text-primary uppercase tracking-tighter leading-none">
+                              You (Creator)
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">
+                              {mounted ? `${currentUser?.first_name || ""} ${currentUser?.last_name || ""}` : " "}
+                            </div>
                           </div>
+
                         </div>
                         {splitMethod === "custom" ? (
                           <div className="flex items-center gap-2 ml-4">
@@ -1612,10 +1640,10 @@ function SplitPanel() {
                     {splitMethod === "custom" && (
                       <div className="flex justify-between items-center text-[11px]">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", Math.abs(remainingToSplit) < 0.01 ? "bg-emerald-500" : "bg-rose-500")} />
+                          <div className={cn("w-1.5 h-1.5 rounded-full", Math.abs(remainingToSplit) < 0.01 ? "bg-primary" : "bg-rose-500")} />
                           <span className="text-muted-foreground">Status</span>
                         </div>
-                        <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-emerald-500" : "text-rose-500")}>
+                        <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-primary" : "text-destructive")}>
                           {Math.abs(remainingToSplit) < 0.01 ? "Fully Allocated" : `${currency} ${remainingToSplit.toFixed(2)} remaining`}
                         </span>
                       </div>
@@ -1674,7 +1702,7 @@ function SplitPanel() {
           {/* Section: Incoming splits (Splits You Owe) */}
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-              <ArrowDownLeft className="w-4 h-4 text-rose-500" />
+              <ArrowDownLeft className="w-4 h-4 text-destructive" />
               Splits You Owe (Incoming Requests)
             </h4>
 
@@ -1686,7 +1714,7 @@ function SplitPanel() {
                 </div>
               ) : splitsOwed.filter((m) => m.status === "pending").length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500/20 mb-2" />
+                  <CheckCircle2 className="w-8 h-8 text-primary/20 mb-2" />
                   <span className="text-sm font-medium text-muted-foreground">You are all clear!</span>
                   <span className="text-xs text-muted-foreground/60 mt-0.5">
                     No pending splits to pay.
@@ -1701,7 +1729,7 @@ function SplitPanel() {
                         return (
                           <div
                             key={m.id}
-                            className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-[10px] text-rose-500 flex flex-col gap-1"
+                            className="p-4 rounded-xl bg-destructive/10 border border-rose-500/20 text-[10px] text-destructive flex flex-col gap-1"
                           >
                             <div className="font-bold flex items-center gap-1.5 uppercase tracking-wider">
                               <AlertCircle className="w-3 h-3" /> Security Policy Restriction
@@ -1751,7 +1779,7 @@ function SplitPanel() {
 
                           <div className="flex items-center gap-3 shrink-0">
                             <div className="text-right">
-                              <div className="text-sm font-semibold text-rose-500 font-mono">
+                              <div className="text-sm font-semibold text-destructive font-mono">
                                 -{currency}{" "}
                                 {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </div>
@@ -1819,7 +1847,7 @@ function SplitPanel() {
                           </div>
                           <div className="flex items-center gap-2 text-right text-xs shrink-0">
                             <div className="text-right">
-                              <div className="font-semibold text-emerald-500 font-mono flex items-center justify-end gap-1">
+                              <div className="font-semibold text-primary font-mono flex items-center justify-end gap-1">
                                 <Check className="w-3.5 h-3.5" /> {currency}{" "}
                                 {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </div>
@@ -1851,7 +1879,7 @@ function SplitPanel() {
           {/* Section: Outgoing splits (Splits You Created) */}
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-              <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+              <ArrowUpRight className="w-4 h-4 text-primary" />
               Splits You Created (Outgoing Tracker)
             </h4>
 
@@ -1896,7 +1924,7 @@ function SplitPanel() {
                             >
                               <CatIcon className="w-5 h-5" />
                               <div
-                                className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse border border-background"
+                                className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse border border-background"
                                 title="Live tracking active"
                               />
                             </div>
@@ -1924,20 +1952,21 @@ function SplitPanel() {
                               className={cn(
                                 "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
                                 s.status === "completed"
-                                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/25"
+                                  ? "bg-primary/10 text-primary border border-primary/25"
                                   : "bg-primary/10 text-primary border border-primary/25",
                               )}
                             >
                               {s.status}
                             </span>
-                            {s.status === "active" && (
+                            {s.status === "active" && paidMembers.length === 0 && (
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                size="sm"
+                                className="h-7 px-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors gap-1.5"
                                 onClick={() => handleCancelSplit(s.id)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
+                                <span className="text-[10px] font-medium">Cancel</span>
                               </Button>
                             )}
                           </div>
@@ -1993,7 +2022,7 @@ function SplitPanel() {
                                 <span
                                   className={cn(
                                     "flex items-center gap-1 font-semibold text-[8px] uppercase shrink-0",
-                                    isPaid ? "text-emerald-500" : "text-muted-foreground/60",
+                                    isPaid ? "text-primary" : "text-muted-foreground/60",
                                   )}
                                 >
                                   {isPaid ? (
@@ -2043,6 +2072,41 @@ function SplitPanel() {
           </p>
         </div>
       )}
+
+      {/* Sweet Alert Style Cancellation Dialog */}
+      <AlertDialog open={!!splitToCancel} onOpenChange={(open) => !open && setSplitToCancel(null)}>
+        <AlertDialogContent className="max-w-[380px] rounded-3xl border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden p-0">
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-destructive to-transparent opacity-50" />
+          
+          <div className="p-8 text-center space-y-4">
+            <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center relative group">
+              <div className="absolute inset-0 rounded-full bg-destructive/5 animate-ping group-hover:animate-none" />
+              <Flame size={40} className="text-destructive relative z-10 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.4)]" fill="currentColor" />
+            </div>
+
+            <div className="space-y-2">
+              <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                Are you sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed px-4">
+                Are you sure you want to cancel this split request? This will remove it for all participants.
+              </AlertDialogDescription>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="flex flex-row sm:flex-row p-4 pt-0 gap-3">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-border/40 bg-background/50 text-sm font-semibold hover:bg-muted transition-all">
+              No, keep it
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancelSplit}
+              className="flex-1 h-12 rounded-2xl bg-destructive text-white hover:bg-destructive/90 transition-all font-semibold shadow-lg shadow-destructive/20 border-0"
+            >
+              Yes, cancel it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -2165,7 +2229,7 @@ function TransactionHistory() {
           icon: t_data.sender?.first_name?.[0] || "V",
           logo: t_data.sender?.profile_photo_url,
           avatarUrl: t_data.sender?.profile_photo_url,
-          color: "bg-emerald-500/20 text-emerald-500",
+          color: "bg-primary/20 text-primary",
         };
       }
     } else if (t_data.type === "deposit") {
@@ -2184,7 +2248,7 @@ function TransactionHistory() {
         icon: logo ? null : initials,
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
-        color: "bg-emerald-500/20 text-emerald-500",
+        color: "bg-primary/20 text-primary",
       };
     } else if (t_data.type === "withdrawal") {
       const logo = getMethodLogo(t_data.method, t_data.description);
@@ -2323,7 +2387,7 @@ function TransactionHistory() {
                     <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
                       <div
                         className={`text-sm font-semibold font-mono ${
-                          details.positive ? "text-emerald-500" : "text-red-500"
+                          details.positive ? "text-primary" : "text-destructive"
                         }`}
                       >
                         {details.amount}
