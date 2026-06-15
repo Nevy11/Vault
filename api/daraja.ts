@@ -73,8 +73,14 @@ export const initiateStkPush = async (req: Request, res: Response) => {
   try {
     const token = await getDarajaToken();
     const timestamp = getTimestamp();
-    const storeNumber = process.env.MPESA_STORE_NUMBER || process.env.MPESA_SHORTCODE || "4237581";
-    const tillNumber = process.env.MPESA_TILL_NUMBER || "3491665";
+    const storeNumber = process.env.MPESA_STORE_NUMBER || process.env.MPESA_SHORTCODE || "174379";
+    const tillNumber = process.env.MPESA_TILL_NUMBER || (process.env.MPESA_STORE_NUMBER ? storeNumber : "174379");
+    
+    // Automatically detect transaction type: Sandbox default shortcode 174379 requires CustomerPayBillOnline
+    const isSandboxDefault = storeNumber === "174379";
+    const transactionType = isSandboxDefault ? "CustomerPayBillOnline" : "CustomerBuyGoodsOnline";
+    const partyB = isSandboxDefault ? storeNumber : tillNumber;
+
     const passKey = process.env.MPESA_PASSKEY || "";
 
     const password = generateMpesaPassword(storeNumber, passKey, timestamp);
@@ -83,10 +89,10 @@ export const initiateStkPush = async (req: Request, res: Response) => {
       BusinessShortCode: storeNumber,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerBuyGoodsOnline",
+      TransactionType: transactionType,
       Amount: Math.round(amount),
       PartyA: formattedPhone,
-      PartyB: tillNumber,
+      PartyB: partyB,
       PhoneNumber: formattedPhone,
       CallBackURL: `${process.env.APP_BASE_URL}/api/v1/vault/callback`,
       AccountReference: `Vault_${userId}`,

@@ -21,6 +21,17 @@ import {
   History,
   Zap,
   ArrowLeft,
+  Plus,
+  Trash2,
+  Users,
+  Clock,
+  Home,
+  Utensils,
+  ShoppingBag,
+  Tv,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +69,7 @@ import { cn, hashPin } from "@/lib/utils";
 import i18n from "@/lib/i18n";
 
 const transactionsSearchSchema = z.object({
-  mode: z.enum(["send", "deposit", "withdraw"]).optional(),
+  mode: z.enum(["send", "deposit", "withdraw", "split"]).optional(),
 });
 
 export const Route = createFileRoute("/transactions")({
@@ -78,7 +89,7 @@ export const Route = createFileRoute("/transactions")({
   component: TransactionsPage,
 });
 
-type Mode = "send" | "deposit" | "withdraw";
+type Mode = "send" | "deposit" | "withdraw" | "split";
 
 function WalletCard() {
   const { balance, currency, loading } = useWalletBalance();
@@ -903,6 +914,768 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   );
 }
 
+// ==========================================
+// SPLIT PANEL COMPONENT
+// ==========================================
+function SplitPanel() {
+  const { t } = useTranslation();
+  const { currency, refetch: refetchBalance } = useWalletBalance();
+  const [profile] = useProfileSignal();
+  const currentUser = profile as any;
+
+  // Form states
+  const [title, setTitle] = useState("");
+  const [totalAmount, setTotalAmount] = useState("");
+  const [category, setCategory] = useState("food");
+  const [includeCreator, setIncludeCreator] = useState(true);
+  const [participants, setParticipants] = useState<{ id: string; first_name: string; last_name: string; kyc_tag: string; profile_photo_url?: string }[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Active splits lists
+  const [splitsOwed, setSplitsOwed] = useState<any[]>([]);
+  const [splitsCreated, setSplitsCreated] = useState<any[]>([]);
+  const [loadingSplits, setLoadingSplits] = useState(true);
+
+  // Payment states
+  const [selectedMemberIdToPay, setSelectedMemberIdToPay] = useState<string | null>(null);
+  const [selectedSplitAmount, setSelectedSplitAmount] = useState(0);
+  const [selectedSplitTitle, setSelectedSplitTitle] = useState("");
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+
+  // Categories helper
+  const categories = [
+    { id: "food", label: "Food & Drinks", icon: Utensils, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
+    { id: "rent", label: "Rent & Stay", icon: Home, color: "text-purple-500 bg-purple-500/10 border-purple-500/20" },
+    { id: "shopping", label: "Shopping", icon: ShoppingBag, color: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
+    { id: "utilities", label: "Utilities", icon: Zap, color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" },
+    { id: "entertainment", label: "Entertainment", icon: Tv, color: "text-pink-500 bg-pink-500/10 border-pink-500/20" },
+    { id: "other", label: "Other", icon: Tag, color: "text-slate-500 bg-slate-500/10 border-slate-500/20" }
+  ];
+
+  // Fetch splits function
+  const fetchSplits = async () => {
+    if (!currentUser?.id) return;
+    try {
+      // 1. Fetch splits you owe
+      const { data: memberRecords, error: errOwed } = await supabase
+        .from("bill_split_members")
+        .select(`
+          id,
+          amount,
+          status,
+          paid_at,
+          bill_splits (
+            id,
+            title,
+            category,
+            created_at,
+            creator_id,
+            profiles:creator_id (
+              first_name,
+              last_name,
+              kyc_tag
+            )
+          )
+        `)
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false });
+
+      if (errOwed) throw errOwed;
+      setSplitsOwed(memberRecords || []);
+
+      // 2. Fetch splits you created
+      const { data: splitsData, error: errCreated } = await supabase
+        .from("bill_splits")
+        .select(`
+          id,
+          title,
+          total_amount,
+          amount_per_person,
+          category,
+          status,
+          created_at,
+          bill_split_members (
+            id,
+            user_id,
+            amount,
+            status,
+            paid_at,
+            profiles:user_id (
+              first_name,
+              last_name,
+              kyc_tag
+            )
+          )
+        `)
+        .eq("creator_id", currentUser.id)
+        .order("created_at", { ascending: false });
+
+      if (errCreated) throw errCreated;
+      setSplitsCreated(splitsData || []);
+    } catch (error) {
+      console.error("Error fetching splits:", error);
+      toast.error("Failed to load active bill splits");
+    } finally {
+      setLoadingSplits(false);
+    }
+  };
+
+  // Setup real-time replication listener
+  useEffect(() => {
+    fetchSplits();
+
+    const channel = supabase
+      .channel("realtime-bill-splits")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bill_splits" },
+        () => {
+          fetchSplits();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bill_split_members" },
+        () => {
+          fetchSplits();
+          refetchBalance();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
+  // Handle participant search
+  useEffect(() => {
+    const searchUser = async () => {
+      const query = searchQuery.trim().toLowerCase();
+      if (query.length >= 2) {
+        setIsSearching(true);
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, kyc_tag, profile_photo_url")
+          .or(`first_name.ilike.%${query}%,kyc_tag.ilike.%${query}%`)
+          .neq("id", currentUser?.id)
+          .limit(5);
+
+        if (data) {
+          setSearchResults(data);
+          setShowSuggestions(true);
+        }
+        setIsSearching(false);
+      } else {
+        setSearchResults([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    const timer = setTimeout(searchUser, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Calculations
+  const shareCount = participants.length + (includeCreator ? 1 : 0);
+  const calculatedShare = shareCount > 0 && totalAmount ? (parseFloat(totalAmount) / shareCount) : 0;
+
+  // Click outside listener for suggestions
+  useEffect(() => {
+    const closeSuggestions = () => setShowSuggestions(false);
+    window.addEventListener("click", closeSuggestions);
+    return () => window.removeEventListener("click", closeSuggestions);
+  }, []);
+
+  const handleAddParticipant = (u: any) => {
+    if (participants.some((p) => p.id === u.id)) {
+      toast.error("User already added to split");
+      return;
+    }
+    setParticipants([...participants, u]);
+    setSearchQuery("");
+    setShowSuggestions(false);
+  };
+
+  const handleRemoveParticipant = (id: string) => {
+    setParticipants(participants.filter((p) => p.id !== id));
+  };
+
+  // Create Split Bill Request
+  const handleCreateSplit = async () => {
+    if (!title.trim()) {
+      toast.error("Please enter a title for the bill");
+      return;
+    }
+    if (!totalAmount || parseFloat(totalAmount) <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    if (participants.length === 0) {
+      toast.error("Please add at least one participant");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      // 1. Create the base split request
+      const { data: split, error: splitError } = await supabase
+        .from("bill_splits")
+        .insert({
+          creator_id: currentUser.id,
+          title: title.trim(),
+          total_amount: parseFloat(totalAmount),
+          amount_per_person: calculatedShare,
+          category,
+          status: "active"
+        })
+        .select()
+        .single();
+
+      if (splitError) throw splitError;
+
+      // 2. Add members
+      const membersPayload = participants.map((p) => ({
+        bill_split_id: split.id,
+        user_id: p.id,
+        creator_id: currentUser.id,
+        amount: calculatedShare,
+        status: "pending"
+      }));
+
+      const { error: membersError } = await supabase
+        .from("bill_split_members")
+        .insert(membersPayload);
+
+      if (membersError) throw membersError;
+
+      toast.success("Bill split request created successfully!");
+      setTitle("");
+      setTotalAmount("");
+      setParticipants([]);
+      fetchSplits();
+    } catch (error: any) {
+      console.error("Error creating split:", error);
+      toast.error(error.message || "Failed to create split request");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Pay share
+  const handlePaySplitShare = async () => {
+    if (!selectedMemberIdToPay) return;
+    setIsPaying(true);
+    try {
+      const { data, error } = await supabase.rpc("pay_bill_split", {
+        p_member_id: selectedMemberIdToPay
+      });
+
+      if (error) throw error;
+
+      const result = Array.isArray(data) ? data[0] : data;
+
+      if (!result?.success) {
+        throw new Error(result?.message || "Failed to pay split");
+      }
+
+      toast.success(result?.message || "Split paid successfully!");
+      fetchSplits();
+      refetchBalance();
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast.error(error.message || "An error occurred during payment");
+    } finally {
+      setIsPaying(false);
+      setSelectedMemberIdToPay(null);
+    }
+  };
+
+  const getCategoryIcon = (catId: string) => {
+    const match = categories.find((c) => c.id === catId);
+    return match ? match.icon : Tag;
+  };
+
+  const getCategoryColor = (catId: string) => {
+    const match = categories.find((c) => c.id === catId);
+    return match ? match.color : "text-slate-500 bg-slate-500/10";
+  };
+
+  return (
+    <div className="space-y-12">
+      {/* 1. Creating Split Section */}
+      <div className="space-y-6">
+        <h3 className="text-xl font-light tracking-tight flex items-center gap-2">
+          <Users className="w-5 h-5 text-primary" />
+          Split a New Bill
+        </h3>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 bg-card/30 border border-border/50 rounded-3xl p-6 sm:p-8 backdrop-blur-sm">
+          {/* Bill Form details */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="split-title">Bill Description / Title</Label>
+                <Input
+                  id="split-title"
+                  placeholder="e.g. Rent, Grocery shopping, Lunch"
+                  className="bg-background/40 h-12 border-border/60"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="split-amount">Total Amount ({currency})</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
+                    {currency}
+                  </span>
+                  <Input
+                    id="split-amount"
+                    type="number"
+                    placeholder="0.00"
+                    className="bg-background/40 h-12 pl-12 border-border/60 text-lg font-medium"
+                    value={totalAmount}
+                    onChange={(e) => setTotalAmount(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Category Select */}
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                {categories.map((c) => {
+                  const Icon = c.icon;
+                  const isSelected = category === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setCategory(c.id)}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-3 rounded-xl border transition-all text-center gap-1.5",
+                        isSelected
+                          ? "border-primary bg-primary/10 text-primary shadow-sm"
+                          : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-[10px] font-medium">{c.label.split(" ")[0]}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Search Participant */}
+            <div className="space-y-2 relative" onClick={(e) => e.stopPropagation()}>
+              <Label>Add Friends (Vault Users)</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by first name or KYC tag..."
+                  className="pl-10 bg-background/40 h-12 border-border/60"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (searchResults.length > 0) setShowSuggestions(true);
+                  }}
+                />
+                {isSearching && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                )}
+              </div>
+
+              {/* Autocomplete suggestions dropdown */}
+              {showSuggestions && searchResults.length > 0 && (
+                <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] overflow-hidden rounded-xl border border-border/60 bg-card shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="p-1">
+                    {searchResults.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="flex items-center gap-3 w-full p-2.5 rounded-lg hover:bg-primary/5 text-left transition-colors group"
+                        onClick={() => handleAddParticipant(u)}
+                      >
+                        <Avatar className="w-8 h-8 border border-border/40">
+                          <AvatarImage src={u.profile_photo_url} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                            {u.first_name[0]}{u.last_name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                            {u.first_name} {u.last_name}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground font-mono">{u.kyc_tag}</div>
+                        </div>
+                        <Plus className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* List of selected participants */}
+            {participants.length > 0 && (
+              <div className="space-y-2">
+                <Label>Selected Friends</Label>
+                <div className="flex flex-wrap gap-2">
+                  {participants.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-2 bg-background/50 border border-border/60 pl-2 pr-1.5 py-1 rounded-full text-xs font-medium animate-in scale-in duration-200"
+                    >
+                      <Avatar className="w-5 h-5">
+                        <AvatarImage src={p.profile_photo_url} />
+                        <AvatarFallback className="text-[8px] bg-primary/20 text-primary font-bold">
+                          {p.first_name[0]}{p.last_name[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{p.first_name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveParticipant(p.id)}
+                        className="w-4 h-4 rounded-full flex items-center justify-center bg-muted/60 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors ml-1"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Summary Block */}
+          <div className="flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-border/40 pt-6 lg:pt-0 lg:pl-8 space-y-6">
+            <div className="space-y-4">
+              <div className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground">Split Breakdown</div>
+
+              <div className="rounded-2xl bg-background/25 border border-border/40 p-4 space-y-3.5">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Total Amount</span>
+                  <span className="font-semibold text-foreground">{currency} {parseFloat(totalAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Include Me in Split</span>
+                  <button
+                    type="button"
+                    onClick={() => setIncludeCreator(!includeCreator)}
+                    className={cn(
+                      "w-9 h-5 rounded-full p-0.5 transition-colors focus:outline-none",
+                      includeCreator ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <div className={cn("w-4 h-4 rounded-full bg-white transition-transform", includeCreator ? "translate-x-4" : "translate-x-0")} />
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Participants</span>
+                  <span className="font-medium text-foreground">{shareCount} people</span>
+                </div>
+
+                <div className="border-t border-border/40 pt-3 flex justify-between items-end">
+                  <div className="text-xs text-muted-foreground font-medium">Individual Share</div>
+                  <div className="text-xl font-semibold text-primary font-mono">
+                    {currency} {calculatedShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              className="w-full h-12 shadow-md shadow-primary/10"
+              onClick={handleCreateSplit}
+              disabled={isCreating || participants.length === 0}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating splits...
+                </>
+              ) : (
+                <>
+                  Create Split Request <Plus className="ml-2 w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Active Splits Dashboard */}
+      <div className="space-y-6">
+        <h3 className="text-xl font-light tracking-tight flex items-center gap-2">
+          <History className="w-5 h-5 text-primary" />
+          Active Split Requests
+        </h3>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Section: Incoming splits (Splits You Owe) */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+              <ArrowDownLeft className="w-4 h-4 text-rose-500" />
+              Splits You Owe (Incoming Requests)
+            </h4>
+
+            <div className="rounded-2xl border border-border/40 bg-card/30 p-4 space-y-3 min-h-[180px]">
+              {loadingSplits ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary/60" />
+                  <span className="text-xs">Loading requests...</span>
+                </div>
+              ) : splitsOwed.filter(m => m.status === "pending").length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500/20 mb-2" />
+                  <span className="text-sm font-medium text-muted-foreground">You are all clear!</span>
+                  <span className="text-xs text-muted-foreground/60 mt-0.5">No pending splits to pay.</span>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {splitsOwed.filter(m => m.status === "pending").map((m) => {
+                    const CatIcon = getCategoryIcon(m.bill_splits.category);
+                    const catColor = getCategoryColor(m.bill_splits.category);
+                    const creatorName = m.bill_splits.profiles
+                      ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
+                      : "Vault User";
+                    const creatorTag = m.bill_splits.profiles?.kyc_tag || "";
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex items-center justify-between p-3.5 rounded-xl bg-background/40 hover:bg-background/60 border border-border/40 transition-colors group animate-in fade-in duration-200"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", catColor)}>
+                            <CatIcon className="w-5 h-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-foreground truncate">{m.bill_splits.title}</div>
+                            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                              Requested by {creatorName} <span className="font-mono text-primary/80">{creatorTag}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right">
+                            <div className="text-sm font-semibold text-rose-500 font-mono">
+                              -{currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </div>
+                            <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
+                              {format(new Date(m.bill_splits.created_at), "MMM dd, h:mm a")}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="h-8 font-medium px-4 text-xs shadow-sm shadow-primary/10"
+                            onClick={() => {
+                              setSelectedMemberIdToPay(m.id);
+                              setSelectedSplitAmount(m.amount);
+                              setSelectedSplitTitle(m.bill_splits.title);
+                              setIsPinModalOpen(true);
+                            }}
+                          >
+                            Pay
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Already Paid Splits (History) */}
+              {splitsOwed.filter(m => m.status === "paid").length > 0 && (
+                <div className="pt-4 border-t border-border/40 mt-4 space-y-2">
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Recently Settled</div>
+                  {splitsOwed.filter(m => m.status === "paid").slice(0, 3).map((m) => {
+                    const CatIcon = getCategoryIcon(m.bill_splits.category);
+                    const catColor = getCategoryColor(m.bill_splits.category);
+                    const creatorName = m.bill_splits.profiles
+                      ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
+                      : "Vault User";
+
+                    return (
+                      <div
+                        key={m.id}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-background/20 border border-border/20 opacity-70"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border", catColor)}>
+                            <CatIcon className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0 text-xs">
+                            <div className="font-medium text-foreground truncate">{m.bill_splits.title}</div>
+                            <div className="text-[9px] text-muted-foreground truncate mt-0.5">Paid to {creatorName}</div>
+                          </div>
+                        </div>
+                        <div className="text-right text-xs shrink-0">
+                          <div className="font-semibold text-emerald-500 font-mono flex items-center justify-end gap-1">
+                            <Check className="w-3.5 h-3.5" /> {currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section: Outgoing splits (Splits You Created) */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+              Splits You Created (Outgoing Tracker)
+            </h4>
+
+            <div className="rounded-2xl border border-border/40 bg-card/30 p-4 space-y-3 min-h-[180px]">
+              {loadingSplits ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary/60" />
+                  <span className="text-xs">Loading splits...</span>
+                </div>
+              ) : splitsCreated.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                  <Users className="w-8 h-8 text-primary/25 mb-2" />
+                  <span className="text-sm font-medium text-muted-foreground">No active splits</span>
+                  <span className="text-xs text-muted-foreground/60 mt-0.5">Create a split request above.</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {splitsCreated.map((s) => {
+                    const CatIcon = getCategoryIcon(s.category);
+                    const catColor = getCategoryColor(s.category);
+                    const paidMembers = s.bill_split_members.filter((m: any) => m.status === "paid");
+                    const totalMembers = s.bill_split_members.length;
+                    const progressPercentage = totalMembers > 0 ? (paidMembers.length / totalMembers) * 100 : 100;
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="p-4 rounded-xl bg-background/40 border border-border/40 space-y-3 animate-in fade-in duration-200"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", catColor)}>
+                              <CatIcon className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-foreground truncate">{s.title}</div>
+                              <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                Total: {currency} {s.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} · {currency} {s.amount_per_person.toLocaleString(undefined, { minimumFractionDigits: 2 })} each
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
+                              s.status === "completed" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/25" : "bg-primary/10 text-primary border border-primary/25"
+                            )}>
+                              {s.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
+                            <span>Settled Progress</span>
+                            <span>{paidMembers.length} of {totalMembers} paid ({Math.round(progressPercentage)}%)</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden border border-border/20">
+                            <div
+                              className="h-full bg-primary transition-all duration-500 ease-out"
+                              style={{ width: `${progressPercentage}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* List of members detail */}
+                        <div className="pt-2 border-t border-border/30 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          {s.bill_split_members.map((m: any) => {
+                            const name = m.profiles
+                              ? `${m.profiles.first_name} ${m.profiles.last_name || ""}`.trim()
+                              : "Vault User";
+                            const isPaid = m.status === "paid";
+
+                            return (
+                              <div key={m.id} className="flex items-center justify-between p-1.5 rounded-lg bg-background/25">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Avatar className="w-4 h-4">
+                                    <AvatarImage src={m.profiles?.profile_photo_url} />
+                                    <AvatarFallback className="text-[6px] bg-primary/20 text-primary font-bold">
+                                      {m.profiles?.first_name?.[0]}{m.profiles?.last_name?.[0]}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="truncate text-[10px] font-medium">{name}</span>
+                                </div>
+                                <span className={cn(
+                                  "flex items-center gap-1 font-semibold text-[9px] uppercase",
+                                  isPaid ? "text-emerald-500" : "text-muted-foreground/60"
+                                )}>
+                                  {isPaid ? (
+                                    <>
+                                      <Check className="w-3 h-3" /> Paid
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Clock className="w-3 h-3" /> Pending
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <TransactionPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => {
+          setIsPinModalOpen(false);
+          setSelectedMemberIdToPay(null);
+        }}
+        onVerified={handlePinVerified}
+        title="Authorize Bill Split Payment"
+        description={`Securely authorize payment of ${currency} ${selectedSplitAmount.toLocaleString()} for "${selectedSplitTitle}".`}
+      />
+
+      {isPaying && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex flex-col items-center justify-center">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full border-4 border-primary/20 animate-pulse" />
+            <Loader2 className="w-24 h-24 text-primary animate-spin absolute inset-0" />
+          </div>
+          <h2 className="text-xl font-medium mt-8">Processing settlement...</h2>
+          <p className="text-sm text-muted-foreground mt-2">Transferring funds securely via Vault Ledger rails.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TransactionHistory() {
   const { t } = useTranslation();
   const { balance, currency, loading: balanceLoading } = useWalletBalance();
@@ -1241,12 +2014,14 @@ function TransactionsPage() {
     { id: "send", label: t("transactions.modes.send") },
     { id: "deposit", label: t("transactions.modes.deposit") },
     { id: "withdraw", label: t("transactions.modes.withdraw") },
+    { id: "split", label: t("transactions.modes.split") || "Split Bill" },
   ];
 
   const titles: Record<Mode, string> = {
     send: t("transactions.modes.send"),
     deposit: t("transactions.modes.deposit"),
     withdraw: t("transactions.modes.withdraw"),
+    split: t("transactions.modes.split") || "Split Bill",
   };
 
   return (
@@ -1300,6 +2075,7 @@ function TransactionsPage() {
         {mode === "send" && <SendPanel searchFilter={globalSearch} />}
         {mode === "deposit" && <DepositPanel />}
         {mode === "withdraw" && <WithdrawPanel />}
+        {mode === "split" && <SplitPanel />}
 
         {/* Detailed Transaction History */}
         <TransactionHistory />
