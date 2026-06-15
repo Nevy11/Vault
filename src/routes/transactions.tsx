@@ -969,6 +969,7 @@ function SplitPanel() {
           amount,
           status,
           paid_at,
+          transaction_id,
           bill_splits (
             id,
             title,
@@ -1123,36 +1124,15 @@ function SplitPanel() {
 
     setIsCreating(true);
     try {
-      // 1. Create the base split request
-      const { data: split, error: splitError } = await supabase
-        .from("bill_splits")
-        .insert({
-          creator_id: currentUser.id,
-          title: title.trim(),
-          total_amount: parseFloat(totalAmount),
-          amount_per_person: calculatedShare,
-          category,
-          status: "active"
-        })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("create_bill_split_v2", {
+        p_title: title.trim(),
+        p_total_amount: parseFloat(totalAmount),
+        p_category: category,
+        p_member_ids: participants.map((p) => p.id),
+        p_include_creator: includeCreator
+      });
 
-      if (splitError) throw splitError;
-
-      // 2. Add members
-      const membersPayload = participants.map((p) => ({
-        bill_split_id: split.id,
-        user_id: p.id,
-        creator_id: currentUser.id,
-        amount: calculatedShare,
-        status: "pending"
-      }));
-
-      const { error: membersError } = await supabase
-        .from("bill_split_members")
-        .insert(membersPayload);
-
-      if (membersError) throw membersError;
+      if (error) throw error;
 
       toast.success("Bill split request created successfully!");
       setTitle("");
@@ -1164,6 +1144,25 @@ function SplitPanel() {
       toast.error(error.message || "Failed to create split request");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Cancel Split
+  const handleCancelSplit = async (splitId: string) => {
+    if (!window.confirm("Are you sure you want to cancel this split request? This will remove it for all participants.")) return;
+    
+    try {
+      const { error } = await supabase.rpc("cancel_bill_split", {
+        p_split_id: splitId
+      });
+
+      if (error) throw error;
+
+      toast.success("Split request cancelled successfully");
+      fetchSplits();
+    } catch (error: any) {
+      console.error("Error cancelling split:", error);
+      toast.error(error.message || "Failed to cancel split request");
     }
   };
 
@@ -1525,11 +1524,28 @@ function SplitPanel() {
                             <div className="text-[9px] text-muted-foreground truncate mt-0.5">Paid to {creatorName}</div>
                           </div>
                         </div>
-                        <div className="text-right text-xs shrink-0">
-                          <div className="font-semibold text-emerald-500 font-mono flex items-center justify-end gap-1">
-                            <Check className="w-3.5 h-3.5" /> {currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          <div className="flex items-center gap-2 text-right text-xs shrink-0">
+                            <div className="text-right">
+                              <div className="font-semibold text-emerald-500 font-mono flex items-center justify-end gap-1">
+                                <Check className="w-3.5 h-3.5" /> {currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </div>
+                              <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
+                                {m.paid_at ? format(new Date(m.paid_at), "MMM dd, h:mm a") : ""}
+                              </div>
+                            </div>
+                            {m.transaction_id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                                asChild
+                              >
+                                <Link to="/help" search={{ receiptId: m.transaction_id }}>
+                                  <CreditCard className="w-3.5 h-3.5" />
+                                </Link>
+                              </Button>
+                            )}
                           </div>
-                        </div>
                       </div>
                     );
                   })}
@@ -1584,13 +1600,23 @@ function SplitPanel() {
                             </div>
                           </div>
 
-                          <div className="text-right shrink-0">
+                          <div className="flex items-center gap-2 text-right shrink-0">
                             <span className={cn(
                               "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
                               s.status === "completed" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/25" : "bg-primary/10 text-primary border border-primary/25"
                             )}>
                               {s.status}
                             </span>
+                            {s.status === "active" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                onClick={() => handleCancelSplit(s.id)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
                           </div>
                         </div>
 
