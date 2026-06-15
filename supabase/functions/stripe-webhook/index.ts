@@ -60,9 +60,49 @@ serve(async (req) => {
       currency = (session.currency || "USD").toUpperCase();
       reference = (session.payment_intent as string) || session.id;
       console.log(`Processing Checkout Session ${session.id} for user ${user_id}`);
+    } else if (event.type === "identity.verification_session.verified") {
+      const session = event.data.object as any;
+      user_id = session.metadata?.user_id;
+      console.log(`✅ Identity Verified for user: ${user_id}`);
+
+      if (user_id) {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ kyc_status: "verified", updated_at: new Date().toISOString() })
+          .eq("id", user_id);
+
+        if (updateError) {
+          console.error("Error updating profile kyc_status:", updateError);
+        }
+      }
+    } else if (event.type === "identity.verification_session.requires_input") {
+      const session = event.data.object as any;
+      user_id = session.metadata?.user_id;
+      console.log(`ℹ️ Identity Requires Input for user: ${user_id}`);
+
+      if (user_id) {
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ kyc_status: "unverified", updated_at: new Date().toISOString() })
+          .eq("id", user_id);
+
+        if (updateError) {
+          console.error("Error updating profile kyc_status:", updateError);
+        }
+      }
+    } else if (event.type === "identity.verification_session.canceled") {
+      const session = event.data.object as any;
+      user_id = session.metadata?.user_id;
+      console.log(`❌ Identity Canceled for user: ${user_id}`);
     }
 
-    if (user_id && user_id !== "unknown" && amount && amount > 0) {
+    if (
+      (event.type === "payment_intent.succeeded" || event.type === "checkout.session.completed") &&
+      user_id &&
+      user_id !== "unknown" &&
+      amount &&
+      amount > 0
+    ) {
       // Validate UUID format to prevent RPC crash
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       if (!uuidRegex.test(user_id)) {

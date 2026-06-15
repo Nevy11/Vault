@@ -73,19 +73,20 @@ export const initiateStkPush = async (req: Request, res: Response) => {
   try {
     const token = await getDarajaToken();
     const timestamp = getTimestamp();
-    const shortCode = process.env.MPESA_SHORTCODE || "174379";
+    const storeNumber = process.env.MPESA_STORE_NUMBER || process.env.MPESA_SHORTCODE || "4237581";
+    const tillNumber = process.env.MPESA_TILL_NUMBER || "3491665";
     const passKey = process.env.MPESA_PASSKEY || "";
 
-    const password = generateMpesaPassword(shortCode, passKey, timestamp);
+    const password = generateMpesaPassword(storeNumber, passKey, timestamp);
 
     const payload = {
-      BusinessShortCode: shortCode,
+      BusinessShortCode: storeNumber,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
+      TransactionType: "CustomerBuyGoodsOnline",
       Amount: Math.round(amount),
       PartyA: formattedPhone,
-      PartyB: shortCode,
+      PartyB: tillNumber,
       PhoneNumber: formattedPhone,
       CallBackURL: `${process.env.APP_BASE_URL}/api/v1/vault/callback`,
       AccountReference: `Vault_${userId}`,

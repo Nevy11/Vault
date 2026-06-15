@@ -1,68 +1,48 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState, type FormEvent, type ReactNode, useEffect, useRef } from "react";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n";
 import {
-  Upload,
   CheckCircle2,
-  User,
   Shield,
   Camera,
-  UserCheck,
-  ArrowRight,
   ArrowLeft,
   RefreshCw,
+  Clock,
+  IdCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
 import { toast } from "sonner";
+import { supabase } from "@/api/supabase";
+import { useProfileSignal } from "@/lib/profile-signal";
+import { loadStripe } from "@stripe/stripe-js";
+import { Onfido } from "onfido-sdk-ui";
 
-// 1. Types
-type IDType = "national-id" | "passport" | "alien-card" | null;
-type KYCStep = "id-type" | "document-details" | "upload" | "biometric" | "success";
+// Initialize Stripe
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51Ro0ysE4K5QIsyl6tFrDH7oCDENuxy0P1iq7wWIvwiI5jyUtrf2Tsb0bizDjX0NIaTjiV1gzmGNVPj7GbqeyF4yX005RF2puYW",
+);
 
-// 2. TanStack Router Configuration
+// 1. TanStack Router Configuration
 export const Route = createFileRoute("/kyc")({
   component: KYCPage,
   head: () => {
-    const { t } = useTranslation();
     return {
       meta: [
-        { title: t("kyc.meta_title") },
+        { title: i18n.t("kyc.meta_title") },
         {
           name: "description",
-          content: t("kyc.meta_description"),
+          content: i18n.t("kyc.meta_description"),
         },
       ],
     };
   },
 });
 
-// 3. Helper Components
-function Field({
-  label,
-  hint,
-  required,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  required?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-sm text-foreground/90">
-        {required && <span className="text-primary mr-1">*</span>}
-        <span className="font-medium">{label}</span>
-        {hint && <span className="text-muted-foreground ml-1.5 text-[13px]">({hint})</span>}
-      </label>
-      {children}
-    </div>
-  );
-}
-
+// 2. Helper Components
 function Confetti() {
   const [confetti] = useState<
     Array<{ id: number; x: number; y: number; delay: number; duration: number }>
@@ -102,101 +82,129 @@ function Confetti() {
   );
 }
 
-// 4. Main Page Component
+// 3. Main Page Component
 function KYCPage() {
   const { t } = useTranslation();
-  const [step, setStep] = useState<KYCStep>("id-type");
-  const [idType, setIdType] = useState<IDType>(null);
-  const [fullName, setFullName] = useState("");
-  const [idNumber, setIdNumber] = useState("");
-  const [passportNumber, setPassportNumber] = useState("");
-  const [individNumber, setIndivNumber] = useState("");
-  const [country, setCountry] = useState("");
-  const [nationality, setNationality] = useState("");
-  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [profile, setProfile] = useProfileSignal();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOnfido, setShowOnfido] = useState(false);
   const navigate = useNavigate();
+  const search = useSearch({ from: "/kyc" }) as { status?: string };
 
-  // Camera state
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [isLoadingCamera, setIsLoadingCamera] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+  const handleStartStripeVerification = async () => {
+    if (!profile?.id) {
+      toast.error("User session not found. Please log in again.");
+      return;
     }
-    setIsCameraActive(false);
-  };
 
-  const startCamera = async () => {
-    setIsLoadingCamera(true);
+    setIsLoading(true);
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+      const stripe = await stripePromise;
+      if (!stripe) throw new Error("Stripe failed to load");
+
+      const { data, error } = await supabase.functions.invoke("stripe-identity", {
+        body: { user_id: profile.id },
       });
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        setIsCameraActive(true);
+      if (error) throw error;
+      
+      if (data?.client_secret) {
+        const { error: verifyError } = await stripe.verifyIdentity(data.client_secret);
+        if (verifyError) {
+          toast.error(verifyError.message || "Identity verification failed to start.");
+        } else {
+          toast.success("Verification session completed.");
+          if (profile && profile.kyc_status !== "verified") {
+            setProfile({ ...profile, kyc_status: "pending" });
+          }
+        }
+      } else if (data?.url) {
+        window.location.href = data.url;
       }
-    } catch (err) {
-      console.error("Camera access error:", err);
-      toast.error("Could not access camera. Please check permissions.");
+    } catch (err: any) {
+      console.error("Stripe KYC Error:", err);
+      toast.error(err.message || "Failed to start verification.");
     } finally {
-      setIsLoadingCamera(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (step !== "biometric") {
-      stopCamera();
+  const handleStartOnfidoVerification = async () => {
+    if (!profile?.id) {
+      toast.error("User session not found. Please log in again.");
+      return;
     }
-  }, [step]);
 
-  const handleSelectIDType = (type: IDType) => {
-    setIdType(type);
-    setStep("document-details");
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("onfido-token", {
+        body: { user_id: profile.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.sdk_token) {
+        setShowOnfido(true);
+        Onfido.init({
+          token: data.sdk_token,
+          containerId: "onfido-mount",
+          onComplete: (data) => {
+            console.log("Onfido verification complete:", data);
+            toast.success("Documents submitted successfully.");
+            setShowOnfido(false);
+            if (profile) setProfile({ ...profile, kyc_status: "pending" });
+          },
+          onError: (err) => {
+            console.error("Onfido error:", err);
+            toast.error("Onfido verification error occurred.");
+            setShowOnfido(false);
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error("Onfido KYC Error:", err);
+      toast.error(err.message || "Failed to start Onfido verification.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDocumentDetailsSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!fullName.trim()) return;
-    if (idType === "national-id" && !idNumber.trim()) return;
-    if (idType === "passport" && !passportNumber.trim()) return;
-    if (idType === "alien-card" && !individNumber.trim()) return;
-    if (!country.trim() && !nationality.trim()) return;
+  const handleMockVerification = async () => {
+    if (!profile?.id) return;
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ kyc_status: "verified", updated_at: new Date().toISOString() })
+        .eq("id", profile.id);
 
-    setStep("upload");
-  };
-
-  const handleDocumentUpload = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!documentFile) return;
-    setStep("biometric");
-  };
-
-  const handleBiometricCapture = () => {
-    setIsLoadingCamera(true);
-    setTimeout(() => {
-      stopCamera();
-      setStep("success");
-      setIsLoadingCamera(false);
-      toast.success("Biometric verification complete");
-    }, 2000);
+      if (error) throw error;
+      if (profile) setProfile({ ...profile, kyc_status: "verified" });
+      toast.success("Identity verified (Development Mode)");
+    } catch (err: any) {
+      console.error("Mock verification error:", err);
+      toast.error("Mock verification failed: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleExploreWallet = () => {
     navigate({ to: "/dashboard" });
   };
 
+  // Determine current display state based on profile status or query param
+  const isVerified = profile?.kyc_status === "verified" || search.status === "success";
+  const isPending = profile?.kyc_status === "pending";
+
   return (
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
       <TopNav />
+      
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
-        <div className="w-full mb-6">
+        <div className="w-full mb-6 text-center">
           <Link
             to="/dashboard"
             className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-border transition-colors"
@@ -211,257 +219,18 @@ function KYCPage() {
         >
           <Logo />
 
-          {step === "id-type" && (
-            <>
-              <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">
-                  {t("kyc.steps.select_id.title")}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("kyc.steps.select_id.description")}
-                </p>
-              </div>
-
-              <div className="mt-7 space-y-3">
-                <button
-                  onClick={() => handleSelectIDType("national-id")}
-                  className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
-                >
-                  <p className="font-medium text-foreground">
-                    {t("kyc.steps.select_id.national_id")}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t("kyc.steps.select_id.national_id_desc")}
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => handleSelectIDType("passport")}
-                  className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
-                >
-                  <p className="font-medium text-foreground">{t("kyc.steps.select_id.passport")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t("kyc.steps.select_id.passport_desc")}
-                  </p>
-                </button>
-
-                <button
-                  onClick={() => handleSelectIDType("alien-card")}
-                  className="w-full p-4 rounded-lg border-2 border-border/50 hover:border-primary hover:bg-primary/5 transition-all text-left"
-                >
-                  <p className="font-medium text-foreground">
-                    {t("kyc.steps.select_id.alien_card")}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t("kyc.steps.select_id.alien_card_desc")}
-                  </p>
-                </button>
-              </div>
-            </>
-          )}
-
-          {step === "document-details" && idType && (
-            <>
-              <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">
-                  {t("kyc.steps.details.title")}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("kyc.steps.details.description")}
-                </p>
-              </div>
-
-              <form className="mt-7 space-y-4" onSubmit={handleDocumentDetailsSubmit}>
-                <Field
-                  label={t("kyc.steps.details.full_name")}
-                  hint={t("kyc.steps.details.full_name_hint")}
-                  required
-                >
-                  <Input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                  />
-                </Field>
-
-                {idType === "national-id" && (
-                  <>
-                    <Field label={t("kyc.steps.details.id_number")} required>
-                      <Input
-                        type="text"
-                        value={idNumber}
-                        onChange={(e) => setIdNumber(e.target.value)}
-                        className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                      />
-                    </Field>
-                    <Field label={t("kyc.steps.details.country")} required>
-                      <Input
-                        type="text"
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                      />
-                    </Field>
-                  </>
-                )}
-
-                {idType === "passport" && (
-                  <>
-                    <Field label={t("kyc.steps.details.passport_number")} required>
-                      <Input
-                        type="text"
-                        value={passportNumber}
-                        onChange={(e) => setPassportNumber(e.target.value)}
-                        className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                      />
-                    </Field>
-                    <Field label={t("kyc.steps.details.nationality")} required>
-                      <Input
-                        type="text"
-                        value={nationality}
-                        onChange={(e) => setNationality(e.target.value)}
-                        className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                      />
-                    </Field>
-                  </>
-                )}
-
-                {idType === "alien-card" && (
-                  <>
-                    <Field label={t("kyc.steps.details.individual_number")} required>
-                      <Input
-                        type="text"
-                        value={individNumber}
-                        onChange={(e) => setIndivNumber(e.target.value)}
-                        className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                      />
-                    </Field>
-                    <Field label={t("kyc.steps.details.nationality")} required>
-                      <Input
-                        type="text"
-                        value={nationality}
-                        onChange={(e) => setNationality(e.target.value)}
-                        className="h-11 bg-input/60 border-border focus-visible:ring-primary"
-                      />
-                    </Field>
-                  </>
-                )}
-
-                <Button
-                  type="submit"
-                  className="mt-6 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
-                >
-                  {t("kyc.steps.details.continue_btn")}
-                </Button>
-              </form>
-            </>
-          )}
-
-          {step === "upload" && (
-            <>
-              <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">
-                  {t("kyc.steps.upload.title")}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {idType === "national-id"
-                    ? t("kyc.steps.upload.id_msg")
-                    : idType === "passport"
-                      ? t("kyc.steps.upload.passport_msg")
-                      : t("kyc.steps.upload.alien_msg")}
-                </p>
-              </div>
-
-              <form className="mt-7 space-y-4" onSubmit={handleDocumentUpload}>
-                <div className="flex items-center justify-center">
-                  <label className="w-full">
-                    <div className="border-2 border-dashed border-border/50 rounded-lg p-8 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all">
-                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                      <p className="text-sm font-medium text-foreground">
-                        {documentFile ? documentFile.name : t("kyc.steps.upload.click_to_upload")}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {t("kyc.steps.upload.format_note")}
-                      </p>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={!documentFile}
-                  className="mt-6 h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {t("kyc.steps.upload.next_btn")}
-                </Button>
-              </form>
-            </>
-          )}
-
-          {step === "biometric" && (
-            <>
-              <div className="mt-6 text-center">
-                <h1 className="font-serif text-3xl text-foreground">
-                  {t("kyc.steps.biometric.title")}
-                </h1>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t("kyc.steps.biometric.description")}
-                </p>
-              </div>
-
-              <div className="mt-7 space-y-4">
-                <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-black/20 border border-border/50 flex items-center justify-center">
-                  {isCameraActive ? (
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Camera className="h-16 w-16 text-muted-foreground/50" />
-                  )}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="w-48 h-64 border-4 border-primary rounded-full opacity-30" />
-                  </div>
-                </div>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  {t("kyc.steps.biometric.instruction")}
-                </p>
-
-                <Button
-                  onClick={isCameraActive ? handleBiometricCapture : startCamera}
-                  disabled={isLoadingCamera}
-                  className="h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center justify-center gap-2"
-                >
-                  {isLoadingCamera ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Camera className="h-4 w-4" />
-                  )}
-                  {isLoadingCamera
-                    ? t("kyc.steps.biometric.processing")
-                    : isCameraActive
-                      ? t("kyc.steps.biometric.capture_btn")
-                      : t("kyc.steps.biometric.start_camera_btn")}
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground/70 italic">
-                  {t("kyc.steps.biometric.security_note")}
-                </p>
-              </div>
-            </>
-          )}
-
-          {step === "success" && (
+          {showOnfido ? (
+            <div className="mt-6">
+              <div id="onfido-mount" className="rounded-xl overflow-hidden" />
+              <Button
+                variant="ghost"
+                onClick={() => setShowOnfido(false)}
+                className="mt-4 w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : isVerified ? (
             <>
               <div className="mt-10 text-center">
                 <div className="relative">
@@ -485,30 +254,116 @@ function KYCPage() {
                 >
                   {t("kyc.steps.success.explore_btn")}
                 </Button>
+              </div>
+            </>
+          ) : isPending ? (
+            <>
+              <div className="mt-10 text-center">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-amber-500/20 rounded-full blur-xl" />
+                  <Clock className="h-20 w-20 text-amber-500 relative mx-auto mb-4 animate-pulse" />
+                </div>
+                <h1 className="font-serif text-3xl text-foreground">Verification Pending</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  We are currently reviewing your documents. This usually takes a few minutes.
+                </p>
+              </div>
 
-                <div className="grid grid-cols-3 gap-2">
+              <div className="mt-10">
+                <Button
+                  onClick={handleExploreWallet}
+                  className="h-12 w-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                >
+                  Return to Dashboard
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mt-6 text-center">
+                <h1 className="font-serif text-3xl text-foreground">Secure Identity</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Verify your identity to unlock higher limits and premium features.
+                </p>
+              </div>
+
+              <div className="mt-8 space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1 bg-primary/10 p-2 rounded-lg">
+                      <IdCard className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Government ID</p>
+                      <p className="text-sm text-muted-foreground">
+                        Securely upload your Passport, Driver's License or ID card.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1 bg-primary/10 p-2 rounded-lg">
+                      <Camera className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Face Scan</p>
+                      <p className="text-sm text-muted-foreground">
+                        Biometric liveness detection to ensure you are really you.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1 bg-primary/10 p-2 rounded-lg">
+                      <Shield className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">Privacy Guaranteed</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your data is encrypted and used only for compliance.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
                   <Button
-                    variant="outline"
-                    className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/transactions", search: { mode: "send" } })}
+                    onClick={handleStartOnfidoVerification}
+                    disabled={isLoading}
+                    className="h-14 w-full bg-primary text-primary-foreground text-lg font-bold hover:bg-primary/90 flex items-center justify-center gap-3 shadow-lg shadow-primary/20"
                   >
-                    {t("kyc.steps.success.send_money")}
+                    {isLoading ? (
+                      <RefreshCw className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Shield className="h-5 w-5" />
+                    )}
+                    {isLoading ? "Initializing..." : "Start Onfido Verification"}
                   </Button>
+
                   <Button
+                    onClick={handleStartStripeVerification}
                     variant="outline"
-                    className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/transactions", search: { mode: "deposit" } })}
+                    disabled={isLoading}
+                    className="h-14 w-full border-2 text-foreground font-bold hover:bg-primary/5 flex items-center justify-center gap-3"
                   >
-                    {t("kyc.steps.success.deposit_funds")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="h-10 text-xs"
-                    onClick={() => navigate({ to: "/transactions", search: { mode: "withdraw" } })}
-                  >
-                    {t("kyc.steps.success.withdraw_funds")}
+                    Use Stripe Identity
                   </Button>
                 </div>
+
+                {(import.meta.env.DEV || true) && (
+                  <Button
+                    onClick={handleMockVerification}
+                    variant="ghost"
+                    disabled={isLoading}
+                    className="w-full text-muted-foreground hover:text-primary hover:bg-primary/5 text-sm"
+                  >
+                    Skip for Development
+                  </Button>
+                )}
+
+                <p className="text-xs text-center text-muted-foreground italic">
+                  Verification powered by Onfido & Stripe
+                </p>
               </div>
             </>
           )}
@@ -517,3 +372,4 @@ function KYCPage() {
     </main>
   );
 }
+
