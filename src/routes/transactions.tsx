@@ -980,7 +980,7 @@ function SplitPanel() {
             category,
             created_at,
             creator_id,
-            profiles:creator_id (
+            profiles!creator_id (
               first_name,
               last_name,
               kyc_tag
@@ -1010,7 +1010,7 @@ function SplitPanel() {
             amount,
             status,
             paid_at,
-            profiles:user_id (
+            profiles!user_id (
               first_name,
               last_name,
               kyc_tag
@@ -1188,30 +1188,29 @@ function SplitPanel() {
 
     setIsCreating(true);
     try {
-      if (splitMethod === "equal") {
-        const { error } = await supabase.rpc("create_bill_split_v2", {
-          p_title: title.trim(),
-          p_total_amount: parseFloat(totalAmount),
-          p_category: category,
-          p_member_ids: participants.map((p) => p.id),
-          p_include_creator: includeCreator
-        });
-        if (error) throw error;
-      } else {
-        const membersPayload = participants.map((p) => ({
-          user_id: p.id,
-          amount: parseFloat(customAmounts[p.id] || "0")
-        }));
-        
-        const { error } = await supabase.rpc("create_bill_split_v3", {
-          p_title: title.trim(),
-          p_total_amount: parseFloat(totalAmount),
-          p_category: category,
-          p_members: membersPayload,
-          p_creator_amount: includeCreator ? parseFloat(creatorCustomAmount || "0") : 0
-        });
-        if (error) throw error;
-      }
+      const membersPayload = splitMethod === "equal" 
+        ? participants.map((p) => ({
+            user_id: p.id,
+            amount: equalShare
+          }))
+        : participants.map((p) => ({
+            user_id: p.id,
+            amount: parseFloat(customAmounts[p.id] || "0")
+          }));
+
+      const creatorAmount = splitMethod === "equal"
+        ? (includeCreator ? equalShare : 0)
+        : (includeCreator ? parseFloat(creatorCustomAmount || "0") : 0);
+
+      const { error } = await supabase.rpc("create_bill_split_v3", {
+        p_title: title.trim(),
+        p_total_amount: parseFloat(totalAmount),
+        p_category: category,
+        p_members: membersPayload,
+        p_creator_amount: creatorAmount
+      });
+
+      if (error) throw error;
 
       toast.success("Bill split request created successfully!");
       setTitle("");
@@ -1677,96 +1676,124 @@ function SplitPanel() {
                   <Loader2 className="w-6 h-6 animate-spin text-primary/60" />
                   <span className="text-xs">Loading requests...</span>
                 </div>
-              ) : splitsOwed.filter(m => m.status === "pending").length === 0 ? (
+              ) : splitsOwed.filter((m) => m.status === "pending").length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500/20 mb-2" />
                   <span className="text-sm font-medium text-muted-foreground">You are all clear!</span>
-                  <span className="text-xs text-muted-foreground/60 mt-0.5">No pending splits to pay.</span>
+                  <span className="text-xs text-muted-foreground/60 mt-0.5">
+                    No pending splits to pay.
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {splitsOwed.filter(m => m.status === "pending").map((m) => {
-                    const CatIcon = getCategoryIcon(m.bill_splits.category);
-                    const catColor = getCategoryColor(m.bill_splits.category);
-                    const creatorName = m.bill_splits.profiles
-                      ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
-                      : "Vault User";
-                    const creatorTag = m.bill_splits.profiles?.kyc_tag || "";
+                  {splitsOwed
+                    .filter((m) => m.status === "pending")
+                    .map((m) => {
+                      const CatIcon = getCategoryIcon(m.bill_splits.category);
+                      const catColor = getCategoryColor(m.bill_splits.category);
+                      const creatorName = m.bill_splits.profiles
+                        ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
+                        : "Vault User";
+                      const creatorTag = m.bill_splits.profiles?.kyc_tag || "";
 
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-3.5 rounded-xl bg-background/40 hover:bg-background/60 border border-border/40 transition-colors group animate-in fade-in duration-200"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", catColor)}>
-                            <CatIcon className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-foreground truncate">{m.bill_splits.title}</div>
-                            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                              Requested by {creatorName} <span className="font-mono text-primary/80">{creatorTag}</span>
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-3.5 rounded-xl bg-background/40 hover:bg-background/60 border border-border/40 transition-colors group animate-in fade-in duration-200"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div
+                              className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                                catColor,
+                              )}
+                            >
+                              <CatIcon className="w-5 h-5" />
                             </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {m.bill_splits.title}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                Requested by {creatorName}{" "}
+                                <span className="font-mono text-primary/80">{creatorTag}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className="text-sm font-semibold text-rose-500 font-mono">
+                                -{currency}{" "}
+                                {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </div>
+                              <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
+                                {format(new Date(m.bill_splits.created_at), "MMM dd, h:mm a")}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-8 font-medium px-4 text-xs shadow-sm shadow-primary/10"
+                              onClick={() => {
+                                setSelectedMemberIdToPay(m.id);
+                                setSelectedSplitAmount(m.amount);
+                                setSelectedSplitTitle(m.bill_splits.title);
+                                setIsPinModalOpen(true);
+                              }}
+                            >
+                              Pay
+                            </Button>
                           </div>
                         </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="text-right">
-                            <div className="text-sm font-semibold text-rose-500 font-mono">
-                              -{currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
-                              {format(new Date(m.bill_splits.created_at), "MMM dd, h:mm a")}
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="h-8 font-medium px-4 text-xs shadow-sm shadow-primary/10"
-                            onClick={() => {
-                              setSelectedMemberIdToPay(m.id);
-                              setSelectedSplitAmount(m.amount);
-                              setSelectedSplitTitle(m.bill_splits.title);
-                              setIsPinModalOpen(true);
-                            }}
-                          >
-                            Pay
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               )}
 
               {/* Already Paid Splits (History) */}
-              {splitsOwed.filter(m => m.status === "paid").length > 0 && (
+              {splitsOwed.filter((m) => m.status === "paid").length > 0 && (
                 <div className="pt-4 border-t border-border/40 mt-4 space-y-2">
-                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Recently Settled</div>
-                  {splitsOwed.filter(m => m.status === "paid").slice(0, 3).map((m) => {
-                    const CatIcon = getCategoryIcon(m.bill_splits.category);
-                    const catColor = getCategoryColor(m.bill_splits.category);
-                    const creatorName = m.bill_splits.profiles
-                      ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
-                      : "Vault User";
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    Recently Settled
+                  </div>
+                  {splitsOwed
+                    .filter((m) => m.status === "paid")
+                    .slice(0, 3)
+                    .map((m) => {
+                      const CatIcon = getCategoryIcon(m.bill_splits.category);
+                      const catColor = getCategoryColor(m.bill_splits.category);
+                      const creatorName = m.bill_splits.profiles
+                        ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
+                        : "Vault User";
 
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-background/20 border border-border/20 opacity-70"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border", catColor)}>
-                            <CatIcon className="w-4 h-4" />
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-background/20 border border-border/20 opacity-70"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={cn(
+                                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border",
+                                catColor,
+                              )}
+                            >
+                              <CatIcon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 text-xs">
+                              <div className="font-medium text-foreground truncate">
+                                {m.bill_splits.title}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground truncate mt-0.5">
+                                Paid to {creatorName}
+                              </div>
+                            </div>
                           </div>
-                          <div className="min-w-0 text-xs">
-                            <div className="font-medium text-foreground truncate">{m.bill_splits.title}</div>
-                            <div className="text-[9px] text-muted-foreground truncate mt-0.5">Paid to {creatorName}</div>
-                          </div>
-                        </div>
                           <div className="flex items-center gap-2 text-right text-xs shrink-0">
                             <div className="text-right">
                               <div className="font-semibold text-emerald-500 font-mono flex items-center justify-end gap-1">
-                                <Check className="w-3.5 h-3.5" /> {currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                <Check className="w-3.5 h-3.5" /> {currency}{" "}
+                                {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </div>
                               <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
                                 {m.paid_at ? format(new Date(m.paid_at), "MMM dd, h:mm a") : ""}
@@ -1785,9 +1812,9 @@ function SplitPanel() {
                               </Button>
                             )}
                           </div>
-                      </div>
-                    );
-                  })}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -1809,8 +1836,12 @@ function SplitPanel() {
               ) : splitsCreated.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                   <Users className="w-8 h-8 text-primary/25 mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">No active splits</span>
-                  <span className="text-xs text-muted-foreground/60 mt-0.5">Create a split request above.</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    No active splits
+                  </span>
+                  <span className="text-xs text-muted-foreground/60 mt-0.5">
+                    Create a split request above.
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1819,7 +1850,8 @@ function SplitPanel() {
                     const catColor = getCategoryColor(s.category);
                     const paidMembers = s.bill_split_members.filter((m: any) => m.status === "paid");
                     const totalMembers = s.bill_split_members.length;
-                    const progressPercentage = totalMembers > 0 ? (paidMembers.length / totalMembers) * 100 : 100;
+                    const progressPercentage =
+                      totalMembers > 0 ? (paidMembers.length / totalMembers) * 100 : 100;
 
                     return (
                       <div
@@ -1828,22 +1860,46 @@ function SplitPanel() {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", catColor)}>
+                            <div
+                              className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border relative",
+                                catColor,
+                              )}
+                            >
                               <CatIcon className="w-5 h-5" />
+                              <div
+                                className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-pulse border border-background"
+                                title="Live tracking active"
+                              />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-medium text-foreground truncate">{s.title}</div>
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {s.title}
+                              </div>
                               <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                                Total: {currency} {s.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} · {currency} {s.amount_per_person.toLocaleString(undefined, { minimumFractionDigits: 2 })} each
+                                Total: {currency}{" "}
+                                {s.total_amount.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                })}{" "}
+                                ·{" "}
+                                {s.bill_split_members.every(
+                                  (m: any) => m.amount === s.bill_split_members[0].amount,
+                                )
+                                  ? `${currency} ${s.bill_split_members[0]?.amount.toLocaleString()} each`
+                                  : "Custom shares"}
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 text-right shrink-0">
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
-                              s.status === "completed" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/25" : "bg-primary/10 text-primary border border-primary/25"
-                            )}>
+                            <span
+                              className={cn(
+                                "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
+                                s.status === "completed"
+                                  ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/25"
+                                  : "bg-primary/10 text-primary border border-primary/25",
+                              )}
+                            >
                               {s.status}
                             </span>
                             {s.status === "active" && (
@@ -1863,7 +1919,10 @@ function SplitPanel() {
                         <div className="space-y-1">
                           <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
                             <span>Settled Progress</span>
-                            <span>{paidMembers.length} of {totalMembers} paid ({Math.round(progressPercentage)}%)</span>
+                            <span>
+                              {paidMembers.length} of {totalMembers} paid ({Math.round(progressPercentage)}
+                              %)
+                            </span>
                           </div>
                           <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden border border-border/20">
                             <div
@@ -1882,27 +1941,40 @@ function SplitPanel() {
                             const isPaid = m.status === "paid";
 
                             return (
-                              <div key={m.id} className="flex items-center justify-between p-1.5 rounded-lg bg-background/25">
+                              <div
+                                key={m.id}
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-background/25"
+                              >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <Avatar className="w-4 h-4">
                                     <AvatarImage src={m.profiles?.profile_photo_url} />
                                     <AvatarFallback className="text-[6px] bg-primary/20 text-primary font-bold">
-                                      {m.profiles?.first_name?.[0]}{m.profiles?.last_name?.[0]}
+                                      {m.profiles?.first_name?.[0]}
+                                      {m.profiles?.last_name?.[0]}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="truncate text-[10px] font-medium">{name}</span>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="truncate text-[9px] font-bold leading-none">
+                                      {name}
+                                    </span>
+                                    <span className="text-[8px] text-muted-foreground mt-0.5">
+                                      {currency} {m.amount.toLocaleString()}
+                                    </span>
+                                  </div>
                                 </div>
-                                <span className={cn(
-                                  "flex items-center gap-1 font-semibold text-[9px] uppercase",
-                                  isPaid ? "text-emerald-500" : "text-muted-foreground/60"
-                                )}>
+                                <span
+                                  className={cn(
+                                    "flex items-center gap-1 font-semibold text-[8px] uppercase shrink-0",
+                                    isPaid ? "text-emerald-500" : "text-muted-foreground/60",
+                                  )}
+                                >
                                   {isPaid ? (
                                     <>
-                                      <Check className="w-3 h-3" /> Paid
+                                      <Check className="w-2.5 h-2.5" /> Paid
                                     </>
                                   ) : (
                                     <>
-                                      <Clock className="w-3 h-3" /> Pending
+                                      <Clock className="w-2.5 h-2.5" /> Pending
                                     </>
                                   )}
                                 </span>
@@ -1938,7 +2010,9 @@ function SplitPanel() {
             <Loader2 className="w-24 h-24 text-primary animate-spin absolute inset-0" />
           </div>
           <h2 className="text-xl font-medium mt-8">Processing settlement...</h2>
-          <p className="text-sm text-muted-foreground mt-2">Transferring funds securely via Vault Ledger rails.</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Transferring funds securely via Vault Ledger rails.
+          </p>
         </div>
       )}
     </div>
