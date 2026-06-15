@@ -1687,7 +1687,7 @@ function SplitPanel() {
               ) : (
                 <div className="space-y-2">
                   {splitsOwed
-                    .filter((m) => m.status === "pending")
+                    .filter((m) => m.status === "pending" && m.bill_splits)
                     .map((m) => {
                       const CatIcon = getCategoryIcon(m.bill_splits.category);
                       const catColor = getCategoryColor(m.bill_splits.category);
@@ -1751,13 +1751,13 @@ function SplitPanel() {
               )}
 
               {/* Already Paid Splits (History) */}
-              {splitsOwed.filter((m) => m.status === "paid").length > 0 && (
+              {splitsOwed.filter((m) => m.status === "paid" && m.bill_splits).length > 0 && (
                 <div className="pt-4 border-t border-border/40 mt-4 space-y-2">
                   <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
                     Recently Settled
                   </div>
                   {splitsOwed
-                    .filter((m) => m.status === "paid")
+                    .filter((m) => m.status === "paid" && m.bill_splits)
                     .slice(0, 3)
                     .map((m) => {
                       const CatIcon = getCategoryIcon(m.bill_splits.category);
