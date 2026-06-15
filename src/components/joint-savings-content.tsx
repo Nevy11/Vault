@@ -65,6 +65,7 @@ export function JointSavingsContent() {
     approveWithdrawal,
     invites,
     acceptInvite,
+    declineInvite,
   } = useJointSavings();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -77,6 +78,7 @@ export function JointSavingsContent() {
   const [newPotTitle, setNewPotTitle] = useState("");
   const [newPotDesc, setNewPotDesc] = useState("");
   const [newPotTarget, setNewPotTarget] = useState("");
+  const [initialMembers, setInitialMembers] = useState("");
 
   const [inviteTag, setInviteTag] = useState("");
   const [depositAmount, setDepositAmount] = useState("");
@@ -105,11 +107,16 @@ export function JointSavingsContent() {
   const handleCreatePot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPotTitle || !newPotTarget) return;
-    await createPot(newPotTitle, newPotDesc, parseFormattedNumber(newPotTarget));
+    const memberTags = initialMembers
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter((tag) => tag !== "");
+    await createPot(newPotTitle, newPotDesc, parseFormattedNumber(newPotTarget), memberTags);
     setActiveTab("overview");
     setNewPotTitle("");
     setNewPotDesc("");
     setNewPotTarget("");
+    setInitialMembers("");
   };
 
   const handleInvite = async () => {
@@ -138,7 +145,7 @@ export function JointSavingsContent() {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <RefreshCw className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground font-semibold">Loading Joint Savings...</p>
+        <p className="text-muted-foreground font-medium">Loading Joint Savings...</p>
       </div>
     );
   }
@@ -147,22 +154,22 @@ export function JointSavingsContent() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex justify-center mb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-          <TabsList className="h-12 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
+          <TabsList className="h-11 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
             <TabsTrigger
               value="overview"
-              className="rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
+              className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="activity"
-              className="rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
+              className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
             >
               Activity
             </TabsTrigger>
             <TabsTrigger
               value="setup"
-              className="rounded-xl font-semibold transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
+              className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
             >
               New Pot
             </TabsTrigger>
@@ -176,7 +183,7 @@ export function JointSavingsContent() {
           <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 shadow-xl overflow-x-auto no-scrollbar">
             <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
               <Users className="w-5 h-5 text-primary" />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                 Shared Pots
               </span>
             </div>
@@ -186,7 +193,7 @@ export function JointSavingsContent() {
                   key={p.id}
                   variant={selectedPot?.id === p.id ? "default" : "outline"}
                   className={cn(
-                    "h-12 rounded-2xl font-semibold transition-all duration-500",
+                    "h-11 rounded-2xl font-medium transition-all duration-500",
                     selectedPot?.id === p.id
                       ? "px-6 bg-primary text-primary-foreground shadow-2xl scale-105"
                       : "bg-white/50 dark:bg-slate-800/50",
@@ -198,7 +205,7 @@ export function JointSavingsContent() {
               ))}
               <Button
                 variant="outline"
-                className="h-12 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary font-semibold transition-all duration-300"
+                className="h-11 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary font-medium transition-all duration-300"
                 onClick={() => setActiveTab("setup")}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -215,8 +222,8 @@ export function JointSavingsContent() {
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">New Pot Invitations</h3>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 font-semibold">
+                  <h3 className="text-lg font-medium">New Pot Invitations</h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
                     You have been invited to join shared savings pots.
                   </p>
                 </div>
@@ -228,21 +235,22 @@ export function JointSavingsContent() {
                     className="rounded-2xl border-amber-500/30 bg-white/80 dark:bg-slate-900/80 shadow-xl"
                   >
                     <CardHeader className="p-4">
-                      <CardTitle className="text-base font-semibold">{invite.pot?.title}</CardTitle>
-                      <CardDescription className="text-[10px] font-semibold uppercase tracking-widest">
+                      <CardTitle className="text-base font-medium">{invite.pot?.title}</CardTitle>
+                      <CardDescription className="text-[10px] font-medium uppercase tracking-widest">
                         Created by Admin
                       </CardDescription>
                     </CardHeader>
                     <CardFooter className="p-4 pt-0 flex gap-2">
                       <Button
-                        className="flex-1 h-9 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600"
+                        className="flex-1 h-9 rounded-xl text-xs font-medium bg-amber-500 hover:bg-amber-600"
                         onClick={() => acceptInvite(invite.pot_id)}
                       >
                         Accept
                       </Button>
                       <Button
                         variant="ghost"
-                        className="flex-1 h-9 rounded-xl text-xs font-semibold"
+                        className="flex-1 h-9 rounded-xl text-xs font-medium"
+                        onClick={() => declineInvite(invite.pot_id)}
                       >
                         Ignore
                       </Button>
@@ -254,33 +262,37 @@ export function JointSavingsContent() {
           )}
 
           {!selectedPot ? (
-            <div className="text-center py-20 bg-white/40 dark:bg-slate-900/40 rounded-[2rem] border border-white/20 backdrop-blur-xl relative overflow-hidden">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.03] pointer-events-none">
+            <div className="text-center py-20 bg-white/40 dark:bg-slate-900/40 rounded-[3rem] border border-white/20 backdrop-blur-xl relative overflow-hidden group">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.03] pointer-events-none transition-transform duration-[10s] group-hover:scale-110">
                 <svg viewBox="0 0 100 100" className="w-full h-full fill-primary">
                   <path d="M20,50 C20,30 40,30 50,50 C60,30 80,30 80,50 C80,70 50,90 50,90 C50,90 20,70 20,50" />
                 </svg>
               </div>
-              <div className="relative z-10">
-                <div className="mb-8 relative inline-block">
+              <div className="relative z-10 space-y-8">
+                <div className="relative inline-block">
+                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
                   <img
-                    src="https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&q=80&w=200&h=200"
-                    alt="Cooperative Savings"
-                    className="w-32 h-32 rounded-full border-4 border-white shadow-2xl mx-auto object-cover"
+                    src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&q=80&w=400&h=400"
+                    alt="Partnership Excellence"
+                    className="w-48 h-48 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.2)] mx-auto object-cover object-center border-4 border-white/50 dark:border-slate-800/50 relative z-10"
                   />
-                  <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2 rounded-full shadow-lg">
+                  <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-3 rounded-full shadow-2xl z-20 border-4 border-white dark:border-slate-900 transform group-hover:rotate-12 transition-transform">
                     <Users className="w-5 h-5" />
                   </div>
                 </div>
-                <h2 className="text-3xl font-semibold mb-2">Joint Savings</h2>
-                <p className="text-muted-foreground max-w-sm mx-auto mb-8 font-semibold italic">
-                  "Kidole kimoja hakivunji chawa" <br />
-                  (A single finger cannot kill a louse - One person alone cannot do it all)
-                </p>
+                <div className="space-y-3">
+                  <h2 className="text-3xl font-medium tracking-tighter text-slate-950 dark:text-white uppercase">
+                    Joint Strategic Reserve
+                  </h2>
+                  <p className="text-muted-foreground max-w-lg mx-auto text-lg font-medium italic leading-relaxed">
+                    "Alone we can do so little; together we can do so much."
+                  </p>
+                </div>
                 <Button
-                  className="h-14 rounded-2xl font-semibold px-10 shadow-2xl bg-primary text-lg transition-all hover:scale-105"
+                  className="h-14 rounded-2xl font-medium px-12 shadow-2xl bg-primary text-xl transition-all hover:scale-105 active:scale-95"
                   onClick={() => setActiveTab("setup")}
                 >
-                  Anza Akiba ya Pamoja (Start Joint Saving)
+                  Start Your Joint Savings (Chama)
                 </Button>
               </div>
             </div>
@@ -291,16 +303,16 @@ export function JointSavingsContent() {
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-3xl font-semibold">{selectedPot.title}</CardTitle>
-                      <CardDescription className="font-semibold mt-1">
+                      <CardTitle className="text-2xl font-medium">{selectedPot.title}</CardTitle>
+                      <CardDescription className="font-medium mt-1">
                         {selectedPot.description}
                       </CardDescription>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-1">
+                      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground mb-1">
                         Total Balance
                       </span>
-                      <span className="text-3xl font-semibold text-emerald-600">
+                      <span className="text-2xl font-medium text-emerald-600">
                         KES {selectedPot.balance?.toLocaleString()}
                       </span>
                     </div>
@@ -311,33 +323,33 @@ export function JointSavingsContent() {
                   <div className="p-6 rounded-3xl bg-slate-100 dark:bg-slate-900 shadow-inner space-y-4">
                     <div className="flex justify-between items-end mb-2">
                       <div className="space-y-1">
-                        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
                           Progress towards goal
                         </p>
-                        <p className="text-lg font-semibold">
+                        <p className="text-lg font-medium">
                           KES {selectedPot.target_amount.toLocaleString()} Target
                         </p>
                       </div>
-                      <span className="text-2xl font-semibold text-primary">
+                      <span className="text-2xl font-medium text-primary">
                         {Math.round((selectedPot.balance! / selectedPot.target_amount) * 100)}%
                       </span>
                     </div>
                     <Progress
                       value={(selectedPot.balance! / selectedPot.target_amount) * 100}
-                      className="h-4 rounded-full"
+                      className="h-3 rounded-full"
                     />
                   </div>
 
                   {/* Members Section */}
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <h3 className="text-lg font-medium flex items-center gap-2">
                         <Users className="w-5 h-5 text-primary" /> Members
                       </h3>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-primary font-semibold hover:bg-primary/10 rounded-xl"
+                        className="text-primary font-medium hover:bg-primary/10 rounded-xl"
                         onClick={() => setShowInviteModal(true)}
                       >
                         <UserPlus className="w-4 h-4 mr-2" /> Invite Member
@@ -349,21 +361,23 @@ export function JointSavingsContent() {
                           key={member.id}
                           className="p-4 rounded-2xl bg-white/50 dark:bg-slate-900/50 border border-white/20 flex items-center gap-4 transition-all hover:shadow-lg"
                         >
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary border border-primary/20">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-medium text-primary border border-primary/20">
                             {member.profile?.first_name?.[0] || "?"}
                           </div>
                           <div className="flex-1">
-                            <p className="font-semibold text-sm">
+                            <p className="font-medium text-sm">
                               {member.profile?.first_name} {member.profile?.last_name}
                             </p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
-                              {member.profile?.kyc_tag}
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+                              {member.status === "active"
+                                ? `Member since ${format(new Date(member.joined_at || member.created_at), "MMM dd")}`
+                                : `Invited ${format(new Date(member.created_at), "MMM dd")}`}
                             </p>
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             <span
                               className={cn(
-                                "px-2 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wider",
+                                "px-2 py-0.5 rounded-full text-[8px] font-medium uppercase tracking-wider",
                                 member.role === "admin"
                                   ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
                                   : "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
@@ -372,7 +386,7 @@ export function JointSavingsContent() {
                               {member.role}
                             </span>
                             {member.status === "invited" && (
-                              <span className="text-[8px] font-semibold text-muted-foreground animate-pulse italic">
+                              <span className="text-[8px] font-medium text-muted-foreground animate-pulse italic">
                                 Pending...
                               </span>
                             )}
@@ -385,14 +399,14 @@ export function JointSavingsContent() {
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4 pt-4">
                     <Button
-                      className="flex-1 h-14 rounded-2xl text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 shadow-xl"
+                      className="flex-1 h-12 rounded-2xl text-base font-medium bg-emerald-600 hover:bg-emerald-700 shadow-xl"
                       onClick={() => setShowDepositModal(true)}
                     >
                       <ArrowUpRight className="w-5 h-5 mr-2" /> Deposit Funds
                     </Button>
                     <Button
                       variant="outline"
-                      className="flex-1 h-14 rounded-2xl text-lg font-semibold border-2"
+                      className="flex-1 h-12 rounded-2xl text-base font-medium border-2"
                       onClick={() => setShowWithdrawModal(true)}
                     >
                       <ArrowDownLeft className="w-5 h-5 mr-2" /> Request Withdrawal
@@ -411,7 +425,7 @@ export function JointSavingsContent() {
                     <p className="text-xl font-serif italic text-primary dark:text-primary-foreground leading-relaxed animate-in fade-in zoom-in duration-1000">
                       "{jointQuotes[quoteIndex].sw}"
                     </p>
-                    <p className="mt-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground opacity-70">
+                    <p className="mt-2 text-xs font-medium uppercase tracking-widest text-muted-foreground opacity-70">
                       {jointQuotes[quoteIndex].en}
                     </p>
                   </div>
@@ -431,7 +445,7 @@ export function JointSavingsContent() {
                 {/* Withdrawal Requests */}
                 <Card className="rounded-[2rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                   <CardHeader>
-                    <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                    <CardTitle className="text-xl font-medium flex items-center gap-2">
                       <ShieldCheck className="w-5 h-5 text-amber-500" /> Approvals Needed
                     </CardTitle>
                     <CardDescription className="text-xs">
@@ -442,7 +456,7 @@ export function JointSavingsContent() {
                     {requests.length === 0 ? (
                       <div className="text-center py-10 opacity-50">
                         <Clock className="w-10 h-10 mx-auto mb-2" />
-                        <p className="text-xs font-semibold uppercase tracking-widest">
+                        <p className="text-xs font-medium uppercase tracking-widest">
                           No pending requests
                         </p>
                       </div>
@@ -458,16 +472,16 @@ export function JointSavingsContent() {
                           >
                             <div className="flex justify-between items-start">
                               <div>
-                                <p className="font-semibold text-sm">
+                                <p className="font-medium text-sm">
                                   KES {req.amount.toLocaleString()}
                                 </p>
-                                <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                                   Requested by {req.profile?.first_name}
                                 </p>
                               </div>
                               <span
                                 className={cn(
-                                  "px-2 py-0.5 rounded-full text-[8px] font-semibold uppercase tracking-wider",
+                                  "px-2 py-0.5 rounded-full text-[8px] font-medium uppercase tracking-wider",
                                   req.status === "executed"
                                     ? "bg-emerald-100 text-emerald-700"
                                     : "bg-amber-100 text-amber-700",
@@ -482,14 +496,14 @@ export function JointSavingsContent() {
 
                             {req.status === "pending" && !isRequester && !hasApproved && (
                               <Button
-                                className="w-full h-10 rounded-xl font-semibold text-xs bg-amber-500 hover:bg-amber-600 text-white"
+                                className="w-full h-10 rounded-xl font-medium text-xs bg-amber-500 hover:bg-amber-600 text-white"
                                 onClick={() => approveWithdrawal(req.id)}
                               >
                                 Approve Withdrawal
                               </Button>
                             )}
                             {hasApproved && req.status === "pending" && (
-                              <div className="flex items-center justify-center gap-2 text-emerald-600 font-semibold text-xs py-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
+                              <div className="flex items-center justify-center gap-2 text-emerald-600 font-medium text-xs py-2 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
                                 <CheckCircle2 className="w-4 h-4" /> You Approved
                               </div>
                             )}
@@ -503,7 +517,7 @@ export function JointSavingsContent() {
                 {/* Recent Contributions */}
                 <Card className="rounded-[2rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                   <CardHeader>
-                    <CardTitle className="text-xl font-semibold flex items-center gap-2">
+                    <CardTitle className="text-xl font-medium flex items-center gap-2">
                       <History className="w-5 h-5 text-primary" /> Activity
                     </CardTitle>
                   </CardHeader>
@@ -527,17 +541,17 @@ export function JointSavingsContent() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate">
+                              <p className="text-sm font-medium truncate">
                                 {contribution.profile?.first_name}{" "}
                                 {contribution.type === "deposit" ? "deposited" : "withdrew"}
                               </p>
-                              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-widest">
+                              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
                                 {format(new Date(contribution.created_at), "MMM dd, hh:mm a")}
                               </p>
                             </div>
                             <p
                               className={cn(
-                                "text-sm font-semibold",
+                                "text-sm font-medium",
                                 contribution.type === "deposit"
                                   ? "text-emerald-600"
                                   : "text-red-600",
@@ -560,10 +574,10 @@ export function JointSavingsContent() {
         <TabsContent value="activity" className="animate-in fade-in duration-500">
           <Card className="rounded-[2rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
             <CardHeader>
-              <CardTitle className="text-2xl font-semibold flex items-center gap-2">
+              <CardTitle className="text-2xl font-medium flex items-center gap-2">
                 <History className="w-6 h-6 text-primary" /> Recent Activity
               </CardTitle>
-              <CardDescription className="font-semibold mt-1">
+              <CardDescription className="font-medium mt-1">
                 Registry of all capital movements
               </CardDescription>
             </CardHeader>
@@ -572,7 +586,7 @@ export function JointSavingsContent() {
                 {contributions.length === 0 ? (
                   <div className="text-center py-20 opacity-50">
                     <History className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                    <p className="font-semibold uppercase tracking-[0.2em]">
+                    <p className="font-medium uppercase tracking-[0.2em]">
                       No activity recorded yet
                     </p>
                   </div>
@@ -596,97 +610,178 @@ export function JointSavingsContent() {
                           <ArrowDownLeft className="w-6 h-6" />
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-base font-semibold truncate">
-                          {contribution.profile?.first_name}{" "}
-                          {contribution.type === "deposit" ? "deposited" : "withdrew"}
-                        </p>
-                        <p className="text-xs text-muted-foreground font-semibold uppercase tracking-widest">
-                          {format(new Date(contribution.created_at), "MMMM dd, yyyy • hh:mm a")}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-base font-medium truncate">
+                            {contribution.profile?.first_name}{" "}
+                            {contribution.type === "deposit" ? "deposited" : "withdrew"}
+                          </p>
+                          <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
+                            {format(new Date(contribution.created_at), "MMMM dd, yyyy • hh:mm a")}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p
+                            className={cn(
+                              "text-lg font-medium",
+                              contribution.type === "deposit" ? "text-emerald-600" : "text-red-600",
+                            )}
+                          >
+                            {contribution.type === "deposit" ? "+" : "-"}KES{" "}
+                            {contribution.amount.toLocaleString()}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p
-                          className={cn(
-                            "text-lg font-semibold",
-                            contribution.type === "deposit" ? "text-emerald-600" : "text-red-600",
-                          )}
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-[2rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-2xl font-medium flex items-center gap-2">
+                  <Target className="w-6 h-6 text-primary" /> Active Protocols Registry
+                </CardTitle>
+                <CardDescription className="font-medium mt-1">
+                  Comprehensive log of your joint ventures
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-border/40 bg-muted/20">
+                        <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                          Pot Title
+                        </th>
+                        <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                          Target Amount
+                        </th>
+                        <th className="px-6 py-4 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground text-right">
+                          Initiated Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/20">
+                      {pots.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="hover:bg-primary/5 transition-colors cursor-pointer group"
+                          onClick={() => {
+                            setSelectedPotId(p.id);
+                            setActiveTab("overview");
+                          }}
                         >
-                          {contribution.type === "deposit" ? "+" : "-"}KES{" "}
-                          {contribution.amount.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                          <td className="px-6 py-5">
+                            <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                              {p.title}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-[200px]">
+                              {p.description}
+                            </p>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-medium text-emerald-600">
+                              KES {p.target_amount.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-6 py-5 text-right">
+                            <span className="text-[11px] text-muted-foreground font-medium">
+                              {format(new Date(p.created_at), "MMM dd, yyyy")}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
         </TabsContent>
 
         <TabsContent value="setup" className="animate-in slide-in-from-bottom-4 duration-500">
           <div className="max-w-2xl mx-auto">
             <Card className="rounded-[2rem] border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl p-8 shadow-2xl">
               <div className="mb-8 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-3xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-                  <Plus className="w-7 h-7" />
+                <div className="w-12 h-12 rounded-3xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                  <Plus className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-semibold">Start a New Joint Saving</h2>
-                  <p className="text-sm text-muted-foreground font-semibold">
-                    Create a shared pot and invite your friends.
+                  <h2 className="text-xl font-semibold uppercase tracking-tight text-slate-950 dark:text-white">
+                    Initialize Shared Protocol
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-60">
+                    Architect a collective capital pool for mutual growth.
                   </p>
                 </div>
               </div>
 
               <form onSubmit={handleCreatePot} className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-widest ml-1">
-                    Pot Title
+                  <Label className="text-xs font-medium uppercase tracking-widest ml-1">
+                    Protocol Title
                   </Label>
                   <Input
-                    placeholder="e.g. Wedding Savings, Euro Trip"
+                    placeholder="e.g. Real Estate Venture, Holiday Fund"
                     value={newPotTitle}
                     onChange={(e) => setNewPotTitle(e.target.value)}
-                    className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-semibold text-lg px-6 shadow-sm"
+                    className="h-12 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-medium text-lg px-6 shadow-sm"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-widest ml-1">
-                    Target Amount (KES)
+                  <Label className="text-xs font-medium uppercase tracking-widest ml-1">
+                    Aggregate Target (KES)
                   </Label>
                   <div className="relative">
-                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-semibold text-muted-foreground">
+                    <span className="absolute left-6 top-1/2 -translate-y-1/2 font-medium text-muted-foreground">
                       KES
                     </span>
                     <Input
                       placeholder="0.00"
                       value={newPotTarget}
                       onChange={(e) => setNewPotTarget(formatWithCommas(e.target.value))}
-                      className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-semibold text-lg pl-16 pr-6 shadow-sm tabular-nums"
+                      className="h-12 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-medium text-lg pl-16 pr-6 shadow-sm tabular-nums"
                       required
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-semibold uppercase tracking-widest ml-1">
-                    Description / Purpose
+                  <Label className="text-xs font-medium uppercase tracking-widest ml-1">
+                    Strategic Description
                   </Label>
                   <Input
-                    placeholder="What are we saving for?"
+                    placeholder="Define the primary objective of this capital pool..."
                     value={newPotDesc}
                     onChange={(e) => setNewPotDesc(e.target.value)}
-                    className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-semibold text-lg px-6 shadow-sm"
+                    className="h-12 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-medium text-lg px-6 shadow-sm"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium uppercase tracking-widest ml-1">
+                    Invite Alliance Members (KYC Tags)
+                  </Label>
+                  <div className="relative group">
+                    <UserPlus className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input
+                      placeholder="e.g. @james, @mary (comma separated)"
+                      value={initialMembers}
+                      onChange={(e) => setInitialMembers(e.target.value)}
+                      className="h-12 rounded-2xl bg-white/50 dark:bg-slate-900 border-none font-medium text-lg pl-16 pr-6 shadow-sm focus:ring-2 ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground ml-2 font-medium uppercase tracking-wider opacity-60">
+                    Members will receive an invitation to join this pot immediately.
+                  </p>
                 </div>
 
                 <div className="pt-4">
                   <Button
                     type="submit"
-                    className="w-full h-16 rounded-[1.5rem] text-xl font-bold shadow-2xl bg-primary hover:scale-[1.02] transition-all"
+                    className="w-full h-14 rounded-[1.5rem] text-xl font-semibold shadow-2xl bg-primary hover:scale-[1.02] transition-all"
                   >
-                    Create Shared Pot
+                    Deploy Joint Protocol
                   </Button>
                 </div>
               </form>
@@ -701,27 +796,27 @@ export function JointSavingsContent() {
       <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
         <DialogContent className="max-w-md rounded-2xl border border-white/30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">Invite to Pot</DialogTitle>
-            <DialogDescription className="font-semibold text-muted-foreground">
+            <DialogTitle className="text-2xl font-medium">Invite to Pot</DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground">
               Enter the KYC tag of the user you want to invite.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-widest">User Tag</Label>
+              <Label className="text-xs font-medium uppercase tracking-widest">User Tag</Label>
               <div className="relative">
                 <Input
                   placeholder="@username"
                   value={inviteTag}
                   onChange={(e) => setInviteTag(e.target.value)}
-                  className="h-14 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-semibold pl-4"
+                  className="h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-medium pl-4"
                 />
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button
-              className="w-full h-12 rounded-xl font-semibold shadow-xl"
+              className="w-full h-12 rounded-xl font-medium shadow-xl"
               onClick={handleInvite}
             >
               Send Invitation
@@ -734,35 +829,35 @@ export function JointSavingsContent() {
       <Dialog open={showDepositModal} onOpenChange={setShowDepositModal}>
         <DialogContent className="max-w-md rounded-2xl border border-white/30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">Add Funds to Pot</DialogTitle>
-            <DialogDescription className="font-semibold text-muted-foreground">
+            <DialogTitle className="text-2xl font-medium">Add Funds to Pot</DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground">
               Amount will be deducted from your Vault wallet.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2 text-center py-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-emerald-600 mb-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-emerald-600 mb-2">
                 Available Balance
               </p>
-              <p className="text-3xl font-semibold text-emerald-700">
+              <p className="text-3xl font-medium text-emerald-700">
                 KES {selectedPot?.balance?.toLocaleString() || "0"}
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-widest">
+              <Label className="text-xs font-medium uppercase tracking-widest">
                 Amount (KES)
               </Label>
               <Input
                 placeholder="0.00"
                 value={depositAmount}
                 onChange={(e) => setDepositAmount(formatWithCommas(e.target.value))}
-                className="h-14 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-semibold text-xl text-center tabular-nums"
+                className="h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-medium text-xl text-center tabular-nums"
               />
             </div>
           </div>
           <DialogFooter>
             <Button
-              className="w-full h-12 rounded-xl font-semibold shadow-xl bg-emerald-600"
+              className="w-full h-12 rounded-xl font-medium shadow-xl bg-emerald-600"
               onClick={handleDeposit}
             >
               Confirm Deposit
@@ -775,37 +870,37 @@ export function JointSavingsContent() {
       <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
         <DialogContent className="max-w-md rounded-2xl border border-white/30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl shadow-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-semibold">Request Withdrawal</DialogTitle>
-            <DialogDescription className="font-semibold text-muted-foreground">
+            <DialogTitle className="text-2xl font-medium">Request Withdrawal</DialogTitle>
+            <DialogDescription className="font-medium text-muted-foreground">
               All other members must approve this before funds are released.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-widest">
+              <Label className="text-xs font-medium uppercase tracking-widest">
                 Amount (KES)
               </Label>
               <Input
                 placeholder="0.00"
                 value={withdrawAmount}
                 onChange={(e) => setWithdrawAmount(formatWithCommas(e.target.value))}
-                className="h-14 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-semibold text-xl text-center tabular-nums"
+                className="h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-medium text-xl text-center tabular-nums"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-semibold uppercase tracking-widest">
+              <Label className="text-xs font-medium uppercase tracking-widest">
                 Reason / Memo
               </Label>
               <Input
                 placeholder="e.g. Booking flights, Pay vendor"
                 value={withdrawReason}
                 onChange={(e) => setWithdrawReason(e.target.value)}
-                className="h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-semibold"
+                className="h-11 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-medium"
               />
             </div>
             <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 flex items-start gap-3">
               <XCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400 uppercase leading-relaxed">
+              <p className="text-[10px] font-medium text-amber-700 dark:text-amber-400 uppercase leading-relaxed">
                 A notification will be sent to all members. They must approve this within their own
                 Joint Savings dashboard.
               </p>
@@ -813,7 +908,7 @@ export function JointSavingsContent() {
           </div>
           <DialogFooter>
             <Button
-              className="w-full h-12 rounded-xl font-semibold shadow-xl"
+              className="w-full h-12 rounded-xl font-medium shadow-xl"
               onClick={handleWithdrawRequest}
             >
               Submit for Approval

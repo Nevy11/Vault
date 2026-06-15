@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/api/supabase";
 import { toast } from "sonner";
 
@@ -28,7 +28,7 @@ export type JointContribution = {
   pot_id: string;
   user_id: string;
   amount: number;
-  type: 'deposit' | 'withdrawal';
+  type: "deposit" | "withdrawal";
   created_at: string;
   profile?: any;
 };
@@ -80,9 +80,11 @@ export function useJointSavings() {
     }
   }, [selectedPotId]);
 
-  const fetchPots = async () => {
+  const fetchPots = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -94,12 +96,10 @@ export function useJointSavings() {
       if (error) {
         console.error("Error fetching pots:", error);
       } else {
-        const userPots = (data || [])
-          .map((m: any) => m.pot)
-          .filter((p: any) => p !== null);
+        const userPots = (data || []).map((m: any) => m.pot).filter((p: any) => p !== null);
 
         setPots(userPots);
-        
+
         if (userPots.length > 0 && !selectedPotId) {
           setSelectedPotId(userPots[0].id);
         }
@@ -107,11 +107,13 @@ export function useJointSavings() {
     } catch (err) {
       console.error("Critical error in fetchPots:", err);
     }
-  };
+  }, [selectedPotId]);
 
-  const fetchInvites = async () => {
+  const fetchInvites = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -128,34 +130,41 @@ export function useJointSavings() {
     } catch (err) {
       console.error("Critical error in fetchInvites:", err);
     }
-  };
+  }, []);
 
   const fetchPotDetails = async (potId: string) => {
     // Only show loading if we don't have a selected pot yet or it's a new one
     if (!selectedPot || selectedPot.id !== potId) {
       setLoading(true);
     }
-    
+
     try {
       const { data: pot, error: potErr } = await supabase
         .from("joint_pots")
         .select("*")
         .eq("id", potId)
         .single();
-      
+
       if (potErr) throw potErr;
       setSelectedPot(pot);
 
       const [membersRes, contributionsRes, requestsRes] = await Promise.all([
         supabase.from("pot_members").select("*, profile:profiles(*)").eq("pot_id", potId),
-        supabase.from("pot_contributions").select("*, profile:profiles(*)").eq("pot_id", potId).order("created_at", { ascending: false }),
-        supabase.from("pot_withdrawal_requests").select("*, profile:profiles(*), approvals:pot_withdrawal_approvals(*)").eq("pot_id", potId).order("created_at", { ascending: false })
+        supabase
+          .from("pot_contributions")
+          .select("*, profile:profiles(*)")
+          .eq("pot_id", potId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("pot_withdrawal_requests")
+          .select("*, profile:profiles(*), approvals:pot_withdrawal_approvals(*)")
+          .eq("pot_id", potId)
+          .order("created_at", { ascending: false }),
       ]);
 
       setMembers(membersRes.data || []);
       setContributions(contributionsRes.data || []);
       setRequests(requestsRes.data || []);
-
     } catch (err) {
       console.error("Error fetching pot details:", err);
     } finally {
@@ -163,8 +172,15 @@ export function useJointSavings() {
     }
   };
 
-  const createPot = async (title: string, description: string, target: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
+  const createPot = async (
+    title: string,
+    description: string,
+    target: number,
+    initialMembers?: string[],
+  ) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { data: pot, error: potErr } = await supabase
@@ -173,7 +189,7 @@ export function useJointSavings() {
         creator_id: user.id,
         title,
         description,
-        target_amount: target
+        target_amount: target,
       })
       .select()
       .single();
@@ -183,19 +199,25 @@ export function useJointSavings() {
       return;
     }
 
-    const { error: memberErr } = await supabase
-      .from("pot_members")
-      .insert({
-        pot_id: pot.id,
-        user_id: user.id,
-        role: 'admin',
-        status: 'active'
-      });
+    const { error: memberErr } = await supabase.from("pot_members").insert({
+      pot_id: pot.id,
+      user_id: user.id,
+      role: "admin",
+      status: "active",
+    });
 
     if (memberErr) {
       toast.error("Failed to add you as admin");
     } else {
       toast.success("Joint saving pot created!");
+
+      // Handle initial member invitations
+      if (initialMembers && initialMembers.length > 0) {
+        for (const tag of initialMembers) {
+          if (tag.trim()) await inviteMember(pot.id, tag.trim());
+        }
+      }
+
       fetchPots();
     }
   };
@@ -212,13 +234,11 @@ export function useJointSavings() {
       return;
     }
 
-    const { error } = await supabase
-      .from("pot_members")
-      .insert({
-        pot_id: potId,
-        user_id: profile.id,
-        status: 'invited'
-      });
+    const { error } = await supabase.from("pot_members").insert({
+      pot_id: potId,
+      user_id: profile.id,
+      status: "invited",
+    });
 
     if (error) {
       toast.error("User already invited or in pot");
@@ -229,17 +249,17 @@ export function useJointSavings() {
   };
 
   const deposit = async (potId: string, amount: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("pot_contributions")
-      .insert({
-        pot_id: potId,
-        user_id: user.id,
-        amount,
-        type: 'deposit'
-      });
+    const { error } = await supabase.from("pot_contributions").insert({
+      pot_id: potId,
+      user_id: user.id,
+      amount,
+      type: "deposit",
+    });
 
     if (error) {
       toast.error("Failed to deposit");
@@ -250,17 +270,17 @@ export function useJointSavings() {
   };
 
   const requestWithdrawal = async (potId: string, amount: number, reason: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("pot_withdrawal_requests")
-      .insert({
-        pot_id: potId,
-        requester_id: user.id,
-        amount,
-        reason
-      });
+    const { error } = await supabase.from("pot_withdrawal_requests").insert({
+      pot_id: potId,
+      requester_id: user.id,
+      amount,
+      reason,
+    });
 
     if (error) {
       toast.error("Failed to request withdrawal");
@@ -271,16 +291,16 @@ export function useJointSavings() {
   };
 
   const approveWithdrawal = async (requestId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase
-      .from("pot_withdrawal_approvals")
-      .insert({
-        request_id: requestId,
-        user_id: user.id,
-        status: 'approved'
-      });
+    const { error } = await supabase.from("pot_withdrawal_approvals").insert({
+      request_id: requestId,
+      user_id: user.id,
+      status: "approved",
+    });
 
     if (error) {
       toast.error("Already approved or error occurred");
@@ -291,13 +311,15 @@ export function useJointSavings() {
   };
 
   const acceptInvite = async (potId: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const { error } = await supabase
       .from("pot_members")
       .update({
-        status: 'active'
+        status: "active",
       })
       .eq("pot_id", potId)
       .eq("user_id", user.id);
@@ -307,6 +329,28 @@ export function useJointSavings() {
     } else {
       toast.success("Joined shared pot!");
       fetchPots();
+      fetchInvites();
+    }
+  };
+
+  const declineInvite = async (potId: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("pot_members")
+      .update({
+        status: "declined",
+      })
+      .eq("pot_id", potId)
+      .eq("user_id", user.id);
+
+    if (error) {
+      toast.error("Failed to decline invite");
+    } else {
+      toast.success("Invite declined");
       fetchInvites();
     }
   };
@@ -327,9 +371,10 @@ export function useJointSavings() {
     requestWithdrawal,
     approveWithdrawal,
     acceptInvite,
+    declineInvite,
     refetch: () => {
       fetchPots();
       if (selectedPotId) fetchPotDetails(selectedPotId);
-    }
+    },
   };
 }
