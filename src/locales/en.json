@@ -534,7 +534,8 @@
     "modes": {
       "send": "Send Money",
       "deposit": "Deposit Funds",
-      "withdraw": "Withdrawal"
+      "withdraw": "Withdrawal",
+      "split": "Split Bill"
     },
     "deposit": {
       "select_source": "Select Deposit Source",

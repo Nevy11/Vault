@@ -67,8 +67,14 @@ serve(async (req) => {
       .replace(/[^0-9]/g, "")
       .slice(0, 14);
 
-    const storeNumber = Deno.env.get("DARAJA_STORE_NUMBER") || Deno.env.get("DARAJA_SHORTCODE") || "4237581";
-    const tillNumber = Deno.env.get("DARAJA_TILL_NUMBER") || "3491665";
+    const storeNumber = Deno.env.get("DARAJA_STORE_NUMBER") || Deno.env.get("DARAJA_SHORTCODE") || "174379";
+    const tillNumber = Deno.env.get("DARAJA_TILL_NUMBER") || (Deno.env.get("DARAJA_STORE_NUMBER") ? storeNumber : "174379");
+    
+    // Automatically detect transaction type: Sandbox default shortcode 174379 requires CustomerPayBillOnline
+    const isSandboxDefault = storeNumber === "174379";
+    const transactionType = isSandboxDefault ? "CustomerPayBillOnline" : "CustomerBuyGoodsOnline";
+    const partyB = isSandboxDefault ? storeNumber : tillNumber;
+
     const passKey =
       Deno.env.get("DARAJA_PASSKEY") ||
       "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919";
@@ -78,10 +84,10 @@ serve(async (req) => {
       BusinessShortCode: storeNumber,
       Password: password,
       Timestamp: timestamp,
-      TransactionType: "CustomerBuyGoodsOnline",
+      TransactionType: transactionType,
       Amount: Math.round(amount),
       PartyA: phoneNumber,
-      PartyB: tillNumber,
+      PartyB: partyB,
       PhoneNumber: phoneNumber,
       CallBackURL: `${Deno.env.get("SUPABASE_URL") || Deno.env.get("VITE_SUPABASE_URL")}/functions/v1/mpesa-callback`,
       AccountReference: "VaultDeposit",

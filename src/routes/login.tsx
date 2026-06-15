@@ -94,11 +94,12 @@ function LoginPage() {
 
     setStatus("sending");
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       // 1. Check if user exists in our profiles table first
       const { data: profile, error: profileCheckError } = await supabase
         .from("profiles")
         .select("id")
-        .eq("email", email)
+        .eq("email", normalizedEmail)
         .maybeSingle();
 
       if (profileCheckError) throw profileCheckError;
@@ -109,7 +110,7 @@ function LoginPage() {
 
       // 2. If profile exists, send OTP (explicitly avoiding redirect URL to force token flow)
       const { error } = await supabase.auth.signInWithOtp({
-        email,
+        email: normalizedEmail,
         options: {
           shouldCreateUser: false,
         },
@@ -142,14 +143,15 @@ function LoginPage() {
     if (code.length === 6) {
       setStatus("verifying");
       try {
-        // 1. Verify OTP using 'magiclink' type for token-based verification
+        const normalizedEmail = email.trim().toLowerCase();
+        // 1. Verify OTP using 'email' type for 6-digit token verification
         const {
           data: { user },
           error: verifyError,
         } = await supabase.auth.verifyOtp({
-          email,
+          email: normalizedEmail,
           token: code,
-          type: "magiclink",
+          type: "email",
         });
 
         if (verifyError) throw verifyError;
