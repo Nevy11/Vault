@@ -40,56 +40,77 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    // Fetch user profile, preferences, and wallet
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    const { data: preferences } = await supabase.from("user_preferences").select("language").eq("user_id", user.id).maybeSingle();
-    const { data: wallet } = await supabase.from("wallets").select("id, balance, currency").eq("user_id", user.id).maybeSingle();
-
-    // 1. Fetch active savings goals & ledger
-    const { data: savingsGoals } = await supabase.from("savings_goals").select("id, title, target_amount, current_amount, deadline_date, status").eq("user_id", user.id).eq("status", "active");
-    const { data: savingsLedger } = await supabase.from("savings_ledger").select("amount, type, created_at, goal_id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5);
-
-    // 2. Fetch active loans
-    const { data: loans } = await supabase
-      .from("loans")
-      .select("id, amount, interest_rate, due_date, remaining_balance, status")
-      .eq("user_id", user.id)
-      .eq("status", "active");
-
-    // 3. Fetch recent loan payments
-    const { data: loansLedger } = await supabase
-      .from("loans_ledger")
-      .select("amount, payment_type, created_at, loan_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
+    // Determine if financial context is needed based on the query
+    const query = ((userInput || "") + " " + (messages?.slice(-3).map((m: any) => m.text).join(" ") || "")).toLowerCase();
+    const financialKeywords = ["balance", "wallet", "money", "cash", "funds", "savings", "goal", "saved", "loan", "debt", "credit", "borrow", "owe", "transaction", "activity", "history", "spent", "ledger", "receipt", "how much", "status", "finance", "pay"];
+    const needsFinancialContext = financialKeywords.some(keyword => query.includes(keyword));
+
+    // Fetch user profile and preferences (always needed)
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    const { data: preferences } = await supabase.from("user_preferences").select("language").eq("user_id", user.id).maybeSingle();
+
+    let wallet = null;
+    let savingsGoals = [];
+    let savingsLedger = [];
+    let loans = [];
+    let loansLedger = [];
+
+    if (needsFinancialContext) {
+      // 1. Fetch wallet balance
+      const { data: walletData } = await supabase.from("wallets").select("id, balance, currency").eq("user_id", user.id).maybeSingle();
+      wallet = walletData;
+
+      // 2. Fetch active savings goals & ledger
+      const { data: goalsData } = await supabase.from("savings_goals").select("id, title, target_amount, current_amount, deadline_date, status").eq("user_id", user.id).eq("status", "active");
+      savingsGoals = goalsData || [];
+      const { data: sLedgerData } = await supabase.from("savings_ledger").select("amount, type, created_at, goal_id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5);
+      savingsLedger = sLedgerData || [];
+
+      // 3. Fetch active loans
+      const { data: loansData } = await supabase
+        .from("loans")
+        .select("id, amount, interest_rate, due_date, remaining_balance, status")
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      loans = loansData || [];
+
+      // 4. Fetch recent loan payments
+      const { data: lLedgerData } = await supabase
+        .from("loans_ledger")
+        .select("amount, payment_type, created_at, loan_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      loansLedger = lLedgerData || [];
+    }
+
     const firstName = profile?.first_name || "User";
     const currency = wallet?.currency || "USD";
-    const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "unknown";
+    const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "Not requested";
     
     // Format Knowledge Strings
     const goalsText = savingsGoals && savingsGoals.length > 0
       ? savingsGoals.map(g => `- Goal: ${g.title} (${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()})`).join("\n")
-      : "No active savings goals.";
+      : (needsFinancialContext ? "No active savings goals." : "Not requested");
 
     const loansText = loans && loans.length > 0
       ? loans.map(l => `- Loan: ${currency} ${l.remaining_balance.toLocaleString()} (Due: ${new Date(l.due_date).toLocaleDateString()}, Rate: ${l.interest_rate}%)`).join("\n")
-      : "No active loans.";
+      : (needsFinancialContext ? "No active loans." : "Not requested");
 
-    const recentActivity = [
+    const recentActivity = needsFinancialContext ? [
       ...(savingsLedger?.map(l => `- Saved: ${currency} ${l.amount.toLocaleString()} (${l.type}) on ${new Date(l.created_at).toLocaleDateString()}`) || []),
       ...(loansLedger?.map(l => `- Loan Payment: ${currency} ${l.amount.toLocaleString()} (${l.payment_type}) on ${new Date(l.created_at).toLocaleDateString()}`) || [])
-    ].slice(0, 10);
+    ].slice(0, 10) : [];
 
     const languageCode = preferences?.language || "en";
     const languageNames: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili" };
     const targetLanguage = languageNames[languageCode] || "English";
 
     const systemPrompt = `You are the professional Finance Advisor for Vault OS. You are assisting ${firstName}.
+${needsFinancialContext ? `
 - Wallet Balance: ${balance}
 - Active Savings:
 ${goalsText}
@@ -97,8 +118,16 @@ ${goalsText}
 ${loansText}
 - Recent Activity:
 ${recentActivity.length > 0 ? recentActivity.join("\n") : "No recent activity."}
+` : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."}
 
-Your goal is to provide holistic financial advice. Help the user balance between saving for their goals and paying off their loans. Keep responses friendly and actionable. YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}.`;
+FORMATTING INSTRUCTIONS:
+- DO NOT use markdown asterisks (*) or double asterisks (**) for bolding or lists.
+- For bullet points, use a simple dash (-) or a bullet symbol (•).
+- For emphasis, use descriptive language or CAPITALIZED WORDS.
+- Provide clean, professional plain text that is easy to read.
+- YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}.
+
+Your goal is to provide holistic financial advice. Keep responses friendly and actionable.`;
 
     const validMessages = (messages || []).filter((m: any) => (m.sender === "user" || m.sender === "advisor") && m.text);
     const recentMessages = validMessages.slice(-29);
@@ -163,7 +192,16 @@ Your goal is to provide holistic financial advice. Help the user balance between
     }
 
     if (!success) throw new Error(lastErrorMessage || "All AI models were unavailable.");
-    return new Response(JSON.stringify({ text: aiResponse }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // Final cleanup of any lingering asterisks if the AI ignored instructions
+    // This ensures "*" are converted to their "relative meanings" (bullets or emphasis)
+    const cleanedResponse = aiResponse
+      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold stars, keep text
+      .replace(/^\* /gm, '• ')         // Convert list stars to bullet symbols
+      .replace(/\n\* /g, '\n• ')       // Convert list stars after newlines
+      .replace(/(\w)\*(\w)/g, '$1 $2'); // Remove accidental inline stars
+
+    return new Response(JSON.stringify({ text: cleanedResponse }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
