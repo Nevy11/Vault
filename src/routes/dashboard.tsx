@@ -820,41 +820,32 @@ function DashboardPage() {
   }, [profile?.id, transactions]); // Refetch when transactions change
 
   const frequentRecipients = useMemo(() => {
-    const seenIds = new Set();
-    const uniqueRecipients: {
-      id: string;
-      initial: string;
-      color: string;
-      name: string;
-      tag?: string;
-      avatarUrl?: string | null;
-    }[] = [];
     const currentUserId = (profile as any)?.id;
+    if (!currentUserId || !transactions) return [];
 
-    if (!currentUserId) return [];
+    // 1. Count occurrences per receiver
+    const counts: Record<string, number> = {};
+    const recipientDetails: Record<string, any> = {};
 
     for (const tx of transactions) {
-      if (
-        tx.type === "transfer" &&
-        tx.sender_id === currentUserId &&
-        tx.receiver &&
-        tx.receiver_id
-      ) {
-        if (!seenIds.has(tx.receiver_id)) {
-          seenIds.add(tx.receiver_id);
-          uniqueRecipients.push({
-            id: tx.receiver_id,
-            initial: tx.receiver?.first_name?.[0] ?? "V",
-            color: "bg-emerald-500",
-            name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
-            tag: tx.receiver?.kyc_tag,
-            avatarUrl: tx.receiver?.profile_photo_url,
-          });
-        }
+      if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver_id) {
+        counts[tx.receiver_id] = (counts[tx.receiver_id] || 0) + 1;
+        recipientDetails[tx.receiver_id] = {
+          id: tx.receiver_id,
+          initial: tx.receiver?.first_name?.[0] ?? "V",
+          color: "bg-emerald-500",
+          name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
+          tag: tx.receiver?.kyc_tag,
+          avatarUrl: tx.receiver?.profile_photo_url,
+        };
       }
-      if (uniqueRecipients.length >= 4) break;
     }
-    return uniqueRecipients;
+
+    // 2. Sort by count descending and take top 5
+    return Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([id]) => recipientDetails[id]);
   }, [transactions, profile]);
 
   const handleQuickSend = (tag: string) => {
@@ -1226,14 +1217,8 @@ function DashboardPage() {
           <QuickSend
             className="col-span-1"
             onAvatarClick={handleQuickSend}
-            loading={loadingSuggestedUsers && frequentRecipients.length === 0}
-            avatars={
-              frequentRecipients.length > 0
-                ? frequentRecipients
-                : suggestedUsers.length > 0
-                  ? suggestedUsers
-                  : []
-            }
+            loading={txLoading && frequentRecipients.length === 0}
+            avatars={frequentRecipients}
           />
           <div className="col-span-1">
             <NetWorthChart
