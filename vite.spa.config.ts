@@ -75,4 +75,7 @@ export default defineConfig({
     outDir: "dist/client",
     emptyOutDir: true,
   },
+  css: {
+    transformer: "postcss",
+  },
 });
