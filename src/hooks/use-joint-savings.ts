@@ -106,10 +106,7 @@ export function useJointSavings() {
         .from("pot_members")
         .select(`
           *,
-          pot:joint_pots(
-            *,
-            creator:profiles!joint_pots_creator_id_fkey(*)
-          )
+          pot:joint_pots(*)
         `)
         .eq("user_id", user.id)
         .eq("status", "invited");

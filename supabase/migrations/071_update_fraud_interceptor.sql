@@ -1,10 +1,4 @@
--- Fraud Detection Interceptor
--- This migration updates the fraud detection trigger to mark transactions as 'pending_verification' 
--- instead of raising an exception.
-
-BEGIN;
-
--- 1. Create a function to evaluate fraud risk
+-- 1. Update the fraud detection to mark as 'pending_verification' instead of blocking
 CREATE OR REPLACE FUNCTION check_transaction_fraud()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -24,8 +18,9 @@ BEGIN
       AND created_at > NOW() - INTERVAL '5 minutes';
 
     IF v_recent_count >= 3 THEN
+        -- Still block velocity for high risk
         RAISE EXCEPTION 'FRAUD_VELOCITY_LIMIT: Too many transactions in a short period'
-        USING ERRCODE = 'P0001'; 
+        USING ERRCODE = 'P0001';
     END IF;
 
     -- B. VALUE SPIKE CHECK
@@ -50,12 +45,3 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- 2. Ensure trigger is attached
-DROP TRIGGER IF EXISTS tr_check_transaction_fraud ON public.transactions;
-CREATE TRIGGER tr_check_transaction_fraud
-    BEFORE INSERT ON public.transactions
-    FOR EACH ROW
-    EXECUTE FUNCTION check_transaction_fraud();
-
-COMMIT;

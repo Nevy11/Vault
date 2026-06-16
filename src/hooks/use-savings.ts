@@ -117,9 +117,38 @@ export function useSavings() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Handle Vault Balance source
+      // 1. Initial Transaction Record (with Fraud Detection Check)
+      // We insert into transactions FIRST to let the fraud trigger run
+      const { data: transaction, error: txError } = await supabase
+        .from("transactions")
+        .insert({
+          sender_id: user.id,
+          receiver_id: null,
+          type: "transfer",
+          method: source === "vault_balance" ? "vault" : "manual",
+          amount: amount,
+          status: "pending", // Default to pending
+          description: "Contribution to savings: " + goal.title,
+        })
+        .select("status")
+        .single();
+
+      if (txError) throw txError;
+
+      // 2. Check for Fraud Trigger Response
+      if (transaction.status === "pending_verification") {
+        toast.error("Verification Required", {
+          description: "Transaction flagged for security. Please complete verification to continue.",
+          action: {
+            label: "Verify",
+            onClick: () => window.location.href = "/settings/kyc", // Redirect to KYC
+          },
+        });
+        return;
+      }
+
+      // 3. If passed fraud check, perform the actual deduction
       if (source === "vault_balance") {
-        // 1. Fetch current wallet balance and currency
         const { data: wallet, error: walletError } = await supabase
           .from("wallets")
           .select("balance, id, currency")
@@ -131,59 +160,27 @@ export function useSavings() {
           return;
         }
 
-        const walletCurrency = wallet.currency || "USD";
         const KES_USD_RATE = 130.0;
-
-        // Convert contribution amount (which is in KES/KSH) to wallet currency if needed
-        let amountInWalletCurrency = amount;
-        if (walletCurrency === "USD") {
-          amountInWalletCurrency = Number((amount / KES_USD_RATE).toFixed(2));
-        }
+        let amountInWalletCurrency = wallet.currency === "USD" 
+          ? Number((amount / KES_USD_RATE).toFixed(2)) 
+          : amount;
 
         if (Number(wallet.balance) < amountInWalletCurrency) {
-          const displayBalance =
-            walletCurrency === "USD"
-              ? `KES ${(Number(wallet.balance) * KES_USD_RATE).toLocaleString()}`
-              : `KES ${Number(wallet.balance).toLocaleString()}`;
-
-          toast.error("Insufficient Vault balance", {
-            description: `You have ${displayBalance} but tried to save KES ${amount.toLocaleString()}`,
-          });
+          toast.error("Insufficient Vault balance");
           return;
         }
 
-        const newWalletBalance = Number(wallet.balance) - amountInWalletCurrency;
-
-        // 2. Deduct from wallet
-        const { error: deductError } = await supabase
+        // Deduct from wallet
+        await supabase
           .from("wallets")
-          .update({
-            balance: newWalletBalance,
-            updated_at: new Date().toISOString(),
-          })
+          .update({ balance: Number(wallet.balance) - amountInWalletCurrency })
           .eq("id", wallet.id);
-
-        if (deductError) throw deductError;
-
-        // 3. Log into transactions table
-        const { error: txError } = await supabase.from("transactions").insert({
-          sender_id: user.id,
-          receiver_id: null, // Self-transfer to savings
-          type: "transfer",
-          method: "vault",
-          amount: amountInWalletCurrency, // Store amount in wallet currency
-          status: "completed",
-          description: "Transferred to savings",
-          balance_after: newWalletBalance,
-        });
-
-        if (txError) throw txError;
       }
 
+      // 4. Finalize savings ledger and goal amount
       const newCurrentAmount = Number(goal.current_amount) + Number(amount);
 
-      // 4. Insert into savings_ledger (Always keep ledger in goal's native currency KES)
-      const { error: ledgerError } = await supabase.from("savings_ledger").insert({
+      await supabase.from("savings_ledger").insert({
         goal_id: goal.id,
         user_id: user.id,
         amount,
@@ -192,15 +189,10 @@ export function useSavings() {
         running_total: newCurrentAmount,
       });
 
-      if (ledgerError) throw ledgerError;
-
-      // 5. Update savings_goals current_amount
-      const { error: goalUpdateError } = await supabase
+      await supabase
         .from("savings_goals")
         .update({ current_amount: newCurrentAmount })
         .eq("id", goal.id);
-
-      if (goalUpdateError) throw goalUpdateError;
 
       toast.success("Contribution added successfully!");
       fetchSavingsData();

@@ -210,6 +210,13 @@ function SavingsPage() {
     });
   };
 
+  // Auto-switch to completion tab if goal is met
+  useEffect(() => {
+    if (savingsGoal && savingsGoal.current_amount >= savingsGoal.target_amount) {
+      setIndividualTab("congrats");
+    }
+  }, [savingsGoal]);
+
   const handleSetIndividualTab = (newTab: string) => {
     setIndividualTab(newTab);
     navigate({
@@ -364,37 +371,81 @@ function SavingsPage() {
   };
 
   const confirmAutomation = () => {
-    if (!autoAmount || !autoProvider) {
+    if (!autoAmount) {
       toast.error(t("common.errors.incomplete_settings"), {
         description: t("common.errors.provide_amount_provider"),
       });
       return;
     }
 
-    let displayProvider = autoProvider;
-    if (["mpesa", "airtel", "any"].includes(autoProvider) && autoPhone) {
-      displayProvider = `${autoProvider.toUpperCase()} (${autoPhone})`;
-    } else if (
-      ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
-        autoProvider,
-      ) &&
-      autoAccount
-    ) {
-      displayProvider = `${autoProvider.toUpperCase()} (${autoAccount})`;
-    }
+    const displayProvider = "Vault Account";
 
     setIsAutomated(true);
     setShowAutoPopup(false);
     toast.success("Automation Configured", {
       description: `KES ${autoAmount} will be deducted ${autoFreq} via ${displayProvider}.`,
     });
+    
+    // Here, you would also call your API to set 'vault_balance' for this goal
+    // updateGoal(goal.id, { is_automated: true, automation_amount: parseFormattedNumber(autoAmount), automation_provider: 'vault_balance' });
   };
 
-  const handleReceiveReward = () => {
-    toast.success("Reward Received!", {
-      description: `KES ${rewardAmount.toLocaleString()} has been added to your Vault account.`,
-      icon: <Sparkles className="w-5 h-5 text-emerald-500" />,
-    });
+  const handleReceiveReward = async () => {
+    if (!savingsGoal) return;
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const totalToReceive = Number(savingsGoal.target_amount) + rewardAmount;
+
+      // 1. Update Wallet
+      const { data: wallet } = await supabase
+        .from("wallets")
+        .select("id, balance")
+        .eq("user_id", user.id)
+        .single();
+
+      if (wallet) {
+        await supabase
+          .from("wallets")
+          .update({ balance: Number(wallet.balance) + totalToReceive })
+          .eq("id", wallet.id);
+      }
+
+      // 2. Mark goal as completed
+      await supabase
+        .from("savings_goals")
+        .update({ status: "completed" })
+        .eq("id", savingsGoal.id);
+
+      // 3. Log to Transactions
+      await supabase.from("transactions").insert({
+        sender_id: user.id,
+        type: "deposit",
+        method: "vault",
+        amount: totalToReceive,
+        status: "completed",
+        description: `Savings Goal Completed: ${savingsGoal.title}`,
+      });
+
+      toast.success("Reward received!", {
+        description: `KES ${totalToReceive.toLocaleString()} has been added to your balance.`,
+      });
+
+      // 4. Default to new goal if goals exist, otherwise setup
+      if (goals.length > 1) {
+        setIndividualTab("overview");
+      } else {
+        setIndividualTab("setup");
+      }
+      fetchSavingsData();
+    } catch (error) {
+      console.error("Error receiving reward:", error);
+      toast.error("Failed to process reward.");
+    }
   };
 
   return (
@@ -553,8 +604,8 @@ function SavingsPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                  <Card className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
+                <div className="space-y-8 animate-in fade-in duration-700">
+                  <Card className="w-full rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between flex-wrap gap-4">
                         <div className="space-y-1">
@@ -576,9 +627,10 @@ function SavingsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-8 xl:grid-cols-[1.8fr_1fr] items-stretch">
-                        <div className="space-y-6">
-                          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
+                      <div className="grid gap-8 xl:grid-cols-[2.2fr_1fr] items-stretch">
+                        <div className="space-y-8">
+                          {/* Top Status Card */}
+                          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-8 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
                             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_25%)] pointer-events-none" />
                             <div className="relative z-10 space-y-6">
                               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -741,8 +793,8 @@ function SavingsPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-6 flex flex-col justify-center">
-                          <Card className="min-h-[22rem] rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-5 overflow-hidden relative flex flex-col justify-between">
+                        <div className="flex flex-col gap-8 h-full">
+                          <Card className="flex-1 rounded-[2.5rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 overflow-hidden relative flex flex-col">
                             <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-emerald-500/15 blur-3xl" />
                             <div className="absolute -left-10 bottom-10 w-36 h-36 rounded-full bg-primary/15 blur-3xl" />
                             <div className="relative z-10 space-y-6">
@@ -759,8 +811,8 @@ function SavingsPage() {
                                   </h3>
                                 </div>
                               </div>
-                              <div className="relative z-10 mt-6 grid gap-4">
-                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
+                              <div className="relative z-10 mt-6 grid gap-4 flex-1">
+                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col justify-center">
                                   <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.reward")}
                                   </p>
@@ -768,7 +820,7 @@ function SavingsPage() {
                                     KES {rewardAmount.toLocaleString()}
                                   </p>
                                 </div>
-                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
+                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col justify-center">
                                   <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.avg_day")}
                                   </p>
@@ -776,7 +828,7 @@ function SavingsPage() {
                                     KES {averageContribution.toLocaleString()}
                                   </p>
                                 </div>
-                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
+                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col justify-center">
                                   <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.funding")}
                                   </p>
@@ -827,44 +879,6 @@ function SavingsPage() {
                         {t("savings.overview.add_savings_btn")}
                       </Button>
                     </CardFooter>
-                  </Card>
-
-                  {/* Savings Tip Card */}
-                  <Card className="mx-auto w-full max-w-[26rem] min-h-[18rem] max-h-[20rem] rounded-2xl border border-slate-200 bg-emerald-50 dark:border-slate-800 dark:bg-slate-950 overflow-hidden flex flex-col shadow-xl animate-in fade-in duration-500">
-                    <CardHeader className="relative overflow-hidden px-5 pt-5">
-                      <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-emerald-500/10 blur-3xl" />
-                      <div className="absolute -bottom-6 -left-6 h-20 w-20 rounded-full bg-primary/10 blur-3xl" />
-                      <div className="flex items-center justify-between gap-3 relative z-10">
-                        <div className="flex items-center gap-3">
-                          <div className="grid place-items-center h-11 w-11 rounded-3xl bg-white text-emerald-600 shadow-sm animate-pulse">
-                            <Wallet className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <CardTitle className="font-semibold text-slate-950 dark:text-white uppercase tracking-tight text-base">
-                              {t("savings.tip.title")}
-                            </CardTitle>
-                            <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
-                              {t("savings.tip.description")}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <Sparkles className="w-5 h-5 text-emerald-500 animate-bounce" />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col justify-center px-5 py-4">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug tracking-tight">
-                        {joke}
-                      </p>
-                    </CardContent>
-                    <div className="px-5 pb-5 border-t border-slate-200 dark:border-slate-800">
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-xl border-primary/30 font-semibold hover:bg-primary/5 transition-all py-3"
-                        onClick={nextJoke}
-                      >
-                        {t("savings.overview.next_tip")}
-                      </Button>
-                    </div>
                   </Card>
                 </div>
 
@@ -1057,128 +1071,18 @@ function SavingsPage() {
                       </div>
 
                       <div className="space-y-3">
-                        <Label
-                          htmlFor="source"
-                          className="text-sm font-medium uppercase tracking-[0.1em]"
-                        >
+                        <Label className="text-sm font-medium uppercase tracking-[0.1em]">
                           {t("savings.form.funding_source")}
                         </Label>
-                        <Select value={goalSource} onValueChange={setGoalSource}>
-                          <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium">
-                            <SelectValue placeholder={t("savings.form.select_source")} />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl border-white/30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl max-h-[400px] overflow-y-auto">
-                            <SelectItem
-                              value="any"
-                              className="font-medium text-emerald-600 dark:text-emerald-400"
-                            >
-                              {t("savings.form.any_available")}
-                            </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                              <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
-                            </div>
-                            <SelectItem
-                              value="vault_balance"
-                              className="font-medium text-primary"
-                            >
-                              {t("savings.form.vault_account")}
-                            </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase border-t border-white/10 mt-1">
-                              {t("savings.form.categories")}
-                            </div>
-                            <SelectItem value="any_mobile" className="font-medium text-primary">
-                              {t("savings.form.any_mobile")}
-                            </SelectItem>
-                            <SelectItem value="any_bank" className="font-medium text-primary">
-                              {t("savings.form.any_bank")}
-                            </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase border-t border-white/10 mt-1">
-                              {t("savings.form.specifics")}
-                            </div>
-                            <SelectItem value="mpesa" className="font-medium">
-                              {t("savings.form.providers.mpesa")}
-                            </SelectItem>
-                            <SelectItem value="airtel" className="font-medium">
-                              {t("savings.form.providers.airtel")}
-                            </SelectItem>
-                            <SelectItem value="kcb" className="font-medium">
-                              {t("savings.form.providers.kcb")}
-                            </SelectItem>
-                            <SelectItem value="equity" className="font-medium">
-                              {t("savings.form.providers.equity")}
-                            </SelectItem>
-                            <SelectItem value="ncba" className="font-medium">
-                              {t("savings.form.providers.ncba")}
-                            </SelectItem>
-                            <SelectItem value="absa" className="font-medium">
-                              {t("savings.form.providers.absa")}
-                            </SelectItem>
-                            <SelectItem value="coop" className="font-medium">
-                              {t("savings.form.providers.coop")}
-                            </SelectItem>
-                            <SelectItem value="stanbic" className="font-medium">
-                              {t("savings.form.providers.stanbic")}
-                            </SelectItem>
-                            <SelectItem value="im" className="font-medium">
-                              {t("savings.form.providers.im")}
-                            </SelectItem>
-                            <SelectItem value="dtb" className="font-medium">
-                              {t("savings.form.providers.dtb")}
-                            </SelectItem>
-                            <SelectItem value="family" className="font-medium">
-                              {t("savings.form.providers.family")}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/50 dark:bg-slate-900/40 border border-white/40">
+                          <Wallet className="w-5 h-5 text-primary" />
+                          <span className="font-medium text-slate-900 dark:text-slate-100">
+                            Vault Account
+                          </span>
+                        </div>
                       </div>
 
-                      {/* Conditional Setup Inputs */}
-                      {["mpesa", "airtel", "any_mobile"].includes(goalSource) && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {t("savings.form.default_phone")}
-                          </Label>
-                          <div className="relative">
-                            <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              type="tel"
-                              placeholder="e.g. 0712345678"
-                              value={setupPhone}
-                              onChange={(e) => setSetupPhone(e.target.value)}
-                              className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {[
-                        "kcb",
-                        "equity",
-                        "ncba",
-                        "absa",
-                        "coop",
-                        "stanbic",
-                        "im",
-                        "dtb",
-                        "family",
-                        "any_bank",
-                      ].includes(goalSource) && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {t("savings.form.default_bank")}
-                          </Label>
-                          <div className="relative">
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              placeholder="Enter account number"
-                              value={setupAccount}
-                              onChange={(e) => setSetupAccount(e.target.value)}
-                              className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold"
-                            />
-                          </div>
-                        </div>
-                      )}
+                      {/* Conditional Setup Inputs - Removed as only Vault balance is supported */}
 
                       <div className="p-8 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 space-y-6 backdrop-blur-sm shadow-inner">
                         <div className="flex items-center justify-between">
@@ -1333,7 +1237,7 @@ function SavingsPage() {
                             className="h-18 px-12 rounded-[1.5rem] text-xl font-bold shadow-2xl shadow-emerald-500/30 bg-emerald-600 hover:bg-emerald-700 transition-all duration-300 hover:scale-105 active:scale-95"
                             onClick={handleReceiveReward}
                           >
-                            {t("savings.completion.receive_reward_btn")}
+                            Receive
                           </Button>
                           <Button
                             variant="outline"
@@ -1408,110 +1312,25 @@ function SavingsPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {t("savings.form.funding_source")}
-                </Label>
-                <Select value={contribSource} onValueChange={setContribSource}>
-                  <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-semibold">
-                    <SelectValue placeholder={t("savings.add_savings_modal.source_placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                      <Smartphone className="w-3 h-3" /> {t("savings.form.any_mobile")}
-                    </div>
-                    <SelectItem value="mpesa" className="font-semibold">
-                      {t("savings.form.providers.mpesa")}
-                    </SelectItem>
-                    <SelectItem value="airtel" className="font-semibold">
-                      {t("savings.form.providers.airtel")}
-                    </SelectItem>
-
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Building2 className="w-3 h-3" /> {t("savings.form.any_bank")}
-                    </div>
-                    <SelectItem value="kcb" className="font-semibold">
-                      {t("savings.form.providers.kcb")}
-                    </SelectItem>
-                    <SelectItem value="equity" className="font-semibold">
-                      {t("savings.form.providers.equity")}
-                    </SelectItem>
-                    <SelectItem value="ncba" className="font-semibold">
-                      {t("savings.form.providers.ncba")}
-                    </SelectItem>
-                    <SelectItem value="absa" className="font-semibold">
-                      {t("savings.form.providers.absa")}
-                    </SelectItem>
-                    <SelectItem value="coop" className="font-semibold">
-                      {t("savings.form.providers.coop")}
-                    </SelectItem>
-                    <SelectItem value="stanbic" className="font-semibold">
-                      {t("savings.form.providers.stanbic")}
-                    </SelectItem>
-                    <SelectItem value="im" className="font-semibold">
-                      {t("savings.form.providers.im")}
-                    </SelectItem>
-                    <SelectItem value="dtb" className="font-semibold">
-                      {t("savings.form.providers.dtb")}
-                    </SelectItem>
-                    <SelectItem value="family" className="font-semibold">
-                      {t("savings.form.providers.family")}
-                    </SelectItem>
-
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
-                    </div>
-                    <SelectItem value="vault_balance" className="font-semibold">
-                      {t("savings.form.vault_account")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Conditional Inputs - Removed provider selection, forcing Vault */}
+              <div className="space-y-3 p-4 rounded-2xl bg-muted/20 border border-white/20">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  Funding Source
+                </p>
+                <div className="flex items-center gap-3">
+                  <Wallet className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Vault Account</span>
+                </div>
               </div>
-
-              {/* Conditional Inputs */}
-              {["mpesa", "airtel"].includes(contribSource) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.form.providers.phone_number")}
-                  </Label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="tel"
-                      placeholder="e.g. 0712345678"
-                      value={contribPhone}
-                      onChange={(e) => setContribPhone(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
-                contribSource,
-              ) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.form.providers.bank_account")}
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Enter account number"
-                      value={contribAccount}
-                      onChange={(e) => setContribAccount(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="mt-10">
               <Button
                 className="w-full h-11 rounded-xl font-bold shadow-lg bg-emerald-600 hover:bg-emerald-700 text-sm"
-                onClick={handleAddContribution}
+                onClick={() => {
+                  setContribSource("vault_balance");
+                  handleAddContribution();
+                }}
               >
                 {t("savings.add_savings_modal.save_now_btn")}{" "}
                 <ArrowUpRight className="ml-1.5 w-3.5 h-3.5" />
@@ -1599,108 +1418,18 @@ function SavingsPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {t("savings.automation_modal.financial_provider")}
-                </Label>
-                <Select value={autoProvider} onValueChange={setAutoProvider}>
-                  <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-semibold">
-                    <SelectValue placeholder={t("savings.automation_modal.which_provider")} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
-                    <SelectItem
-                      value="any"
-                      className="font-semibold text-emerald-600 dark:text-emerald-400"
-                    >
-                      {t("savings.form.any_available")}
-                    </SelectItem>
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
-                    </div>
-                    <SelectItem value="vault_balance" className="font-semibold">
-                      {t("savings.form.vault_account")}
-                    </SelectItem>
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Smartphone className="w-3 h-3" /> {t("savings.form.categories")}
-                    </div>
-                    <SelectItem value="mpesa" className="font-semibold">
-                      {t("savings.form.providers.mpesa")}
-                    </SelectItem>
-                    <SelectItem value="airtel" className="font-semibold">
-                      {t("savings.form.providers.airtel")}
-                    </SelectItem>
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Building2 className="w-3 h-3" /> {t("savings.form.any_bank")}
-                    </div>
-                    <SelectItem value="kcb" className="font-semibold">
-                      {t("savings.form.providers.kcb")}
-                    </SelectItem>
-                    <SelectItem value="equity" className="font-semibold">
-                      {t("savings.form.providers.equity")}
-                    </SelectItem>
-                    <SelectItem value="ncba" className="font-semibold">
-                      {t("savings.form.providers.ncba")}
-                    </SelectItem>
-                    <SelectItem value="absa" className="font-semibold">
-                      {t("savings.form.providers.absa")}
-                    </SelectItem>
-                    <SelectItem value="coop" className="font-semibold">
-                      {t("savings.form.providers.coop")}
-                    </SelectItem>
-                    <SelectItem value="stanbic" className="font-semibold">
-                      {t("savings.form.providers.stanbic")}
-                    </SelectItem>
-                    <SelectItem value="im" className="font-semibold">
-                      {t("savings.form.providers.im")}
-                    </SelectItem>
-                    <SelectItem value="dtb" className="font-semibold">
-                      {t("savings.form.providers.dtb")}
-                    </SelectItem>
-                    <SelectItem value="family" className="font-semibold">
-                      {t("savings.form.providers.family")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-3 p-4 rounded-2xl bg-muted/20 border border-white/20">
+                <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                  Funding Source
+                </p>
+                <div className="flex items-center gap-3">
+                  <Wallet className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Vault Account</span>
+                </div>
               </div>
 
-              {/* Conditional Automation Inputs */}
-              {["mpesa", "airtel", "any"].includes(autoProvider) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.automation_modal.phone_for_deduction")}
-                  </Label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="tel"
-                      placeholder="e.g. 0712345678"
-                      value={autoPhone}
-                      onChange={(e) => setAutoPhone(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
-                </div>
-              )}
+              {/* Conditional Automation Inputs - Removed as only Vault balance is supported */}
 
-              {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
-                autoProvider,
-              ) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.automation_modal.bank_for_deduction")}
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Enter account number"
-                      value={autoAccount}
-                      onChange={(e) => setAutoAccount(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="mt-10 flex gap-4">
