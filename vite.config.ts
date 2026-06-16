@@ -80,6 +80,9 @@ export default defineConfig({
     }),
   ],
   vite: {
+    css: {
+      transformer: "postcss",
+    },
     build: {
       emptyOutDir: true,
     },
