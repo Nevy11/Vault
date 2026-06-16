@@ -59,6 +59,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -123,7 +133,7 @@ function WalletCard() {
             )}
           </div>
           <div className="mt-1 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             <span className="text-[10px] font-medium text-muted-foreground/60 uppercase tracking-wider">
               {t("transactions.wallet_card.active_encrypted")}
             </span>
@@ -923,6 +933,11 @@ function SplitPanel() {
   const { currency, refetch: refetchBalance } = useWalletBalance();
   const [profile] = useProfileSignal();
   const currentUser = profile as any;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Form states
   const [title, setTitle] = useState("");
@@ -950,20 +965,29 @@ function SplitPanel() {
   const [selectedSplitTitle, setSelectedSplitTitle] = useState("");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [splitToCancel, setSplitToCancel] = useState<string | null>(null);
 
   // Categories helper
   const categories = [
-    { id: "food", label: "Food & Drinks", icon: Utensils, color: "text-amber-500 bg-amber-500/10 border-amber-500/20" },
-    { id: "rent", label: "Rent & Stay", icon: Home, color: "text-purple-500 bg-purple-500/10 border-purple-500/20" },
-    { id: "shopping", label: "Shopping", icon: ShoppingBag, color: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
-    { id: "utilities", label: "Utilities", icon: Zap, color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" },
-    { id: "entertainment", label: "Entertainment", icon: Tv, color: "text-pink-500 bg-pink-500/10 border-pink-500/20" },
-    { id: "other", label: "Other", icon: Tag, color: "text-slate-500 bg-slate-500/10 border-slate-500/20" }
+    { id: "food", label: "Food & Drinks", icon: Utensils, color: "text-primary bg-primary/10 border-primary/20" },
+    { id: "rent", label: "Rent & Stay", icon: Home, color: "text-secondary-foreground bg-secondary border-secondary/20" },
+    { id: "shopping", label: "Shopping", icon: ShoppingBag, color: "text-accent-foreground bg-accent/20 border-accent/20" },
+    { id: "utilities", label: "Utilities", icon: Zap, color: "text-primary bg-primary/10 border-primary/20" },
+    { id: "entertainment", label: "Entertainment", icon: Tv, color: "text-secondary-foreground bg-secondary border-secondary/20" },
+    { id: "other", label: "Other", icon: Tag, color: "text-muted-foreground bg-muted border-border/20" }
   ];
 
   // Fetch splits function
   const fetchSplits = async () => {
-    if (!currentUser?.id) return;
+    // Robustly get user ID - fallback to session if profile signal is lagging
+    let userId = currentUser?.id;
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      userId = session?.user?.id;
+    }
+
+    if (!userId) return;
+    
     try {
       // 1. Fetch splits you owe
       const { data: memberRecords, error: errOwed } = await supabase
@@ -980,14 +1004,14 @@ function SplitPanel() {
             category,
             created_at,
             creator_id,
-            profiles:creator_id (
+            profiles!creator_id (
               first_name,
               last_name,
               kyc_tag
             )
           )
         `)
-        .eq("user_id", currentUser.id)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
       if (errOwed) throw errOwed;
@@ -1010,14 +1034,14 @@ function SplitPanel() {
             amount,
             status,
             paid_at,
-            profiles:user_id (
+            profiles!user_id (
               first_name,
               last_name,
               kyc_tag
             )
           )
         `)
-        .eq("creator_id", currentUser.id)
+        .eq("creator_id", userId)
         .order("created_at", { ascending: false });
 
       if (errCreated) throw errCreated;
@@ -1180,37 +1204,37 @@ function SplitPanel() {
     }
 
     // Validation for custom split
-    if (splitMethod === "custom" && Math.abs(customTotal - parseFloat(totalAmount)) > 0.01) {
-      toast.error(`Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${customTotal.toFixed(2)}.`);
+    const currentTotal = friendsCustomTotal + (includeCreator ? autoCalculatedCreatorShare : 0);
+    if (splitMethod === "custom" && Math.abs(currentTotal - parseFloat(totalAmount)) > 0.01) {
+      toast.error(`Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${currentTotal.toFixed(2)}.`);
       return;
     }
 
     setIsCreating(true);
     try {
-      if (splitMethod === "equal") {
-        const { error } = await supabase.rpc("create_bill_split_v2", {
-          p_title: title.trim(),
-          p_total_amount: parseFloat(totalAmount),
-          p_category: category,
-          p_member_ids: participants.map((p) => p.id),
-          p_include_creator: includeCreator
-        });
-        if (error) throw error;
-      } else {
-        const membersPayload = participants.map((p) => ({
-          user_id: p.id,
-          amount: parseFloat(customAmounts[p.id] || "0")
-        }));
-        
-        const { error } = await supabase.rpc("create_bill_split_v3", {
-          p_title: title.trim(),
-          p_total_amount: parseFloat(totalAmount),
-          p_category: category,
-          p_members: membersPayload,
-          p_creator_amount: includeCreator ? parseFloat(creatorCustomAmount || "0") : 0
-        });
-        if (error) throw error;
-      }
+      const membersPayload = splitMethod === "equal" 
+        ? participants.map((p) => ({
+            user_id: p.id,
+            amount: equalShare
+          }))
+        : participants.map((p) => ({
+            user_id: p.id,
+            amount: parseFloat(customAmounts[p.id] || "0")
+          }));
+
+      const creatorAmount = splitMethod === "equal"
+        ? (includeCreator ? equalShare : 0)
+        : (includeCreator ? parseFloat(creatorCustomAmount || "0") : 0);
+
+      const { error } = await supabase.rpc("create_bill_split_v3", {
+        p_title: title.trim(),
+        p_total_amount: parseFloat(totalAmount),
+        p_category: category,
+        p_members: membersPayload,
+        p_creator_amount: creatorAmount
+      });
+
+      if (error) throw error;
 
       toast.success("Bill split request created successfully!");
       setTitle("");
@@ -1228,12 +1252,16 @@ function SplitPanel() {
   };
 
   // Cancel Split
-  const handleCancelSplit = async (splitId: string) => {
-    if (!window.confirm("Are you sure you want to cancel this split request? This will remove it for all participants.")) return;
+  const handleCancelSplit = (splitId: string) => {
+    setSplitToCancel(splitId);
+  };
+
+  const confirmCancelSplit = async () => {
+    if (!splitToCancel) return;
     
     try {
       const { error } = await supabase.rpc("cancel_bill_split", {
-        p_split_id: splitId
+        p_split_id: splitToCancel
       });
 
       if (error) throw error;
@@ -1243,6 +1271,8 @@ function SplitPanel() {
     } catch (error: any) {
       console.error("Error cancelling split:", error);
       toast.error(error.message || "Failed to cancel split request");
+    } finally {
+      setSplitToCancel(null);
     }
   };
 
@@ -1440,9 +1470,14 @@ function SplitPanel() {
                             <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">ME</AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
-                            <div className="text-[11px] font-bold text-primary uppercase tracking-tighter leading-none">You (Creator)</div>
-                            <div className="text-[10px] text-muted-foreground truncate">{currentUser?.first_name} {currentUser?.last_name}</div>
+                            <div className="text-[11px] font-bold text-primary uppercase tracking-tighter leading-none">
+                              You (Creator)
+                            </div>
+                            <div className="text-[10px] text-muted-foreground truncate">
+                              {mounted ? `${currentUser?.first_name || ""} ${currentUser?.last_name || ""}` : " "}
+                            </div>
                           </div>
+
                         </div>
                         {splitMethod === "custom" ? (
                           <div className="flex items-center gap-2 ml-4">
@@ -1604,10 +1639,10 @@ function SplitPanel() {
                     {splitMethod === "custom" && (
                       <div className="flex justify-between items-center text-[11px]">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", Math.abs(remainingToSplit) < 0.01 ? "bg-emerald-500" : "bg-rose-500")} />
+                          <div className={cn("w-1.5 h-1.5 rounded-full", Math.abs(remainingToSplit) < 0.01 ? "bg-primary" : "bg-rose-500")} />
                           <span className="text-muted-foreground">Status</span>
                         </div>
-                        <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-emerald-500" : "text-rose-500")}>
+                        <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-primary" : "text-destructive")}>
                           {Math.abs(remainingToSplit) < 0.01 ? "Fully Allocated" : `${currency} ${remainingToSplit.toFixed(2)} remaining`}
                         </span>
                       </div>
@@ -1666,7 +1701,7 @@ function SplitPanel() {
           {/* Section: Incoming splits (Splits You Owe) */}
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-              <ArrowDownLeft className="w-4 h-4 text-rose-500" />
+              <ArrowDownLeft className="w-4 h-4 text-destructive" />
               Splits You Owe (Incoming Requests)
             </h4>
 
@@ -1676,96 +1711,144 @@ function SplitPanel() {
                   <Loader2 className="w-6 h-6 animate-spin text-primary/60" />
                   <span className="text-xs">Loading requests...</span>
                 </div>
-              ) : splitsOwed.filter(m => m.status === "pending").length === 0 ? (
+              ) : splitsOwed.filter((m) => m.status === "pending").length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-500/20 mb-2" />
+                  <CheckCircle2 className="w-8 h-8 text-primary/20 mb-2" />
                   <span className="text-sm font-medium text-muted-foreground">You are all clear!</span>
-                  <span className="text-xs text-muted-foreground/60 mt-0.5">No pending splits to pay.</span>
+                  <span className="text-xs text-muted-foreground/60 mt-0.5">
+                    No pending splits to pay.
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {splitsOwed.filter(m => m.status === "pending").map((m) => {
-                    const CatIcon = getCategoryIcon(m.bill_splits.category);
-                    const catColor = getCategoryColor(m.bill_splits.category);
-                    const creatorName = m.bill_splits.profiles
-                      ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
-                      : "Vault User";
-                    const creatorTag = m.bill_splits.profiles?.kyc_tag || "";
-
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-3.5 rounded-xl bg-background/40 hover:bg-background/60 border border-border/40 transition-colors group animate-in fade-in duration-200"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", catColor)}>
-                            <CatIcon className="w-5 h-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-foreground truncate">{m.bill_splits.title}</div>
-                            <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                              Requested by {creatorName} <span className="font-mono text-primary/80">{creatorTag}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 shrink-0">
-                          <div className="text-right">
-                            <div className="text-sm font-semibold text-rose-500 font-mono">
-                              -{currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </div>
-                            <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
-                              {format(new Date(m.bill_splits.created_at), "MMM dd, h:mm a")}
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="h-8 font-medium px-4 text-xs shadow-sm shadow-primary/10"
-                            onClick={() => {
-                              setSelectedMemberIdToPay(m.id);
-                              setSelectedSplitAmount(m.amount);
-                              setSelectedSplitTitle(m.bill_splits.title);
-                              setIsPinModalOpen(true);
-                            }}
+                  {splitsOwed
+                    .filter((m) => m.status === "pending")
+                    .map((m) => {
+                      if (!m.bill_splits) {
+                        return (
+                          <div
+                            key={m.id}
+                            className="p-4 rounded-xl bg-destructive/10 border border-rose-500/20 text-[10px] text-destructive flex flex-col gap-1"
                           >
-                            Pay
-                          </Button>
+                            <div className="font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                              <AlertCircle className="w-3 h-3" /> Security Policy Restriction
+                            </div>
+                            <p className="opacity-80">
+                              Found your pending split share of {currency} {m.amount.toLocaleString()}, 
+                              but the database is restricting access to the bill details.
+                            </p>
+                            <div className="mt-1 font-mono text-[8px] opacity-50">
+                              ID: {m.id}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const CatIcon = getCategoryIcon(m.bill_splits.category);
+                      const catColor = getCategoryColor(m.bill_splits.category);
+                      const creatorName = m.bill_splits.profiles
+                        ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
+                        : "Vault User";
+                      const creatorTag = m.bill_splits.profiles?.kyc_tag || "";
+
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-3.5 rounded-xl bg-background/40 hover:bg-background/60 border border-border/40 transition-colors group animate-in fade-in duration-200"
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div
+                              className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
+                                catColor,
+                              )}
+                            >
+                              <CatIcon className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {m.bill_splits.title}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                Requested by {creatorName}{" "}
+                                <span className="font-mono text-primary/80">{creatorTag}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <div className="text-sm font-semibold text-destructive font-mono">
+                                -{currency}{" "}
+                                {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </div>
+                              <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
+                                {format(new Date(m.bill_splits.created_at), "MMM dd, h:mm a")}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-8 font-medium px-4 text-xs shadow-sm shadow-primary/10"
+                              onClick={() => {
+                                setSelectedMemberIdToPay(m.id);
+                                setSelectedSplitAmount(m.amount);
+                                setSelectedSplitTitle(m.bill_splits.title);
+                                setIsPinModalOpen(true);
+                              }}
+                            >
+                              Pay
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               )}
 
               {/* Already Paid Splits (History) */}
-              {splitsOwed.filter(m => m.status === "paid").length > 0 && (
+              {splitsOwed.filter((m) => m.status === "paid" && m.bill_splits).length > 0 && (
                 <div className="pt-4 border-t border-border/40 mt-4 space-y-2">
-                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Recently Settled</div>
-                  {splitsOwed.filter(m => m.status === "paid").slice(0, 3).map((m) => {
-                    const CatIcon = getCategoryIcon(m.bill_splits.category);
-                    const catColor = getCategoryColor(m.bill_splits.category);
-                    const creatorName = m.bill_splits.profiles
-                      ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
-                      : "Vault User";
+                  <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    Recently Settled
+                  </div>
+                  {splitsOwed
+                    .filter((m) => m.status === "paid" && m.bill_splits)
+                    .slice(0, 3)
+                    .map((m) => {
+                      const CatIcon = getCategoryIcon(m.bill_splits.category);
+                      const catColor = getCategoryColor(m.bill_splits.category);
+                      const creatorName = m.bill_splits.profiles
+                        ? `${m.bill_splits.profiles.first_name} ${m.bill_splits.profiles.last_name || ""}`.trim()
+                        : "Vault User";
 
-                    return (
-                      <div
-                        key={m.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-background/20 border border-border/20 opacity-70"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border", catColor)}>
-                            <CatIcon className="w-4 h-4" />
+                      return (
+                        <div
+                          key={m.id}
+                          className="flex items-center justify-between p-2.5 rounded-lg bg-background/20 border border-border/20 opacity-70"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={cn(
+                                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border",
+                                catColor,
+                              )}
+                            >
+                              <CatIcon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 text-xs">
+                              <div className="font-medium text-foreground truncate">
+                                {m.bill_splits.title}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground truncate mt-0.5">
+                                Paid to {creatorName}
+                              </div>
+                            </div>
                           </div>
-                          <div className="min-w-0 text-xs">
-                            <div className="font-medium text-foreground truncate">{m.bill_splits.title}</div>
-                            <div className="text-[9px] text-muted-foreground truncate mt-0.5">Paid to {creatorName}</div>
-                          </div>
-                        </div>
                           <div className="flex items-center gap-2 text-right text-xs shrink-0">
                             <div className="text-right">
-                              <div className="font-semibold text-emerald-500 font-mono flex items-center justify-end gap-1">
-                                <Check className="w-3.5 h-3.5" /> {currency} {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              <div className="font-semibold text-primary font-mono flex items-center justify-end gap-1">
+                                <Check className="w-3.5 h-3.5" /> {currency}{" "}
+                                {m.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </div>
                               <div className="text-[8px] text-muted-foreground/60 mt-0.5 font-mono">
                                 {m.paid_at ? format(new Date(m.paid_at), "MMM dd, h:mm a") : ""}
@@ -1784,9 +1867,9 @@ function SplitPanel() {
                               </Button>
                             )}
                           </div>
-                      </div>
-                    );
-                  })}
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -1795,7 +1878,7 @@ function SplitPanel() {
           {/* Section: Outgoing splits (Splits You Created) */}
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-              <ArrowUpRight className="w-4 h-4 text-emerald-500" />
+              <ArrowUpRight className="w-4 h-4 text-primary" />
               Splits You Created (Outgoing Tracker)
             </h4>
 
@@ -1808,8 +1891,12 @@ function SplitPanel() {
               ) : splitsCreated.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                   <Users className="w-8 h-8 text-primary/25 mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">No active splits</span>
-                  <span className="text-xs text-muted-foreground/60 mt-0.5">Create a split request above.</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    No active splits
+                  </span>
+                  <span className="text-xs text-muted-foreground/60 mt-0.5">
+                    Create a split request above.
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -1818,7 +1905,8 @@ function SplitPanel() {
                     const catColor = getCategoryColor(s.category);
                     const paidMembers = s.bill_split_members.filter((m: any) => m.status === "paid");
                     const totalMembers = s.bill_split_members.length;
-                    const progressPercentage = totalMembers > 0 ? (paidMembers.length / totalMembers) * 100 : 100;
+                    const progressPercentage =
+                      totalMembers > 0 ? (paidMembers.length / totalMembers) * 100 : 100;
 
                     return (
                       <div
@@ -1827,32 +1915,56 @@ function SplitPanel() {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border", catColor)}>
+                            <div
+                              className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border relative",
+                                catColor,
+                              )}
+                            >
                               <CatIcon className="w-5 h-5" />
+                              <div
+                                className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse border border-background"
+                                title="Live tracking active"
+                              />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-sm font-medium text-foreground truncate">{s.title}</div>
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {s.title}
+                              </div>
                               <div className="text-[10px] text-muted-foreground truncate mt-0.5">
-                                Total: {currency} {s.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} · {currency} {s.amount_per_person.toLocaleString(undefined, { minimumFractionDigits: 2 })} each
+                                Total: {currency}{" "}
+                                {s.total_amount.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                })}{" "}
+                                ·{" "}
+                                {s.bill_split_members.every(
+                                  (m: any) => m.amount === s.bill_split_members[0].amount,
+                                )
+                                  ? `${currency} ${s.bill_split_members[0]?.amount.toLocaleString()} each`
+                                  : "Custom shares"}
                               </div>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2 text-right shrink-0">
-                            <span className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
-                              s.status === "completed" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/25" : "bg-primary/10 text-primary border border-primary/25"
-                            )}>
+                            <span
+                              className={cn(
+                                "inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-wider uppercase",
+                                s.status === "completed"
+                                  ? "bg-primary/10 text-primary border border-primary/25"
+                                  : "bg-primary/10 text-primary border border-primary/25",
+                              )}
+                            >
                               {s.status}
                             </span>
-                            {s.status === "active" && (
+                            {s.status === "active" && paidMembers.length === 0 && (
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                size="sm"
+                                className="h-7 px-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors gap-1.5"
                                 onClick={() => handleCancelSplit(s.id)}
                               >
-                                <Trash2 className="w-3.5 h-3.5" />
+                                <span className="text-[10px] font-medium">Cancel</span>
                               </Button>
                             )}
                           </div>
@@ -1862,7 +1974,10 @@ function SplitPanel() {
                         <div className="space-y-1">
                           <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
                             <span>Settled Progress</span>
-                            <span>{paidMembers.length} of {totalMembers} paid ({Math.round(progressPercentage)}%)</span>
+                            <span>
+                              {paidMembers.length} of {totalMembers} paid ({Math.round(progressPercentage)}
+                              %)
+                            </span>
                           </div>
                           <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden border border-border/20">
                             <div
@@ -1881,27 +1996,40 @@ function SplitPanel() {
                             const isPaid = m.status === "paid";
 
                             return (
-                              <div key={m.id} className="flex items-center justify-between p-1.5 rounded-lg bg-background/25">
+                              <div
+                                key={m.id}
+                                className="flex items-center justify-between p-1.5 rounded-lg bg-background/25"
+                              >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <Avatar className="w-4 h-4">
                                     <AvatarImage src={m.profiles?.profile_photo_url} />
                                     <AvatarFallback className="text-[6px] bg-primary/20 text-primary font-bold">
-                                      {m.profiles?.first_name?.[0]}{m.profiles?.last_name?.[0]}
+                                      {m.profiles?.first_name?.[0]}
+                                      {m.profiles?.last_name?.[0]}
                                     </AvatarFallback>
                                   </Avatar>
-                                  <span className="truncate text-[10px] font-medium">{name}</span>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="truncate text-[9px] font-bold leading-none">
+                                      {name}
+                                    </span>
+                                    <span className="text-[8px] text-muted-foreground mt-0.5">
+                                      {currency} {m.amount.toLocaleString()}
+                                    </span>
+                                  </div>
                                 </div>
-                                <span className={cn(
-                                  "flex items-center gap-1 font-semibold text-[9px] uppercase",
-                                  isPaid ? "text-emerald-500" : "text-muted-foreground/60"
-                                )}>
+                                <span
+                                  className={cn(
+                                    "flex items-center gap-1 font-semibold text-[8px] uppercase shrink-0",
+                                    isPaid ? "text-primary" : "text-muted-foreground/60",
+                                  )}
+                                >
                                   {isPaid ? (
                                     <>
-                                      <Check className="w-3 h-3" /> Paid
+                                      <Check className="w-2.5 h-2.5" /> Paid
                                     </>
                                   ) : (
                                     <>
-                                      <Clock className="w-3 h-3" /> Pending
+                                      <Clock className="w-2.5 h-2.5" /> Pending
                                     </>
                                   )}
                                 </span>
@@ -1937,9 +2065,46 @@ function SplitPanel() {
             <Loader2 className="w-24 h-24 text-primary animate-spin absolute inset-0" />
           </div>
           <h2 className="text-xl font-medium mt-8">Processing settlement...</h2>
-          <p className="text-sm text-muted-foreground mt-2">Transferring funds securely via Vault Ledger rails.</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Transferring funds securely via Vault Ledger rails.
+          </p>
         </div>
       )}
+
+      {/* Sweet Alert Style Cancellation Dialog */}
+      <AlertDialog open={!!splitToCancel} onOpenChange={(open) => !open && setSplitToCancel(null)}>
+        <AlertDialogContent className="max-w-[380px] rounded-3xl border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden p-0">
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-destructive to-transparent opacity-50" />
+          
+          <div className="p-8 text-center space-y-4">
+            <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center relative group">
+              <div className="absolute inset-0 rounded-full bg-destructive/5 animate-ping group-hover:animate-none" />
+              <div className="w-10 h-10 rounded-full bg-destructive/20 border-2 border-destructive/40 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.3)]" />
+            </div>
+
+            <div className="space-y-2">
+              <AlertDialogTitle className="text-xl font-bold tracking-tight">
+                Are you sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed px-4">
+                Are you sure you want to cancel this split request? This will remove it for all participants.
+              </AlertDialogDescription>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="flex flex-row sm:flex-row p-4 pt-0 gap-3">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-border/40 bg-background/50 text-sm font-semibold hover:bg-muted transition-all">
+              No, keep it
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmCancelSplit}
+              className="flex-1 h-12 rounded-2xl bg-destructive text-white hover:bg-destructive/90 transition-all font-semibold shadow-lg shadow-destructive/20 border-0"
+            >
+              Yes, cancel it
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -2062,7 +2227,7 @@ function TransactionHistory() {
           icon: t_data.sender?.first_name?.[0] || "V",
           logo: t_data.sender?.profile_photo_url,
           avatarUrl: t_data.sender?.profile_photo_url,
-          color: "bg-emerald-500/20 text-emerald-500",
+          color: "bg-primary/20 text-primary",
         };
       }
     } else if (t_data.type === "deposit") {
@@ -2081,7 +2246,7 @@ function TransactionHistory() {
         icon: logo ? null : initials,
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
-        color: "bg-emerald-500/20 text-emerald-500",
+        color: "bg-primary/20 text-primary",
       };
     } else if (t_data.type === "withdrawal") {
       const logo = getMethodLogo(t_data.method, t_data.description);
@@ -2220,7 +2385,7 @@ function TransactionHistory() {
                     <div className="flex flex-col items-end gap-1 shrink-0 ml-4">
                       <div
                         className={`text-sm font-semibold font-mono ${
-                          details.positive ? "text-emerald-500" : "text-red-500"
+                          details.positive ? "text-primary" : "text-destructive"
                         }`}
                       >
                         {details.amount}
