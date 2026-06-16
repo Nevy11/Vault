@@ -23,7 +23,6 @@ import {
   ArrowLeft,
   Plus,
   Trash2,
-  Flame,
   Users,
   Clock,
   Home,
@@ -1965,7 +1964,6 @@ function SplitPanel() {
                                 className="h-7 px-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors gap-1.5"
                                 onClick={() => handleCancelSplit(s.id)}
                               >
-                                <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
                                 <span className="text-[10px] font-medium">Cancel</span>
                               </Button>
                             )}
@@ -2081,7 +2079,7 @@ function SplitPanel() {
           <div className="p-8 text-center space-y-4">
             <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center relative group">
               <div className="absolute inset-0 rounded-full bg-destructive/5 animate-ping group-hover:animate-none" />
-              <Flame size={40} className="text-destructive relative z-10 animate-pulse drop-shadow-[0_0_15px_rgba(239,68,68,0.4)]" fill="currentColor" />
+              <div className="w-10 h-10 rounded-full bg-destructive/20 border-2 border-destructive/40 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.3)]" />
             </div>
 
             <div className="space-y-2">

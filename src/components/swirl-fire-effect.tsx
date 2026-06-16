@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Flame } from "lucide-react";
 
 interface Effect {
   id: number;
@@ -36,12 +35,11 @@ export function SwirlFireEffect() {
           key={eff.id}
           className="absolute animate-swirl-fire"
           style={{
-            left: eff.x - 16,
-            top: eff.y - 16,
-            color: "oklch(0.65 0.25 40)", // Bright orange-ish fire color
+            left: eff.x - 8,
+            top: eff.y - 8,
           }}
         >
-          <Flame size={32} fill="currentColor" className="drop-shadow-[0_0_8px_rgba(255,165,0,0.8)]" />
+          <div className="w-4 h-4 rounded-full bg-orange-500/60 blur-[2px] shadow-[0_0_15px_rgba(255,165,0,0.5)] border border-orange-400/30" />
         </div>
       ))}
     </div>
