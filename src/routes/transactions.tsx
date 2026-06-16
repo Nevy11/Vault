@@ -326,20 +326,27 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   useEffect(() => {
     const searchRecipient = async () => {
       const query = identifier.trim().toLowerCase();
+      // Trigger search if it's just '@' OR if query length >= 2
+      const isAtSymbol = query === "@";
+      const shouldSearch = method === "vault" && (isAtSymbol || query.length >= 2);
 
-      if (method === "vault" && query.length >= 2) {
+      if (shouldSearch) {
         setIsSearching(true);
         const {
           data: { user },
         } = await supabase.auth.getUser();
 
-        // Search by first_name or kyc_tag (which starts with @)
-        const { data } = await supabase
+        let queryBuilder = supabase
           .from("profiles")
           .select("id, first_name, last_name, kyc_tag, profile_photo_url")
-          .or(`first_name.ilike.%${query}%,kyc_tag.ilike.%${query}%`)
-          .neq("id", user?.id)
-          .limit(5);
+          .neq("id", user?.id);
+
+        // If it's just '@', don't filter by name/tag, just show all
+        if (!isAtSymbol) {
+          queryBuilder = queryBuilder.or(`first_name.ilike.%${query}%,kyc_tag.ilike.%${query}%`);
+        }
+
+        const { data } = await queryBuilder.limit(5);
 
         if (data && data.length > 0) {
           setSearchResults(data);
@@ -666,8 +673,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                     value={identifier}
                     onChange={(e) => {
                       const val = e.target.value;
-                      // Strip @ if method is vault
-                      setIdentifier(method === "vault" ? val.replace("@", "") : val);
+                      setIdentifier(val);
                       if (method === "vault") setShowSuggestions(true);
                     }}
                     onFocus={() => {
@@ -1643,7 +1649,7 @@ function SplitPanel() {
                           <span className="text-muted-foreground">Status</span>
                         </div>
                         <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-primary" : "text-destructive")}>
-                          {Math.abs(remainingToSplit) < 0.01 ? "Fully Allocated" : `${currency} ${remainingToSplit.toFixed(2)} remaining`}
+                          {Math.abs(remainingToSplit) < 0.01 ? "Fully Allocated" : "Allocation Pending"}
                         </span>
                       </div>
                     )}
