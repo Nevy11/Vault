@@ -411,8 +411,8 @@ function SavingsPage() {
         />
         <div className="absolute inset-0 z-0 bg-background/10 backdrop-blur-[2px]" />
 
-        <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-700">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -423,10 +423,10 @@ function SavingsPage() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
+                <h1 className="text-3xl font-medium tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
                   {t("savings.title")}
                 </h1>
-                <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
+                <p className="text-muted-foreground flex items-center gap-2 font-normal text-slate-900 dark:text-slate-100">
                   <ShieldCheck className="w-4 h-4 text-primary" />
                   {t("savings.subtitle")}
                 </p>
@@ -576,17 +576,17 @@ function SavingsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-8 xl:grid-cols-[1.75fr_1fr] items-stretch">
+                      <div className="grid gap-8 xl:grid-cols-[1.8fr_1fr] items-stretch">
                         <div className="space-y-6">
-                          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-7 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
+                          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
                             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_25%)] pointer-events-none" />
                             <div className="relative z-10 space-y-6">
                               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                                 <div>
-                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-medium">
                                     {t("savings.overview.savings_status")}
                                   </p>
-                                  <h2 className="mt-3 text-4xl font-bold tracking-tight">
+                                  <h2 className="mt-3 text-4xl font-medium tracking-tight">
                                     KES {savingsGoal?.current_amount?.toLocaleString() || "0"}
                                   </h2>
                                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
@@ -597,7 +597,7 @@ function SavingsPage() {
                                 </div>
                                 <div className="relative rounded-3xl bg-white p-4 border border-slate-200 shadow-sm text-center dark:bg-slate-900 dark:border-slate-800">
                                   <Calendar className="absolute right-4 top-4 w-4 h-4 text-emerald-500" />
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 text-center">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 text-center font-medium">
                                     {t("savings.overview.days_left")}
                                   </p>
                                   <div className="mt-4 flex items-center justify-center">
@@ -625,10 +625,10 @@ function SavingsPage() {
                                         />
                                       </svg>
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                                        <span className="text-sm font-medium text-slate-950 dark:text-white">
                                           {displayDaysLeft !== null ? displayDaysLeft : "--"}
                                         </span>
-                                        <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">
+                                        <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-medium">
                                           {t("savings.overview.days")}
                                         </span>
                                       </div>
@@ -639,10 +639,10 @@ function SavingsPage() {
 
                               <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.progress")}
                                   </p>
-                                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                                  <p className="mt-2 text-2xl font-medium text-slate-950 dark:text-white">
                                     {progress.toFixed(0)}%
                                   </p>
                                   <Progress
@@ -651,10 +651,10 @@ function SavingsPage() {
                                   />
                                 </div>
                                 <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.remaining")}
                                   </p>
-                                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                                  <p className="mt-2 text-2xl font-medium text-slate-950 dark:text-white">
                                     KES {remaining.toLocaleString()}
                                   </p>
                                   <p className="mt-1 text-xs text-slate-500">
@@ -668,18 +668,18 @@ function SavingsPage() {
                           <div className="rounded-[2rem] bg-white/95 dark:bg-slate-950/95 p-4 md:p-5 shadow-2xl border border-white/60 dark:border-white/10">
                             <div className="flex items-center justify-between gap-4 mb-4">
                               <div className="space-y-1">
-                                <p className="text-[10px] uppercase tracking-[0.4em] font-semibold text-muted-foreground">
+                                <p className="text-[10px] uppercase tracking-[0.4em] font-normal text-muted-foreground">
                                   {t("savings.overview.momentum")}
                                 </p>
-                                <h3 className="text-lg font-bold text-slate-950 dark:text-white">
+                                <h3 className="text-lg font-medium text-slate-950 dark:text-white">
                                   {t("savings.overview.daily_progress")}
                                 </h3>
                               </div>
-                              <div className="rounded-3xl bg-primary/10 px-3 py-2 text-primary font-semibold text-xs uppercase">
+                              <div className="rounded-3xl bg-primary/10 px-3 py-2 text-primary font-normal text-xs uppercase">
                                 {t("savings.overview.money_fancy")}
                               </div>
                             </div>
-                            <div className="h-[280px]">
+                            <div className="h-[250px]">
                               <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={barData}>
                                   <defs>
@@ -742,7 +742,7 @@ function SavingsPage() {
                         </div>
 
                         <div className="space-y-6 flex flex-col justify-center">
-                          <Card className="min-h-[30rem] rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 overflow-hidden relative flex flex-col justify-between">
+                          <Card className="min-h-[22rem] rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-5 overflow-hidden relative flex flex-col justify-between">
                             <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-emerald-500/15 blur-3xl" />
                             <div className="absolute -left-10 bottom-10 w-36 h-36 rounded-full bg-primary/15 blur-3xl" />
                             <div className="relative z-10 space-y-6">
@@ -751,36 +751,36 @@ function SavingsPage() {
                                   <PiggyBank className="w-6 h-6" />
                                 </div>
                                 <div>
-                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-normal">
                                     {t("savings.overview.goal_snapshot")}
                                   </p>
-                                  <h3 className="text-2xl font-bold">
+                                  <h3 className="text-2xl font-medium">
                                     {t("savings.overview.visible_progress")}
                                   </h3>
                                 </div>
                               </div>
                               <div className="relative z-10 mt-6 grid gap-4">
                                 <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.reward")}
                                   </p>
-                                  <p className="mt-3 text-2xl font-bold">
+                                  <p className="mt-3 text-2xl font-medium">
                                     KES {rewardAmount.toLocaleString()}
                                   </p>
                                 </div>
                                 <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.avg_day")}
                                   </p>
-                                  <p className="mt-3 text-2xl font-bold">
+                                  <p className="mt-3 text-2xl font-medium">
                                     KES {averageContribution.toLocaleString()}
                                   </p>
                                 </div>
                                 <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.funding")}
                                   </p>
-                                  <p className="mt-3 text-lg font-bold">
+                                  <p className="mt-3 text-lg font-medium">
                                     {savingsGoal?.funding_source ||
                                       t("savings.overview.funding_fallback")}
                                   </p>
@@ -796,19 +796,19 @@ function SavingsPage() {
                                 <Sparkles className="w-7 h-7" />
                               </div>
                               <div>
-                                <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-normal">
                                   {t("savings.overview.quick_tip")}
                                 </p>
-                                <p className="text-lg font-bold">
+                                <p className="text-lg font-medium">
                                   {t("savings.overview.tip_desc")}
                                 </p>
                               </div>
                             </div>
-                            <p className="mt-4 text-sm text-slate-600 leading-relaxed">{joke}</p>
+                            <p className="mt-4 text-sm text-slate-600 leading-relaxed font-normal">{joke}</p>
                             <div className="mt-5">
                               <Button
                                 variant="outline"
-                                className="w-full rounded-xl border-primary/30 font-semibold hover:bg-primary/5 transition-all"
+                                className="w-full rounded-xl border-primary/30 font-medium hover:bg-primary/5 transition-all"
                                 onClick={nextJoke}
                               >
                                 {t("savings.overview.next_tip")}
@@ -870,42 +870,42 @@ function SavingsPage() {
 
                 {/* Ledger Table */}
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-slate-950 dark:text-white uppercase tracking-tight">
+                  <h3 className="text-xl font-medium text-slate-950 dark:text-white uppercase tracking-tight">
                     {t("savings.ledger.title")}
                   </h3>
                   <div className="rounded-2xl border border-white/30 bg-white/80 dark:bg-slate-950/80 overflow-hidden backdrop-blur-2xl shadow-2xl">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-white/20 bg-primary/5">
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.date")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.source")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.type")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.amount")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white text-right">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white text-right">
                             {t("savings.ledger.running_total")}
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/10 font-semibold text-slate-900 dark:text-slate-100">
+                      <tbody className="divide-y divide-white/10 font-medium text-slate-900 dark:text-slate-100">
                         {ledger.length > 0 ? (
                           ledger.map((row) => (
                             <tr key={row.id} className="hover:bg-primary/5 transition-colors">
-                              <td className="px-6 py-4 text-sm">
+                              <td className="px-6 py-4 text-sm font-normal">
                                 {format(new Date(row.created_at), "MMM dd, yyyy")}
                               </td>
-                              <td className="px-6 py-4 text-sm capitalize">{row.source}</td>
+                              <td className="px-6 py-4 text-sm capitalize font-normal">{row.source}</td>
                               <td className="px-6 py-4">
                                 <span
                                   className={cn(
-                                    "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm",
+                                    "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider shadow-sm",
                                     row.type === "automated"
                                       ? "bg-primary text-primary-foreground"
                                       : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
@@ -914,10 +914,10 @@ function SavingsPage() {
                                   {row.type}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                              <td className="px-6 py-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                                 +KES {Number(row.amount).toLocaleString()}
                               </td>
-                              <td className="px-6 py-4 text-sm font-mono text-right font-bold">
+                              <td className="px-6 py-4 text-sm font-mono text-right font-medium">
                                 KES {Number(row.running_total).toLocaleString()}
                               </td>
                             </tr>
@@ -926,7 +926,7 @@ function SavingsPage() {
                           <tr>
                             <td
                               colSpan={5}
-                              className="px-6 py-12 text-center text-muted-foreground font-medium"
+                              className="px-6 py-12 text-center text-muted-foreground font-normal"
                             >
                               {t("savings.ledger.no_contributions")}
                             </td>
@@ -956,7 +956,7 @@ function SavingsPage() {
                     <form onSubmit={handleCreateGoal} className="space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                         <div className="space-y-2">
-                          <Label className="text-[9px] font-semibold uppercase tracking-wider">
+                          <Label className="text-[9px] font-medium uppercase tracking-wider">
                             {t("savings.form.title")}
                           </Label>
                           <div className="relative">
@@ -965,13 +965,13 @@ function SavingsPage() {
                               placeholder={t("savings.form.title_placeholder")}
                               value={goalTitle}
                               onChange={(e) => setGoalTitle(e.target.value)}
-                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-semibold text-sm"
+                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-medium text-sm"
                               required
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[9px] font-semibold uppercase tracking-wider">
+                          <Label className="text-[9px] font-medium uppercase tracking-wider">
                             {t("savings.form.target_amount")}
                           </Label>
                           <div className="relative">
@@ -980,7 +980,7 @@ function SavingsPage() {
                               placeholder="0.00"
                               value={targetAmount}
                               onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))}
-                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-semibold text-sm tabular-nums"
+                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-medium text-sm tabular-nums"
                               required
                             />
                           </div>
@@ -991,11 +991,11 @@ function SavingsPage() {
                         <div className="space-y-3">
                           <Label
                             htmlFor="start"
-                            className="text-sm font-semibold uppercase tracking-[0.1em]"
+                            className="text-sm font-medium uppercase tracking-[0.1em]"
                           >
                             {t("savings.form.start_date")}{" "}
                             {isEditing && savingsGoal && (
-                              <span className="text-[10px] text-amber-600 lowercase font-semibold">
+                              <span className="text-[10px] text-amber-600 lowercase font-medium">
                                 {t("savings.form.fixed")}
                               </span>
                             )}
@@ -1013,7 +1013,7 @@ function SavingsPage() {
                               defaultValue={isEditing ? savingsGoal?.start_date || today : today}
                               readOnly={isEditing && !!savingsGoal}
                               className={cn(
-                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold",
+                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium",
                                 isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                               )}
                               required
@@ -1023,11 +1023,11 @@ function SavingsPage() {
                         <div className="space-y-3">
                           <Label
                             htmlFor="deadline"
-                            className="text-sm font-semibold uppercase tracking-[0.1em]"
+                            className="text-sm font-medium uppercase tracking-[0.1em]"
                           >
                             {t("savings.form.deadline_date")}{" "}
                             {isEditing && savingsGoal && (
-                              <span className="text-[10px] text-amber-600 lowercase font-semibold">
+                              <span className="text-[10px] text-amber-600 lowercase font-medium">
                                 {t("savings.form.fixed")}
                               </span>
                             )}
@@ -1047,7 +1047,7 @@ function SavingsPage() {
                               defaultValue={isEditing ? savingsGoal?.deadline_date : ""}
                               readOnly={isEditing && !!savingsGoal}
                               className={cn(
-                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold",
+                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium",
                                 isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                               )}
                               required
@@ -1059,73 +1059,73 @@ function SavingsPage() {
                       <div className="space-y-3">
                         <Label
                           htmlFor="source"
-                          className="text-sm font-semibold uppercase tracking-[0.1em]"
+                          className="text-sm font-medium uppercase tracking-[0.1em]"
                         >
                           {t("savings.form.funding_source")}
                         </Label>
                         <Select value={goalSource} onValueChange={setGoalSource}>
-                          <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold">
+                          <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium">
                             <SelectValue placeholder={t("savings.form.select_source")} />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-white/30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl max-h-[400px] overflow-y-auto">
                             <SelectItem
                               value="any"
-                              className="font-semibold text-emerald-600 dark:text-emerald-400"
+                              className="font-medium text-emerald-600 dark:text-emerald-400"
                             >
                               {t("savings.form.any_available")}
                             </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
+                            <div className="px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
                               <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
                             </div>
                             <SelectItem
                               value="vault_balance"
-                              className="font-semibold text-primary"
+                              className="font-medium text-primary"
                             >
                               {t("savings.form.vault_account")}
                             </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                            <div className="px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase border-t border-white/10 mt-1">
                               {t("savings.form.categories")}
                             </div>
-                            <SelectItem value="any_mobile" className="font-semibold text-primary">
+                            <SelectItem value="any_mobile" className="font-medium text-primary">
                               {t("savings.form.any_mobile")}
                             </SelectItem>
-                            <SelectItem value="any_bank" className="font-semibold text-primary">
+                            <SelectItem value="any_bank" className="font-medium text-primary">
                               {t("savings.form.any_bank")}
                             </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                            <div className="px-3 py-2 text-[10px] font-medium text-muted-foreground uppercase border-t border-white/10 mt-1">
                               {t("savings.form.specifics")}
                             </div>
-                            <SelectItem value="mpesa" className="font-semibold">
+                            <SelectItem value="mpesa" className="font-medium">
                               {t("savings.form.providers.mpesa")}
                             </SelectItem>
-                            <SelectItem value="airtel" className="font-semibold">
+                            <SelectItem value="airtel" className="font-medium">
                               {t("savings.form.providers.airtel")}
                             </SelectItem>
-                            <SelectItem value="kcb" className="font-semibold">
+                            <SelectItem value="kcb" className="font-medium">
                               {t("savings.form.providers.kcb")}
                             </SelectItem>
-                            <SelectItem value="equity" className="font-semibold">
+                            <SelectItem value="equity" className="font-medium">
                               {t("savings.form.providers.equity")}
                             </SelectItem>
-                            <SelectItem value="ncba" className="font-semibold">
+                            <SelectItem value="ncba" className="font-medium">
                               {t("savings.form.providers.ncba")}
                             </SelectItem>
-                            <SelectItem value="absa" className="font-semibold">
+                            <SelectItem value="absa" className="font-medium">
                               {t("savings.form.providers.absa")}
                             </SelectItem>
-                            <SelectItem value="coop" className="font-semibold">
+                            <SelectItem value="coop" className="font-medium">
                               {t("savings.form.providers.coop")}
                             </SelectItem>
-                            <SelectItem value="stanbic" className="font-semibold">
+                            <SelectItem value="stanbic" className="font-medium">
                               {t("savings.form.providers.stanbic")}
                             </SelectItem>
-                            <SelectItem value="im" className="font-semibold">
+                            <SelectItem value="im" className="font-medium">
                               {t("savings.form.providers.im")}
                             </SelectItem>
-                            <SelectItem value="dtb" className="font-semibold">
+                            <SelectItem value="dtb" className="font-medium">
                               {t("savings.form.providers.dtb")}
                             </SelectItem>
-                            <SelectItem value="family" className="font-semibold">
+                            <SelectItem value="family" className="font-medium">
                               {t("savings.form.providers.family")}
                             </SelectItem>
                           </SelectContent>

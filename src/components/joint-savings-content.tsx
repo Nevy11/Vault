@@ -382,21 +382,21 @@ export function JointSavingsContent() {
                             KES {invite.pot?.target_amount.toLocaleString()} Target
                           </span>
                         </div>
-                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest animate-pulse">
+                        <p className="text-[10px] font-medium text-emerald-600 uppercase tracking-widest animate-pulse">
                           ✨ Better Together, Stronger Forever ✨
                         </p>
                       </div>
                     </CardHeader>
                     <CardFooter className="p-6 pt-0 flex gap-3">
                       <Button
-                        className="flex-1 h-11 rounded-2xl text-xs font-bold uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
+                        className="flex-1 h-11 rounded-2xl text-xs font-medium uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20 active:scale-95 transition-all"
                         onClick={() => acceptInvite(invite.pot_id)}
                       >
                         Join Alliance
                       </Button>
                       <Button
                         variant="ghost"
-                        className="h-11 px-4 rounded-2xl text-xs font-bold uppercase tracking-widest text-indigo-600/60 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+                        className="h-11 px-4 rounded-2xl text-xs font-medium uppercase tracking-widest text-indigo-600/60 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
                         onClick={() => declineInvite(invite.pot_id)}
                       >
                         Ignore
@@ -523,7 +523,7 @@ export function JointSavingsContent() {
                             <p className="font-medium text-sm">
                               {member.profile?.first_name} {member.profile?.last_name}
                             </p>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-normal">
                               {member.status === "active"
                                 ? `Member since ${format(new Date(member.joined_at || member.created_at), "MMM dd")}`
                                 : `Invited ${format(new Date(member.created_at), "MMM dd")}`}
@@ -541,7 +541,7 @@ export function JointSavingsContent() {
                               {member.role}
                             </span>
                             {member.status === "invited" && (
-                              <span className="text-[8px] font-medium text-muted-foreground animate-pulse italic">
+                              <span className="text-[8px] font-normal text-muted-foreground animate-pulse italic">
                                 Pending...
                               </span>
                             )}
@@ -630,13 +630,13 @@ export function JointSavingsContent() {
                                 <p className="font-medium text-sm">
                                   KES {req.amount.toLocaleString()}
                                 </p>
-                                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                                <p className="text-[10px] text-muted-foreground font-normal uppercase tracking-widest">
                                   Requested by {req.profile?.first_name}
                                 </p>
                               </div>
                               <span
                                 className={cn(
-                                  "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-wider",
+                                  "px-2 py-0.5 rounded-full text-[8px] font-medium uppercase tracking-wider",
                                   req.status === "executed"
                                     ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                                     : "bg-amber-100 text-amber-700 border border-amber-200",
