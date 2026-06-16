@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/api/supabase";
@@ -70,6 +70,8 @@ export const Route = createFileRoute("/savings")({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       tab: search.tab as string | undefined,
+      mode: search.mode as "individual" | "joint" | undefined,
+      potId: search.potId as string | undefined,
     };
   },
   component: SavingsPage,
@@ -77,21 +79,39 @@ export const Route = createFileRoute("/savings")({
 
 function SavingsPage() {
   const { t } = useTranslation();
-  const { tab } = Route.useSearch();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
+  const { tab, mode } = search;
 
   // Top-level mode: 'individual' or 'joint'
-  const [viewMode, setViewMode] = useState<"individual" | "joint">("individual");
+  const [viewMode, setViewMode] = useState<"individual" | "joint">(mode || "individual");
   // Sub-tabs for individual
-  const [individualTab, setIndividualTab] = useState("overview");
+  const [individualTab, setIndividualTab] = useState(tab || "overview");
 
-  const financialJokes = useMemo(
-    () => t("savings.jokes", { returnObjects: true }) as string[],
-    [t],
-  );
-  const savingLines = useMemo(
-    () => t("savings.saving_lines", { returnObjects: true }) as string[],
-    [t],
-  );
+  const [isEditing, setIsEditing] = useState(false);
+  const [showContributionModal, setShowContributionModal] = useState(false);
+  const [showAutoPopup, setShowAutoPopup] = useState(false);
+
+  // New goal form state
+  const [goalTitle, setGoalTitle] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [goalSource, setGoalSource] = useState("");
+  const [isAutomated, setIsAutomated] = useState(false);
+  const [autoFreq, setAutoFreq] = useState("weekly");
+  const [autoAmount, setAutoAmount] = useState("");
+  const [autoProvider, setAutoProvider] = useState("");
+
+  // Setup account info
+  const [setupPhone, setSetupPhone] = useState("");
+  const [setupAccount, setSetupAccount] = useState("");
+  const [autoPhone, setAutoPhone] = useState("");
+  const [autoAccount, setAutoAccount] = useState("");
+
+  // Contribution state
+  const [contribAmount, setContribAmount] = useState("");
+  const [contribSource, setContribSource] = useState("");
+  const [contribPhone, setContribPhone] = useState("");
+  const [contribAccount, setContribAccount] = useState("");
 
   const {
     goals,
@@ -105,107 +125,50 @@ function SavingsPage() {
     updateGoal,
   } = useSavings();
 
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [isAutomated, setIsAutomated] = useState(false);
-  const [showAutoPopup, setShowAutoPopup] = useState(false);
-  const [showContributionModal, setShowContributionModal] = useState(false);
-  const [contribAmount, setContribAmount] = useState("");
-  const [contribSource, setContribSource] = useState("");
-  const [contribPhone, setContribPhone] = useState("");
-  const [contribAccount, setContribAccount] = useState("");
-  const [setupPhone, setSetupPhone] = useState("");
-  const [setupAccount, setSetupAccount] = useState("");
-  const [targetAmount, setTargetAmount] = useState("");
-  const [goalTitle, setGoalTitle] = useState("");
-
-  // Automation state
-  const [autoFreq, setAutoFreq] = useState("weekly");
-  const [autoAmount, setAutoAmount] = useState("");
-  const [autoProvider, setAutoProvider] = useState("");
-  const [autoPhone, setAutoPhone] = useState("");
-  const [autoAccount, setAutoAccount] = useState("");
-
-  const [goalSource, setGoalSource] = useState("");
-
   const today = format(new Date(), "yyyy-MM-dd");
-
-  useEffect(() => {
-    if (tab) {
-      if (tab === "joint") {
-        setViewMode("joint");
-      } else {
-        setViewMode("individual");
-        setIndividualTab(tab);
-      }
-    } else if (goals.length === 0) {
-      setIndividualTab("setup");
-    }
-  }, [tab, goals.length]);
-
-  useEffect(() => {
-    if (individualTab === "setup" && isEditing && savingsGoal) {
-      setGoalTitle(savingsGoal.title || "");
-      setGoalSource(savingsGoal.funding_source || "");
-      setTargetAmount(formatWithCommas(savingsGoal.target_amount));
-      setIsAutomated(savingsGoal.is_automated || false);
-      if (savingsGoal.is_automated) {
-        setAutoFreq(savingsGoal.automation_frequency || "weekly");
-        setAutoAmount(formatWithCommas(savingsGoal.automation_amount || ""));
-        setAutoProvider(savingsGoal.automation_provider || "");
-      }
-    } else if (individualTab === "setup" && !isEditing) {
-      // Clear form for new goal
-      setGoalTitle("");
-      setGoalSource("");
-      setTargetAmount("");
-      setIsAutomated(false);
-      setAutoFreq("weekly");
-      setAutoAmount("");
-      setAutoProvider("");
-    }
-  }, [individualTab, isEditing, savingsGoal]);
-
-  const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
   const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
+  const progress = savingsGoal
+    ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100
+    : 0;
+
+  const ringRadius = 40;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringOffset = ringCircumference - (progress / 100) * ringCircumference;
+
+  const deadline = savingsGoal ? new Date(savingsGoal.deadline_date) : null;
+  const daysLeft = deadline ? differenceInCalendarDays(deadline, startOfToday()) : null;
+  const displayDaysLeft = daysLeft !== null ? Math.max(0, daysLeft) : null;
+
   const remaining = savingsGoal
     ? Math.max(0, savingsGoal.target_amount - savingsGoal.current_amount)
     : 0;
-  const deadlineDate = savingsGoal?.lockUntil ?? savingsGoal?.deadline_date;
-  const daysLeft = deadlineDate
-    ? differenceInCalendarDays(new Date(deadlineDate), startOfToday())
-    : null;
-  const averageContribution = ledger.length
-    ? Math.round(ledger.reduce((sum, entry) => sum + Number(entry.amount), 0) / ledger.length)
-    : 0;
 
-  const progressValue = Math.max(0, Math.min(100, progress));
-  const ringRadius = 40;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringOffset = ringCircumference - (progressValue / 100) * ringCircumference;
-  const displayDaysLeft = daysLeft !== null ? Math.max(0, daysLeft) : null;
+  const averageContribution = useMemo(() => {
+    if (!ledger.length) return 0;
+    const total = ledger.reduce((sum, entry) => sum + Number(entry.amount), 0);
+    return total / ledger.length;
+  }, [ledger]);
 
   const barData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, index) => {
-      const date = subDays(startOfToday(), 6 - index);
-      return {
-        key: format(date, "yyyy-MM-dd"),
-        label: format(date, "EEE"),
-        amount: 0,
-      };
-    });
-
-    const totals: Record<string, number> = {};
-    ledger.forEach((entry) => {
-      const dateKey = format(new Date(entry.created_at), "yyyy-MM-dd");
-      totals[dateKey] = (totals[dateKey] || 0) + Number(entry.amount);
-    });
-
-    return last7Days.map((day) => ({
-      ...day,
-      amount: totals[day.key] || 0,
-    }));
+    if (!ledger.length) return [];
+    // Last 7 contributions
+    return [...ledger]
+      .slice(0, 7)
+      .reverse()
+      .map((entry) => ({
+        label: format(new Date(entry.created_at), "MMM dd"),
+        amount: Number(entry.amount),
+      }));
   }, [ledger]);
+
+  const financialJokes = useMemo(
+    () => t("savings.jokes", { returnObjects: true }) as string[],
+    [t],
+  );
+  const savingLines = useMemo(
+    () => t("savings.saving_lines", { returnObjects: true }) as string[],
+    [t],
+  );
 
   const [jokeIndex, setJokeIndex] = useState(0);
   const joke = useMemo(() => financialJokes[jokeIndex], [jokeIndex, financialJokes]);
@@ -215,12 +178,43 @@ function SavingsPage() {
 
   useEffect(() => {
     if (showContributionModal) {
-      setLineIndex(Math.floor(Math.random() * savingLines.length));
+      setLineIndex(Math.floor(Math.random() * (savingLines?.length || 1)));
     }
   }, [showContributionModal, savingLines]);
 
   const nextJoke = () => {
-    setJokeIndex((prev) => (prev + 1) % financialJokes.length);
+    setJokeIndex((prev) => (prev + 1) % (financialJokes?.length || 1));
+  };
+
+  // Sync mode with URL if it changes externally or on load
+  useEffect(() => {
+    if (mode && mode !== viewMode) {
+      setViewMode(mode);
+    } else if (!mode && tab === "joint") {
+      // Legacy support for ?tab=joint
+      handleSetViewMode("joint");
+    }
+  }, [mode, tab]);
+
+  // Sync sub-tab with URL
+  useEffect(() => {
+    if (tab && tab !== individualTab && viewMode === "individual") {
+      setIndividualTab(tab);
+    }
+  }, [tab, viewMode]);
+
+  const handleSetViewMode = (newMode: "individual" | "joint") => {
+    setViewMode(newMode);
+    navigate({
+      search: (prev) => ({ ...prev, mode: newMode }),
+    });
+  };
+
+  const handleSetIndividualTab = (newTab: string) => {
+    setIndividualTab(newTab);
+    navigate({
+      search: (prev) => ({ ...prev, tab: newTab }),
+    });
   };
 
   const handleCreateGoal = async (e: React.FormEvent) => {
@@ -449,7 +443,7 @@ function SavingsPage() {
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "text-muted-foreground hover:text-foreground",
                 )}
-                onClick={() => setViewMode("individual")}
+                onClick={() => handleSetViewMode("individual")}
               >
                 <PiggyBank className="w-4 h-4 mr-2" />
                 Personal
@@ -462,7 +456,7 @@ function SavingsPage() {
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "text-muted-foreground hover:text-foreground",
                 )}
-                onClick={() => setViewMode("joint")}
+                onClick={() => handleSetViewMode("joint")}
               >
                 <Users className="w-4 h-4 mr-2" />
                 Joint
@@ -474,7 +468,7 @@ function SavingsPage() {
           {viewMode === "individual" && (
             <Tabs
               value={individualTab}
-              onValueChange={setIndividualTab}
+              onValueChange={handleSetIndividualTab}
               className="space-y-8 animate-in slide-in-from-right-4 duration-500"
             >
               <div className="flex justify-center mb-8">

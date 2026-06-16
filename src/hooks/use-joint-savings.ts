@@ -29,6 +29,7 @@ export type JointContribution = {
   user_id: string;
   amount: number;
   type: "deposit" | "withdrawal";
+  balance_after: number;
   created_at: string;
   profile?: any;
 };
@@ -118,7 +119,13 @@ export function useJointSavings() {
 
       const { data, error } = await supabase
         .from("pot_members")
-        .select("*, pot:joint_pots(*)")
+        .select(`
+          *,
+          pot:joint_pots(
+            *,
+            creator:profiles!joint_pots_creator_id_fkey(*)
+          )
+        `)
         .eq("user_id", user.id)
         .eq("status", "invited");
 
@@ -265,6 +272,8 @@ export function useJointSavings() {
       toast.error("Failed to deposit");
     } else {
       toast.success(`Deposited KES ${amount.toLocaleString()}!`);
+      // No manual refetch needed here as Realtime will catch the 'wallets' table change 
+      // in useWalletBalance and 'joint_pots' change here.
       fetchPotDetails(potId);
     }
   };
