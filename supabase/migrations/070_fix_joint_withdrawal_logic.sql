@@ -76,16 +76,45 @@ BEGIN
                 updated_at = now()
             WHERE id = NEW.request_id;
 
-            -- Create a contribution record for the withdrawal to update balance
+            -- Create a contribution record for the withdrawal to update pot balance
             INSERT INTO pot_contributions (pot_id, user_id, amount, type)
             VALUES (v_pot_id, v_requester_id, v_amount, 'withdrawal');
+
+            -- NEW: Credit the user's personal wallet
+            UPDATE public.wallets
+            SET balance = balance + v_amount,
+                updated_at = now()
+            WHERE user_id = v_requester_id;
+
+            -- NEW: Record in the unified transaction ledger
+            INSERT INTO public.transactions (
+                sender_id,
+                receiver_id,
+                type,
+                method,
+                amount,
+                status,
+                description,
+                balance_after
+            )
+            SELECT 
+                v_requester_id,
+                v_requester_id, -- Self-transfer
+                'deposit', -- From the perspective of the wallet, it's an incoming amount
+                'vault',
+                v_amount,
+                'completed',
+                'From Joint Savings: ' || (SELECT title FROM joint_pots WHERE id = v_pot_id),
+                balance -- New balance after update
+            FROM public.wallets 
+            WHERE user_id = v_requester_id;
             
             -- Notify the requester that it was executed
             INSERT INTO public.notifications (user_id, title, message, type)
             VALUES (
                 v_requester_id,
                 'Withdrawal Executed',
-                'Your withdrawal request for KES ' || v_amount || ' has been approved by all members and executed.',
+                'Your withdrawal request for KES ' || v_amount || ' has been approved by all members and credited to your wallet.',
                 'success'
             );
         END IF;

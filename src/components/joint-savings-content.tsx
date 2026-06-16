@@ -577,11 +577,11 @@ export function JointSavingsContent() {
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-pulse" />
                   <Sparkles className="w-8 h-8 text-primary mx-auto mb-3 opacity-50" />
                   <div className="min-h-[80px] flex flex-col justify-center transition-all duration-1000">
-                    <p className="text-xl font-serif italic text-primary dark:text-primary-foreground leading-relaxed animate-in fade-in zoom-in duration-1000">
-                      "{jointQuotes[quoteIndex].sw}"
+                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-relaxed animate-in fade-in zoom-in duration-1000">
+                      "{jointQuotes[quoteIndex].en}"
                     </p>
-                    <p className="mt-2 text-xs font-medium uppercase tracking-widest text-muted-foreground opacity-70">
-                      {jointQuotes[quoteIndex].en}
+                    <p className="mt-2 text-sm font-medium italic text-slate-500 dark:text-slate-400 opacity-90">
+                      {jointQuotes[quoteIndex].sw}
                     </p>
                   </div>
                   <div className="mt-4 flex justify-center gap-1.5">

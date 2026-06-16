@@ -66,21 +66,6 @@ export function useJointSavings() {
   const [loading, setLoading] = useState(true);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      await Promise.all([fetchPots(), fetchInvites()]);
-      setInitialFetchDone(true);
-      setLoading(false);
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPotId) {
-      fetchPotDetails(selectedPotId);
-    }
-  }, [selectedPotId]);
-
   const fetchPots = useCallback(async () => {
     try {
       const {
@@ -139,7 +124,7 @@ export function useJointSavings() {
     }
   }, []);
 
-  const fetchPotDetails = async (potId: string) => {
+  const fetchPotDetails = useCallback(async (potId: string) => {
     // Only show loading if we don't have a selected pot yet or it's a new one
     if (!selectedPot || selectedPot.id !== potId) {
       setLoading(true);
@@ -177,7 +162,70 @@ export function useJointSavings() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPot]);
+
+  useEffect(() => {
+    const init = async () => {
+      await Promise.all([fetchPots(), fetchInvites()]);
+      setInitialFetchDone(true);
+      setLoading(false);
+    };
+    init();
+
+    // SETUP REALTIME SUBSCRIPTIONS
+    // Use a unique channel name to avoid collisions between multiple hook instances
+    const channelName = `joint_pots_realtime_${Math.random().toString(36).substring(7)}`;
+    const potsChannel = supabase
+      .channel(channelName)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "joint_pots" },
+        () => {
+          fetchPots();
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pot_members" },
+        () => {
+          fetchPots();
+          fetchInvites();
+          if (selectedPotId) fetchPotDetails(selectedPotId);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pot_withdrawal_requests" },
+        () => {
+          if (selectedPotId) fetchPotDetails(selectedPotId);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pot_withdrawal_approvals" },
+        () => {
+          if (selectedPotId) fetchPotDetails(selectedPotId);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pot_contributions" },
+        () => {
+          if (selectedPotId) fetchPotDetails(selectedPotId);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(potsChannel);
+    };
+  }, [selectedPotId, fetchPots, fetchInvites, fetchPotDetails]);
+
+  useEffect(() => {
+    if (selectedPotId) {
+      fetchPotDetails(selectedPotId);
+    }
+  }, [selectedPotId, fetchPotDetails]);
 
   const createPot = async (
     title: string,
