@@ -902,7 +902,7 @@
         "deadlines": "Goal Deadlines",
         "locking": "Fund Locking",
         "reward": "2% Reward",
-        "funding": "Auto Funding"
+        "funding": "Automated saving"
       },
       "view_btn": "View Savings",
       "setup_btn": "Setup Savings"
