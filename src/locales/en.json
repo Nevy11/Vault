@@ -910,11 +910,11 @@
     "loans": {
       "credit_title": "Credit Line",
       "title": "Instant Credit",
-      "description": "Access credit limits up to 50% of your balance. No paperwork, instant disbursement based on history.",
+      "description": "Unlock credit limits up to 30% of your average monthly transaction volume. Instant disbursement based on your membership age.",
       "items": {
-        "eligibility": "Verified Eligibility",
-        "limits": "Instant Limits",
-        "growth": "Limit Growth",
+        "eligibility": "9-Month Membership",
+        "limits": "30% Volume Limit",
+        "growth": "Automated Growth",
         "tracker": "Repayment Tracker"
       },
       "request_btn": "Request Credit"
@@ -926,7 +926,7 @@
       "locking_title": "Locking",
       "locking_desc": "Funds cryptographically locked until deadline to protect discipline.",
       "lending_title": "Lending",
-      "lending_desc": "Requires integrity verification. Strictly capped at 50% of frequent balance."
+      "lending_desc": "Requires 9 months membership age. Strictly capped at 30% of your 3-month average volume."
     }
   },
   "receipts": {

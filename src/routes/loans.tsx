@@ -79,6 +79,7 @@ type OnboardingData = {
   financial_dependents: number;
   monthly_debt: number;
   primary_loan_use: string;
+  id_number: string;
 };
 
 function LoanAssistant({
@@ -95,9 +96,16 @@ function LoanAssistant({
     financial_dependents: profile?.financial_dependents || 0,
     monthly_debt: profile?.monthly_debt || 0,
     primary_loan_use: profile?.primary_loan_use || "",
+    id_number: profile?.id_number || "",
   });
 
   const questions = [
+    {
+      id: "id_number",
+      label: "National ID Number",
+      description: "Enter your valid Government ID or Passport number.",
+      type: "text",
+    },
     {
       id: "employment_status",
       label: "Employment Status",
@@ -136,7 +144,7 @@ function LoanAssistant({
 
   const handleNext = () => {
     const value = data[current.id as keyof OnboardingData];
-    if (value === undefined || value === "" || (typeof value === "number" && isNaN(value))) {
+    if (value === undefined || value === "" || (current.type === "number" && isNaN(Number(value)))) {
       toast.error("Please provide a valid answer.");
       return;
     }
@@ -240,18 +248,18 @@ function LoanAssistant({
         ) : (
           <div className="relative">
             <Input
-              type="number"
+              type={current.type}
               value={data[current.id as keyof OnboardingData] || ""}
-              onChange={(e) => setData(prev => ({ ...prev, [current.id]: parseFloat(e.target.value) }))}
-              placeholder="0.00"
+              onChange={(e) => setData(prev => ({ ...prev, [current.id]: current.type === "number" ? parseFloat(e.target.value) : e.target.value }))}
+              placeholder={current.type === "number" ? "0.00" : "Enter details..."}
               className="h-14 text-xl font-bold rounded-2xl bg-white/40 dark:bg-slate-900/40 border-white/10 focus:ring-emerald-500/20"
               autoFocus
             />
-            {current.id.includes("income") || current.id.includes("debt") ? (
+            {(current.id.includes("income") || current.id.includes("debt")) && (
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
                 KES
               </span>
-            ) : null}
+            )}
           </div>
         )}
       </div>
@@ -285,6 +293,13 @@ function LoanAssistant({
 function LoansPage() {
   const { t } = useTranslation();
   const [profile, refreshProfile] = useProfileSignal();
+
+  // Define membershipMonths for use in the UI and eligibility checks
+  const membershipMonths = useMemo(() => {
+    if (!profile?.created_at) return 0;
+    return Math.max(0, Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+  }, [profile?.created_at]);
+
   const [activeLoan, setActiveLoan] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("request");
 
@@ -353,10 +368,11 @@ function LoansPage() {
 
       // Check if profile is complete
       const isProfileComplete = !!(
+        profile?.id_number &&
         profile?.employment_status &&
-        profile?.monthly_income &&
-        profile?.financial_dependents !== undefined &&
-        profile?.monthly_debt !== undefined &&
+        profile?.monthly_income !== undefined && profile?.monthly_income !== null &&
+        profile?.financial_dependents !== undefined && profile?.financial_dependents !== null &&
+        profile?.monthly_debt !== undefined && profile?.monthly_debt !== null &&
         profile?.primary_loan_use
       );
       setShowOnboarding(!isProfileComplete);
@@ -411,8 +427,33 @@ function LoansPage() {
     e.preventDefault();
     if (!profile?.id) return;
 
+    // 1. Check Membership Age (Tenure)
+    const membershipMonths = profile?.created_at 
+      ? Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30))
+      : 0;
+
+    if (membershipMonths < 9) {
+      toast.error("Eligibility Required", {
+        description: `You must be a member for at least 9 months to access Vault Credit. Current: ${membershipMonths}m.`,
+        className: "bg-destructive/10 border-destructive/20",
+      });
+      return;
+    }
+
+    // 2. Check Assessment / Transaction History
     if (assessment?.status === "rejected") {
-      toast.error("Loan Request Failed", { description: assessment.message });
+      toast.error("Limit Exceeded", { 
+        description: assessment.message || "Your transaction history is currently insufficient for this loan amount.",
+        className: "bg-destructive/10 border-destructive/20",
+      });
+      return;
+    }
+
+    if (!assessment || assessment.calculated_limit <= 0) {
+      toast.error("Insufficient History", { 
+        description: "Your transaction volume is currently too low to unlock a credit limit. Increase your deposits to grow your limit.",
+        className: "bg-destructive/10 border-destructive/20",
+      });
       return;
     }
 
@@ -655,6 +696,27 @@ function LoansPage() {
                       </Card>
 
                       <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl p-4 shadow-lg overflow-hidden relative">
+                        {showOnboarding && (
+                          <div className="absolute inset-0 z-20 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 border border-primary/20">
+                              <Lock className="w-6 h-6" />
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-950 dark:text-white mb-1 uppercase tracking-tight">Loan Requests Locked</h3>
+                            <p className="text-[10px] text-muted-foreground font-medium max-w-[200px] mb-4">
+                              Please complete your demographic verification first to unlock borrowing power.
+                            </p>
+                            <Button 
+                              size="sm" 
+                              className="h-8 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 shadow-md"
+                              onClick={() => {
+                                const el = document.getElementById('demographics-form');
+                                el?.scrollIntoView({ behavior: 'smooth' });
+                              }}
+                            >
+                              Verify Demographics
+                            </Button>
+                          </div>
+                        )}
                         <form onSubmit={handleRequestLoan} className="space-y-4">
                           <div className="space-y-1.5">
                             <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
@@ -674,12 +736,10 @@ function LoansPage() {
                               />
                             </div>
                             <div className="flex justify-between items-center px-0.5">
-                              <span className="text-[8px] text-muted-foreground font-medium">
-                                {assessment?.calculated_limit 
-                                  ? `MAX LIMIT: KES ${assessment.calculated_limit.toLocaleString()}` 
-                                  : "CALCULATING LIMIT..."}
+                              <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">
+                                Limit Level: KES {(assessment?.calculated_limit || 0).toLocaleString()}
                               </span>
-                              {assessment?.status === "rejected" && (
+                              {assessment?.status === "rejected" && assessment?.calculated_limit > 0 && (
                                 <span className="text-[8px] text-destructive font-semibold flex items-center gap-1">
                                   <AlertCircle className="w-2 h-2" /> LIMIT EXCEEDED
                                 </span>
@@ -781,11 +841,14 @@ function LoansPage() {
                 <div className="space-y-4">
                   <Card className="rounded-2xl border border-white/20 bg-white/70 dark:bg-slate-950/60 backdrop-blur-xl overflow-hidden shadow-md">
                     <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                        Risk Profile Status
-                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-slate-950 dark:text-white">
+                          Limit Guard™
+                        </CardTitle>
+                      </div>
                       <CardDescription className="font-medium text-[9px]">
-                        Data integrity for limit expansion
+                        Disbursement criteria
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4 p-4 pt-2">
@@ -800,16 +863,25 @@ function LoansPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", (assessment?.calculated_limit > 0) ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">Platform Tenure</span>
+                          <div className={cn("w-1.5 h-1.5 rounded-full", membershipMonths >= 9 ? "bg-emerald-500" : "bg-muted")} />
+                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">9-Month Membership</span>
                         </div>
-                        <span className="text-[11px] font-bold text-emerald-600">
-                          {Math.floor((new Date().getTime() - new Date(profile?.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30))}m
+                        <span className={cn("text-[11px] font-bold", membershipMonths >= 9 ? "text-emerald-600" : "text-muted-foreground")}>
+                          {membershipMonths >= 9 ? "VERIFIED" : "PENDING"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-1.5 h-1.5 rounded-full", (assessment?.calculated_limit > 0) ? "bg-emerald-500" : "bg-muted")} />
+                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">30% Volume Limit</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-600 tabular-nums">
+                          KES {(assessment?.calculated_limit || 0).toLocaleString()}
                         </span>
                       </div>
                       <div className="pt-3 border-t border-white/5">
                         <p className="text-[10px] text-muted-foreground font-medium leading-relaxed italic">
-                          "Vault's Automated Growth Engine rewards discipline and history."
+                          "Limits are strictly capped at 30% of your 3-month average volume."
                         </p>
                       </div>
                     </CardContent>
@@ -817,16 +889,14 @@ function LoansPage() {
                       <div className="flex items-center gap-1.5 text-[8px] text-emerald-600 font-bold uppercase tracking-wider">
                         <ShieldCheck className="w-3 h-3" /> SECURE LEDGER
                       </div>
-                      {!showOnboarding && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="w-6 h-6 rounded-full hover:bg-emerald-500/10 text-emerald-600"
-                          onClick={() => setShowOnboarding(true)}
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                        </Button>
-                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="w-6 h-6 rounded-full hover:bg-emerald-500/10 text-emerald-600"
+                        onClick={() => window.location.reload()}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </Button>
                     </CardFooter>
                   </Card>
 
