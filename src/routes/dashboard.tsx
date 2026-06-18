@@ -8,13 +8,32 @@ import {
   Settings,
   HelpCircle,
   RefreshCw,
-  ShieldCheck,
   Shield,
   Loader2,
   ArrowRight,
   TrendingUp,
   Landmark,
   ShieldAlert,
+  Utensils,
+  ShoppingBag,
+  Smartphone,
+  Zap,
+  Tv,
+  HeartPulse,
+  ShoppingCart,
+  User,
+  ArrowDownLeft,
+  ArrowUpRight,
+  History,
+  Target,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Check,
+  ChevronRight,
+  X,
+  Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -727,16 +746,20 @@ const filters = [
 function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-<<<<<<< HEAD
-  const [profile] = useProfileSignal();
+  const { profile, isLoading: profileLoading } = useProfile();
 
   // Guard against unauthenticated/loading state
-  if (!profile) {
-    return <div className="p-8 text-center">Loading...</div>;
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
   }
-=======
-  const { profile } = useProfile();
->>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
+
+  if (!profile) {
+    return <div className="p-8 text-center">Please log in to view your dashboard.</div>;
+  }
 
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
 
@@ -1010,15 +1033,10 @@ function DashboardPage() {
           categoryColorClass,
         };
       } else {
-<<<<<<< HEAD
         const senderName = tx.sender?.first_name || t("common.user");
         const isVaultTransfer = tx.method === "vault" || (tx.description || "").includes("Vault Transfer Ref:");
         const titleText = isVaultTransfer ? "P2P Transfer" : (tx.description || t("transactions.history.received_from", { senderName }));
-        
-=======
-        let senderName = tx.sender?.first_name || t("common.user");
-        const titleText = tx.description || t("transactions.history.received_from", { senderName });
->>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
+
         return {
           title: titleText,
           subtitle: tx.description,
@@ -1395,7 +1413,6 @@ function DashboardPage() {
                     className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3 group"
                   >
                     <div className="flex items-center gap-4">
-<<<<<<< HEAD
                       <div className="relative shrink-0">
                         <Avatar className="w-10 h-10 border border-border/40 shadow-sm rounded-xl">
                           <AvatarImage
@@ -1407,19 +1424,6 @@ function DashboardPage() {
                           </AvatarFallback>
                         </Avatar>
                       </div>
-=======
-                      <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                        {typeLabel}
-                      </span>
-                      <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage
-                          src={details.logo || (details as any).avatarUrl || undefined}
-                        />
-                        <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
-                          {details.icon}
-                        </AvatarFallback>
-                      </Avatar>
->>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
                       <div className="min-w-0">
                         <div className="text-sm truncate font-medium">{details.title}</div>
                         {(details as any).subtitle && (

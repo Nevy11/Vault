@@ -83,6 +83,7 @@ import i18n from "@/lib/i18n";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw", "split"]).optional(),
+  to: z.string().optional(),
 });
 
 export const Route = createFileRoute("/transactions")({
@@ -1410,10 +1411,7 @@ function SplitPanel() {
     try {
       const { data, error } = await supabase.rpc("pay_bill_split", {
         p_member_id: selectedMemberIdToPay,
-<<<<<<< HEAD
-=======
         p_idempotency_key: idempotencyKey,
->>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
       });
 
       if (error) throw error;

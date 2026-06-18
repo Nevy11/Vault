@@ -258,10 +258,8 @@ serve(async (req) => {
     `
         : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."
     }
-<<<<<<< HEAD
 
-=======
->>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
+
 
 FORMATTING INSTRUCTIONS:
 - DO NOT use markdown asterisks (*) or double asterisks (**) for bolding or lists.

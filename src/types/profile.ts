@@ -19,4 +19,13 @@ export type Profile = {
   biometric_enabled?: boolean;
   theme?: string;
   primary_currency?: string;
+  is_frozen?: boolean;
+  frozen_at?: string;
+  frozen_reason?: string;
+  id_number?: string;
+  employment_status?: string;
+  monthly_income?: number;
+  financial_dependents?: number;
+  monthly_debt?: number;
+  primary_loan_use?: string;
 } | null;
