@@ -13,7 +13,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/api/supabase";
 import { useProfile } from "@/hooks/use-profile";
 import { useEffect, useState } from "react";
-import i18n from "@/lib/i18n";
+import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 
 import "../styles.css";
 import appCss from "../styles.css?url";
@@ -214,8 +214,11 @@ function RootComponent() {
 }
 
 function RootInner() {
-  useProfile();
+  const { profile } = useProfile();
   const [isBlocked, setIsBlocked] = useState(false);
+
+  // Auto-logout after 10 minutes of inactivity
+  useInactivityTimeout(!!profile);
 
   useEffect(() => {
     const tabId = Math.random().toString(36).substring(2, 9);
