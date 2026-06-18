@@ -1013,28 +1013,27 @@ function DashboardPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {profile?.is_frozen && (
+        {profile?.is_suspended && (
           <div className="mb-8 p-4 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 shadow-lg shadow-destructive/5 backdrop-blur-sm">
             <div className="w-14 h-14 rounded-2xl bg-destructive/20 flex items-center justify-center text-destructive shrink-0 shadow-inner ring-1 ring-destructive/30">
               <ShieldAlert className="w-8 h-8" />
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-sm font-bold text-destructive uppercase tracking-widest leading-none mb-1">
-                Emergency Freeze Active
+                Account Suspended
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
-                For your protection, all financial outbound actions are restricted. This state is
-                usually triggered by an emergency security request. Verify your identity with
-                support to restore access.
+                Your account is currently locked. Reason: {profile.suspended_reason || "Security concerns"}.
+                You can self-restore your account in settings via email verification.
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
               className="border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl h-10 px-6 font-bold uppercase tracking-wider text-[10px] transition-all active:scale-95"
-              onClick={() => navigate({ to: "/help" })}
+              onClick={() => navigate({ to: "/settings" })}
             >
-              Contact Security
+              Go to Settings
             </Button>
           </div>
         )}

@@ -19,4 +19,8 @@ export type Profile = {
   biometric_enabled?: boolean;
   theme?: string;
   primary_currency?: string;
+  is_suspended?: boolean;
+  suspended_at?: string;
+  suspended_reason?: string;
+  cooling_off_until?: string;
 } | null;
