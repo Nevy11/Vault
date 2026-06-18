@@ -29,19 +29,9 @@ BEGIN
         );
     END IF;
 
-    -- NOTE: The actual HTTP call should be configured as a Webhook in the Supabase Dashboard
+    -- Note: The actual HTTP call should be configured as a Webhook in the Supabase Dashboard
     -- for better security and management. This function structure prepares the payload.
-    -- To enable direct SQL-based triggers, uncomment the PERFORM block below 
-    -- and ensure the service role key is provided.
-    /*
-    PERFORM extensions.http_post(
-        v_url,
-        v_payload::text,
-        'application/json',
-        jsonb_build_object('Authorization', 'Bearer ' || 'YOUR_SERVICE_ROLE_KEY')::text
-    );
-    */
-
+    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

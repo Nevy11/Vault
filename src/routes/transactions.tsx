@@ -2398,23 +2398,23 @@ function TransactionHistory() {
     };
 
     if (t_data.type === "transfer") {
+      const isVaultTransfer = t_data.method === "vault" || (t_data.description || "").includes("Vault Transfer Ref:");
+      
       if (isSender) {
         const logo = getMethodLogo(t_data.method || "", t_data.description || "");
         const useLogo = Boolean(logo);
 
-        let titleText = t_data.description;
+        let titleText = isVaultTransfer ? "P2P Transfer" : t_data.description;
         if (!titleText) {
           const receiverTag = t_data.receiver?.kyc_tag
             ? `@${t_data.receiver.kyc_tag}`
             : t_data.receiver?.first_name || t("common.user");
-
-          // Fallback titleText if description is missing
-          const categoryPart = t_data.category || "Transfer";
-          titleText = `${categoryPart} | Sent to ${receiverTag}`;
+          titleText = t_data.category ? `${t_data.category} | Sent to ${receiverTag}` : `Sent to ${receiverTag}`;
         }
 
         return {
           title: titleText,
+          subtitle: t_data.description, // Store the reference in subtitle/description area
           amount: `-${symbol}${t_data.amount.toLocaleString()}`,
           positive: false,
           icon: useLogo ? null : t_data.receiver?.first_name?.[0] || "V",
@@ -2425,7 +2425,7 @@ function TransactionHistory() {
           categoryColorClass,
         };
       } else {
-        let titleText = t_data.description;
+        let titleText = isVaultTransfer ? "P2P Transfer" : t_data.description;
 
         if (!titleText) {
           const senderName = t_data.sender?.kyc_tag
@@ -2436,6 +2436,7 @@ function TransactionHistory() {
 
         return {
           title: titleText,
+          subtitle: t_data.description,
           amount: `+${symbol}${t_data.amount.toLocaleString()}`,
           positive: true,
           icon: t_data.sender?.first_name?.[0] || "V",
@@ -2590,38 +2591,30 @@ function TransactionHistory() {
                     className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div
-                        className={cn(
-                          "w-12 h-12 shrink-0 rounded-lg flex items-center justify-center border",
-                          details.categoryColorClass,
-                        )}
-                      >
-                        {details.CategoryIcon ? (
-                          <details.CategoryIcon className="w-6 h-6" />
-                        ) : (
-                          <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
-                            {typeLabel}
-                          </span>
-                        )}
+                      <div className="relative shrink-0">
+                        <Avatar className="w-12 h-12 rounded-lg border border-border/40 shadow-sm">
+                          <AvatarImage 
+                            src={details.logo || details.avatarUrl || undefined} 
+                            className="object-cover"
+                          />
+                          <AvatarFallback className={cn("rounded-lg text-sm font-bold uppercase", details.color)}>
+                            {details.icon || typeLabel[0]}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                           {details.title}
                         </div>
+                        {(details as any).subtitle && (
+                          <div className="text-[10px] text-primary/80 font-mono truncate">
+                            {(details as any).subtitle}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] text-muted-foreground/60">
                             {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
                           </span>
-                          {t_item.category && (
-                            <span
-                              className={cn(
-                                "px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border",
-                                details.categoryColorClass,
-                              )}
-                            >
-                              {t_item.category}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>

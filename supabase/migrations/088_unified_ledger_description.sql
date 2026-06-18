@@ -114,7 +114,6 @@ BEGIN
     
     -- CONSTRUCT DESCRIPTION AS REQUESTED
     -- Example: "Vault Transfer Ref: VT-18C43C9A (FX: 1.000000 KES)"
-    -- We use the recipient's currency for the FX label to show what the sender's 1 unit converts to.
     v_description := 'Vault Transfer Ref: ' || v_reference || ' (FX: ' || TO_CHAR(v_exchange_rate, 'FM999999.999999') || ' ' || v_recipient_currency || ')';
     
     -- Append note if provided

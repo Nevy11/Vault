@@ -888,8 +888,38 @@ function DashboardPage() {
       : profile?.email?.split("@")[0] || t("common.vault_user");
     const symbol = currency === "USD" ? "$" : currency + " ";
 
+    const categoryIcons: Record<string, any> = {
+      dining: Utensils,
+      shopping: ShoppingBag,
+      transport: Smartphone,
+      utilities: Zap,
+      entertainment: Tv,
+      healthcare: HeartPulse,
+      groceries: ShoppingCart,
+      personal: User,
+      income: ArrowDownLeft,
+      transfer: ArrowRight,
+    };
+
+    const categoryColors: Record<string, string> = {
+      dining: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+      shopping: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+      transport: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      utilities: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      entertainment: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      healthcare: "bg-red-500/10 text-red-500 border-red-500/20",
+      groceries: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      income: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    };
+
+    const txCategory = (tx.category || "").toLowerCase();
+    const CategoryIcon = categoryIcons[txCategory] || null;
+    const categoryColorClass =
+      categoryColors[txCategory] || "bg-primary/10 text-primary border-primary/20";
+
     // Method-specific logo helper - enhanced with all banks
     const getMethodLogo = (method: string, description: string) => {
+
       const desc = (description || "").toLowerCase();
       const meth = (method || "").toLowerCase();
 
@@ -941,8 +971,9 @@ function DashboardPage() {
         const desc = (tx.description || "").toLowerCase();
         const logo = getMethodLogo(tx.method || "", tx.description || "");
         const hasMobileOrBank = logo && desc.includes("transfer to");
+        const isVaultTransfer = tx.method === "vault" || (tx.description || "").includes("Vault Transfer Ref:");
 
-        let titleText = tx.description;
+        let titleText = isVaultTransfer ? "P2P Transfer" : tx.description;
         if (!titleText) {
           const receiverName = tx.receiver?.first_name || t("common.user");
           titleText = t("transactions.history.transfer_to", { receiverName });
@@ -950,22 +981,32 @@ function DashboardPage() {
 
         return {
           title: titleText,
+          subtitle: tx.description,
           amount: `-${symbol}${tx.amount.toLocaleString()}`,
           positive: false,
           icon: hasMobileOrBank ? null : tx.receiver?.first_name?.[0] || "T",
           logo: hasMobileOrBank ? logo : tx.receiver?.profile_photo_url || null,
+          avatarUrl: tx.receiver?.profile_photo_url || null,
           color: "bg-primary/20 text-primary",
+          CategoryIcon,
+          categoryColorClass,
         };
       } else {
         const senderName = tx.sender?.first_name || t("common.user");
-        const titleText = tx.description || t("transactions.history.received_from", { senderName });
+        const isVaultTransfer = tx.method === "vault" || (tx.description || "").includes("Vault Transfer Ref:");
+        const titleText = isVaultTransfer ? "P2P Transfer" : (tx.description || t("transactions.history.received_from", { senderName }));
+        
         return {
           title: titleText,
+          subtitle: tx.description,
           amount: `+${symbol}${tx.amount.toLocaleString()}`,
           positive: true,
           icon: tx.sender?.first_name?.[0] || "R",
           logo: tx.sender?.profile_photo_url || null,
+          avatarUrl: tx.sender?.profile_photo_url || null,
           color: "bg-emerald-500/20 text-emerald-500",
+          CategoryIcon,
+          categoryColorClass,
         };
       }
     } else if (tx.type === "deposit") {
@@ -977,6 +1018,8 @@ function DashboardPage() {
         icon: logo ? null : "D",
         logo: logo,
         color: "bg-emerald-500/20 text-emerald-500",
+        CategoryIcon,
+        categoryColorClass,
       };
     } else if (tx.type === "withdrawal") {
       const logo = getMethodLogo(tx.method, tx.description);
@@ -987,6 +1030,8 @@ function DashboardPage() {
         icon: logo ? null : "W",
         logo: logo,
         color: "bg-destructive/20 text-destructive",
+        CategoryIcon,
+        categoryColorClass,
       };
     }
     return {
@@ -996,6 +1041,8 @@ function DashboardPage() {
       icon: "?",
       logo: null,
       color: "bg-secondary text-secondary-foreground",
+      CategoryIcon,
+      categoryColorClass,
     };
   };
 
@@ -1297,22 +1344,27 @@ function DashboardPage() {
                 return (
                   <li
                     key={tx.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3 group"
                   >
                     <div className="flex items-center gap-4">
-                      <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                        {typeLabel}
-                      </span>
-                      <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage
-                          src={details.logo || (details as any).avatarUrl || undefined}
-                        />
-                        <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
-                          {details.icon}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative shrink-0">
+                        <Avatar className="w-10 h-10 border border-border/40 shadow-sm rounded-xl">
+                          <AvatarImage
+                            src={details.logo || (details as any).avatarUrl || undefined}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className={cn("text-xs font-bold rounded-xl", details.color)}>
+                            {details.icon}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                       <div className="min-w-0">
-                        <div className="text-sm truncate">{details.title}</div>
+                        <div className="text-sm truncate font-medium">{details.title}</div>
+                        {(details as any).subtitle && (
+                          <div className="text-[10px] text-primary/80 font-mono truncate">
+                            {(details as any).subtitle}
+                          </div>
+                        )}
                         <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
                           {format(new Date(tx.created_at), "EEEE, MMM d · h:mm a")}
                         </div>

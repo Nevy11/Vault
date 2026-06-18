@@ -91,7 +91,6 @@ serve(async (req) => {
         </div>
       `;
     } else {
-      // Fallback for generic payload
       subject = `🔔 Verification Alert: ${type || 'Action Required'}`;
       html = `<pre>${JSON.stringify(record, null, 2)}</pre>`;
     }
