@@ -33,6 +33,8 @@ import {
   AlertCircle,
   ArrowUpRight,
   ArrowDownLeft,
+  ShoppingCart,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -177,11 +179,25 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");
+  const [note, setNote] = useState("");
   const [bank, setBank] = useState("");
   const [provider, setProvider] = useState("M-Pesa");
+  const [selectedCategory, setSelectedCategory] = useState("Transfer");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
+
+  const categories = [
+    { id: "Transfer", label: "General Transfer", icon: ArrowRight },
+    { id: "Dining", label: "Dining & Food", icon: Utensils },
+    { id: "Shopping", label: "Shopping", icon: ShoppingBag },
+    { id: "Transport", label: "Transport", icon: Smartphone },
+    { id: "Utilities", label: "Bills & Utilities", icon: Zap },
+    { id: "Groceries", label: "Groceries", icon: ShoppingCart },
+    { id: "Entertainment", label: "Entertainment", icon: Tv },
+    { id: "Healthcare", label: "Medical & Health", icon: HeartPulse },
+    { id: "Personal", label: "Personal Gift", icon: User },
+  ];
 
   // Recipient Lists State
   const [recentRecipients, setRecentRecipients] = useState<Recipient[]>([]);
@@ -424,6 +440,8 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           p_sender_id: user.id,
           p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
+          p_category: selectedCategory,
+          p_note: note.trim() || null,
         });
 
         if (rpcError) {
@@ -754,6 +772,45 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label>Note (Optional context for AI)</Label>
+                <Input
+                  placeholder="e.g. Lunch at KFC, Uber ride"
+                  className="bg-background/40 h-12 border-border/60"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </div>
+
+              {method === "vault" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label>Spending Category</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {categories.slice(0, 9).map((cat) => {
+                      const CatIcon = cat.icon;
+                      const isSelected = selectedCategory === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-xl border transition-all gap-1 group",
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary shadow-sm"
+                              : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40",
+                          )}
+                        >
+                          <CatIcon className={cn("w-4 h-4", isSelected ? "text-primary" : "text-muted-foreground")} />
+                          <span className="text-[8px] font-bold uppercase tracking-tight truncate w-full px-1">
+                            {cat.label.split(" ")[0]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-5 flex flex-col justify-end">
@@ -2161,7 +2218,35 @@ function TransactionHistory() {
       : profile?.email?.split("@")[0] || t("common.vault_user");
     const symbol = currency === "USD" ? "$" : currency + " ";
 
-    // Method-specific logo helper - enhanced with all banks and mobile services
+    const categoryIcons: Record<string, any> = {
+      dining: Utensils,
+      shopping: ShoppingBag,
+      transport: Smartphone,
+      utilities: Zap,
+      entertainment: Tv,
+      healthcare: HeartPulse,
+      groceries: ShoppingCart,
+      personal: User,
+      income: ArrowDownLeft,
+      transfer: ArrowRight,
+    };
+
+    const categoryColors: Record<string, string> = {
+      dining: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+      shopping: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+      transport: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      utilities: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      entertainment: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      healthcare: "bg-red-500/10 text-red-500 border-red-500/20",
+      groceries: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      income: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    };
+
+    const txCategory = (t_data.category || "").toLowerCase();
+    const CategoryIcon = categoryIcons[txCategory] || null;
+    const categoryColorClass = categoryColors[txCategory] || "bg-primary/10 text-primary border-primary/20";
+
+    // Method-specific logo helper
     const getMethodLogo = (method: string, description: string) => {
       const desc = (description || "").toLowerCase();
       const meth = (method || "").toLowerCase();
@@ -2218,6 +2303,8 @@ function TransactionHistory() {
           logo: logo || t_data.receiver?.profile_photo_url,
           avatarUrl: t_data.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
+          CategoryIcon,
+          categoryColorClass,
         };
       } else {
         let senderName = t_data.sender?.kyc_tag
@@ -2234,6 +2321,8 @@ function TransactionHistory() {
           logo: t_data.sender?.profile_photo_url,
           avatarUrl: t_data.sender?.profile_photo_url,
           color: "bg-primary/20 text-primary",
+          CategoryIcon,
+          categoryColorClass,
         };
       }
     } else if (t_data.type === "deposit") {
@@ -2253,6 +2342,8 @@ function TransactionHistory() {
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-primary/20 text-primary",
+        CategoryIcon,
+        categoryColorClass,
       };
     } else if (t_data.type === "withdrawal") {
       const logo = getMethodLogo(t_data.method, t_data.description);
@@ -2271,6 +2362,8 @@ function TransactionHistory() {
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
+        CategoryIcon,
+        categoryColorClass,
       };
     }
     return {
@@ -2281,6 +2374,8 @@ function TransactionHistory() {
       logo: null,
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
+      CategoryIcon,
+      categoryColorClass,
     };
   };
 
@@ -2374,17 +2469,26 @@ function TransactionHistory() {
                     className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-input/40 border border-border/40">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
-                          {typeLabel}
-                        </span>
+                      <div className={cn("w-12 h-12 shrink-0 rounded-lg flex items-center justify-center border", details.categoryColorClass)}>
+                        {details.CategoryIcon ? <details.CategoryIcon className="w-6 h-6" /> : (
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
+                            {typeLabel}
+                          </span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                           {details.title}
                         </div>
-                        <div className="text-[10px] text-muted-foreground/60 mt-1">
-                          {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-muted-foreground/60">
+                            {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
+                          </span>
+                          {t_item.category && (
+                            <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border", details.categoryColorClass)}>
+                              {t_item.category}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
