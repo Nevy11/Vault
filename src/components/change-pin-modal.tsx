@@ -99,7 +99,9 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
       const hashedNew = await hashPin(form.newPin);
 
       // 3. Update the profile securely
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error("No active session.");
 
       const { error: updateError } = await supabase
@@ -129,7 +131,9 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
       <DialogContent className="sm:max-w-[420px] bg-card/95 backdrop-blur-xl border-emerald-500/20 shadow-2xl">
         <DialogHeader>
           <div className="flex justify-center mb-4">
-            <div className={`p-4 rounded-full ${step === 'success' ? 'bg-emerald-500/10' : 'bg-primary/10'}`}>
+            <div
+              className={`p-4 rounded-full ${step === "success" ? "bg-emerald-500/10" : "bg-primary/10"}`}
+            >
               {step === "input" && <Lock className="h-8 w-8 text-primary" />}
               {step === "otp" && <ShieldCheck className="h-8 w-8 text-emerald-500" />}
               {step === "success" && <CheckCircle2 className="h-8 w-8 text-emerald-500" />}
@@ -191,7 +195,11 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
                 disabled={loading || form.newPin.length !== 6}
                 className="w-full h-12 bg-primary text-primary-foreground font-semibold"
               >
-                {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Key className="mr-2 h-4 w-4" />}
+                {loading ? (
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Key className="mr-2 h-4 w-4" />
+                )}
                 Send Verification Code
               </Button>
             </>
@@ -214,7 +222,11 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
                   disabled={loading || form.otp.length !== 6}
                   className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                 >
-                  {loading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : "Verify & Confirm Update"}
+                  {loading ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    "Verify & Confirm Update"
+                  )}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground italic">
                   Didn't receive a code? Check your spam or try again in a few minutes.

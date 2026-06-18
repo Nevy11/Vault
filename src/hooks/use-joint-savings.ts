@@ -104,10 +104,12 @@ export function useJointSavings() {
 
       const { data, error } = await supabase
         .from("pot_members")
-        .select(`
+        .select(
+          `
           *,
           pot:joint_pots(*)
-        `)
+        `,
+        )
         .eq("user_id", user.id)
         .eq("status", "invited");
 
@@ -121,45 +123,48 @@ export function useJointSavings() {
     }
   }, []);
 
-  const fetchPotDetails = useCallback(async (potId: string) => {
-    // Only show loading if we don't have a selected pot yet or it's a new one
-    if (!selectedPot || selectedPot.id !== potId) {
-      setLoading(true);
-    }
+  const fetchPotDetails = useCallback(
+    async (potId: string) => {
+      // Only show loading if we don't have a selected pot yet or it's a new one
+      if (!selectedPot || selectedPot.id !== potId) {
+        setLoading(true);
+      }
 
-    try {
-      const { data: pot, error: potErr } = await supabase
-        .from("joint_pots")
-        .select("*")
-        .eq("id", potId)
-        .single();
+      try {
+        const { data: pot, error: potErr } = await supabase
+          .from("joint_pots")
+          .select("*")
+          .eq("id", potId)
+          .single();
 
-      if (potErr) throw potErr;
-      setSelectedPot(pot);
+        if (potErr) throw potErr;
+        setSelectedPot(pot);
 
-      const [membersRes, contributionsRes, requestsRes] = await Promise.all([
-        supabase.from("pot_members").select("*, profile:profiles(*)").eq("pot_id", potId),
-        supabase
-          .from("pot_contributions")
-          .select("*, profile:profiles(*)")
-          .eq("pot_id", potId)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("pot_withdrawal_requests")
-          .select("*, profile:profiles(*), approvals:pot_withdrawal_approvals(*)")
-          .eq("pot_id", potId)
-          .order("created_at", { ascending: false }),
-      ]);
+        const [membersRes, contributionsRes, requestsRes] = await Promise.all([
+          supabase.from("pot_members").select("*, profile:profiles(*)").eq("pot_id", potId),
+          supabase
+            .from("pot_contributions")
+            .select("*, profile:profiles(*)")
+            .eq("pot_id", potId)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("pot_withdrawal_requests")
+            .select("*, profile:profiles(*), approvals:pot_withdrawal_approvals(*)")
+            .eq("pot_id", potId)
+            .order("created_at", { ascending: false }),
+        ]);
 
-      setMembers(membersRes.data || []);
-      setContributions(contributionsRes.data || []);
-      setRequests(requestsRes.data || []);
-    } catch (err) {
-      console.error("Error fetching pot details:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedPot]);
+        setMembers(membersRes.data || []);
+        setContributions(contributionsRes.data || []);
+        setRequests(requestsRes.data || []);
+      } catch (err) {
+        console.error("Error fetching pot details:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedPot],
+  );
 
   useEffect(() => {
     const init = async () => {
@@ -174,22 +179,14 @@ export function useJointSavings() {
     const channelName = `joint_pots_realtime_${Math.random().toString(36).substring(7)}`;
     const potsChannel = supabase
       .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "joint_pots" },
-        () => {
-          fetchPots();
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "pot_members" },
-        () => {
-          fetchPots();
-          fetchInvites();
-          if (selectedPotId) fetchPotDetails(selectedPotId);
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "joint_pots" }, () => {
+        fetchPots();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pot_members" }, () => {
+        fetchPots();
+        fetchInvites();
+        if (selectedPotId) fetchPotDetails(selectedPotId);
+      })
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "pot_withdrawal_requests" },
@@ -204,13 +201,9 @@ export function useJointSavings() {
           if (selectedPotId) fetchPotDetails(selectedPotId);
         },
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "pot_contributions" },
-        () => {
-          if (selectedPotId) fetchPotDetails(selectedPotId);
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "pot_contributions" }, () => {
+        if (selectedPotId) fetchPotDetails(selectedPotId);
+      })
       .subscribe();
 
     return () => {
@@ -317,7 +310,7 @@ export function useJointSavings() {
       toast.error("Failed to deposit");
     } else {
       toast.success(`Deposited KES ${amount.toLocaleString()}!`);
-      // No manual refetch needed here as Realtime will catch the 'wallets' table change 
+      // No manual refetch needed here as Realtime will catch the 'wallets' table change
       // in useWalletBalance and 'joint_pots' change here.
       fetchPotDetails(potId);
     }

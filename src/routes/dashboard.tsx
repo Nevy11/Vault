@@ -727,21 +727,21 @@ function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [profile] = useProfileSignal();
-  
+
   // Guard against unauthenticated/loading state
   if (!profile) {
     return <div className="p-8 text-center">Loading...</div>;
   }
 
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  
+
   const {
     transactions,
     loading: txLoading,
     error: txError,
     refetch: refetchTransactions,
   } = useTransactions();
-  
+
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(currency);
   const { notifications, markAsRead } = useNotifications();
   const portfolioSummary = usePortfolioSummary(profile?.id);
@@ -957,9 +957,8 @@ function DashboardPage() {
           color: "bg-primary/20 text-primary",
         };
       } else {
-        let senderName = tx.sender?.first_name || t("common.user");
-        const titleText =
-          tx.description || t("transactions.history.received_from", { senderName });
+        const senderName = tx.sender?.first_name || t("common.user");
+        const titleText = tx.description || t("transactions.history.received_from", { senderName });
         return {
           title: titleText,
           amount: `+${symbol}${tx.amount.toLocaleString()}`,
@@ -1305,7 +1304,9 @@ function DashboardPage() {
                         {typeLabel}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.logo || (details as any).avatarUrl || undefined} />
+                        <AvatarImage
+                          src={details.logo || (details as any).avatarUrl || undefined}
+                        />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>

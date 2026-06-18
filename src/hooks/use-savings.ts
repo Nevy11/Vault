@@ -138,10 +138,11 @@ export function useSavings() {
       // 2. Check for Fraud Trigger Response
       if (transaction.status === "pending_verification") {
         toast.error("Verification Required", {
-          description: "Transaction flagged for security. Please complete verification to continue.",
+          description:
+            "Transaction flagged for security. Please complete verification to continue.",
           action: {
             label: "Verify",
-            onClick: () => window.location.href = "/settings/kyc", // Redirect to KYC
+            onClick: () => (window.location.href = "/settings/kyc"), // Redirect to KYC
           },
         });
         return;
@@ -161,9 +162,8 @@ export function useSavings() {
         }
 
         const KES_USD_RATE = 130.0;
-        let amountInWalletCurrency = wallet.currency === "USD" 
-          ? Number((amount / KES_USD_RATE).toFixed(2)) 
-          : amount;
+        const amountInWalletCurrency =
+          wallet.currency === "USD" ? Number((amount / KES_USD_RATE).toFixed(2)) : amount;
 
         if (Number(wallet.balance) < amountInWalletCurrency) {
           toast.error("Insufficient Vault balance");

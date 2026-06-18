@@ -13,16 +13,18 @@ export async function logErrorToSupabase(error: any, context?: any) {
   console.error("Vault Error:", message, context);
 
   // In a real production app, we would send this to Sentry or a custom table
-  // For now, we'll log it to the browser console and could potentially 
+  // For now, we'll log it to the browser console and could potentially
   // call a 'log_error' RPC if one existed.
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (user) {
-      await supabase.rpc('log_security_event', {
+      await supabase.rpc("log_security_event", {
         p_user_id: user.id,
-        p_action: 'SYSTEM_ERROR',
-        p_status: 'error',
-        p_metadata: { message, stack, ...context }
+        p_action: "SYSTEM_ERROR",
+        p_status: "error",
+        p_metadata: { message, stack, ...context },
       });
     }
   } catch (e) {

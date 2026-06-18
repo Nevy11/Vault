@@ -14,16 +14,22 @@ serve(async (req) => {
   }
 
   let stripeKey = Deno.env.get("STRIPE_SECRET_KEY")?.trim();
-  if (!stripeKey || stripeKey === "sk_test_YOUR_KEY_HERE" || stripeKey.includes("y8z9") || stripeKey.length < 20) {
+  if (
+    !stripeKey ||
+    stripeKey === "sk_test_YOUR_KEY_HERE" ||
+    stripeKey.includes("y8z9") ||
+    stripeKey.length < 20
+  ) {
     console.error("CRITICAL: STRIPE_SECRET_KEY is not set or is a placeholder");
     return new Response(
-      JSON.stringify({ 
-        error: "Server configuration error: Valid Stripe secret key missing. Please set STRIPE_SECRET_KEY in Supabase secrets with 'supabase secrets set STRIPE_SECRET_KEY=sk_test_...'" 
-      }), 
+      JSON.stringify({
+        error:
+          "Server configuration error: Valid Stripe secret key missing. Please set STRIPE_SECRET_KEY in Supabase secrets with 'supabase secrets set STRIPE_SECRET_KEY=sk_test_...'",
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
@@ -62,7 +68,7 @@ serve(async (req) => {
         document: {
           require_id_number: true,
           require_matching_selfie: true, // Triggers selfie capture
-          require_live_capture: true,    // Forces liveness detection (prevents photo-of-photo)
+          require_live_capture: true, // Forces liveness detection (prevents photo-of-photo)
           // allow_selfie_capture_method: "auto", // Note: This is usually handled by the SDK
         },
       },

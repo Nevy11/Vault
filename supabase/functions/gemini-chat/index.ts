@@ -37,20 +37,62 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
     // Determine if financial context is needed based on the query
-    const query = ((userInput || "") + " " + (messages?.slice(-3).map((m: any) => m.text).join(" ") || "")).toLowerCase();
-    const financialKeywords = ["balance", "wallet", "money", "cash", "funds", "savings", "goal", "saved", "loan", "debt", "credit", "borrow", "owe", "transaction", "activity", "history", "spent", "ledger", "receipt", "how much", "status", "finance", "pay"];
-    const needsFinancialContext = financialKeywords.some(keyword => query.includes(keyword));
+    const query = (
+      (userInput || "") +
+      " " +
+      (messages
+        ?.slice(-3)
+        .map((m: any) => m.text)
+        .join(" ") || "")
+    ).toLowerCase();
+    const financialKeywords = [
+      "balance",
+      "wallet",
+      "money",
+      "cash",
+      "funds",
+      "savings",
+      "goal",
+      "saved",
+      "loan",
+      "debt",
+      "credit",
+      "borrow",
+      "owe",
+      "transaction",
+      "activity",
+      "history",
+      "spent",
+      "ledger",
+      "receipt",
+      "how much",
+      "status",
+      "finance",
+      "pay",
+    ];
+    const needsFinancialContext = financialKeywords.some((keyword) => query.includes(keyword));
 
     // Fetch user profile and preferences (always needed)
-    const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    const { data: preferences } = await supabase.from("user_preferences").select("language").eq("user_id", user.id).maybeSingle();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    const { data: preferences } = await supabase
+      .from("user_preferences")
+      .select("language")
+      .eq("user_id", user.id)
+      .maybeSingle();
 
     let wallet = null;
     let savingsGoals = [];
@@ -61,13 +103,26 @@ serve(async (req) => {
 
     if (needsFinancialContext) {
       // 1. Fetch wallet balance
-      const { data: walletData } = await supabase.from("wallets").select("id, balance, currency").eq("user_id", user.id).maybeSingle();
+      const { data: walletData } = await supabase
+        .from("wallets")
+        .select("id, balance, currency")
+        .eq("user_id", user.id)
+        .maybeSingle();
       wallet = walletData;
 
       // 2. Fetch active savings goals & ledger
-      const { data: goalsData } = await supabase.from("savings_goals").select("id, title, target_amount, current_amount, deadline_date, status").eq("user_id", user.id).eq("status", "active");
+      const { data: goalsData } = await supabase
+        .from("savings_goals")
+        .select("id, title, target_amount, current_amount, deadline_date, status")
+        .eq("user_id", user.id)
+        .eq("status", "active");
       savingsGoals = goalsData || [];
-      const { data: sLedgerData } = await supabase.from("savings_ledger").select("amount, type, created_at, goal_id").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5);
+      const { data: sLedgerData } = await supabase
+        .from("savings_ledger")
+        .select("amount, type, created_at, goal_id")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
       savingsLedger = sLedgerData || [];
 
       // 3. Fetch active loans
@@ -101,7 +156,10 @@ serve(async (req) => {
           acc[cat] = (acc[cat] || 0) + Number(curr.amount);
           return acc;
         }, {});
-        spendingCategories = Object.entries(aggregates).map(([cat, amt]) => ({ category: cat, total: amt }));
+        spendingCategories = Object.entries(aggregates).map(([cat, amt]) => ({
+          category: cat,
+          total: amt,
+        }));
       }
     }
 
@@ -110,29 +168,68 @@ serve(async (req) => {
     const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "Not requested";
 
     // Format Knowledge Strings
-    const goalsText = savingsGoals && savingsGoals.length > 0
-      ? savingsGoals.map(g => `- Goal: ${g.title} (${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()})`).join("\n")
-      : (needsFinancialContext ? "No active savings goals." : "Not requested");
+    const goalsText =
+      savingsGoals && savingsGoals.length > 0
+        ? savingsGoals
+            .map(
+              (g) =>
+                `- Goal: ${g.title} (${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()})`,
+            )
+            .join("\n")
+        : needsFinancialContext
+          ? "No active savings goals."
+          : "Not requested";
 
-    const loansText = loans && loans.length > 0
-      ? loans.map(l => `- Loan: ${currency} ${l.remaining_balance.toLocaleString()} (Due: ${new Date(l.due_date).toLocaleDateString()}, Rate: ${l.interest_rate}%)`).join("\n")
-      : (needsFinancialContext ? "No active loans." : "Not requested");
+    const loansText =
+      loans && loans.length > 0
+        ? loans
+            .map(
+              (l) =>
+                `- Loan: ${currency} ${l.remaining_balance.toLocaleString()} (Due: ${new Date(l.due_date).toLocaleDateString()}, Rate: ${l.interest_rate}%)`,
+            )
+            .join("\n")
+        : needsFinancialContext
+          ? "No active loans."
+          : "Not requested";
 
-    const spendingText = spendingCategories && spendingCategories.length > 0
-      ? spendingCategories.map(s => `- ${s.category}: ${currency} ${s.total.toLocaleString()}`).join("\n")
-      : (needsFinancialContext ? "No categorized spending in the last 30 days." : "Not requested");
+    const spendingText =
+      spendingCategories && spendingCategories.length > 0
+        ? spendingCategories
+            .map((s) => `- ${s.category}: ${currency} ${s.total.toLocaleString()}`)
+            .join("\n")
+        : needsFinancialContext
+          ? "No categorized spending in the last 30 days."
+          : "Not requested";
 
-    const recentActivity = needsFinancialContext ? [
-      ...(savingsLedger?.map(l => `- Saved: ${currency} ${l.amount.toLocaleString()} (${l.type}) on ${new Date(l.created_at).toLocaleDateString()}`) || []),
-      ...(loansLedger?.map(l => `- Loan Payment: ${currency} ${l.amount.toLocaleString()} (${l.payment_type}) on ${new Date(l.created_at).toLocaleDateString()}`) || [])
-    ].slice(0, 10) : [];
+    const recentActivity = needsFinancialContext
+      ? [
+          ...(savingsLedger?.map(
+            (l) =>
+              `- Saved: ${currency} ${l.amount.toLocaleString()} (${l.type}) on ${new Date(l.created_at).toLocaleDateString()}`,
+          ) || []),
+          ...(loansLedger?.map(
+            (l) =>
+              `- Loan Payment: ${currency} ${l.amount.toLocaleString()} (${l.payment_type}) on ${new Date(l.created_at).toLocaleDateString()}`,
+          ) || []),
+        ].slice(0, 10)
+      : [];
 
     const languageCode = preferences?.language || "en";
-    const languageNames: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili" };
+    const languageNames: Record<string, string> = {
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      it: "Italian",
+      pt: "Portuguese",
+      sw: "Swahili",
+    };
     const targetLanguage = languageNames[languageCode] || "English";
 
     const systemPrompt = `You are the professional Finance Advisor for Vault OS. You are assisting ${firstName}.
-    ${needsFinancialContext ? `
+    ${
+      needsFinancialContext
+        ? `
     - Wallet Balance: ${balance}
     - Spending by Category (Last 30 Days):
     ${spendingText}
@@ -142,7 +239,9 @@ serve(async (req) => {
     ${loansText}
     - Recent Activity:
     ${recentActivity.length > 0 ? recentActivity.join("\n") : "No recent activity."}
-    ` : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."}
+    `
+        : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."
+    }
 
 
 FORMATTING INSTRUCTIONS:
@@ -154,7 +253,9 @@ FORMATTING INSTRUCTIONS:
 
 Your goal is to provide holistic financial advice. Keep responses friendly and actionable.`;
 
-    const validMessages = (messages || []).filter((m: any) => (m.sender === "user" || m.sender === "advisor") && m.text);
+    const validMessages = (messages || []).filter(
+      (m: any) => (m.sender === "user" || m.sender === "advisor") && m.text,
+    );
     const recentMessages = validMessages.slice(-29);
 
     const models = [
@@ -177,43 +278,97 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
       if (modelConfig.provider === "openrouter" && !OPENROUTER_API_KEY) continue;
 
       try {
-        if (modelConfig.provider === "groq" || modelConfig.provider === "openai" || modelConfig.provider === "openrouter") {
+        if (
+          modelConfig.provider === "groq" ||
+          modelConfig.provider === "openai" ||
+          modelConfig.provider === "openrouter"
+        ) {
           let baseUrl = "https://api.openai.com/v1/chat/completions";
           let apiKey = OPENAI_API_KEY;
-          if (modelConfig.provider === "groq") { baseUrl = "https://api.groq.com/openai/v1/chat/completions"; apiKey = GROQ_API_KEY; }
-          else if (modelConfig.provider === "openrouter") { baseUrl = "https://openrouter.ai/api/v1/chat/completions"; apiKey = OPENROUTER_API_KEY; }
+          if (modelConfig.provider === "groq") {
+            baseUrl = "https://api.groq.com/openai/v1/chat/completions";
+            apiKey = GROQ_API_KEY;
+          } else if (modelConfig.provider === "openrouter") {
+            baseUrl = "https://openrouter.ai/api/v1/chat/completions";
+            apiKey = OPENROUTER_API_KEY;
+          }
 
           const res = await fetch(baseUrl, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, "HTTP-Referer": "https://vault-os.vercel.app", "X-Title": "Vault OS" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+              "HTTP-Referer": "https://vault-os.vercel.app",
+              "X-Title": "Vault OS",
+            },
             body: JSON.stringify({
               model: modelConfig.model,
-              messages: [{ role: "system", content: systemPrompt }, ...recentMessages.map((m: any) => ({ role: m.sender === "user" ? "user" : "assistant", content: m.text })), ...(userInput ? [{ role: "user", content: userInput }] : [])],
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...recentMessages.map((m: any) => ({
+                  role: m.sender === "user" ? "user" : "assistant",
+                  content: m.text,
+                })),
+                ...(userInput ? [{ role: "user", content: userInput }] : []),
+              ],
               temperature: 0.7,
             }),
           });
-          if (res.ok) { const data = await res.json(); aiResponse = data.choices[0].message.content; success = true; break; }
-          else { const errorData = await res.json(); lastErrorMessage = errorData?.error?.message || res.statusText; }
+          if (res.ok) {
+            const data = await res.json();
+            aiResponse = data.choices[0].message.content;
+            success = true;
+            break;
+          } else {
+            const errorData = await res.json();
+            lastErrorMessage = errorData?.error?.message || res.statusText;
+          }
         } else if (modelConfig.provider === "gemini") {
           const advisorPersona = `[SYSTEM INSTRUCTION: ${systemPrompt}]\n\n`;
           let contents = [];
           const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
           if (firstUserIndex !== -1) {
-            contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => ({ role: msg.sender === "user" ? "user" : "model", parts: [{ text: idx === 0 ? advisorPersona + msg.text : msg.text }] }));
+            contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => ({
+              role: msg.sender === "user" ? "user" : "model",
+              parts: [{ text: idx === 0 ? advisorPersona + msg.text : msg.text }],
+            }));
           }
           if (userInput) {
-            if (contents.length > 0 && contents[contents.length - 1].role === "user") { contents[contents.length - 1].parts[0].text += `\n${userInput}`; }
-            else { contents.push({ role: "user", parts: [{ text: contents.length === 0 ? advisorPersona + userInput : userInput }] }); }
+            if (contents.length > 0 && contents[contents.length - 1].role === "user") {
+              contents[contents.length - 1].parts[0].text += `\n${userInput}`;
+            } else {
+              contents.push({
+                role: "user",
+                parts: [{ text: contents.length === 0 ? advisorPersona + userInput : userInput }],
+              });
+            }
           }
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents, generationConfig: { temperature: 0.7, maxOutputTokens: 2048 } }),
-          });
-          if (res.ok) { const data = await res.json(); aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text; if (aiResponse) { success = true; break; } }
-          else { const errorData = await res.json(); lastErrorMessage = errorData?.error?.message || res.statusText; }
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents,
+                generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+              }),
+            },
+          );
+          if (res.ok) {
+            const data = await res.json();
+            aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (aiResponse) {
+              success = true;
+              break;
+            }
+          } else {
+            const errorData = await res.json();
+            lastErrorMessage = errorData?.error?.message || res.statusText;
+          }
         }
-      } catch (err: any) { lastErrorMessage = err.message; }
+      } catch (err: any) {
+        lastErrorMessage = err.message;
+      }
     }
 
     if (!success) throw new Error(lastErrorMessage || "All AI models were unavailable.");
@@ -221,13 +376,19 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
     // Final cleanup of any lingering asterisks if the AI ignored instructions
     // This ensures "*" are converted to their "relative meanings" (bullets or emphasis)
     const cleanedResponse = aiResponse
-      .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold stars, keep text
-      .replace(/^\* /gm, '• ')         // Convert list stars to bullet symbols
-      .replace(/\n\* /g, '\n• ')       // Convert list stars after newlines
-      .replace(/(\w)\*(\w)/g, '$1 $2'); // Remove accidental inline stars
+      .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold stars, keep text
+      .replace(/^\* /gm, "• ") // Convert list stars to bullet symbols
+      .replace(/\n\* /g, "\n• ") // Convert list stars after newlines
+      .replace(/(\w)\*(\w)/g, "$1 $2"); // Remove accidental inline stars
 
-    return new Response(JSON.stringify({ text: cleanedResponse }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ text: cleanedResponse }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

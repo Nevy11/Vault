@@ -144,7 +144,11 @@ function LoanAssistant({
 
   const handleNext = () => {
     const value = data[current.id as keyof OnboardingData];
-    if (value === undefined || value === "" || (current.type === "number" && isNaN(Number(value)))) {
+    if (
+      value === undefined ||
+      value === "" ||
+      (current.type === "number" && isNaN(Number(value)))
+    ) {
       toast.error("Please provide a valid answer.");
       return;
     }
@@ -165,15 +169,19 @@ function LoanAssistant({
             <ShieldCheck className="w-6 h-6" />
           </div>
           <h3 className="text-xl font-bold text-slate-950 dark:text-white">Review & Verify</h3>
-          <p className="text-xs text-muted-foreground font-medium">Please confirm your details are accurate for limit expansion.</p>
+          <p className="text-xs text-muted-foreground font-medium">
+            Please confirm your details are accurate for limit expansion.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-900/5 dark:bg-white/5 border border-white/10 shadow-inner">
           {questions.map((q) => (
             <div key={q.id} className="space-y-1">
-              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{q.label}</span>
+              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+                {q.label}
+              </span>
               <p className="text-sm font-bold text-slate-950 dark:text-white truncate">
-                {q.id.includes("income") || q.id.includes("debt") 
+                {q.id.includes("income") || q.id.includes("debt")
                   ? `KES ${data[q.id as keyof OnboardingData]?.toLocaleString()}`
                   : data[q.id as keyof OnboardingData]}
               </p>
@@ -204,8 +212,8 @@ function LoanAssistant({
     <div className="space-y-6 py-2">
       <div className="flex items-center gap-2 mb-2">
         <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-emerald-500 transition-all duration-500" 
+          <div
+            className="h-full bg-emerald-500 transition-all duration-500"
             style={{ width: `${((step + 1) / questions.length) * 100}%` }}
           />
         </div>
@@ -219,9 +227,7 @@ function LoanAssistant({
           <h3 className="text-lg font-bold text-slate-950 dark:text-white leading-tight">
             {current.label}
           </h3>
-          <p className="text-xs text-muted-foreground font-medium">
-            {current.description}
-          </p>
+          <p className="text-xs text-muted-foreground font-medium">{current.description}</p>
         </div>
 
         {current.type === "select" ? (
@@ -232,16 +238,18 @@ function LoanAssistant({
                 variant={data[current.id as keyof OnboardingData] === opt ? "default" : "outline"}
                 className={cn(
                   "h-12 rounded-xl text-xs font-bold transition-all border-white/10",
-                  data[current.id as keyof OnboardingData] === opt 
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md scale-[1.02]" 
-                    : "hover:bg-emerald-500/5 hover:border-emerald-500/30"
+                  data[current.id as keyof OnboardingData] === opt
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md scale-[1.02]"
+                    : "hover:bg-emerald-500/5 hover:border-emerald-500/30",
                 )}
                 onClick={() => {
-                  setData(prev => ({ ...prev, [current.id]: opt }));
+                  setData((prev) => ({ ...prev, [current.id]: opt }));
                 }}
               >
                 {opt}
-                {data[current.id as keyof OnboardingData] === opt && <Check className="ml-2 w-4 h-4" />}
+                {data[current.id as keyof OnboardingData] === opt && (
+                  <Check className="ml-2 w-4 h-4" />
+                )}
               </Button>
             ))}
           </div>
@@ -250,7 +258,13 @@ function LoanAssistant({
             <Input
               type={current.type}
               value={data[current.id as keyof OnboardingData] || ""}
-              onChange={(e) => setData(prev => ({ ...prev, [current.id]: current.type === "number" ? parseFloat(e.target.value) : e.target.value }))}
+              onChange={(e) =>
+                setData((prev) => ({
+                  ...prev,
+                  [current.id]:
+                    current.type === "number" ? parseFloat(e.target.value) : e.target.value,
+                }))
+              }
               placeholder={current.type === "number" ? "0.00" : "Enter details..."}
               className="h-14 text-xl font-bold rounded-2xl bg-white/40 dark:bg-slate-900/40 border-white/10 focus:ring-emerald-500/20"
               autoFocus
@@ -282,7 +296,7 @@ function LoanAssistant({
           <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
         </Button>
       </div>
-      
+
       <p className="text-[9px] text-center text-muted-foreground flex items-center justify-center gap-1.5 opacity-60">
         <Lock className="w-2.5 h-2.5" /> Data is used strictly for credit risk assessment.
       </p>
@@ -297,7 +311,13 @@ function LoansPage() {
   // Define membershipMonths for use in the UI and eligibility checks
   const membershipMonths = useMemo(() => {
     if (!profile?.created_at) return 0;
-    return Math.max(0, Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30)));
+    return Math.max(
+      0,
+      Math.floor(
+        (new Date().getTime() - new Date(profile.created_at).getTime()) /
+          (1000 * 60 * 60 * 24 * 30),
+      ),
+    );
   }, [profile?.created_at]);
 
   const [activeLoan, setActiveLoan] = useState<any>(null);
@@ -370,13 +390,15 @@ function LoansPage() {
       const isProfileComplete = !!(
         profile?.id_number &&
         profile?.employment_status &&
-        profile?.monthly_income !== undefined && profile?.monthly_income !== null &&
-        profile?.financial_dependents !== undefined && profile?.financial_dependents !== null &&
-        profile?.monthly_debt !== undefined && profile?.monthly_debt !== null &&
+        profile?.monthly_income !== undefined &&
+        profile?.monthly_income !== null &&
+        profile?.financial_dependents !== undefined &&
+        profile?.financial_dependents !== null &&
+        profile?.monthly_debt !== undefined &&
+        profile?.monthly_debt !== null &&
         profile?.primary_loan_use
       );
       setShowOnboarding(!isProfileComplete);
-
     } catch (error: any) {
       console.error("Error fetching loan data:", error.message);
     } finally {
@@ -409,10 +431,7 @@ function LoansPage() {
 
   const handleOnboardingComplete = async (onboardingData: OnboardingData) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update(onboardingData)
-        .eq("id", profile.id);
+      const { error } = await supabase.from("profiles").update(onboardingData).eq("id", profile.id);
 
       if (error) throw error;
       toast.success("Profile updated! Assessment logic is now active.");
@@ -428,8 +447,11 @@ function LoansPage() {
     if (!profile?.id) return;
 
     // 1. Check Membership Age (Tenure)
-    const membershipMonths = profile?.created_at 
-      ? Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30))
+    const membershipMonths = profile?.created_at
+      ? Math.floor(
+          (new Date().getTime() - new Date(profile.created_at).getTime()) /
+            (1000 * 60 * 60 * 24 * 30),
+        )
       : 0;
 
     if (membershipMonths < 9) {
@@ -442,16 +464,19 @@ function LoansPage() {
 
     // 2. Check Assessment / Transaction History
     if (assessment?.status === "rejected") {
-      toast.error("Limit Exceeded", { 
-        description: assessment.message || "Your transaction history is currently insufficient for this loan amount.",
+      toast.error("Limit Exceeded", {
+        description:
+          assessment.message ||
+          "Your transaction history is currently insufficient for this loan amount.",
         className: "bg-destructive/10 border-destructive/20",
       });
       return;
     }
 
     if (!assessment || assessment.calculated_limit <= 0) {
-      toast.error("Insufficient History", { 
-        description: "Your transaction volume is currently too low to unlock a credit limit. Increase your deposits to grow your limit.",
+      toast.error("Insufficient History", {
+        description:
+          "Your transaction volume is currently too low to unlock a credit limit. Increase your deposits to grow your limit.",
         className: "bg-destructive/10 border-destructive/20",
       });
       return;
@@ -489,7 +514,7 @@ function LoansPage() {
       // We need an RPC to actually apply the extension (update loan period and balance)
       // I will create this RPC next, but for now let's use the assessment data.
       const newDueDate = addMonths(new Date(activeLoan.due_date), 1);
-      
+
       const { error } = await supabase
         .from("loans")
         .update({
@@ -640,17 +665,16 @@ function LoansPage() {
                       <div className="p-4 border-b border-white/10 bg-emerald-500/5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <UserCheck className="w-4 h-4 text-emerald-600" />
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">Demographics Verification</h3>
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">
+                            Demographics Verification
+                          </h3>
                         </div>
                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[8px] font-bold">
                           <ShieldCheck className="w-2.5 h-2.5" /> VERIFIED DATA
                         </div>
                       </div>
                       <div className="p-8">
-                        <LoanAssistant 
-                          onComplete={handleOnboardingComplete}
-                          profile={profile}
-                        />
+                        <LoanAssistant onComplete={handleOnboardingComplete} profile={profile} />
                       </div>
                     </Card>
                   ) : (
@@ -660,11 +684,13 @@ function LoansPage() {
                         <div className="px-4 py-3 border-b border-emerald-500/10 flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700">Verified Profile</h3>
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+                              Verified Profile
+                            </h3>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-7 px-2.5 rounded-lg text-[10px] font-bold text-emerald-600 hover:bg-emerald-500/10"
                             onClick={() => setShowOnboarding(true)}
                           >
@@ -673,24 +699,44 @@ function LoansPage() {
                         </div>
                         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                           <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Employment</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white truncate">{profile?.employment_status}</p>
+                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">
+                              Employment
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-950 dark:text-white truncate">
+                              {profile?.employment_status}
+                            </p>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Income</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white tabular-nums">KES {profile?.monthly_income?.toLocaleString()}</p>
+                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">
+                              Income
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-950 dark:text-white tabular-nums">
+                              KES {profile?.monthly_income?.toLocaleString()}
+                            </p>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Dependents</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white">{profile?.financial_dependents}</p>
+                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">
+                              Dependents
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-950 dark:text-white">
+                              {profile?.financial_dependents}
+                            </p>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Debt</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white tabular-nums">KES {profile?.monthly_debt?.toLocaleString()}</p>
+                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">
+                              Debt
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-950 dark:text-white tabular-nums">
+                              KES {profile?.monthly_debt?.toLocaleString()}
+                            </p>
                           </div>
                           <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Primary Use</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white truncate">{profile?.primary_loan_use}</p>
+                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">
+                              Primary Use
+                            </span>
+                            <p className="text-[11px] font-bold text-slate-950 dark:text-white truncate">
+                              {profile?.primary_loan_use}
+                            </p>
                           </div>
                         </div>
                       </Card>
@@ -701,16 +747,19 @@ function LoansPage() {
                             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 border border-primary/20">
                               <Lock className="w-6 h-6" />
                             </div>
-                            <h3 className="text-sm font-bold text-slate-950 dark:text-white mb-1 uppercase tracking-tight">Loan Requests Locked</h3>
+                            <h3 className="text-sm font-bold text-slate-950 dark:text-white mb-1 uppercase tracking-tight">
+                              Loan Requests Locked
+                            </h3>
                             <p className="text-[10px] text-muted-foreground font-medium max-w-[200px] mb-4">
-                              Please complete your demographic verification first to unlock borrowing power.
+                              Please complete your demographic verification first to unlock
+                              borrowing power.
                             </p>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               className="h-8 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 shadow-md"
                               onClick={() => {
-                                const el = document.getElementById('demographics-form');
-                                el?.scrollIntoView({ behavior: 'smooth' });
+                                const el = document.getElementById("demographics-form");
+                                el?.scrollIntoView({ behavior: "smooth" });
                               }}
                             >
                               Verify Demographics
@@ -737,13 +786,15 @@ function LoansPage() {
                             </div>
                             <div className="flex justify-between items-center px-0.5">
                               <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">
-                                Limit Level: KES {(assessment?.calculated_limit || 0).toLocaleString()}
+                                Limit Level: KES{" "}
+                                {(assessment?.calculated_limit || 0).toLocaleString()}
                               </span>
-                              {assessment?.status === "rejected" && assessment?.calculated_limit > 0 && (
-                                <span className="text-[8px] text-destructive font-semibold flex items-center gap-1">
-                                  <AlertCircle className="w-2 h-2" /> LIMIT EXCEEDED
-                                </span>
-                              )}
+                              {assessment?.status === "rejected" &&
+                                assessment?.calculated_limit > 0 && (
+                                  <span className="text-[8px] text-destructive font-semibold flex items-center gap-1">
+                                    <AlertCircle className="w-2 h-2" /> LIMIT EXCEEDED
+                                  </span>
+                                )}
                             </div>
                           </div>
 
@@ -757,12 +808,24 @@ function LoansPage() {
                                   <SelectValue placeholder={t("loans.request.period")} />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl shadow-xl">
-                                  <SelectItem value="1" className="font-medium text-[11px]">1 Month (3%)</SelectItem>
-                                  <SelectItem value="3" className="font-medium text-[11px]">3 Months (4%)</SelectItem>
-                                  <SelectItem value="5" className="font-medium text-[11px]">5 Months (5%)</SelectItem>
-                                  <SelectItem value="7" className="font-medium text-[11px]">7 Months (6%)</SelectItem>
-                                  <SelectItem value="9" className="font-medium text-[11px]">9 Months (7%)</SelectItem>
-                                  <SelectItem value="12" className="font-medium text-[11px]">12 Months (9%)</SelectItem>
+                                  <SelectItem value="1" className="font-medium text-[11px]">
+                                    1 Month (3%)
+                                  </SelectItem>
+                                  <SelectItem value="3" className="font-medium text-[11px]">
+                                    3 Months (4%)
+                                  </SelectItem>
+                                  <SelectItem value="5" className="font-medium text-[11px]">
+                                    5 Months (5%)
+                                  </SelectItem>
+                                  <SelectItem value="7" className="font-medium text-[11px]">
+                                    7 Months (6%)
+                                  </SelectItem>
+                                  <SelectItem value="9" className="font-medium text-[11px]">
+                                    9 Months (7%)
+                                  </SelectItem>
+                                  <SelectItem value="12" className="font-medium text-[11px]">
+                                    12 Months (9%)
+                                  </SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -817,7 +880,9 @@ function LoansPage() {
                               type="submit"
                               size="sm"
                               disabled={
-                                assessment?.status === "rejected" || parseFloat(loanAmount) <= 0 || !!activeLoan
+                                assessment?.status === "rejected" ||
+                                parseFloat(loanAmount) <= 0 ||
+                                !!activeLoan
                               }
                               className="w-full h-10 rounded-xl text-xs font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-[0.98]"
                             >
@@ -854,26 +919,57 @@ function LoansPage() {
                     <CardContent className="space-y-4 p-4 pt-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", !showOnboarding ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">Demographics</span>
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              !showOnboarding ? "bg-emerald-500" : "bg-muted",
+                            )}
+                          />
+                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">
+                            Demographics
+                          </span>
                         </div>
-                        <span className={cn("text-[11px] font-bold", !showOnboarding ? "text-emerald-600" : "text-muted-foreground")}>
+                        <span
+                          className={cn(
+                            "text-[11px] font-bold",
+                            !showOnboarding ? "text-emerald-600" : "text-muted-foreground",
+                          )}
+                        >
                           {!showOnboarding ? "VERIFIED" : "PENDING"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", membershipMonths >= 9 ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">9-Month Membership</span>
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              membershipMonths >= 9 ? "bg-emerald-500" : "bg-muted",
+                            )}
+                          />
+                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">
+                            9-Month Membership
+                          </span>
                         </div>
-                        <span className={cn("text-[11px] font-bold", membershipMonths >= 9 ? "text-emerald-600" : "text-muted-foreground")}>
+                        <span
+                          className={cn(
+                            "text-[11px] font-bold",
+                            membershipMonths >= 9 ? "text-emerald-600" : "text-muted-foreground",
+                          )}
+                        >
                           {membershipMonths >= 9 ? "VERIFIED" : "PENDING"}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", (assessment?.calculated_limit > 0) ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">30% Volume Limit</span>
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              assessment?.calculated_limit > 0 ? "bg-emerald-500" : "bg-muted",
+                            )}
+                          />
+                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">
+                            30% Volume Limit
+                          </span>
                         </div>
                         <span className="text-[11px] font-bold text-emerald-600 tabular-nums">
                           KES {(assessment?.calculated_limit || 0).toLocaleString()}
@@ -889,9 +985,9 @@ function LoansPage() {
                       <div className="flex items-center gap-1.5 text-[8px] text-emerald-600 font-bold uppercase tracking-wider">
                         <ShieldCheck className="w-3 h-3" /> SECURE LEDGER
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="w-6 h-6 rounded-full hover:bg-emerald-500/10 text-emerald-600"
                         onClick={() => window.location.reload()}
                       >
@@ -911,7 +1007,8 @@ function LoansPage() {
                       Limit Expansion Tip
                     </h4>
                     <p className="text-[10px] text-muted-foreground font-medium leading-tight relative z-10">
-                      Increase your monthly transaction volume to unlock up to 30% borrowing power based on your history.
+                      Increase your monthly transaction volume to unlock up to 30% borrowing power
+                      based on your history.
                     </p>
                   </div>
                 </div>
@@ -987,14 +1084,14 @@ function LoansPage() {
                             {t("loans.tracker.progress")}
                           </span>
                           <span className="text-emerald-600">
-                            {Math.round((
+                            {Math.round(
                               ((parseFloat(activeLoan.amount) *
                                 (1 + activeLoan.interest_rate / 100) -
                                 parseFloat(activeLoan.remaining_balance)) /
                                 (parseFloat(activeLoan.amount) *
                                   (1 + activeLoan.interest_rate / 100))) *
-                              100
-                            ))}
+                                100,
+                            )}
                             %
                           </span>
                         </div>
@@ -1087,7 +1184,9 @@ function LoansPage() {
                           Trust Score
                         </h4>
                         <p className="text-base font-bold text-slate-950 dark:text-white leading-none">
-                          {(loanHistory.filter(l => l.status === 'paid').length * 150 + 400).toString().slice(0,3)}
+                          {(loanHistory.filter((l) => l.status === "paid").length * 150 + 400)
+                            .toString()
+                            .slice(0, 3)}
                           <span className="text-[8px] text-emerald-500 font-bold ml-1 uppercase">
                             ELITE
                           </span>
@@ -1324,7 +1423,8 @@ function LoansPage() {
                   {t("loans.repayment_modal.total_outstanding")}
                 </span>
                 <p className="text-xl font-bold text-slate-950 dark:text-white tabular-nums">
-                  KES {activeLoan ? parseFloat(activeLoan.remaining_balance).toLocaleString() : "0.00"}
+                  KES{" "}
+                  {activeLoan ? parseFloat(activeLoan.remaining_balance).toLocaleString() : "0.00"}
                 </p>
               </div>
 
@@ -1355,15 +1455,33 @@ function LoansPage() {
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
                       <Building2 className="w-2.5 h-2.5" /> {t("loans.categories.banks")}
                     </div>
-                    <SelectItem value="kcb" className="font-medium text-xs">KCB Group</SelectItem>
-                    <SelectItem value="equity" className="font-medium text-xs">Equity Bank</SelectItem>
-                    <SelectItem value="ncba" className="font-medium text-xs">NCBA Bank</SelectItem>
-                    <SelectItem value="absa" className="font-medium text-xs">Absa Kenya</SelectItem>
-                    <SelectItem value="coop" className="font-medium text-xs">Co-operative Bank</SelectItem>
-                    <SelectItem value="stanbic" className="font-medium text-xs">Stanbic Bank</SelectItem>
-                    <SelectItem value="im" className="font-medium text-xs">I&M Bank</SelectItem>
-                    <SelectItem value="dtb" className="font-medium text-xs">Diamond Trust Bank</SelectItem>
-                    <SelectItem value="family" className="font-medium text-xs">Family Bank Kenya</SelectItem>
+                    <SelectItem value="kcb" className="font-medium text-xs">
+                      KCB Group
+                    </SelectItem>
+                    <SelectItem value="equity" className="font-medium text-xs">
+                      Equity Bank
+                    </SelectItem>
+                    <SelectItem value="ncba" className="font-medium text-xs">
+                      NCBA Bank
+                    </SelectItem>
+                    <SelectItem value="absa" className="font-medium text-xs">
+                      Absa Kenya
+                    </SelectItem>
+                    <SelectItem value="coop" className="font-medium text-xs">
+                      Co-operative Bank
+                    </SelectItem>
+                    <SelectItem value="stanbic" className="font-medium text-xs">
+                      Stanbic Bank
+                    </SelectItem>
+                    <SelectItem value="im" className="font-medium text-xs">
+                      I&M Bank
+                    </SelectItem>
+                    <SelectItem value="dtb" className="font-medium text-xs">
+                      Diamond Trust Bank
+                    </SelectItem>
+                    <SelectItem value="family" className="font-medium text-xs">
+                      Family Bank Kenya
+                    </SelectItem>
                     <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
                       <Wallet className="w-2.5 h-2.5" /> {t("loans.categories.vault")}
                     </div>
@@ -1485,13 +1603,16 @@ function LoansPage() {
                 <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
                   <div className="flex items-center gap-2 mb-1">
                     <Calendar className="w-3 h-3 text-emerald-600" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">New Deadline</span>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">
+                      New Deadline
+                    </span>
                   </div>
                   <p className="text-xs font-bold text-slate-950 dark:text-white">
                     {format(addMonths(new Date(activeLoan.due_date), 1), "MMMM d, yyyy")}
                   </p>
                   <p className="mt-1 text-[8px] text-muted-foreground leading-tight">
-                    Every extension adds a 1% penalty (max 3%). Your credit score will remain unaffected if extended before the deadline.
+                    Every extension adds a 1% penalty (max 3%). Your credit score will remain
+                    unaffected if extended before the deadline.
                   </p>
                 </div>
               </div>
@@ -1508,7 +1629,7 @@ function LoansPage() {
               <Button
                 className="flex-1 h-10 rounded-lg font-bold text-xs shadow-md bg-emerald-600 hover:bg-emerald-700"
                 onClick={handleRequestExtension}
-                disabled={extensionAssessment?.status === 'error'}
+                disabled={extensionAssessment?.status === "error"}
               >
                 Confirm Extension
               </Button>

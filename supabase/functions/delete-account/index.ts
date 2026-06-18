@@ -2,13 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
@@ -18,19 +18,22 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization")!;
-    
+
     // Check if it's a service role call
     const isServiceRole = authHeader === `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
-    
+
     let targetUserId: string;
 
     if (isServiceRole) {
       const { userId } = await req.json();
       if (!userId) {
-        return new Response(JSON.stringify({ error: "userId is required for service role calls" }), { 
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+        return new Response(
+          JSON.stringify({ error: "userId is required for service role calls" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
       targetUserId = userId;
     } else {
@@ -41,9 +44,9 @@ serve(async (req) => {
       } = await supabaseClient.auth.getUser(token);
 
       if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), { 
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       targetUserId = user.id;
@@ -58,19 +61,19 @@ serve(async (req) => {
 
     // If there was a deletion request, mark it as completed
     await supabaseClient
-      .from('account_deletion_requests')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
-      .eq('user_id', targetUserId)
-      .eq('status', 'scheduled');
+      .from("account_deletion_requests")
+      .update({ status: "completed", updated_at: new Date().toISOString() })
+      .eq("user_id", targetUserId)
+      .eq("status", "scheduled");
 
     return new Response(JSON.stringify({ message: "Account deleted successfully" }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message }), { 
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

@@ -128,14 +128,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .from("user_devices")
         .select("*")
         .eq("user_id", profile.id);
-      
+
       if (error) return;
 
       // Filter in JS
-      const currentDevice = data?.find(d => 
-        (d.mac_address && d.mac_address === mac) || (d.device_name === getDeviceName())
+      const currentDevice = data?.find(
+        (d) => (d.mac_address && d.mac_address === mac) || d.device_name === getDeviceName(),
       );
-      
+
       if (currentDevice && !currentDevice.is_active) {
         handleSignOut("Your access was revoked.");
       }
@@ -157,7 +157,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (payload.new && payload.new.mac_address === mac && !payload.new.is_active) {
             handleSignOut("This device has been revoked by another session.");
           }
-        }
+        },
       )
       .subscribe();
 

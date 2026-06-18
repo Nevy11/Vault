@@ -374,7 +374,9 @@ export function JointSavingsContent() {
                           {invite.pot?.title}
                         </CardTitle>
                         <p className="text-xs text-muted-foreground leading-relaxed italic">
-                          "{invite.pot?.description || "A collective journey towards a shared goal."}"
+                          "
+                          {invite.pot?.description || "A collective journey towards a shared goal."}
+                          "
                         </p>
                         <div className="flex items-center gap-2 py-2 border-y border-indigo-500/10">
                           <Target className="w-4 h-4 text-indigo-600" />
@@ -702,9 +704,12 @@ export function JointSavingsContent() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">
-                                {contribution.type === "deposit" ? "Deposit from " : "Withdrawal by "}
+                                {contribution.type === "deposit"
+                                  ? "Deposit from "
+                                  : "Withdrawal by "}
                                 <span className="text-primary">
-                                  {contribution.profile?.first_name} {contribution.profile?.last_name}
+                                  {contribution.profile?.first_name}{" "}
+                                  {contribution.profile?.last_name}
                                 </span>
                               </p>
                               <div className="flex items-center gap-2">
@@ -1194,9 +1199,7 @@ export function JointSavingsContent() {
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-widest">
-                Amount (KES)
-              </Label>
+              <Label className="text-xs font-medium uppercase tracking-widest">Amount (KES)</Label>
               <Input
                 placeholder="0.00"
                 value={depositAmount}
@@ -1227,9 +1230,7 @@ export function JointSavingsContent() {
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-widest">
-                Amount (KES)
-              </Label>
+              <Label className="text-xs font-medium uppercase tracking-widest">Amount (KES)</Label>
               <Input
                 placeholder="0.00"
                 value={withdrawAmount}
@@ -1238,9 +1239,7 @@ export function JointSavingsContent() {
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs font-medium uppercase tracking-widest">
-                Reason / Memo
-              </Label>
+              <Label className="text-xs font-medium uppercase tracking-widest">Reason / Memo</Label>
               <Input
                 placeholder="e.g. Booking flights, Pay vendor"
                 value={withdrawReason}

@@ -331,8 +331,8 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onOpenChange={(val) => {
         setOpen(val);
         if (!val) {
@@ -356,10 +356,9 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
             {step === "input" ? t("settings.security.pin.dialog_title") : "Verify Update"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {step === "input" 
-              ? t("settings.security.pin.dialog_desc") 
-              : `A 6-digit code was sent to ${profile.email}. Enter it below to confirm your new PIN.`
-            }
+            {step === "input"
+              ? t("settings.security.pin.dialog_desc")
+              : `A 6-digit code was sent to ${profile.email}. Enter it below to confirm your new PIN.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -454,7 +453,7 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
                   autoFocus
                 />
               </div>
-              
+
               <Button
                 onClick={handleVerifyAndSave}
                 disabled={isChanging || otp.length !== 6}
@@ -675,7 +674,7 @@ function SettingsPage() {
         },
         () => {
           fetchDevices();
-        }
+        },
       )
       .subscribe();
 
@@ -925,7 +924,9 @@ function SettingsPage() {
   }
 
   // Account Deletion State
-  const [deleteStage, setDeleteStage] = useState<"initial" | "asset_warning" | "warning" | "verify" | "email_sent">("initial");
+  const [deleteStage, setDeleteStage] = useState<
+    "initial" | "asset_warning" | "warning" | "verify" | "email_sent"
+  >("initial");
   const [activeAssets, setActiveAssets] = useState<string[]>([]);
   const [isCheckingAssets, setIsCheckingAssets] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -940,16 +941,13 @@ function SettingsPage() {
     try {
       setIsCheckingAssets(true);
       const assets: string[] = [];
-      
+
       if (balance && Number(balance) > 0) {
         assets.push(t("settings.danger.assets.balance"));
       }
 
-      const { data: loans } = await supabase
-        .from("loans")
-        .select("id")
-        .eq("status", "active");
-      
+      const { data: loans } = await supabase.from("loans").select("id").eq("status", "active");
+
       if (loans && loans.length > 0) {
         assets.push(t("settings.danger.assets.loans"));
       }
@@ -958,7 +956,7 @@ function SettingsPage() {
         .from("savings_goals")
         .select("id")
         .eq("status", "active");
-      
+
       if (savings && savings.length > 0) {
         assets.push(t("settings.danger.assets.savings"));
       }
@@ -985,32 +983,35 @@ function SettingsPage() {
       }
 
       setSaving(true);
-      
+
       const { data, error } = await supabase.functions.invoke("send-predelete-email", {
-        body: { 
-          email: profile?.email
+        body: {
+          email: profile?.email,
         },
       });
 
       if (error) {
         console.error("DEBUG: Full Function Error Object:", error);
-        
+
         let errMsg = "Error initiating deletion";
-        
+
         // Try to parse the specific error returned by our function
         try {
           // FunctionsHttpError might contain the response body
           const errorData = await error.context.json();
           console.log("DEBUG: Parsed Error Data:", errorData);
-          
-          if (errorData.error === "INVALID_PASSWORD") errMsg = "Incorrect password. Please try again.";
-          if (errorData.error === "EMAIL_MISMATCH") errMsg = "The email provided does not match your account.";
+
+          if (errorData.error === "INVALID_PASSWORD")
+            errMsg = "Incorrect password. Please try again.";
+          if (errorData.error === "EMAIL_MISMATCH")
+            errMsg = "The email provided does not match your account.";
           if (errorData.msg) errMsg = errorData.msg;
         } catch (e) {
           console.log("DEBUG: Could not parse error body, using message:", error.message);
-          if (error.message.includes("INVALID_PASSWORD")) errMsg = "Incorrect password. Please try again.";
+          if (error.message.includes("INVALID_PASSWORD"))
+            errMsg = "Incorrect password. Please try again.";
         }
-        
+
         throw new Error(errMsg);
       }
 
@@ -1676,12 +1677,16 @@ function SettingsPage() {
                                 </div>
                               </div>
                             </div>
-                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
-                              device.is_active 
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                                : "border-muted-foreground/30 bg-muted/10 text-muted-foreground"
-                            }`}>
-                              <span className={`h-1 w-1 rounded-full ${device.is_active ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
+                                device.is_active
+                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                  : "border-muted-foreground/30 bg-muted/10 text-muted-foreground"
+                              }`}
+                            >
+                              <span
+                                className={`h-1 w-1 rounded-full ${device.is_active ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`}
+                              />
                               {device.is_active ? t("settings.security.devices.live") : "Ended"}
                             </span>
                           </div>
@@ -1820,7 +1825,6 @@ function SettingsPage() {
                   <option value="NGN">NGN (Naira)</option>
                   <option value="GHS">GHS (Cedi)</option>
                 </select>
-
               </div>
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">
@@ -1928,7 +1932,7 @@ function SettingsPage() {
                     className="w-full h-12 rounded-xl transition-all active:scale-95 font-medium text-base shadow-sm hover:shadow-md"
                     onClick={(e) => {
                       // We don't want the dialog to open immediately if we are checking assets
-                      // but DialogTrigger handles the opening. 
+                      // but DialogTrigger handles the opening.
                       // So we'll run our check.
                       handleInitialDeleteClick();
                     }}
@@ -1943,7 +1947,7 @@ function SettingsPage() {
                     <DialogTitle>Account Deletion</DialogTitle>
                     <DialogDescription>Account deletion process</DialogDescription>
                   </DialogHeader>
-                  
+
                   {deleteStage === "asset_warning" && (
                     <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
                       <DialogHeader className="mb-6">
@@ -1955,11 +1959,14 @@ function SettingsPage() {
                           {t("settings.danger.assets.desc")}
                         </DialogDescription>
                       </DialogHeader>
-                      
+
                       <div className="space-y-4 mb-8">
                         <ul className="space-y-3">
                           {activeAssets.map((asset, idx) => (
-                            <li key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm font-medium text-amber-600">
+                            <li
+                              key={idx}
+                              className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm font-medium text-amber-600"
+                            >
                               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                               {asset}
                             </li>
@@ -2071,7 +2078,8 @@ function SettingsPage() {
                           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start mb-6">
                             <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                             <div className="text-sm text-amber-700/80 font-medium">
-                              To proceed, you will receive a secure confirmation link at <strong>{profile?.email}</strong>.
+                              To proceed, you will receive a secure confirmation link at{" "}
+                              <strong>{profile?.email}</strong>.
                             </div>
                           </div>
 
@@ -2104,7 +2112,9 @@ function SettingsPage() {
 
                   {deleteStage === "email_sent" && (
                     <div className="p-8 animate-in fade-in zoom-in-95 duration-500 text-center">
-                      <div className={`w-20 h-20 ${fallbackLink ? "bg-amber-500/10" : "bg-primary/10"} rounded-full flex items-center justify-center mx-auto mb-6`}>
+                      <div
+                        className={`w-20 h-20 ${fallbackLink ? "bg-amber-500/10" : "bg-primary/10"} rounded-full flex items-center justify-center mx-auto mb-6`}
+                      >
                         {fallbackLink ? (
                           <AlertCircle className="w-10 h-10 text-amber-500" />
                         ) : (
@@ -2113,11 +2123,13 @@ function SettingsPage() {
                       </div>
                       <div className="mb-6">
                         <div className="text-2xl font-serif text-center">
-                          {fallbackLink ? "Confirm Manually" : t("settings.danger.email_sent_title")}
+                          {fallbackLink
+                            ? "Confirm Manually"
+                            : t("settings.danger.email_sent_title")}
                         </div>
                         <div className="text-muted-foreground mt-2 leading-relaxed text-center">
-                          {fallbackLink 
-                            ? "We couldn't deliver the email, but you can confirm your deletion request manually by clicking the button below." 
+                          {fallbackLink
+                            ? "We couldn't deliver the email, but you can confirm your deletion request manually by clicking the button below."
                             : t("settings.danger.email_sent_desc", { email: profile?.email })}
                         </div>
                       </div>

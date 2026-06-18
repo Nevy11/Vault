@@ -2,15 +2,7 @@ import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-r
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
-import {
-  CheckCircle2,
-  Shield,
-  Camera,
-  ArrowLeft,
-  RefreshCw,
-  Clock,
-  IdCard,
-} from "lucide-react";
+import { CheckCircle2, Shield, Camera, ArrowLeft, RefreshCw, Clock, IdCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
@@ -108,7 +100,7 @@ function KYCPage() {
       });
 
       if (error) throw error;
-      
+
       if (data?.client_secret) {
         const { error: verifyError } = await stripe.verifyIdentity(data.client_secret);
         if (verifyError) {
@@ -202,7 +194,7 @@ function KYCPage() {
   return (
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
       <TopNav />
-      
+
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
         <div className="w-full mb-6 text-center">
           <Link
@@ -222,11 +214,7 @@ function KYCPage() {
           {showOnfido ? (
             <div className="mt-6">
               <div id="onfido-mount" className="rounded-xl overflow-hidden" />
-              <Button
-                variant="ghost"
-                onClick={() => setShowOnfido(false)}
-                className="mt-4 w-full"
-              >
+              <Button variant="ghost" onClick={() => setShowOnfido(false)} className="mt-4 w-full">
                 Cancel
               </Button>
             </div>
@@ -372,4 +360,3 @@ function KYCPage() {
     </main>
   );
 }
-
