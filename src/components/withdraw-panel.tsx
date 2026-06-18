@@ -225,10 +225,11 @@ export function WithdrawPanel() {
       const userId = profile?.id || (await supabase.auth.getUser()).data.user?.id;
       if (!userId) throw new Error(t("common.errors.user_not_found"));
 
-      // 1. FRAUD DETECTION INTERCEPTOR
+      // 1. FRAUD DETECTION INTERCEPTOR (Informational only, we allow the transaction)
       const fraudCheck = await evaluateTransaction(userId, totalDeduction);
       if (fraudCheck.isFraudulent) {
-        throw new Error(fraudCheck.reason || "Transaction flagged by fraud detection system.");
+        console.warn("Fraud check flagged:", fraudCheck.reason);
+        // We no longer throw here to "just allow the transactions"
       }
 
       // 2. Call the RPC function

@@ -137,15 +137,15 @@ export function useSavings() {
 
       // 2. Check for Fraud Trigger Response
       if (transaction.status === "pending_verification") {
-        toast.error("Verification Required", {
+        toast.warning("Verification Required", {
           description:
-            "Transaction flagged for security. Please complete verification to continue.",
+            "Transaction flagged for security. It will be processed but may require manual review.",
           action: {
             label: "Verify",
             onClick: () => (window.location.href = "/settings/kyc"), // Redirect to KYC
           },
         });
-        return;
+        // We no longer return early, allowing the contribution to proceed.
       }
 
       // 3. If passed fraud check, perform the actual deduction

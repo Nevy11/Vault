@@ -2399,16 +2399,18 @@ function TransactionHistory() {
 
     if (t_data.type === "transfer") {
       if (isSender) {
-        const desc = (t_data.description || "").toLowerCase();
         const logo = getMethodLogo(t_data.method || "", t_data.description || "");
         const useLogo = Boolean(logo);
 
         let titleText = t_data.description;
         if (!titleText) {
-          const receiverName = t_data.receiver?.kyc_tag
+          const receiverTag = t_data.receiver?.kyc_tag
             ? `@${t_data.receiver.kyc_tag}`
-            : `${t_data.receiver?.first_name || t("common.user")} ${t_data.receiver?.last_name || ""}`.trim();
-          titleText = t("transactions.history.transfer_to", { receiverName });
+            : t_data.receiver?.first_name || t("common.user");
+
+          // Fallback titleText if description is missing
+          const categoryPart = t_data.category || "Transfer";
+          titleText = `${categoryPart} | Sent to ${receiverTag}`;
         }
 
         return {
@@ -2423,11 +2425,14 @@ function TransactionHistory() {
           categoryColorClass,
         };
       } else {
-        const senderName = t_data.sender?.kyc_tag
-          ? `@${t_data.sender.kyc_tag}`
-          : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
-        const titleText =
-          t_data.description || t("transactions.history.received_from", { senderName });
+        let titleText = t_data.description;
+
+        if (!titleText) {
+          const senderName = t_data.sender?.kyc_tag
+            ? `@${t_data.sender.kyc_tag}`
+            : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
+          titleText = t("transactions.history.received_from", { senderName });
+        }
 
         return {
           title: titleText,
