@@ -57,6 +57,7 @@ serve(async (req) => {
     let savingsLedger = [];
     let loans = [];
     let loansLedger = [];
+    let spendingCategories: any[] = [];
 
     if (needsFinancialContext) {
       // 1. Fetch wallet balance
@@ -85,12 +86,29 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(5);
       loansLedger = lLedgerData || [];
+
+      // 5. Fetch spending by category (last 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: categoryData } = await supabase
+        .from("transactions")
+        .select("category, amount")
+        .eq("sender_id", user.id)
+        .gte("created_at", thirtyDaysAgo);
+
+      if (categoryData) {
+        const aggregates = categoryData.reduce((acc: any, curr: any) => {
+          const cat = curr.category || "Uncategorized";
+          acc[cat] = (acc[cat] || 0) + Number(curr.amount);
+          return acc;
+        }, {});
+        spendingCategories = Object.entries(aggregates).map(([cat, amt]) => ({ category: cat, total: amt }));
+      }
     }
 
     const firstName = profile?.first_name || "User";
     const currency = wallet?.currency || "USD";
     const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "Not requested";
-    
+
     // Format Knowledge Strings
     const goalsText = savingsGoals && savingsGoals.length > 0
       ? savingsGoals.map(g => `- Goal: ${g.title} (${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()})`).join("\n")
@@ -99,6 +117,10 @@ serve(async (req) => {
     const loansText = loans && loans.length > 0
       ? loans.map(l => `- Loan: ${currency} ${l.remaining_balance.toLocaleString()} (Due: ${new Date(l.due_date).toLocaleDateString()}, Rate: ${l.interest_rate}%)`).join("\n")
       : (needsFinancialContext ? "No active loans." : "Not requested");
+
+    const spendingText = spendingCategories && spendingCategories.length > 0
+      ? spendingCategories.map(s => `- ${s.category}: ${currency} ${s.total.toLocaleString()}`).join("\n")
+      : (needsFinancialContext ? "No categorized spending in the last 30 days." : "Not requested");
 
     const recentActivity = needsFinancialContext ? [
       ...(savingsLedger?.map(l => `- Saved: ${currency} ${l.amount.toLocaleString()} (${l.type}) on ${new Date(l.created_at).toLocaleDateString()}`) || []),
@@ -110,15 +132,18 @@ serve(async (req) => {
     const targetLanguage = languageNames[languageCode] || "English";
 
     const systemPrompt = `You are the professional Finance Advisor for Vault OS. You are assisting ${firstName}.
-${needsFinancialContext ? `
-- Wallet Balance: ${balance}
-- Active Savings:
-${goalsText}
-- Active Loans:
-${loansText}
-- Recent Activity:
-${recentActivity.length > 0 ? recentActivity.join("\n") : "No recent activity."}
-` : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."}
+    ${needsFinancialContext ? `
+    - Wallet Balance: ${balance}
+    - Spending by Category (Last 30 Days):
+    ${spendingText}
+    - Active Savings:
+    ${goalsText}
+    - Active Loans:
+    ${loansText}
+    - Recent Activity:
+    ${recentActivity.length > 0 ? recentActivity.join("\n") : "No recent activity."}
+    ` : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."}
+
 
 FORMATTING INSTRUCTIONS:
 - DO NOT use markdown asterisks (*) or double asterisks (**) for bolding or lists.
