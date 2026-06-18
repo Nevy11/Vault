@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 
 export type LedgerEntry = {
   id: string;
@@ -15,7 +15,7 @@ export type LedgerEntry = {
 };
 
 export function useLedger(enabled = true, currency?: string) {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 
 export type Transaction = {
   id: string;
@@ -36,7 +36,7 @@ export interface TransactionOptions {
 }
 
 export function useTransactions(enabled = true, options: TransactionOptions = {}) {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);

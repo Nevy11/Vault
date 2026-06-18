@@ -68,9 +68,12 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
         throw new Error("The current PIN you entered is incorrect.");
       }
 
-      // 3. Trigger OTP via Reset Password flow
-      const { error: otpError } = await supabase.auth.resetPasswordForEmail(userEmail);
-      if (otpError) throw otpError;
+      // 3. Trigger Step-up OTP
+      const { data, error: otpError } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "send", purpose: "pin_change" },
+      });
+      
+      if (otpError || data?.error) throw new Error(otpError?.message || data?.error || "Failed to send code.");
 
       setStep("otp");
       toast.success("Verification code sent to your email.");
@@ -86,14 +89,12 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
 
     setLoading(true);
     try {
-      // 1. Verify the OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: userEmail,
-        token: form.otp,
-        type: "recovery",
+      // 1. Verify the OTP using our Edge Function
+      const { data, error: verifyError } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "verify", code: form.otp },
       });
 
-      if (verifyError) throw verifyError;
+      if (verifyError || data?.error) throw new Error(verifyError?.message || data?.error || "Verification failed.");
 
       // 2. Hash the new PIN
       const hashedNew = await hashPin(form.newPin);
@@ -110,6 +111,12 @@ export function ChangePinModal({ isOpen, onClose, userEmail }: ChangePinModalPro
         .eq("id", user.id);
 
       if (updateError) throw updateError;
+
+      // 4. Log Audit Event
+      await supabase.rpc("log_audit_event", {
+        p_action: "pin_changed",
+        p_status: "success",
+      });
 
       setStep("success");
       toast.success("Secure PIN updated successfully.");

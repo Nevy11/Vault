@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { getDeviceMacAddress, getDeviceName } from "@/lib/device-detection";
 import { toast } from "sonner";
 import {
@@ -96,7 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const [profile, setProfile] = useProfileSignal();
+  const { profile } = useProfile();
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -105,7 +105,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       localStorage.setItem("revocation_message", message);
     }
     await supabase.auth.signOut();
-    setProfile(null);
     navigate({ to: "/" });
   };
 

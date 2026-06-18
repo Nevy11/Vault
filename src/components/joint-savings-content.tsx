@@ -1,330 +1,120 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useSearch } from "@tanstack/react-router";
-import {
-  Users,
-  Plus,
-  Target,
-  Wallet,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  UserPlus,
-  Info,
-  ChevronRight,
-  PiggyBank,
-  History,
-  ShieldCheck,
-  RefreshCw,
-  Sparkles,
-  X,
-  Search,
-  Check,
-  ArrowLeft,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { AppShell } from "@/components/app-shell";
 import { useJointSavings } from "@/hooks/use-joint-savings";
-import { formatWithCommas, parseFormattedNumber } from "@/lib/utils";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useProfileSignal } from "@/lib/profile-signal";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProfile } from "@/hooks/use-profile";
+import { PotHeader } from "./joint-savings/PotHeader";
+import { InvitesSection } from "./joint-savings/InviteCard";
+import { PotDetails } from "./joint-savings/PotDetails";
+import { MembersList } from "./joint-savings/MembersList";
+import { ActivityFeed } from "./joint-savings/ActivityFeed";
+import { CreatePotForm } from "./joint-savings/CreatePotForm";
+import { InviteMemberModal } from "./joint-savings/InviteMemberModal";
+import { FinancialActionModal } from "./joint-savings/FinancialActionModal";
+import { WithdrawalRequests } from "./joint-savings/WithdrawalRequests";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-export function JointSavingsContent() {
+export default function JointSavingsContent() {
   const { t } = useTranslation();
-  const [profile] = useProfileSignal();
-  const navigate = useNavigate();
-  const search = useSearch({ from: "/savings" }) as any;
-
-  const activeTab = (search.tab as string) || "overview";
-  const selectedPotId = search.potId as string | undefined;
-
+  const { profile } = useProfile();
   const {
     pots,
-    selectedPot,
+    selectedPotId,
     setSelectedPotId,
+    selectedPot,
     members,
     contributions,
     requests,
+    invites,
     loading,
     createPot,
     inviteMember,
     deposit,
     requestWithdrawal,
     approveWithdrawal,
-    invites,
     acceptInvite,
     declineInvite,
   } = useJointSavings();
 
-  // Sync internal state with URL
-  useEffect(() => {
-    if (selectedPotId) {
-      setSelectedPotId(selectedPotId);
-    }
-  }, [selectedPotId, setSelectedPotId]);
+  const [activeTab, setActiveTab] = useState<"pots" | "setup">("pots");
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
 
-  const setActiveTab = (tab: string) => {
-    navigate({
-      search: (prev: any) => ({ ...prev, tab }),
-    });
+  const handleCreatePot = async (data: {
+    title: string;
+    description: string;
+    target_amount: number;
+  }) => {
+    await createPot(data.title, data.description, data.target_amount);
+    setActiveTab("pots");
   };
 
-  const handleSetSelectedPotId = (potId: string | null) => {
-    setSelectedPotId(potId);
-    navigate({
-      search: (prev: any) => ({ ...prev, potId: potId || undefined }),
-    });
-  };
-
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-
-  // Form states
-  const [newPotTitle, setNewPotTitle] = useState("");
-  const [newPotDesc, setNewPotDesc] = useState("");
-  const [newPotTarget, setNewPotTarget] = useState("");
-  const [initialMembers, setInitialMembers] = useState("");
-
-  const [inviteTag, setInviteTag] = useState("");
-  const [invitedUser, setSelectedInvitedUser] = useState<any>(null);
-  const [depositAmount, setDepositAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
-  const [withdrawReason, setWithdrawReason] = useState("");
-
-  // User Search States
-  const [userSearchTerm, setUserSearchTerm] = useState("");
-  const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
-
-  // Search Logic
-  useEffect(() => {
-    const searchUsers = async () => {
-      if (userSearchTerm.trim().length < 2) {
-        setUserSearchResults([]);
-        return;
-      }
-
-      setIsSearching(true);
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name, kyc_tag, profile_photo_url")
-          .or(
-            `first_name.ilike.%${userSearchTerm}%,last_name.ilike.%${userSearchTerm}%,kyc_tag.ilike.%${userSearchTerm}%`,
-          )
-          .neq("id", profile?.id) // Don't search for self
-          .limit(5);
-
-        if (error) throw error;
-        setUserSearchResults(data || []);
-      } catch (err) {
-        console.error("User search error:", err);
-      } finally {
-        setIsSearching(false);
-      }
-    };
-
-    const timer = setTimeout(searchUsers, 300);
-    return () => clearTimeout(timer);
-  }, [userSearchTerm, profile?.id]);
-
-  // Click outside listener for search results
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setUserSearchResults([]);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const toggleUserSelection = (user: any) => {
-    if (selectedUsers.some((u) => u.id === user.id)) {
-      setSelectedUsers(selectedUsers.filter((u) => u.id !== user.id));
-    } else {
-      setSelectedUsers([...selectedUsers, user]);
-    }
-    setUserSearchTerm("");
-    setUserSearchResults([]);
-  };
-
-  const selectInvitedUser = (user: any) => {
-    setSelectedInvitedUser(user);
-    setInviteTag(user.kyc_tag);
-    setUserSearchTerm("");
-    setUserSearchResults([]);
-  };
-
-  const jointQuotes = [
-    { en: "Two hearts, one nest", sw: "Mioyo miwili, kiota kimoja" },
-    { en: "Saving together, growing together", sw: "Kuweka akiba pamoja, kukuwa pamoja" },
-    { en: "Unity is strength", sw: "Umoja ni nguvu" },
-    { en: "Little by little fills the pot", sw: "Haba na haba hujaza kibaba" },
-    { en: "Our dream, our future", sw: "Ndoto yetu, maisha yetu" },
-    { en: "A Joint Saving built on trust", sw: "Akiba ya pamoja iliyojengwa kwa uaminifu" },
-    { en: "Together we reach the goal", sw: "Pamoja tunafika lengo" },
-  ];
-
-  const [quoteIndex, setQuoteIndex] = useState(0);
-
-  const handleCreatePot = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const target = parseFormattedNumber(newPotTarget);
-    if (isNaN(target) || target <= 0) return;
-
-    // Use tags from selectedUsers
-    const tags = selectedUsers.map((u) => u.kyc_tag);
-
-    await createPot(newPotTitle, newPotDesc, target, tags);
-
-    // Reset state
-    setNewPotTitle("");
-    setNewPotDesc("");
-    setNewPotTarget("");
-    setSelectedUsers([]);
-    setActiveTab("overview");
-  };
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setQuoteIndex((prev) => (prev + 1) % jointQuotes.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [jointQuotes.length]);
-
-  const handleInvite = async () => {
-    if (!selectedPot || !inviteTag) return;
-    await inviteMember(selectedPot.id, inviteTag);
-    setShowInviteModal(false);
-    setInviteTag("");
-    setSelectedInvitedUser(null);
-  };
-
-  const handleDeposit = async () => {
-    if (!selectedPot || !depositAmount) return;
-    await deposit(selectedPot.id, parseFormattedNumber(depositAmount));
-    setShowDepositModal(false);
-    setDepositAmount("");
-  };
-
-  const handleWithdrawRequest = async () => {
-    if (!selectedPot || !withdrawAmount) return;
-    await requestWithdrawal(selectedPot.id, parseFormattedNumber(withdrawAmount), withdrawReason);
-    setShowWithdrawModal(false);
-    setWithdrawAmount("");
-    setWithdrawReason("");
-  };
-
-  if (loading && pots.length === 0) {
+  if (activeTab === "setup") {
     return (
-      <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <RefreshCw className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-muted-foreground font-medium">Loading Joint Savings...</p>
-      </div>
+      <AppShell>
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          <Card className="rounded-[3rem] border border-white/20 bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl p-12 shadow-2xl">
+            <CardHeader className="p-0 mb-10">
+              <h1 className="text-4xl font-medium tracking-tighter text-slate-950 dark:text-white uppercase">
+                Initialize Chama Protocol
+              </h1>
+              <p className="text-muted-foreground mt-2 font-medium italic">
+                Strategic wealth creation begins with a shared vision.
+              </p>
+            </CardHeader>
+            <CreatePotForm onSubmit={handleCreatePot} onCancel={() => setActiveTab("pots")} />
+          </Card>
+        </main>
+      </AppShell>
     );
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center gap-4 mb-8">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate({ to: "/" })}
-          className="rounded-full hover:bg-white/20"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </Button>
-        <div className="flex-1 flex justify-center -ml-10">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-            <TabsList className="h-11 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
-              <TabsTrigger
-                value="overview"
-                className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
-              >
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="activity"
-                className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
-              >
-                Activity
-              </TabsTrigger>
-              <TabsTrigger
-                value="setup"
-                className="rounded-xl font-medium transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg"
-              >
-                New Pot
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      </div>
+    <AppShell>
+      <main className="max-w-7xl mx-auto px-6 py-12 space-y-12">
+        <PotHeader
+          pots={pots}
+          selectedPotId={selectedPotId}
+          onSelectPot={setSelectedPotId}
+          onNewPot={() => setActiveTab("setup")}
+        />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsContent value="overview" className="space-y-8 animate-in fade-in duration-500">
-          {/* Pots Selection Bar */}
-          <div className="flex items-center gap-4 p-3 rounded-2xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 shadow-xl overflow-x-auto no-scrollbar">
-            <div className="flex items-center gap-2 px-4 border-r border-white/20 shrink-0">
-              <Users className="w-5 h-5 text-primary" />
-              <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                Shared Pots
-              </span>
-            </div>
-            <div className="flex gap-3">
-              {pots.map((p) => (
-                <Button
-                  key={p.id}
-                  variant={selectedPot?.id === p.id ? "default" : "outline"}
-                  className={cn(
-                    "h-11 rounded-2xl font-medium transition-all duration-500",
-                    selectedPot?.id === p.id
-                      ? "px-6 bg-primary text-primary-foreground shadow-2xl scale-105"
-                      : "bg-white/50 dark:bg-slate-800/50",
-                  )}
-                  onClick={() => handleSetSelectedPotId(p.id)}
-                >
-                  {p.title}
-                </Button>
-              ))}
+        <InvitesSection invites={invites} onAccept={acceptInvite} onDecline={declineInvite} />
+
+        {!selectedPot ? (
+          <div className="text-center py-20 bg-white/40 dark:bg-slate-900/40 rounded-[3rem] border border-white/20 backdrop-blur-xl relative overflow-hidden group">
+            <div className="relative z-10 space-y-8">
+              <div className="relative inline-block">
+                <img
+                  src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&q=80&w=400&h=400"
+                  alt="Partnership Excellence"
+                  className="w-48 h-48 rounded-full shadow-2xl mx-auto object-cover border-4 border-white/50"
+                />
+                <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-3 rounded-full shadow-2xl">
+                  <Users className="w-5 h-5" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <h2 className="text-3xl font-medium tracking-tighter uppercase">
+                  Joint Strategic Reserve
+                </h2>
+                <p className="text-muted-foreground max-w-lg mx-auto text-lg italic italic">
+                  "Alone we can do so little; together we can do so much."
+                </p>
+              </div>
               <Button
-                variant="outline"
-                className="h-11 px-4 rounded-2xl border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary font-medium transition-all duration-300"
+                className="h-14 rounded-2xl font-medium px-12 shadow-2xl bg-primary text-xl"
                 onClick={() => setActiveTab("setup")}
               >
-                <Plus className="w-4 h-4 mr-2" />
-                New Pot
+                Start Your Joint Savings (Chama)
               </Button>
             </div>
           </div>
+<<<<<<< HEAD
 
           {/* Invites Section */}
           {invites.length > 0 && (
@@ -1206,19 +996,36 @@ export function JointSavingsContent() {
                 onChange={(e) => setDepositAmount(formatWithCommas(e.target.value))}
                 className="h-12 rounded-xl bg-slate-100 dark:bg-slate-900 border-none font-medium text-xl text-center tabular-nums"
               />
+=======
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start animate-in fade-in duration-700">
+            <div className="lg:col-span-2 space-y-8">
+              <PotDetails
+                pot={selectedPot}
+                onBack={() => setSelectedPotId(null)}
+                onInvite={() => setIsInviteModalOpen(true)}
+                onDeposit={() => setIsDepositModalOpen(true)}
+                onWithdraw={() => setIsWithdrawModalOpen(true)}
+              />
+              <WithdrawalRequests
+                requests={requests}
+                profile={profile}
+                onApprove={approveWithdrawal}
+              />
+              <Card className="rounded-[2rem] border border-white/30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl p-8 shadow-xl">
+                <ActivityFeed activities={contributions} />
+              </Card>
+            </div>
+            <div className="space-y-8">
+              <Card className="rounded-[2rem] border border-white/30 bg-white/80 dark:bg-slate-950/80 backdrop-blur-2xl p-8 shadow-xl">
+                <MembersList members={members} onInvite={() => setIsInviteModalOpen(true)} />
+              </Card>
+>>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              className="w-full h-12 rounded-xl font-medium shadow-xl bg-emerald-600"
-              onClick={handleDeposit}
-            >
-              Confirm Deposit
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
 
+<<<<<<< HEAD
       {/* Withdraw Modal */}
       <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
         <DialogContent className="max-w-md rounded-2xl border border-white/30 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl shadow-2xl">
@@ -1266,5 +1073,45 @@ export function JointSavingsContent() {
         </DialogContent>
       </Dialog>
     </div>
+=======
+        <InviteMemberModal
+          isOpen={isInviteModalOpen}
+          onClose={() => setIsInviteModalOpen(false)}
+          onInvite={async (userId) => {
+            const { data } = await supabase
+              .from("profiles")
+              .select("kyc_tag")
+              .eq("id", userId)
+              .single();
+            if (data?.kyc_tag) await inviteMember(selectedPotId!, data.kyc_tag);
+          }}
+          currentUser={profile}
+        />
+
+        <FinancialActionModal
+          isOpen={isDepositModalOpen}
+          onClose={() => setIsDepositModalOpen(false)}
+          onSubmit={async (amount) => {
+            if (selectedPotId) await deposit(selectedPotId, amount);
+          }}
+          title="Consolidate Funds"
+          description={`Deposit into ${selectedPot?.title} to strengthen the collective reserve.`}
+          actionLabel="Execute Deposit"
+        />
+
+        <FinancialActionModal
+          isOpen={isWithdrawModalOpen}
+          onClose={() => setIsWithdrawModalOpen(false)}
+          onSubmit={async (amount) => {
+            if (selectedPotId)
+              await requestWithdrawal(selectedPotId, amount, "Strategic Payout Request");
+          }}
+          title="Strategic Payout"
+          description="Request a disbursement from the shared treasury. This requires member consensus."
+          actionLabel="Initiate Request"
+        />
+      </main>
+    </AppShell>
+>>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
   );
 }

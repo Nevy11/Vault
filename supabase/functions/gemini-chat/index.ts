@@ -43,6 +43,22 @@ serve(async (req) => {
     } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
+    // Apply Rate Limiting: Max 10 requests per minute
+    const { data: allowed, error: rlError } = await supabase.rpc("check_rate_limit", {
+        p_key: `ai_chat:${user.id}`,
+        p_max_attempts: 10,
+        p_window_seconds: 60
+    });
+    
+    if (rlError) {
+        console.error("Rate limit check error:", rlError);
+    } else if (!allowed) {
+        return new Response(JSON.stringify({ error: "Too many AI requests. Please wait a minute." }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
+
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
@@ -242,7 +258,10 @@ serve(async (req) => {
     `
         : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."
     }
+<<<<<<< HEAD
 
+=======
+>>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
 
 FORMATTING INSTRUCTIONS:
 - DO NOT use markdown asterisks (*) or double asterisks (**) for bolding or lists.

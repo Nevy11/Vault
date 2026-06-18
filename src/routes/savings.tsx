@@ -64,7 +64,7 @@ import * as Recharts from "recharts";
 const { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } = Recharts;
 
 import { useSavings } from "@/hooks/use-savings";
-import { JointSavingsContent } from "@/components/joint-savings-content";
+import JointSavingsContent from "@/components/joint-savings-content";
 
 export const Route = createFileRoute("/savings")({
   validateSearch: (search: Record<string, unknown>) => {

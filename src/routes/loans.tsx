@@ -58,7 +58,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format, addMonths } from "date-fns";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 
 export const Route = createFileRoute("/loans")({
   component: LoansPage,
@@ -306,7 +306,7 @@ function LoanAssistant({
 
 function LoansPage() {
   const { t } = useTranslation();
-  const [profile, refreshProfile] = useProfileSignal();
+  const { profile, refetch: refreshProfile } = useProfile();
 
   // Define membershipMonths for use in the UI and eligibility checks
   const membershipMonths = useMemo(() => {
@@ -319,7 +319,6 @@ function LoansPage() {
       ),
     );
   }, [profile?.created_at]);
-
   const [activeLoan, setActiveLoan] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<string>("request");
 

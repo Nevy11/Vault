@@ -107,7 +107,14 @@ export function useJointSavings() {
         .select(
           `
           *,
+<<<<<<< HEAD
           pot:joint_pots(*)
+=======
+          pot:joint_pots(
+            *,
+            creator:profiles!joint_pots_creator_id_fkey(*)
+          )
+>>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
         `,
         )
         .eq("user_id", user.id)

@@ -52,6 +52,13 @@ serve(async (req) => {
       targetUserId = user.id;
     }
 
+    // Log Audit Event BEFORE deletion so it is attributed to the user
+    await supabaseClient.rpc("log_audit_event", {
+      p_action: "account_deleted",
+      p_status: "success",
+      p_user_id: targetUserId
+    });
+
     // Delete the user from auth.users (cascades to other tables)
     const { error: deleteError } = await supabaseClient.auth.admin.deleteUser(targetUserId);
 

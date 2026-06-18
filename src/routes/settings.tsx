@@ -27,6 +27,8 @@ import {
   Lock,
   Eye,
   EyeOff,
+  ShieldAlert,
+  ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +42,7 @@ import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { formatKycTag, hashPin } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { profileSignal, useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import {
   Sheet,
   SheetContent,
@@ -274,9 +276,12 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
         return;
       }
 
-      // 2. Trigger OTP via Reset Password flow
-      const { error: otpError } = await supabase.auth.resetPasswordForEmail(profile.email);
-      if (otpError) throw otpError;
+      // 2. Trigger Step-up OTP
+      const { data, error: otpError } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "send", purpose: "pin_change" },
+      });
+      
+      if (otpError || data?.error) throw new Error(otpError?.message || data?.error || "Failed to send code.");
 
       toast.success("Verification code sent to your email");
       setStep("verify");
@@ -296,14 +301,12 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
     try {
       setIsChanging(true);
 
-      // 1. Verify the OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: profile.email,
-        token: otp,
-        type: "recovery",
+      // 1. Verify the OTP using our Edge Function
+      const { data, error: verifyError } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "verify", code: otp },
       });
 
-      if (verifyError) throw verifyError;
+      if (verifyError || data?.error) throw new Error(verifyError?.message || data?.error || "Verification failed.");
 
       // 2. Hash and save the new PIN
       const hashedNew = await hashPin(newPin);
@@ -313,6 +316,12 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
         .eq("id", profile.id);
 
       if (updateError) throw updateError;
+
+      // 3. Log Audit Event
+      await supabase.rpc("log_audit_event", {
+        p_action: "pin_changed",
+        p_status: "success",
+      });
 
       toast.success("PIN changed successfully!");
       setOpen(false);
@@ -488,7 +497,7 @@ function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useProfileSignal();
+  const { profile, updateProfile } = useProfile();
 
   async function updateLanguage(lang: string) {
     try {
@@ -504,10 +513,7 @@ function SettingsPage() {
       if (error) throw error;
 
       i18n.changeLanguage(lang);
-      setProfile({
-        ...profile,
-        language: lang,
-      });
+      updateProfile({ language: lang }); // Note: updateProfile needs to handle this or we use queryClient
 
       const messages: Record<string, string> = {
         en: "Language updated to English",
@@ -722,27 +728,7 @@ function SettingsPage() {
   }
 
   async function updatePreference(key: string, value: boolean) {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ [key]: value })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      setProfile({
-        ...profile,
-        [key]: value,
-      });
-      // Silent update for toggles to avoid toast spam
-    } catch (error: any) {
-      toast.error(error.message || "Error updating preference");
-    }
+    updateProfile({ [key]: value });
   }
 
   async function handleSave() {
@@ -791,16 +777,7 @@ function SettingsPage() {
         updates.kyc_tag = kycTag;
       }
 
-      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
-
-      if (error) throw error;
-
-      setProfile({
-        ...profile,
-        first_name: firstName,
-        last_name: lastName,
-        kyc_tag: profile?.kyc_tag || kycTag,
-      });
+      updateProfile(updates);
       toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error(error.message || "Error updating profile");
@@ -884,7 +861,7 @@ function SettingsPage() {
 
       if (updateError) throw updateError;
 
-      setProfile({ ...profile, profile_photo_url: publicUrl });
+      updateProfile({ profile_photo_url: publicUrl });
       toast.success("Profile picture updated!");
     } catch (error: any) {
       toast.error(error.message || "Error uploading avatar");
@@ -914,7 +891,7 @@ function SettingsPage() {
 
       if (error) throw error;
 
-      setProfile({ ...profile, profile_photo_url: null });
+      updateProfile({ profile_photo_url: null });
       toast.success("Profile picture removed");
     } catch (error: any) {
       toast.error(error.message || "Error removing avatar");
@@ -1031,9 +1008,52 @@ function SettingsPage() {
     }
   }
 
+  async function handleEmergencyFreeze() {
+    try {
+      setSaving(true);
+      const { error } = await supabase.rpc("emergency_freeze_account", {
+        p_reason: "User requested emergency freeze via settings",
+      });
+
+      if (error) throw error;
+
+      toast.success("Account frozen successfully for your security.");
+      // Refresh profile to show frozen state
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Error freezing account");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <AppShell>
       <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16">
+        {profile?.is_frozen && (
+          <div className="mb-8 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center text-destructive shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-sm font-bold text-destructive uppercase tracking-tight">
+                Account Frozen
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Your account is currently locked for security. All financial transactions are
+                disabled. Please contact support to verify your identity and unfreeze.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:bg-destructive/5"
+              onClick={() => navigate({ to: "/help" })}
+            >
+              Contact Support
+            </Button>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-12 lg:mb-16">
           <Link
@@ -1581,7 +1601,7 @@ function SettingsPage() {
                         if (error) toast.error("Failed to update biometric preference");
                         else {
                           toast.success(`Biometrics ${val ? "enabled" : "disabled"}`);
-                          profileSignal.set({ ...profile, biometric_enabled: val });
+                          updateProfile({ biometric_enabled: val });
                         }
                       });
                   }
@@ -1810,7 +1830,7 @@ function SettingsPage() {
                       .eq("id", profile!.id);
                     if (error) toast.error("Error updating currency");
                     else {
-                      setProfile({ ...profile!, primary_currency: newCurrency });
+                      updateProfile({ primary_currency: newCurrency });
                       toast.success("Currency updated");
                     }
                   }}
@@ -1901,6 +1921,36 @@ function SettingsPage() {
           {/* Danger Zone */}
           <SectionCard icon={X} title={t("settings.sections.danger")}>
             <div className="space-y-6">
+              <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive flex-shrink-0 mt-0.5">
+                      <ShieldOff className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-medium text-foreground">
+                        Emergency Account Freeze
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                        Suspect suspicious activity? Immediately lock all financial transactions.
+                        Only support can unfreeze your account after identity verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  <Button
+                    variant="outline"
+                    className="w-full h-12 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/5 font-bold"
+                    onClick={handleEmergencyFreeze}
+                    disabled={saving || profile?.is_frozen}
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldAlert className="w-4 h-4 mr-2" />}
+                    {profile?.is_frozen ? "Account Already Frozen" : "Freeze My Account Now"}
+                  </Button>
+                </div>
+              </div>
+
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">

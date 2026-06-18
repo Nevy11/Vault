@@ -8,7 +8,7 @@ import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { loadStripe } from "@stripe/stripe-js";
 import { Onfido } from "onfido-sdk-ui";
 
@@ -77,7 +77,7 @@ function Confetti() {
 // 3. Main Page Component
 function KYCPage() {
   const { t } = useTranslation();
-  const [profile, setProfile] = useProfileSignal();
+  const { profile, updateProfile } = useProfile();
   const [isLoading, setIsLoading] = useState(false);
   const [showOnfido, setShowOnfido] = useState(false);
   const navigate = useNavigate();
@@ -108,7 +108,7 @@ function KYCPage() {
         } else {
           toast.success("Verification session completed.");
           if (profile && profile.kyc_status !== "verified") {
-            setProfile({ ...profile, kyc_status: "pending" });
+            updateProfile({ kyc_status: "pending" });
           }
         }
       } else if (data?.url) {
@@ -146,7 +146,7 @@ function KYCPage() {
             console.log("Onfido verification complete:", data);
             toast.success("Documents submitted successfully.");
             setShowOnfido(false);
-            if (profile) setProfile({ ...profile, kyc_status: "pending" });
+            if (profile) updateProfile({ kyc_status: "pending" });
           },
           onError: (err) => {
             console.error("Onfido error:", err);
@@ -173,7 +173,7 @@ function KYCPage() {
         .eq("id", profile.id);
 
       if (error) throw error;
-      if (profile) setProfile({ ...profile, kyc_status: "verified" });
+      if (profile) updateProfile({ kyc_status: "verified" });
       toast.success("Identity verified (Development Mode)");
     } catch (err: any) {
       console.error("Mock verification error:", err);

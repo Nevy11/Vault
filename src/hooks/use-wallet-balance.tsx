@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { getCurrencyForNationality } from "@/lib/utils";
 import { getConversionRate } from "@/lib/currency-utils";
 
@@ -48,7 +48,7 @@ type UseWalletBalanceReturn = {
 };
 
 export function useWalletBalance(): UseWalletBalanceReturn {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [wallet, setWallet] = useState<WalletBalance>(null);
   const walletRef = useRef<WalletBalance>(null);
   const [displayBalance, setDisplayBalance] = useState<number | null>(null);

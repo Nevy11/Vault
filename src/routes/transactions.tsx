@@ -46,7 +46,7 @@ import { WithdrawPanel } from "@/components/withdraw-panel";
 import { TransactionPinModal } from "@/components/transaction-pin-modal";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions } from "@/hooks/use-transactions";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/api/supabase";
 import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
@@ -184,6 +184,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const [provider, setProvider] = useState("M-Pesa");
   const [selectedCategory, setSelectedCategory] = useState("Transfer");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
 
@@ -419,6 +420,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
       toast.error(t("transactions.errors.fill_required"));
       return;
     }
+    setIdempotencyKey(crypto.randomUUID());
     setIsPinModalOpen(true);
   };
 
@@ -442,6 +444,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           p_amount: parseFloat(amount),
           p_category: selectedCategory,
           p_note: note.trim() || null,
+          p_idempotency_key: idempotencyKey,
         });
 
         if (rpcError) {
@@ -470,6 +473,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             method === "mobile"
               ? `Transfer to ${provider}: ${identifier}`
               : `Bank Transfer to ${bank}: ${identifier}`,
+          p_idempotency_key: idempotencyKey,
         });
 
         if (rpcError) {
@@ -823,10 +827,12 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                 size="lg"
                 className="w-full h-14 text-base font-medium shadow-lg shadow-primary/20"
                 onClick={handleSendClick}
-                disabled={method === "vault" && !recipient}
+                disabled={(method === "vault" && !recipient) || profile?.is_frozen}
               >
-                {t("transactions.form.send_money_btn")} <ArrowRight className="ml-2 w-5 h-5" />
+                {profile?.is_frozen ? "Account Frozen" : t("transactions.form.send_money_btn")}{" "}
+                <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
+
             </div>
           </div>
         </div>
@@ -988,6 +994,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           amount: parseFloat(amount || "0").toLocaleString(),
           identifier,
         })}
+        amount={parseFloat(amount || "0")}
       />
     </div>
   );
@@ -999,7 +1006,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
 function SplitPanel() {
   const { t } = useTranslation();
   const { currency, refetch: refetchBalance } = useWalletBalance();
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const currentUser = profile as any;
   const [mounted, setMounted] = useState(false);
 
@@ -1040,6 +1047,7 @@ function SplitPanel() {
   const [selectedSplitAmount, setSelectedSplitAmount] = useState(0);
   const [selectedSplitTitle, setSelectedSplitTitle] = useState("");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [splitToCancel, setSplitToCancel] = useState<string | null>(null);
 
@@ -1402,6 +1410,10 @@ function SplitPanel() {
     try {
       const { data, error } = await supabase.rpc("pay_bill_split", {
         p_member_id: selectedMemberIdToPay,
+<<<<<<< HEAD
+=======
+        p_idempotency_key: idempotencyKey,
+>>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
       });
 
       if (error) throw error;
@@ -1967,11 +1979,14 @@ function SplitPanel() {
                                 setSelectedMemberIdToPay(m.id);
                                 setSelectedSplitAmount(m.amount);
                                 setSelectedSplitTitle(m.bill_splits.title);
+                                setIdempotencyKey(crypto.randomUUID());
                                 setIsPinModalOpen(true);
                               }}
+                              disabled={profile?.is_frozen}
                             >
-                              Pay
+                              {profile?.is_frozen ? "Frozen" : "Pay"}
                             </Button>
+
                           </div>
                         </div>
                       );
@@ -2233,6 +2248,7 @@ function SplitPanel() {
         onVerified={handlePinVerified}
         title="Authorize Bill Split Payment"
         description={`Securely authorize payment of ${currency} ${selectedSplitAmount.toLocaleString()} for "${selectedSplitTitle}".`}
+        amount={selectedSplitAmount}
       />
 
       {isPaying && (
@@ -2308,7 +2324,7 @@ function TransactionHistory() {
     type: typeFilter,
   });
 
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
