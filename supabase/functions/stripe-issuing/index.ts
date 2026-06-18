@@ -13,16 +13,22 @@ serve(async (req) => {
   }
 
   let stripeKey = Deno.env.get("STRIPE_SECRET_KEY")?.trim();
-  if (!stripeKey || stripeKey === "sk_test_YOUR_KEY_HERE" || stripeKey.includes("y8z9") || stripeKey.length < 20) {
+  if (
+    !stripeKey ||
+    stripeKey === "sk_test_YOUR_KEY_HERE" ||
+    stripeKey.includes("y8z9") ||
+    stripeKey.length < 20
+  ) {
     console.error("CRITICAL: STRIPE_SECRET_KEY is not set or is a placeholder");
     return new Response(
-      JSON.stringify({ 
-        error: "Server configuration error: Valid Stripe secret key missing. Please set STRIPE_SECRET_KEY in Supabase secrets." 
-      }), 
+      JSON.stringify({
+        error:
+          "Server configuration error: Valid Stripe secret key missing. Please set STRIPE_SECRET_KEY in Supabase secrets.",
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 

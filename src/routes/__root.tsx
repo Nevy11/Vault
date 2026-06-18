@@ -11,7 +11,7 @@ import { Layers } from "lucide-react";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal, profileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { useEffect, useState } from "react";
 import i18n from "@/lib/i18n";
 
@@ -205,7 +205,16 @@ function MultiWindowOverlay({ onUseHere }: { onUseHere: () => void }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [profile, setProfile] = useProfileSignal();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RootInner />
+    </QueryClientProvider>
+  );
+}
+
+function RootInner() {
+  useProfile();
   const [isBlocked, setIsBlocked] = useState(false);
 
   useEffect(() => {
@@ -241,100 +250,11 @@ function RootComponent() {
     channel.close();
   };
 
-  useEffect(() => {
-    // Hydrate profile from localStorage on client mount
-    profileSignal.hydrate();
-
-    async function fetchProfile(userId: string) {
-      if (!userId) return;
-
-      try {
-        // Fetch profile
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .maybeSingle();
-
-        if (profileError) throw profileError;
-
-        // Fetch preferences
-        const { data: prefData, error: prefError } = await supabase
-          .from("user_preferences")
-          .select("*")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (prefError) {
-          console.warn("Error fetching user preferences:", prefError);
-        }
-
-        if (profileData) {
-          const combinedData = {
-            ...profileData,
-            language: prefData?.language || "en",
-            theme: prefData?.theme || "system",
-          };
-
-          const current = profileSignal.get();
-          // Deep compare relevant fields to prevent unnecessary re-renders
-          const hasChanged =
-            !current ||
-            current.id !== combinedData.id ||
-            current.kyc_status !== combinedData.kyc_status ||
-            current.profile_photo_url !== combinedData.profile_photo_url ||
-            current.first_name !== combinedData.first_name ||
-            current.last_name !== combinedData.last_name ||
-            current.kyc_tag !== combinedData.kyc_tag ||
-            current.language !== combinedData.language;
-
-          if (hasChanged) {
-            console.log("Profile and preferences updated/synced");
-            setProfile(combinedData);
-
-            if (combinedData.language && i18n.language !== combinedData.language) {
-              i18n.changeLanguage(combinedData.language);
-            }
-          }
-        } else {
-          console.warn("No profile found for authenticated user:", userId);
-        }
-      } catch (err) {
-        console.error("Error fetching profile:", err);
-      }
-    }
-
-    // Initial check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state change:", event);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [setProfile]);
-
   return (
-    <QueryClientProvider client={queryClient}>
+    <>
       <Outlet />
       <Toaster />
       {isBlocked && <MultiWindowOverlay onUseHere={handleUseHere} />}
-    </QueryClientProvider>
+    </>
   );
 }

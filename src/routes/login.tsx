@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { hashPin } from "@/lib/utils";
 import { getDeviceName } from "@/lib/device-detection";
 import { Logo } from "@/components/logo";
-import { profileSignal } from "@/lib/profile-signal";
+import { useProfile, PROFILE_QUERY_KEY } from "@/hooks/use-profile";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { z } from "zod";
 
@@ -53,6 +54,7 @@ function Field({
 }
 
 function LoginPage() {
+  const queryClient = useQueryClient();
   const { redirect } = Route.useSearch();
   const [showPin, setShowPin] = useState(false);
   const [step, setStep] = useState<"signIn" | "verify">("signIn");
@@ -184,8 +186,8 @@ function LoginPage() {
       // 3. Hash entered PIN and compare
       const hashedPin = await hashPin(pin);
       if (profile.pin_hash === hashedPin) {
-        // Pre-populate profile signal so dashboard is ready instantly
-        profileSignal.set(profile);
+        // Pre-populate query cache so dashboard is ready instantly
+        queryClient.setQueryData(PROFILE_QUERY_KEY, profile);
 
         // 4. Record device login
         const deviceName = getDeviceName();

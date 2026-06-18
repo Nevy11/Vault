@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +39,7 @@ export const FinancialHealthReport: React.FC<FinancialHealthReportProps> = ({
   onOpenChange,
   currencySymbol = "$",
 }) => {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ metrics: LedgerMetrics; audit: AuditInfo } | null>(null);
 

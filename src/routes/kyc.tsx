@@ -2,21 +2,13 @@ import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-r
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import i18n from "@/lib/i18n";
-import {
-  CheckCircle2,
-  Shield,
-  Camera,
-  ArrowLeft,
-  RefreshCw,
-  Clock,
-  IdCard,
-} from "lucide-react";
+import { CheckCircle2, Shield, Camera, ArrowLeft, RefreshCw, Clock, IdCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
 import { toast } from "sonner";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { loadStripe } from "@stripe/stripe-js";
 import { Onfido } from "onfido-sdk-ui";
 
@@ -85,7 +77,7 @@ function Confetti() {
 // 3. Main Page Component
 function KYCPage() {
   const { t } = useTranslation();
-  const [profile, setProfile] = useProfileSignal();
+  const { profile, updateProfile } = useProfile();
   const [isLoading, setIsLoading] = useState(false);
   const [showOnfido, setShowOnfido] = useState(false);
   const navigate = useNavigate();
@@ -108,7 +100,7 @@ function KYCPage() {
       });
 
       if (error) throw error;
-      
+
       if (data?.client_secret) {
         const { error: verifyError } = await stripe.verifyIdentity(data.client_secret);
         if (verifyError) {
@@ -116,7 +108,7 @@ function KYCPage() {
         } else {
           toast.success("Verification session completed.");
           if (profile && profile.kyc_status !== "verified") {
-            setProfile({ ...profile, kyc_status: "pending" });
+            updateProfile({ kyc_status: "pending" });
           }
         }
       } else if (data?.url) {
@@ -154,7 +146,7 @@ function KYCPage() {
             console.log("Onfido verification complete:", data);
             toast.success("Documents submitted successfully.");
             setShowOnfido(false);
-            if (profile) setProfile({ ...profile, kyc_status: "pending" });
+            if (profile) updateProfile({ kyc_status: "pending" });
           },
           onError: (err) => {
             console.error("Onfido error:", err);
@@ -181,7 +173,7 @@ function KYCPage() {
         .eq("id", profile.id);
 
       if (error) throw error;
-      if (profile) setProfile({ ...profile, kyc_status: "verified" });
+      if (profile) updateProfile({ kyc_status: "verified" });
       toast.success("Identity verified (Development Mode)");
     } catch (err: any) {
       console.error("Mock verification error:", err);
@@ -202,7 +194,7 @@ function KYCPage() {
   return (
     <main className="min-h-screen w-full" style={{ background: "var(--gradient-bg)" }}>
       <TopNav />
-      
+
       <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-4 py-10">
         <div className="w-full mb-6 text-center">
           <Link
@@ -222,11 +214,7 @@ function KYCPage() {
           {showOnfido ? (
             <div className="mt-6">
               <div id="onfido-mount" className="rounded-xl overflow-hidden" />
-              <Button
-                variant="ghost"
-                onClick={() => setShowOnfido(false)}
-                className="mt-4 w-full"
-              >
+              <Button variant="ghost" onClick={() => setShowOnfido(false)} className="mt-4 w-full">
                 Cancel
               </Button>
             </div>
@@ -372,4 +360,3 @@ function KYCPage() {
     </main>
   );
 }
-

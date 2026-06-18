@@ -1,65 +1,68 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
   try {
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    );
 
-    const { token } = await req.json()
+    const { token } = await req.json();
 
     // 1. Find the request by recovery token
     const { data: request, error: requestError } = await supabaseClient
-      .from('account_deletion_requests')
-      .select('*')
-      .eq('recovery_token', token)
-      .eq('status', 'scheduled')
-      .maybeSingle()
+      .from("account_deletion_requests")
+      .select("*")
+      .eq("recovery_token", token)
+      .eq("status", "scheduled")
+      .maybeSingle();
 
     if (requestError || !request) {
-      return new Response(JSON.stringify({ error: "Invalid or expired recovery token" }), { 
+      return new Response(JSON.stringify({ error: "Invalid or expired recovery token" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      })
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // 2. Update request status
     const { error: updateRequestError } = await supabaseClient
-      .from('account_deletion_requests')
+      .from("account_deletion_requests")
       .update({
-        status: 'restored',
-        updated_at: new Date().toISOString()
+        status: "restored",
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', request.id)
+      .eq("id", request.id);
 
-    if (updateRequestError) throw updateRequestError
+    if (updateRequestError) throw updateRequestError;
 
     // 3. Clear scheduled_deletion_date from profile
     const { error: profileError } = await supabaseClient
-      .from('profiles')
+      .from("profiles")
       .update({ scheduled_deletion_date: null })
-      .eq('id', request.user_id)
+      .eq("id", request.user_id);
 
-    if (profileError) throw profileError
+    if (profileError) throw profileError;
 
-    return new Response(JSON.stringify({ success: true, message: "Account restored successfully" }), { 
-      headers: { ...corsHeaders, "Content-Type": "application/json" } 
-    })
+    return new Response(
+      JSON.stringify({ success: true, message: "Account restored successfully" }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { 
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    })
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
-})
+});

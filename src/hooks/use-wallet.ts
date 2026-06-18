@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/api/supabase";
-import { profileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 
 export function useWallet(providerType?: "vault" | "bank" | "mobile") {
+  const { profile } = useProfile();
   const [wallet, setWallet] = useState<{ balance: number; currency: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!profile?.id) {
+      setLoading(false);
+      return;
+    }
+
     async function fetchWallet(userId: string) {
-      // If 'vault', fetch the primary wallet.
-      // For bank/mobile, in a real app you might have different tables,
-      // but assuming they all map to the 'wallets' or a similar structure:
       const { data, error } = await supabase
         .from("wallets")
         .select("balance, currency")
@@ -18,19 +21,12 @@ export function useWallet(providerType?: "vault" | "bank" | "mobile") {
         .maybeSingle();
 
       if (!error && data) {
-        // Here you could apply logic based on providerType if necessary
         setWallet({ balance: Number(data.balance), currency: data.currency });
       }
       setLoading(false);
     }
 
-    const currentProfile = profileSignal.get();
-    if (!currentProfile?.id) {
-      setLoading(false);
-      return;
-    }
-
-    const userId = currentProfile.id;
+    const userId = profile.id;
     fetchWallet(userId);
 
     const channelId = Math.random().toString(36).slice(2, 9);
@@ -53,7 +49,7 @@ export function useWallet(providerType?: "vault" | "bank" | "mobile") {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [providerType]);
+  }, [providerType, profile?.id]);
 
   return { wallet, loading };
 }

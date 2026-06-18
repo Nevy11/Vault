@@ -14,6 +14,7 @@ import {
   ArrowRight,
   TrendingUp,
   Landmark,
+  ShieldAlert,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
 import { usePortfolioSummary } from "@/hooks/use-portfolio-summary";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/api/supabase";
 import { format, formatDistanceToNow, startOfWeek, startOfMonth, subDays } from "date-fns";
@@ -87,11 +88,11 @@ function AccountBadge({
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
               {icon}
             </div>
-            <div>
-              <div className="text-base font-medium tracking-tight">{name}</div>
-              <div className="text-xs text-muted-foreground/80 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                {type}
+            <div className="min-w-0">
+              <div className="text-base font-medium tracking-tight truncate">{name}</div>
+              <div className="text-xs text-muted-foreground/80 flex items-center gap-1.5 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                <span className="truncate">{type}</span>
               </div>
             </div>
           </div>
@@ -545,12 +546,12 @@ function SecurityStatus() {
               status: "active",
             },
           ].map((item) => (
-            <div key={item.label} className="group/item">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors">
+            <div key={item.label} className="group/item min-w-0">
+              <div className="flex items-center justify-between mb-1.5 gap-2">
+                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors truncate">
                   {item.label}
                 </span>
-                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 shrink-0">
                   {item.val}
                 </span>
               </div>
@@ -576,7 +577,7 @@ function SecurityStatus() {
 
 function AIInsightsWidget({ profileId }: { profileId?: string }) {
   const { t } = useTranslation();
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -677,15 +678,15 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
               <path d="M16.24 7.76l2.83-2.83" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-foreground">{t("ai_insights.title")}</h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-foreground truncate">{t("ai_insights.title")}</h3>
             {insight ? (
               <div className="mt-2 space-y-1">
-                <div className="text-sm font-semibold text-primary">
+                <div className="text-sm font-semibold text-primary truncate">
                   {insight.title || insight.content}
                 </div>
                 {insight.title && (
-                  <div className="text-xs text-muted-foreground leading-relaxed">
+                  <div className="text-xs text-muted-foreground leading-relaxed break-words line-clamp-2 sm:line-clamp-none">
                     {insight.content}
                   </div>
                 )}
@@ -726,22 +727,17 @@ const filters = [
 function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [profile] = useProfileSignal();
-  
-  // Guard against unauthenticated/loading state
-  if (!profile) {
-    return <div className="p-8 text-center">Loading...</div>;
-  }
+  const { profile } = useProfile();
 
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  
+
   const {
     transactions,
     loading: txLoading,
     error: txError,
     refetch: refetchTransactions,
   } = useTransactions();
-  
+
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(currency);
   const { notifications, markAsRead } = useNotifications();
   const portfolioSummary = usePortfolioSummary(profile?.id);
@@ -881,6 +877,19 @@ function DashboardPage() {
     return transactions;
   }, [transactions, activeFilter, profile]);
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse font-medium">
+            {t("common.loading_secure_vault")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const getTransactionDetails = (tx: any) => {
     const isSender = tx.sender_id === (profile as any)?.id;
     const userName = profile?.first_name
@@ -958,8 +967,7 @@ function DashboardPage() {
         };
       } else {
         let senderName = tx.sender?.first_name || t("common.user");
-        const titleText =
-          tx.description || t("transactions.history.received_from", { senderName });
+        const titleText = tx.description || t("transactions.history.received_from", { senderName });
         return {
           title: titleText,
           amount: `+${symbol}${tx.amount.toLocaleString()}`,
@@ -1005,6 +1013,31 @@ function DashboardPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {profile?.is_frozen && (
+          <div className="mb-8 p-4 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 shadow-lg shadow-destructive/5 backdrop-blur-sm">
+            <div className="w-14 h-14 rounded-2xl bg-destructive/20 flex items-center justify-center text-destructive shrink-0 shadow-inner ring-1 ring-destructive/30">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-sm font-bold text-destructive uppercase tracking-widest leading-none mb-1">
+                Emergency Freeze Active
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                For your protection, all financial outbound actions are restricted. This state is
+                usually triggered by an emergency security request. Verify your identity with
+                support to restore access.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl h-10 px-6 font-bold uppercase tracking-wider text-[10px] transition-all active:scale-95"
+              onClick={() => navigate({ to: "/help" })}
+            >
+              Contact Security
+            </Button>
+          </div>
+        )}
         <div className="mb-6">
           <h1
             className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white"
@@ -1305,7 +1338,9 @@ function DashboardPage() {
                         {typeLabel}
                       </span>
                       <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.logo || (details as any).avatarUrl || undefined} />
+                        <AvatarImage
+                          src={details.logo || (details as any).avatarUrl || undefined}
+                        />
                         <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
                           {details.icon}
                         </AvatarFallback>

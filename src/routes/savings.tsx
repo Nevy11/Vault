@@ -64,7 +64,7 @@ import * as Recharts from "recharts";
 const { ResponsiveContainer, AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip } = Recharts;
 
 import { useSavings } from "@/hooks/use-savings";
-import { JointSavingsContent } from "@/components/joint-savings-content";
+import JointSavingsContent from "@/components/joint-savings-content";
 
 export const Route = createFileRoute("/savings")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -127,9 +127,7 @@ function SavingsPage() {
 
   const today = format(new Date(), "yyyy-MM-dd");
   const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
-  const progress = savingsGoal
-    ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100
-    : 0;
+  const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
 
   const ringRadius = 40;
   const ringCircumference = 2 * Math.PI * ringRadius;

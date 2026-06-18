@@ -1,0 +1,22 @@
+export type Profile = {
+  id?: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  kyc_status?: string;
+  phone_number?: string;
+  profile_photo_url?: string | null;
+  kyc_tag?: string;
+  pin_hash?: string;
+  nationality?: string;
+  language?: string;
+  created_at?: string;
+  notifications_transfer_received?: boolean;
+  notifications_transfer_sent?: boolean;
+  notifications_account_login?: boolean;
+  notifications_security_alerts?: boolean;
+  notifications_ai_insights?: boolean;
+  biometric_enabled?: boolean;
+  theme?: string;
+  primary_currency?: string;
+} | null;
