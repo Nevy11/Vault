@@ -550,8 +550,10 @@ function SettingsPage() {
 
   // Local state for name to make input controlled and smooth
   const [fullName, setFullName] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (profile) {
       setFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
       setLoading(false);
@@ -1008,49 +1010,92 @@ function SettingsPage() {
     }
   }
 
-  async function handleEmergencyFreeze() {
+  async function handleSuspendAccount(reason: string) {
     try {
       setSaving(true);
-      const { error } = await supabase.rpc("emergency_freeze_account", {
-        p_reason: "User requested emergency freeze via settings",
+      const { error } = await supabase.rpc("suspend_account", {
+        p_reason: reason,
       });
 
       if (error) throw error;
 
-      toast.success("Account frozen successfully for your security.");
-      // Refresh profile to show frozen state
+      toast.success("Account suspended for your security.");
       window.location.reload();
     } catch (error: any) {
-      toast.error(error.message || "Error freezing account");
+      toast.error(error.message || "Error suspending account");
     } finally {
       setSaving(false);
+    }
+  }
+
+  const [suspensionReason, setSuspensionReason] = useState("");
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [restoreOtp, setRestoreOtp] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  async function handleInitiateRestore() {
+    try {
+      setIsRestoring(true);
+      const { data, error } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "send", purpose: "account_restore" },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error || "Failed to send code");
+      toast.success("Recovery code sent to your email");
+      setShowRestoreDialog(true);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsRestoring(false);
+    }
+  }
+
+  async function handleVerifyRestore() {
+    try {
+      setIsRestoring(true);
+      const { data, error } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "verify", code: restoreOtp },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error || "Verification failed");
+
+      const { error: rpcError } = await supabase.rpc("unsuspend_account");
+      if (rpcError) throw rpcError;
+
+      toast.success("Account restored successfully!");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsRestoring(false);
     }
   }
 
   return (
     <AppShell>
       <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16">
-        {profile?.is_frozen && (
+        {profile?.is_suspended && (
           <div className="mb-8 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center text-destructive shrink-0">
               <ShieldAlert className="w-6 h-6" />
             </div>
             <div className="flex-1 text-left">
               <h3 className="text-sm font-bold text-destructive uppercase tracking-tight">
-                Account Frozen
+                Account Suspended
               </h3>
               <p className="text-xs text-muted-foreground">
-                Your account is currently locked for security. All financial transactions are
-                disabled. Please contact support to verify your identity and unfreeze.
+                Your account is currently locked. Reason: {profile.suspended_reason || "Security concerns"}.
+                Restore your account using your email verification code.
               </p>
             </div>
             <Button
               variant="outline"
               size="sm"
               className="border-destructive/30 text-destructive hover:bg-destructive/5"
-              onClick={() => navigate({ to: "/help" })}
+              onClick={handleInitiateRestore}
+              disabled={isRestoring}
             >
-              Contact Support
+              {isRestoring ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}
+              Restore Account
             </Button>
           </div>
         )}
@@ -1119,7 +1164,7 @@ function SettingsPage() {
                     )}
                   </button>
 
-                  {profile?.profile_photo_url && (
+                  {isMounted && profile?.profile_photo_url && (
                     <button
                       onClick={removeAvatar}
                       disabled={uploading}
@@ -1919,8 +1964,9 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Danger Zone */}
-          <SectionCard icon={X} title={t("settings.sections.danger")}>
+          <SectionCard icon={ShieldAlert} title="Danger Zone">
             <div className="space-y-6">
+              {/* Suspend Account Card */}
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -1929,27 +1975,121 @@ function SettingsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-medium text-foreground">
-                        Emergency Account Freeze
+                        Suspend My Account
                       </h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                         Suspect suspicious activity? Immediately lock all financial transactions.
-                        Only support can unfreeze your account after identity verification.
+                        You can self-restore later via email verification.
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-6">
-                  <Button
-                    variant="outline"
-                    className="w-full h-12 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/5 font-bold"
-                    onClick={handleEmergencyFreeze}
-                    disabled={saving || profile?.is_frozen}
-                  >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ShieldAlert className="w-4 h-4 mr-2" />}
-                    {profile?.is_frozen ? "Account Already Frozen" : "Freeze My Account Now"}
-                  </Button>
+                  {profile?.is_suspended ? (
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 font-bold"
+                      onClick={handleInitiateRestore}
+                      disabled={isRestoring}
+                    >
+                      {isRestoring ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                      )}
+                      Restore & Unsuspend Account
+                    </Button>
+                  ) : (
+                    <Dialog open={showSuspendDialog} onOpenChange={setShowSuspendDialog}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full h-12 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/5 font-bold"
+                          disabled={saving}
+                        >
+                          <ShieldAlert className="w-4 h-4 mr-2" />
+                          Suspend Account Now
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
+                        <DialogHeader className="mb-6">
+                          <DialogTitle className="text-2xl font-serif">
+                            Confirm Suspension
+                          </DialogTitle>
+                          <DialogDescription className="text-muted-foreground">
+                            Please provide a reason for suspending your account. This will help us
+                            secure your assets.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-6">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                              Reason for suspension
+                            </label>
+                            <textarea
+                              className="w-full min-h-[100px] rounded-xl border border-border/60 bg-input/40 p-4 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                              placeholder="e.g., Suspicious login detected from unknown device"
+                              value={suspensionReason}
+                              onChange={(e) => setSuspensionReason(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            className="w-full h-12 rounded-xl font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={!suspensionReason.trim() || saving}
+                            onClick={() => handleSuspendAccount(suspensionReason)}
+                          >
+                            {saving ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <ShieldOff className="w-4 h-4 mr-2" />
+                            )}
+                            Confirm Suspension
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
                 </div>
               </div>
+
+              {/* Restore Dialog (OTP) */}
+              <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
+                  <DialogHeader className="mb-6">
+                    <DialogTitle className="text-2xl font-serif text-center">Restore Account</DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-center">
+                      Enter the 6-digit code sent to <strong>{profile?.email}</strong> to verify your identity and restore access.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6">
+                    <div className="space-y-1.5 text-center">
+                      <Input
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={restoreOtp}
+                        onChange={(e) => setRestoreOtp(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                        className="h-16 bg-input/40 border-border/60 rounded-xl text-center font-mono text-3xl tracking-[0.5em]"
+                        autoFocus
+                      />
+                    </div>
+                    <Button
+                      className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                      disabled={restoreOtp.length !== 6 || isRestoring}
+                      onClick={handleVerifyRestore}
+                    >
+                      {isRestoring ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                      Verify & Restore Account
+                    </Button>
+                    <button
+                      onClick={handleInitiateRestore}
+                      className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Didn't receive a code? Resend
+                    </button>
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">

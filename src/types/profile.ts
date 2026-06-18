@@ -19,9 +19,10 @@ export type Profile = {
   biometric_enabled?: boolean;
   theme?: string;
   primary_currency?: string;
-  is_frozen?: boolean;
-  frozen_at?: string;
-  frozen_reason?: string;
+  is_suspended?: boolean;
+  suspended_at?: string;
+  suspended_reason?: string;
+  cooling_off_until?: string;
   id_number?: string;
   employment_status?: string;
   monthly_income?: number;

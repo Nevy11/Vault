@@ -437,13 +437,13 @@ export function WithdrawPanel() {
               <Button
                 className="w-full h-16 text-lg font-medium shadow-xl shadow-primary/20 rounded-2xl group"
                 onClick={handleWithdrawClick}
-                disabled={isPinVerifying || profile?.is_frozen}
+                disabled={isPinVerifying || profile?.is_suspended}
               >
                 {isPinVerifying ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    {profile?.is_frozen ? "Account Frozen" : t("transactions.withdraw.withdraw_btn")}{" "}
+                    {profile?.is_suspended ? "Account Suspended" : t("transactions.withdraw.withdraw_btn")}{" "}
                     <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}

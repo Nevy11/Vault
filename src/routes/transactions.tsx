@@ -828,9 +828,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                 size="lg"
                 className="w-full h-14 text-base font-medium shadow-lg shadow-primary/20"
                 onClick={handleSendClick}
-                disabled={(method === "vault" && !recipient) || profile?.is_frozen}
+                disabled={(method === "vault" && !recipient) || profile?.is_suspended}
               >
-                {profile?.is_frozen ? "Account Frozen" : t("transactions.form.send_money_btn")}{" "}
+                {profile?.is_suspended ? "Account Suspended" : t("transactions.form.send_money_btn")}{" "}
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
 
@@ -1980,9 +1980,9 @@ function SplitPanel() {
                                 setIdempotencyKey(crypto.randomUUID());
                                 setIsPinModalOpen(true);
                               }}
-                              disabled={profile?.is_frozen}
+                              disabled={profile?.is_suspended}
                             >
-                              {profile?.is_frozen ? "Frozen" : "Pay"}
+                              {profile?.is_suspended ? "Suspended" : "Pay"}
                             </Button>
 
                           </div>
