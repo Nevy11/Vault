@@ -805,7 +805,12 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                               : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40",
                           )}
                         >
-                          <CatIcon className={cn("w-4 h-4", isSelected ? "text-primary" : "text-muted-foreground")} />
+                          <CatIcon
+                            className={cn(
+                              "w-4 h-4",
+                              isSelected ? "text-primary" : "text-muted-foreground",
+                            )}
+                          />
                           <span className="text-[8px] font-bold uppercase tracking-tight truncate w-full px-1">
                             {cat.label.split(" ")[0]}
                           </span>
@@ -1405,7 +1410,10 @@ function SplitPanel() {
     try {
       const { data, error } = await supabase.rpc("pay_bill_split", {
         p_member_id: selectedMemberIdToPay,
+<<<<<<< HEAD
+=======
         p_idempotency_key: idempotencyKey,
+>>>>>>> 64a7ebf35aaeb41fe4a449a1a3e8b2f63ede57ca
       });
 
       if (error) throw error;
@@ -2367,7 +2375,8 @@ function TransactionHistory() {
 
     const txCategory = (t_data.category || "").toLowerCase();
     const CategoryIcon = categoryIcons[txCategory] || null;
-    const categoryColorClass = categoryColors[txCategory] || "bg-primary/10 text-primary border-primary/20";
+    const categoryColorClass =
+      categoryColors[txCategory] || "bg-primary/10 text-primary border-primary/20";
 
     // Method-specific logo helper
     const getMethodLogo = (method: string, description: string) => {
@@ -2405,21 +2414,23 @@ function TransactionHistory() {
     };
 
     if (t_data.type === "transfer") {
+      const isVaultTransfer = t_data.method === "vault" || (t_data.description || "").includes("Vault Transfer Ref:");
+      
       if (isSender) {
-        const desc = (t_data.description || "").toLowerCase();
         const logo = getMethodLogo(t_data.method || "", t_data.description || "");
         const useLogo = Boolean(logo);
 
-        let titleText = t_data.description;
+        let titleText = isVaultTransfer ? "P2P Transfer" : t_data.description;
         if (!titleText) {
-          const receiverName = t_data.receiver?.kyc_tag
+          const receiverTag = t_data.receiver?.kyc_tag
             ? `@${t_data.receiver.kyc_tag}`
-            : `${t_data.receiver?.first_name || t("common.user")} ${t_data.receiver?.last_name || ""}`.trim();
-          titleText = t("transactions.history.transfer_to", { receiverName });
+            : t_data.receiver?.first_name || t("common.user");
+          titleText = t_data.category ? `${t_data.category} | Sent to ${receiverTag}` : `Sent to ${receiverTag}`;
         }
 
         return {
           title: titleText,
+          subtitle: t_data.description, // Store the reference in subtitle/description area
           amount: `-${symbol}${t_data.amount.toLocaleString()}`,
           positive: false,
           icon: useLogo ? null : t_data.receiver?.first_name?.[0] || "V",
@@ -2430,14 +2441,18 @@ function TransactionHistory() {
           categoryColorClass,
         };
       } else {
-        let senderName = t_data.sender?.kyc_tag
-          ? `@${t_data.sender.kyc_tag}`
-          : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
-        const titleText =
-          t_data.description || t("transactions.history.received_from", { senderName });
+        let titleText = isVaultTransfer ? "P2P Transfer" : t_data.description;
+
+        if (!titleText) {
+          const senderName = t_data.sender?.kyc_tag
+            ? `@${t_data.sender.kyc_tag}`
+            : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
+          titleText = t("transactions.history.received_from", { senderName });
+        }
 
         return {
           title: titleText,
+          subtitle: t_data.description,
           amount: `+${symbol}${t_data.amount.toLocaleString()}`,
           positive: true,
           icon: t_data.sender?.first_name?.[0] || "V",
@@ -2592,26 +2607,30 @@ function TransactionHistory() {
                     className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className={cn("w-12 h-12 shrink-0 rounded-lg flex items-center justify-center border", details.categoryColorClass)}>
-                        {details.CategoryIcon ? <details.CategoryIcon className="w-6 h-6" /> : (
-                          <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
-                            {typeLabel}
-                          </span>
-                        )}
+                      <div className="relative shrink-0">
+                        <Avatar className="w-12 h-12 rounded-lg border border-border/40 shadow-sm">
+                          <AvatarImage 
+                            src={details.logo || details.avatarUrl || undefined} 
+                            className="object-cover"
+                          />
+                          <AvatarFallback className={cn("rounded-lg text-sm font-bold uppercase", details.color)}>
+                            {details.icon || typeLabel[0]}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                           {details.title}
                         </div>
+                        {(details as any).subtitle && (
+                          <div className="text-[10px] text-primary/80 font-mono truncate">
+                            {(details as any).subtitle}
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[10px] text-muted-foreground/60">
                             {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
                           </span>
-                          {t_item.category && (
-                            <span className={cn("px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter border", details.categoryColorClass)}>
-                              {t_item.category}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </div>

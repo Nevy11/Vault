@@ -16,7 +16,7 @@ serve(async (req) => {
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const { transactionId } = await req.json();
@@ -40,21 +40,21 @@ serve(async (req) => {
       Return ONLY the category name as a single word. If unsure, return 'Personal'.
     `;
 
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-      }),
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      },
+    );
 
     const data = await res.json();
     const category = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Personal";
 
-    await supabase
-      .from("transactions")
-      .update({ category })
-      .eq("id", transactionId);
+    await supabase.from("transactions").update({ category }).eq("id", transactionId);
 
     return new Response(JSON.stringify({ success: true, category }), {
       status: 200,

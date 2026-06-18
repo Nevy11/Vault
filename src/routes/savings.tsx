@@ -383,7 +383,7 @@ function SavingsPage() {
     toast.success("Automation Configured", {
       description: `KES ${autoAmount} will be deducted ${autoFreq} via ${displayProvider}.`,
     });
-    
+
     // Here, you would also call your API to set 'vault_balance' for this goal
     // updateGoal(goal.id, { is_automated: true, automation_amount: parseFormattedNumber(autoAmount), automation_provider: 'vault_balance' });
   };
@@ -414,10 +414,7 @@ function SavingsPage() {
       }
 
       // 2. Mark goal as completed
-      await supabase
-        .from("savings_goals")
-        .update({ status: "completed" })
-        .eq("id", savingsGoal.id);
+      await supabase.from("savings_goals").update({ status: "completed" }).eq("id", savingsGoal.id);
 
       // 3. Log to Transactions
       await supabase.from("transactions").insert({
@@ -854,7 +851,9 @@ function SavingsPage() {
                                 </p>
                               </div>
                             </div>
-                            <p className="mt-4 text-sm text-slate-600 leading-relaxed font-normal">{joke}</p>
+                            <p className="mt-4 text-sm text-slate-600 leading-relaxed font-normal">
+                              {joke}
+                            </p>
                             <div className="mt-5">
                               <Button
                                 variant="outline"
@@ -913,7 +912,9 @@ function SavingsPage() {
                               <td className="px-6 py-4 text-sm font-normal">
                                 {format(new Date(row.created_at), "MMM dd, yyyy")}
                               </td>
-                              <td className="px-6 py-4 text-sm capitalize font-normal">{row.source}</td>
+                              <td className="px-6 py-4 text-sm capitalize font-normal">
+                                {row.source}
+                              </td>
                               <td className="px-6 py-4">
                                 <span
                                   className={cn(
@@ -1427,7 +1428,6 @@ function SavingsPage() {
               </div>
 
               {/* Conditional Automation Inputs - Removed as only Vault balance is supported */}
-
             </div>
 
             <div className="mt-10 flex gap-4">

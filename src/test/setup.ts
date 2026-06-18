@@ -1,8 +1,8 @@
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import "@testing-library/jest-dom";
+import { vi } from "vitest";
 
 // Mock crypto for hashPin tests
-Object.defineProperty(global, 'crypto', {
+Object.defineProperty(global, "crypto", {
   value: {
     subtle: {
       digest: vi.fn(async (algorithm, data) => {

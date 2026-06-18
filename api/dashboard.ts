@@ -18,7 +18,7 @@ try {
   if (typeof require !== "function") {
     throw new Error("require is not available in this environment");
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+
   supabase = require("./supabase").supabase;
 } catch (e) {
   // Minimal stub that implements the chain: from().select().eq(...)[.single()]
