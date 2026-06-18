@@ -442,14 +442,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           p_sender_id: user.id,
           p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
-        const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
-          p_sender_id: user.id,
-          p_recipient_tag: fullTag,
-          p_amount: parseFloat(amount),
           p_category: selectedCategory,
           p_note: note.trim() || null,
           p_idempotency_key: idempotencyKey,
-        });
         });
 
         if (rpcError) {
