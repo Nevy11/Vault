@@ -46,6 +46,7 @@ export function useProfile() {
           ...profileData,
           language: prefData?.language || "en",
           theme: prefData?.theme || "system",
+          text_size: prefData?.text_size || "100",
         };
 
         // Sync i18n language

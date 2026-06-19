@@ -342,7 +342,10 @@
       "transfer_sent": "Transfer sent",
       "security_alerts": "Security alerts",
       "ai_insights_label": "AI Advisor insights",
-      "ai_insights_desc": "Receive proactive financial health alerts and advice."
+      "ai_insights_desc": "Receive proactive financial health alerts and advice.",
+      "text_size_title": "Text Accessibility",
+      "text_size_desc": "Adjust app-wide text sizes to support short or long-sighted reading.",
+      "text_size_btn": "Configure"
     },
     "danger": {
       "delete_account": "Delete Account",

@@ -18,6 +18,7 @@ export type Profile = {
   notifications_ai_insights?: boolean;
   biometric_enabled?: boolean;
   theme?: string;
+  text_size?: string;
   primary_currency?: string;
   is_suspended?: boolean;
   suspended_at?: string;

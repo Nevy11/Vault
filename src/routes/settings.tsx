@@ -1907,6 +1907,23 @@ function SettingsPage() {
               </div>
             </div>
 
+            <div className="py-6 border-b border-border/40 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-foreground">
+                  {t("settings.preferences.text_size_title", "Text Accessibility")}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("settings.preferences.text_size_desc", "Adjust app-wide text sizes to support short or long-sighted reading.")}
+                </p>
+              </div>
+              <Link
+                to="/preferences"
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary/10 px-4 text-xs font-semibold text-primary border border-primary/20 hover:bg-primary/20 transition-all active:scale-95 shadow-sm shrink-0"
+              >
+                {t("settings.preferences.text_size_btn", "Configure")} →
+              </Link>
+            </div>
+
             <div className="pt-6">
               <label className="block text-sm text-muted-foreground mb-2">
                 {t("settings.preferences.language")}
