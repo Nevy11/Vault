@@ -177,6 +177,7 @@ interface Recipient {
 function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const { t } = useTranslation();
   const { currency, refetch: refetchBalance } = useWalletBalance();
+  const { profile } = useProfile();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");

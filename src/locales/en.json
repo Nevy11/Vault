@@ -342,7 +342,10 @@
       "transfer_sent": "Transfer sent",
       "security_alerts": "Security alerts",
       "ai_insights_label": "AI Advisor insights",
-      "ai_insights_desc": "Receive proactive financial health alerts and advice."
+      "ai_insights_desc": "Receive proactive financial health alerts and advice.",
+      "text_size_title": "Text Accessibility",
+      "text_size_desc": "Adjust app-wide text sizes to support short or long-sighted reading.",
+      "text_size_btn": "Configure"
     },
     "danger": {
       "suspend_account": "Suspend Account",
@@ -938,11 +941,18 @@
     "method": "Method",
     "type": "Type",
     "completed": "COMPLETED",
-    "transfer_secure_msg": "Your transfer of {{currency}} {{amount}} has been processed securely.",
-    "legal_note": "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.",
+    "transfer_secure_msg": "Your transfer of {{currency}} {{amount}} has been processed securely and verified by Vault OS.",
+    "legal_note": "This receipt is digitally signed and cryptographically verified by Vault OS. It constitutes an official and tamper-evident record of the transaction described above. Retain for your records.",
     "certified": "Transaction Certified",
     "back": "Back",
-    "download": "Download receipt"
+    "download": "Download receipt",
+    "digital_signature": "Digital Signature",
+    "verification_code": "Verification Code",
+    "issued_at": "Issued At",
+    "verified": "Verified",
+    "encrypted": "Encrypted",
+    "stamp_verified": "Verified",
+    "stamp_official": "Official"
   },
   "kyc": {
     "meta_title": "Vault — KYC Verification",

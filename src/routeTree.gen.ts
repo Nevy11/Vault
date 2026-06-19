@@ -14,6 +14,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SavingsRouteImport } from './routes/savings'
 import { Route as RetrieveAccountRouteImport } from './routes/retrieve-account'
+import { Route as PreferencesRouteImport } from './routes/preferences'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoansRouteImport } from './routes/loans'
 import { Route as KycRouteImport } from './routes/kyc'
@@ -48,6 +49,11 @@ const SavingsRoute = SavingsRouteImport.update({
 const RetrieveAccountRoute = RetrieveAccountRouteImport.update({
   id: '/retrieve-account',
   path: '/retrieve-account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreferencesRoute = PreferencesRouteImport.update({
+  id: '/preferences',
+  path: '/preferences',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/preferences': typeof PreferencesRoute
   '/retrieve-account': typeof RetrieveAccountRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/preferences': typeof PreferencesRoute
   '/retrieve-account': typeof RetrieveAccountRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/kyc': typeof KycRoute
   '/loans': typeof LoansRoute
   '/login': typeof LoginRoute
+  '/preferences': typeof PreferencesRoute
   '/retrieve-account': typeof RetrieveAccountRoute
   '/savings': typeof SavingsRoute
   '/settings': typeof SettingsRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/kyc'
     | '/loans'
     | '/login'
+    | '/preferences'
     | '/retrieve-account'
     | '/savings'
     | '/settings'
@@ -182,6 +192,7 @@ export interface FileRouteTypes {
     | '/kyc'
     | '/loans'
     | '/login'
+    | '/preferences'
     | '/retrieve-account'
     | '/savings'
     | '/settings'
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/kyc'
     | '/loans'
     | '/login'
+    | '/preferences'
     | '/retrieve-account'
     | '/savings'
     | '/settings'
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   KycRoute: typeof KycRoute
   LoansRoute: typeof LoansRoute
   LoginRoute: typeof LoginRoute
+  PreferencesRoute: typeof PreferencesRoute
   RetrieveAccountRoute: typeof RetrieveAccountRoute
   SavingsRoute: typeof SavingsRoute
   SettingsRoute: typeof SettingsRoute
@@ -260,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: '/retrieve-account'
       fullPath: '/retrieve-account'
       preLoaderRoute: typeof RetrieveAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preferences': {
+      id: '/preferences'
+      path: '/preferences'
+      fullPath: '/preferences'
+      preLoaderRoute: typeof PreferencesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -345,6 +365,7 @@ const rootRouteChildren: RootRouteChildren = {
   KycRoute: KycRoute,
   LoansRoute: LoansRoute,
   LoginRoute: LoginRoute,
+  PreferencesRoute: PreferencesRoute,
   RetrieveAccountRoute: RetrieveAccountRoute,
   SavingsRoute: SavingsRoute,
   SettingsRoute: SettingsRoute,

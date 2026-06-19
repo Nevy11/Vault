@@ -14,6 +14,7 @@ import { supabase } from "@/api/supabase";
 import { useProfile } from "@/hooks/use-profile";
 import { useEffect, useState } from "react";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
+import { TextSizeProvider } from "@/hooks/use-text-size";
 
 import "../styles.css";
 import appCss from "../styles.css?url";
@@ -164,6 +165,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
                   document.documentElement.classList.remove('dark');
                 }
               } catch (e) {}
+              try {
+                const size = localStorage.getItem('text-size');
+                if (size) {
+                  document.documentElement.style.fontSize = size + '%';
+                }
+              } catch (e) {}
             `,
           }}
         />
@@ -208,7 +215,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RootInner />
+      <TextSizeProvider>
+        <RootInner />
+      </TextSizeProvider>
     </QueryClientProvider>
   );
 }

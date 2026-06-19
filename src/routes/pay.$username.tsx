@@ -283,7 +283,7 @@ function PaymentPortal() {
             {/* Profile Card Overlay */}
             <div className="flex flex-col gap-5 p-6 rounded-3xl bg-background/40 border border-border/40 shadow-inner relative z-10">
               <div className="flex items-center gap-5">
-                <Avatar className="w-16 h-16 border-2 border-primary/20 shadow-xl group-hover:scale-110 transition-transform duration-500">
+                <Avatar className="w-16 h-16 shadow-xl group-hover:scale-110 transition-transform duration-500">
                   <AvatarImage src={merchant.profile_photo_url || undefined} />
                   <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
                     {merchant.first_name[0]}
