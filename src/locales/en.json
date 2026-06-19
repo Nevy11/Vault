@@ -345,31 +345,28 @@
       "ai_insights_desc": "Receive proactive financial health alerts and advice."
     },
     "danger": {
-      "delete_account": "Delete Account",
-      "delete_desc": "Permanently delete your Vault OS account and all associated data. This action cannot be undone and will immediately revoke access to all authorized devices.",
-      "irreversible_title": "This is an irreversible action. Please ensure you have downloaded or backed up any important data before proceeding.",
-      "delete_btn": "Delete Account Permanently",
+      "suspend_account": "Suspend Account",
+      "suspend_desc": "Temporarily suspend your Vault OS account. This will block access from all devices until you reactivate it.",
+      "suspend_warning_title": "Suspension is reversible. You can reactivate your account later.",
+      "suspend_btn": "Suspend Account",
+        "suspend_why": "Suspending your account temporarily locks it, protecting your data if you suspect unauthorized access or need a break. Reactivate anytime from Settings → Account.",
       "confirm_title": "Are you sure?",
-      "confirm_desc": "This is a significant action. You are about to initiate the permanent removal of your Vault OS identity.",
-      "confirm_purge": "All your financial history, ledger entries, and personal data will be permanently purged.",
+      "confirm_desc": "You are about to suspend your Vault OS account. Access will be blocked until you reactivate it.",
+      "confirm_note": "Suspension can be lifted from Settings → Account.",
       "confirm_btn": "I understand, continue",
-      "final_warning": "Final Warning",
-      "final_desc": "This action is **irreversible**. Once completed, your funds and account access cannot be recovered by Vault Support.",
-      "final_list": [
-        "Immediate revocation of all device sessions",
-        "Permanent deletion of all cryptographic keys",
-        "Removal of your unique KYC tag and profile"
-      ],
+
+
+
       "go_back": "Go Back",
       "confirm_impact": "Confirm Impact",
       "verify_identity": "Verify Identity",
-      "verify_desc": "To prevent accidental deletion, please type {{target}} below and provide your password.",
+      "verify_desc": "To prevent accidental suspension, please type {{target}} below and provide your password.",
       "placeholder": "Type to confirm...",
       "password_label": "Account Password",
       "password_placeholder": "Enter your password to verify",
       "assets": {
         "title": "Active Assets Found",
-        "desc": "Before deleting your account, you must ensure you have no remaining balance, active loans, or pending savings goals.",
+        "desc": "Before suspending your account, ensure you have no remaining balance, active loans, or pending savings goals.",
         "balance": "Positive wallet balance",
         "loans": "Active unpaid loan",
         "savings": "Active savings goals",
