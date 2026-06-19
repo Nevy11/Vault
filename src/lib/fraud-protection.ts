@@ -9,7 +9,7 @@ export interface FraudCheckResult {
 /**
  * Velocity Check: Flag if a user attempts more than 3 transactions within a 5-minute window.
  */
-async function checkVelocity(userId: string): Promise<FraudCheckResult> {
+export async function checkVelocity(userId: string): Promise<FraudCheckResult> {
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
 
   const { count, error } = await supabase
@@ -38,7 +38,10 @@ async function checkVelocity(userId: string): Promise<FraudCheckResult> {
  * Value Spike Check: Calculate the user's rolling average for the last 10 transactions.
  * Flag if the current transaction is greater than 400% of that average.
  */
-async function checkValueSpike(userId: string, currentAmount: number): Promise<FraudCheckResult> {
+export async function checkValueSpike(
+  userId: string,
+  currentAmount: number,
+): Promise<FraudCheckResult> {
   const { data, error } = await supabase
     .from("transactions")
     .select("amount")

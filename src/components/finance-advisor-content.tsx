@@ -3,7 +3,7 @@ import { Sparkles, Shield, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 
@@ -184,7 +184,7 @@ function Bubble({
 
 export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }) {
   const { t, i18n } = useTranslation();
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [messages, setMessages] = useState<any[]>([]);
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);

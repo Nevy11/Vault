@@ -74,8 +74,9 @@ export const initiateStkPush = async (req: Request, res: Response) => {
     const token = await getDarajaToken();
     const timestamp = getTimestamp();
     const storeNumber = process.env.MPESA_STORE_NUMBER || process.env.MPESA_SHORTCODE || "174379";
-    const tillNumber = process.env.MPESA_TILL_NUMBER || (process.env.MPESA_STORE_NUMBER ? storeNumber : "174379");
-    
+    const tillNumber =
+      process.env.MPESA_TILL_NUMBER || (process.env.MPESA_STORE_NUMBER ? storeNumber : "174379");
+
     // Automatically detect transaction type: Sandbox default shortcode 174379 requires CustomerPayBillOnline
     const isSandboxDefault = storeNumber === "174379";
     const transactionType = isSandboxDefault ? "CustomerPayBillOnline" : "CustomerBuyGoodsOnline";

@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
-import { Lock, Loader2, ShieldCheck, AlertCircle } from "lucide-react";
+import { Lock, Loader2, ShieldCheck, AlertCircle, ShieldEllipsis } from "lucide-react";
 import { supabase } from "@/api/supabase";
 import { hashPin } from "@/lib/utils";
 import { toast } from "sonner";
+import { StepUpAuthModal } from "./step-up-auth-modal";
 
 interface TransactionPinModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface TransactionPinModalProps {
   onVerified: () => void;
   title?: string;
   description?: string;
+  amount?: number;
 }
 
 export function TransactionPinModal({
@@ -27,10 +29,16 @@ export function TransactionPinModal({
   onVerified,
   title = "Verify Transaction",
   description = "Enter your 6-digit secure transaction PIN to authorize this request.",
+  amount = 0,
 }: TransactionPinModalProps) {
   const [pin, setPin] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showStepUp, setShowStepUp] = useState(false);
+
+  // Define Step-up threshold (e.g., $500)
+  const STEP_UP_THRESHOLD = 500;
+  const requiresStepUp = amount >= STEP_UP_THRESHOLD;
 
   const handleVerify = async (value: string) => {
     if (value.length !== 6) return;
@@ -39,32 +47,31 @@ export function TransactionPinModal({
     setError(null);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Authentication required");
-
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("pin_hash")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError || !profile) throw new Error("Failed to retrieve security profile");
-
       const hashedPin = await hashPin(value);
-      if (profile.pin_hash !== hashedPin) {
+      
+      const { data: isValid, error: rpcError } = await supabase.rpc("verify_current_pin", {
+        provided_pin_hash: hashedPin,
+      });
+
+      if (rpcError) throw rpcError;
+
+      if (!isValid) {
         setError("Incorrect transaction PIN. Please try again.");
         setPin("");
         return;
       }
 
       // Success!
-      toast.success("Identity verified securely", {
-        icon: <ShieldCheck className="w-4 h-4 text-emerald-500" />,
-      });
-      onVerified();
-      onClose();
+      if (requiresStepUp) {
+        toast.info("High-value transaction detected. Additional verification required.");
+        setShowStepUp(true);
+      } else {
+        toast.success("Identity verified securely", {
+          icon: <ShieldCheck className="w-4 h-4 text-emerald-500" />,
+        });
+        onVerified();
+        onClose();
+      }
     } catch (err: any) {
       console.error("PIN verification error:", err);
       setError(err.message || "An error occurred during verification");
@@ -73,6 +80,24 @@ export function TransactionPinModal({
       setIsVerifying(false);
     }
   };
+
+  if (showStepUp) {
+    return (
+      <StepUpAuthModal
+        isOpen={isOpen}
+        onClose={() => {
+          setShowStepUp(false);
+          onClose();
+        }}
+        onVerified={() => {
+          onVerified();
+          onClose();
+        }}
+        purpose="high_value_transfer"
+        description={`For your security, a verification code is required for transfers over $${STEP_UP_THRESHOLD}.`}
+      />
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && !isVerifying && onClose()}>
@@ -139,10 +164,20 @@ export function TransactionPinModal({
         </div>
 
         <div className="bg-primary/5 p-4 text-center border-t border-primary/10 flex items-center justify-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-          Vault 256-bit AES Encryption Active
+          {requiresStepUp ? (
+            <>
+              <ShieldEllipsis className="w-3.5 h-3.5 text-amber-500" />
+              Enhanced Multi-Factor Security Required
+            </>
+          ) : (
+            <>
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              Vault 256-bit AES Encryption Active
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+

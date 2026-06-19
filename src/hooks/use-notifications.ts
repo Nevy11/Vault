@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 
 export type NotificationType = "info" | "success" | "warning" | "error";
 
@@ -18,7 +18,7 @@ export interface Notification {
 }
 
 export function useNotifications() {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

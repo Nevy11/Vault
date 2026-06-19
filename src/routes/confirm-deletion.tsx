@@ -33,13 +33,15 @@ function ConfirmDeletionPage() {
           if (retryCount < maxRetries) {
             retryCount++;
             setTimeout(async () => {
-              const { data: { session: s } } = await supabase.auth.getSession();
+              const {
+                data: { session: s },
+              } = await supabase.auth.getSession();
               if (s) handleDeletionFlow(s);
               else if (retryCount === maxRetries) {
-                 if (isMounted) {
-                   setStatus("error");
-                   setMessage("Session not found. Please try confirming again from settings.");
-                 }
+                if (isMounted) {
+                  setStatus("error");
+                  setMessage("Session not found. Please try confirming again from settings.");
+                }
               }
             }, 1500); // 1.5s delay for skew
             return;
@@ -48,7 +50,7 @@ function ConfirmDeletionPage() {
         }
 
         // 2. Verify the intent from metadata
-        if (session.user.user_metadata.intent !== 'account_deletion') {
+        if (session.user.user_metadata.intent !== "account_deletion") {
           setStatus("error");
           setMessage("Invalid request intent.");
           return;
@@ -65,7 +67,9 @@ function ConfirmDeletionPage() {
 
         if (isMounted) {
           setStatus("success");
-          setMessage("Your account deletion has been scheduled. You have 4 working days to retrieve it if you change your mind.");
+          setMessage(
+            "Your account deletion has been scheduled. You have 4 working days to retrieve it if you change your mind.",
+          );
         }
       } catch (err: any) {
         if (isMounted) {
@@ -76,7 +80,9 @@ function ConfirmDeletionPage() {
     }
 
     // Use onAuthStateChange for better reliability
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("DEBUG: Auth Event on Confirmation Page:", event);
       if (session) {
         handleDeletionFlow(session);
@@ -116,12 +122,12 @@ function ConfirmDeletionPage() {
             </div>
             <h1 className="text-3xl font-serif">Account Scheduled for Deletion</h1>
             <p className="text-muted-foreground leading-relaxed">{message}</p>
-            <Button 
+            <Button
               className="w-full h-12 rounded-xl font-bold"
               onClick={() => {
-                 supabase.auth.signOut().then(() => {
-                   navigate({ to: "/login" });
-                 });
+                supabase.auth.signOut().then(() => {
+                  navigate({ to: "/login" });
+                });
               }}
             >
               Back to Login
@@ -136,7 +142,7 @@ function ConfirmDeletionPage() {
             </div>
             <h1 className="text-3xl font-serif text-destructive">Verification Failed</h1>
             <p className="text-muted-foreground leading-relaxed">{message}</p>
-            <Button 
+            <Button
               variant="outline"
               className="w-full h-12 rounded-xl font-bold"
               onClick={() => navigate({ to: "/" })}

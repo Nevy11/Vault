@@ -106,7 +106,7 @@ function SignUp() {
     setStatus("sending");
     try {
       console.log("Checking for existing account...");
-      
+
       // Check if phone number is already in use
       const { data: existingPhone, error: phoneError } = await supabase
         .from("profiles")

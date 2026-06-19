@@ -270,21 +270,45 @@ serve(async (req) => {
     const validTypes = ["prediction", "alert", "tip", "milestone"];
     const insightType = validTypes.includes(insightJson.type) ? insightJson.type : "tip";
 
-    const { error: insertError } = await supabase.from("financial_insights").insert({
-      user_id: userId,
-      type: insightType,
-      title: insightJson.title || "Financial Insight",
-      content: insightJson.content || "No detailed content provided.",
-      metadata: {
-        severity: insightJson.severity || "low",
-        generated_at: new Date().toISOString(),
-        original_type: insightJson.type,
-      },
-    });
+    const { data: insightData, error: insertError } = await supabase
+      .from("financial_insights")
+      .insert({
+        user_id: userId,
+        type: insightType,
+        title: insightJson.title || "Financial Insight",
+        content: insightJson.content || "No detailed content provided.",
+        metadata: {
+          severity: insightJson.severity || "low",
+          generated_at: new Date().toISOString(),
+          original_type: insightJson.type,
+        },
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.error("Database Insert Error:", insertError);
       throw new Error(`Failed to store insight: ${insertError.message}`);
+    }
+
+    // 6. Proactive Notification
+    // If severity is medium or high, or if it's an alert/prediction, notify the user.
+    if (
+      insightJson.severity === "high" ||
+      insightJson.severity === "medium" ||
+      insightType === "alert" ||
+      insightType === "prediction"
+    ) {
+      await supabase.from("notifications").insert({
+        user_id: userId,
+        title: insightJson.title,
+        message: insightJson.content,
+        type: insightType,
+        metadata: {
+          insight_id: insightData.id,
+          severity: insightJson.severity,
+        },
+      });
     }
 
     return new Response(

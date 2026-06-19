@@ -33,6 +33,8 @@ import {
   AlertCircle,
   ArrowUpRight,
   ArrowDownLeft,
+  ShoppingCart,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +46,7 @@ import { WithdrawPanel } from "@/components/withdraw-panel";
 import { TransactionPinModal } from "@/components/transaction-pin-modal";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions } from "@/hooks/use-transactions";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/api/supabase";
 import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
@@ -81,6 +83,7 @@ import i18n from "@/lib/i18n";
 
 const transactionsSearchSchema = z.object({
   mode: z.enum(["send", "deposit", "withdraw", "split"]).optional(),
+  to: z.string().optional(),
 });
 
 export const Route = createFileRoute("/transactions")({
@@ -177,11 +180,26 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");
+  const [note, setNote] = useState("");
   const [bank, setBank] = useState("");
   const [provider, setProvider] = useState("M-Pesa");
+  const [selectedCategory, setSelectedCategory] = useState("Transfer");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
   const [refCode, setRefCode] = useState("");
+
+  const categories = [
+    { id: "Transfer", label: "General Transfer", icon: ArrowRight },
+    { id: "Dining", label: "Dining & Food", icon: Utensils },
+    { id: "Shopping", label: "Shopping", icon: ShoppingBag },
+    { id: "Transport", label: "Transport", icon: Smartphone },
+    { id: "Utilities", label: "Bills & Utilities", icon: Zap },
+    { id: "Groceries", label: "Groceries", icon: ShoppingCart },
+    { id: "Entertainment", label: "Entertainment", icon: Tv },
+    { id: "Healthcare", label: "Medical & Health", icon: HeartPulse },
+    { id: "Personal", label: "Personal Gift", icon: User },
+  ];
 
   // Recipient Lists State
   const [recentRecipients, setRecentRecipients] = useState<Recipient[]>([]);
@@ -403,6 +421,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
       toast.error(t("transactions.errors.fill_required"));
       return;
     }
+    setIdempotencyKey(crypto.randomUUID());
     setIsPinModalOpen(true);
   };
 
@@ -424,6 +443,9 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           p_sender_id: user.id,
           p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
+          p_category: selectedCategory,
+          p_note: note.trim() || null,
+          p_idempotency_key: idempotencyKey,
         });
 
         if (rpcError) {
@@ -452,6 +474,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
             method === "mobile"
               ? `Transfer to ${provider}: ${identifier}`
               : `Bank Transfer to ${bank}: ${identifier}`,
+          p_idempotency_key: idempotencyKey,
         });
 
         if (rpcError) {
@@ -754,6 +777,50 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label>Note (Optional context for AI)</Label>
+                <Input
+                  placeholder="e.g. Lunch at KFC, Uber ride"
+                  className="bg-background/40 h-12 border-border/60"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </div>
+
+              {method === "vault" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <Label>Spending Category</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {categories.slice(0, 9).map((cat) => {
+                      const CatIcon = cat.icon;
+                      const isSelected = selectedCategory === cat.id;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={cn(
+                            "flex flex-col items-center justify-center p-2 rounded-xl border transition-all gap-1 group",
+                            isSelected
+                              ? "border-primary bg-primary/10 text-primary shadow-sm"
+                              : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40",
+                          )}
+                        >
+                          <CatIcon
+                            className={cn(
+                              "w-4 h-4",
+                              isSelected ? "text-primary" : "text-muted-foreground",
+                            )}
+                          />
+                          <span className="text-[8px] font-bold uppercase tracking-tight truncate w-full px-1">
+                            {cat.label.split(" ")[0]}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-5 flex flex-col justify-end">
@@ -761,10 +828,12 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                 size="lg"
                 className="w-full h-14 text-base font-medium shadow-lg shadow-primary/20"
                 onClick={handleSendClick}
-                disabled={method === "vault" && !recipient}
+                disabled={(method === "vault" && !recipient) || profile?.is_suspended}
               >
-                {t("transactions.form.send_money_btn")} <ArrowRight className="ml-2 w-5 h-5" />
+                {profile?.is_suspended ? "Account Suspended" : t("transactions.form.send_money_btn")}{" "}
+                <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
+
             </div>
           </div>
         </div>
@@ -926,6 +995,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           amount: parseFloat(amount || "0").toLocaleString(),
           identifier,
         })}
+        amount={parseFloat(amount || "0")}
       />
     </div>
   );
@@ -937,7 +1007,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
 function SplitPanel() {
   const { t } = useTranslation();
   const { currency, refetch: refetchBalance } = useWalletBalance();
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const currentUser = profile as any;
   const [mounted, setMounted] = useState(false);
 
@@ -951,7 +1021,15 @@ function SplitPanel() {
   const [category, setCategory] = useState("food");
   const [splitMethod, setSplitMethod] = useState<"equal" | "custom">("equal");
   const [includeCreator, setIncludeCreator] = useState(true);
-  const [participants, setParticipants] = useState<{ id: string; first_name: string; last_name: string; kyc_tag: string; profile_photo_url?: string }[]>([]);
+  const [participants, setParticipants] = useState<
+    {
+      id: string;
+      first_name: string;
+      last_name: string;
+      kyc_tag: string;
+      profile_photo_url?: string;
+    }[]
+  >([]);
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({});
   const [creatorCustomAmount, setCreatorCustomAmount] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -970,17 +1048,48 @@ function SplitPanel() {
   const [selectedSplitAmount, setSelectedSplitAmount] = useState(0);
   const [selectedSplitTitle, setSelectedSplitTitle] = useState("");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [isPaying, setIsPaying] = useState(false);
   const [splitToCancel, setSplitToCancel] = useState<string | null>(null);
 
   // Categories helper
   const categories = [
-    { id: "food", label: "Food & Drinks", icon: Utensils, color: "text-primary bg-primary/10 border-primary/20" },
-    { id: "rent", label: "Rent & Stay", icon: Home, color: "text-secondary-foreground bg-secondary border-secondary/20" },
-    { id: "shopping", label: "Shopping", icon: ShoppingBag, color: "text-accent-foreground bg-accent/20 border-accent/20" },
-    { id: "utilities", label: "Utilities", icon: Zap, color: "text-primary bg-primary/10 border-primary/20" },
-    { id: "entertainment", label: "Entertainment", icon: Tv, color: "text-secondary-foreground bg-secondary border-secondary/20" },
-    { id: "other", label: "Other", icon: Tag, color: "text-muted-foreground bg-muted border-border/20" }
+    {
+      id: "food",
+      label: "Food & Drinks",
+      icon: Utensils,
+      color: "text-primary bg-primary/10 border-primary/20",
+    },
+    {
+      id: "rent",
+      label: "Rent & Stay",
+      icon: Home,
+      color: "text-secondary-foreground bg-secondary border-secondary/20",
+    },
+    {
+      id: "shopping",
+      label: "Shopping",
+      icon: ShoppingBag,
+      color: "text-accent-foreground bg-accent/20 border-accent/20",
+    },
+    {
+      id: "utilities",
+      label: "Utilities",
+      icon: Zap,
+      color: "text-primary bg-primary/10 border-primary/20",
+    },
+    {
+      id: "entertainment",
+      label: "Entertainment",
+      icon: Tv,
+      color: "text-secondary-foreground bg-secondary border-secondary/20",
+    },
+    {
+      id: "other",
+      label: "Other",
+      icon: Tag,
+      color: "text-muted-foreground bg-muted border-border/20",
+    },
   ];
 
   // Fetch splits function
@@ -988,17 +1097,20 @@ function SplitPanel() {
     // Robustly get user ID - fallback to session if profile signal is lagging
     let userId = currentUser?.id;
     if (!userId) {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       userId = session?.user?.id;
     }
 
     if (!userId) return;
-    
+
     try {
       // 1. Fetch splits you owe
       const { data: memberRecords, error: errOwed } = await supabase
         .from("bill_split_members")
-        .select(`
+        .select(
+          `
           id,
           amount,
           status,
@@ -1016,7 +1128,8 @@ function SplitPanel() {
               kyc_tag
             )
           )
-        `)
+        `,
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
@@ -1026,7 +1139,8 @@ function SplitPanel() {
       // 2. Fetch splits you created
       const { data: splitsData, error: errCreated } = await supabase
         .from("bill_splits")
-        .select(`
+        .select(
+          `
           id,
           title,
           total_amount,
@@ -1046,7 +1160,8 @@ function SplitPanel() {
               kyc_tag
             )
           )
-        `)
+        `,
+        )
         .eq("creator_id", userId)
         .order("created_at", { ascending: false });
 
@@ -1066,21 +1181,13 @@ function SplitPanel() {
 
     const channel = supabase
       .channel("realtime-bill-splits")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bill_splits" },
-        () => {
-          fetchSplits();
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bill_split_members" },
-        () => {
-          fetchSplits();
-          refetchBalance();
-        }
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "bill_splits" }, () => {
+        fetchSplits();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "bill_split_members" }, () => {
+        fetchSplits();
+        refetchBalance();
+      })
       .subscribe();
 
     return () => {
@@ -1118,8 +1225,8 @@ function SplitPanel() {
 
   // Calculations
   const shareCount = participants.length + (includeCreator ? 1 : 0);
-  const equalShare = shareCount > 0 && totalAmount ? (parseFloat(totalAmount) / shareCount) : 0;
-  
+  const equalShare = shareCount > 0 && totalAmount ? parseFloat(totalAmount) / shareCount : 0;
+
   // Custom split totals
   const friendsCustomTotal = useMemo(() => {
     let total = 0;
@@ -1135,7 +1242,10 @@ function SplitPanel() {
     return Math.max(0, total - friendsCustomTotal);
   }, [totalAmount, friendsCustomTotal]);
 
-  const remainingToSplit = parseFloat(totalAmount || "0") - friendsCustomTotal - (includeCreator ? autoCalculatedCreatorShare : 0);
+  const remainingToSplit =
+    parseFloat(totalAmount || "0") -
+    friendsCustomTotal -
+    (includeCreator ? autoCalculatedCreatorShare : 0);
 
   // Sync custom amounts with equal split if method is changed
   useEffect(() => {
@@ -1177,12 +1287,12 @@ function SplitPanel() {
     }
     const newParticipants = [...participants, u];
     setParticipants(newParticipants);
-    
+
     // Initialize custom amount for new participant
     if (splitMethod === "custom") {
-      setCustomAmounts(prev => ({ ...prev, [u.id]: "0" }));
+      setCustomAmounts((prev) => ({ ...prev, [u.id]: "0" }));
     }
-    
+
     setSearchQuery("");
     setShowSuggestions(false);
   };
@@ -1212,32 +1322,40 @@ function SplitPanel() {
     // Validation for custom split
     const currentTotal = friendsCustomTotal + (includeCreator ? autoCalculatedCreatorShare : 0);
     if (splitMethod === "custom" && Math.abs(currentTotal - parseFloat(totalAmount)) > 0.01) {
-      toast.error(`Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${currentTotal.toFixed(2)}.`);
+      toast.error(
+        `Amounts must sum to exactly ${currency} ${totalAmount}. Currently ${currency} ${currentTotal.toFixed(2)}.`,
+      );
       return;
     }
 
     setIsCreating(true);
     try {
-      const membersPayload = splitMethod === "equal" 
-        ? participants.map((p) => ({
-            user_id: p.id,
-            amount: equalShare
-          }))
-        : participants.map((p) => ({
-            user_id: p.id,
-            amount: parseFloat(customAmounts[p.id] || "0")
-          }));
+      const membersPayload =
+        splitMethod === "equal"
+          ? participants.map((p) => ({
+              user_id: p.id,
+              amount: equalShare,
+            }))
+          : participants.map((p) => ({
+              user_id: p.id,
+              amount: parseFloat(customAmounts[p.id] || "0"),
+            }));
 
-      const creatorAmount = splitMethod === "equal"
-        ? (includeCreator ? equalShare : 0)
-        : (includeCreator ? parseFloat(creatorCustomAmount || "0") : 0);
+      const creatorAmount =
+        splitMethod === "equal"
+          ? includeCreator
+            ? equalShare
+            : 0
+          : includeCreator
+            ? parseFloat(creatorCustomAmount || "0")
+            : 0;
 
       const { error } = await supabase.rpc("create_bill_split_v3", {
         p_title: title.trim(),
         p_total_amount: parseFloat(totalAmount),
         p_category: category,
         p_members: membersPayload,
-        p_creator_amount: creatorAmount
+        p_creator_amount: creatorAmount,
       });
 
       if (error) throw error;
@@ -1264,10 +1382,10 @@ function SplitPanel() {
 
   const confirmCancelSplit = async () => {
     if (!splitToCancel) return;
-    
+
     try {
       const { error } = await supabase.rpc("cancel_bill_split", {
-        p_split_id: splitToCancel
+        p_split_id: splitToCancel,
       });
 
       if (error) throw error;
@@ -1292,7 +1410,8 @@ function SplitPanel() {
     setIsPaying(true);
     try {
       const { data, error } = await supabase.rpc("pay_bill_split", {
-        p_member_id: selectedMemberIdToPay
+        p_member_id: selectedMemberIdToPay,
+        p_idempotency_key: idempotencyKey,
       });
 
       if (error) throw error;
@@ -1337,7 +1456,6 @@ function SplitPanel() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 bg-card/30 border border-border/50 rounded-3xl p-6 sm:p-8 backdrop-blur-sm">
           {/* Left Side: Configuration */}
           <div className="lg:col-span-2 space-y-8">
-            
             {/* Section 1: Bill Details */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/70 bg-primary/5 w-fit px-2.5 py-1 rounded-md border border-primary/10">
@@ -1345,7 +1463,9 @@ function SplitPanel() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <Label htmlFor="split-title" className="text-xs font-semibold">Bill Description</Label>
+                  <Label htmlFor="split-title" className="text-xs font-semibold">
+                    Bill Description
+                  </Label>
                   <Input
                     id="split-title"
                     placeholder="e.g. Dinner at Mama's"
@@ -1356,7 +1476,9 @@ function SplitPanel() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="split-amount" className="text-xs font-semibold">Total Amount</Label>
+                  <Label htmlFor="split-amount" className="text-xs font-semibold">
+                    Total Amount
+                  </Label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-semibold">
                       {currency}
@@ -1374,7 +1496,9 @@ function SplitPanel() {
               </div>
 
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground">Select Category</Label>
+                <Label className="text-xs font-semibold text-muted-foreground">
+                  Select Category
+                </Label>
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-2.5">
                   {categories.map((c) => {
                     const Icon = c.icon;
@@ -1392,16 +1516,20 @@ function SplitPanel() {
                           "flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center gap-2 group",
                           isSelected
                             ? "border-primary bg-primary/10 text-primary shadow-sm"
-                            : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground hover:border-border/60"
+                            : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40 hover:text-foreground hover:border-border/60",
                         )}
                       >
-                        <div className={cn(
-                          "w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
-                          isSelected ? "bg-primary text-white" : "bg-muted/30"
-                        )}>
+                        <div
+                          className={cn(
+                            "w-9 h-9 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110",
+                            isSelected ? "bg-primary text-white" : "bg-muted/30",
+                          )}
+                        >
                           <Icon className="w-5 h-5" />
                         </div>
-                        <span className="text-[9px] font-bold uppercase tracking-tight">{c.label.split(" ")[0]}</span>
+                        <span className="text-[9px] font-bold uppercase tracking-tight">
+                          {c.label.split(" ")[0]}
+                        </span>
                       </button>
                     );
                   })}
@@ -1414,7 +1542,7 @@ function SplitPanel() {
               <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-primary/70 bg-primary/5 w-fit px-2.5 py-1 rounded-md border border-primary/10">
                 <Users className="w-3 h-3" /> 2. Who's involved?
               </div>
-              
+
               <div className="space-y-2 relative" onClick={(e) => e.stopPropagation()}>
                 <Label className="text-xs font-semibold">Add Friends (Vault Users)</Label>
                 <div className="relative">
@@ -1446,14 +1574,17 @@ function SplitPanel() {
                           <Avatar className="w-10 h-10 border-2 border-background shadow-sm">
                             <AvatarImage src={u.profile_photo_url} />
                             <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                              {u.first_name[0]}{u.last_name[0]}
+                              {u.first_name[0]}
+                              {u.last_name[0]}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                               {u.first_name} {u.last_name}
                             </div>
-                            <div className="text-[10px] text-muted-foreground font-mono tracking-tight">{u.kyc_tag}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono tracking-tight">
+                              {u.kyc_tag}
+                            </div>
                           </div>
                           <Plus className="w-5 h-5 text-muted-foreground/30 group-hover:text-primary transition-all group-hover:rotate-90" />
                         </button>
@@ -1473,17 +1604,20 @@ function SplitPanel() {
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Avatar className="w-8 h-8 border border-background">
                             <AvatarImage src={currentUser?.profile_photo_url} />
-                            <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">ME</AvatarFallback>
+                            <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">
+                              ME
+                            </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0">
                             <div className="text-[11px] font-bold text-primary uppercase tracking-tighter leading-none">
                               You (Creator)
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate">
-                              {mounted ? `${currentUser?.first_name || ""} ${currentUser?.last_name || ""}` : " "}
+                              {mounted
+                                ? `${currentUser?.first_name || ""} ${currentUser?.last_name || ""}`
+                                : " "}
                             </div>
                           </div>
-
                         </div>
                         {splitMethod === "custom" ? (
                           <div className="flex items-center gap-2 ml-4">
@@ -1497,7 +1631,8 @@ function SplitPanel() {
                           </div>
                         ) : (
                           <div className="text-xs font-bold text-primary font-mono bg-primary/10 px-2 py-1 rounded-md">
-                            {currency} {equalShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {currency}{" "}
+                            {equalShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                         )}
                       </div>
@@ -1514,19 +1649,26 @@ function SplitPanel() {
                             <Avatar className="w-8 h-8 border border-background shadow-xs">
                               <AvatarImage src={p.profile_photo_url} />
                               <AvatarFallback className="text-[10px] bg-primary/20 text-primary font-bold">
-                                {p.first_name[0]}{p.last_name[0]}
+                                {p.first_name[0]}
+                                {p.last_name[0]}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="text-[11px] font-bold text-foreground leading-none">{p.first_name} {p.last_name}</div>
-                              <div className="text-[10px] text-muted-foreground font-mono truncate">{p.kyc_tag}</div>
+                              <div className="text-[11px] font-bold text-foreground leading-none">
+                                {p.first_name} {p.last_name}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground font-mono truncate">
+                                {p.kyc_tag}
+                              </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-3">
                             {splitMethod === "custom" ? (
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-muted-foreground">{currency}</span>
+                                <span className="text-[10px] font-bold text-muted-foreground">
+                                  {currency}
+                                </span>
                                 <Input
                                   type="number"
                                   className="h-8 w-24 bg-background/60 border-border/60 text-xs font-mono font-bold"
@@ -1536,7 +1678,8 @@ function SplitPanel() {
                               </div>
                             ) : (
                               <div className="text-xs font-bold text-foreground font-mono bg-muted/30 px-2 py-1 rounded-md">
-                                {currency} {equalShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                {currency}{" "}
+                                {equalShare.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </div>
                             )}
                             <button
@@ -1572,7 +1715,7 @@ function SplitPanel() {
                     "flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all font-semibold",
                     splitMethod === "equal"
                       ? "border-primary bg-primary/10 text-primary shadow-inner"
-                      : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40"
+                      : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40",
                   )}
                 >
                   <Users className="w-5 h-5" />
@@ -1585,7 +1728,7 @@ function SplitPanel() {
                     "flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all font-semibold",
                     splitMethod === "custom"
                       ? "border-primary bg-primary/10 text-primary shadow-inner"
-                      : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40"
+                      : "border-border/40 bg-background/20 text-muted-foreground hover:bg-background/40",
                   )}
                 >
                   <Plus className="w-5 h-5" />
@@ -1599,18 +1742,26 @@ function SplitPanel() {
           <div className="flex flex-col border-t lg:border-t-0 lg:border-l border-border/40 pt-8 lg:pt-0 lg:pl-8">
             <div className="flex-1 space-y-6">
               <div className="text-center space-y-1">
-                <div className="text-[10px] uppercase tracking-[0.3em] font-black text-primary/60">Final Breakdown</div>
+                <div className="text-[10px] uppercase tracking-[0.3em] font-black text-primary/60">
+                  Final Breakdown
+                </div>
                 <div className="text-2xl font-bold font-mono tracking-tighter">PREVIEW</div>
               </div>
 
               <div className="rounded-3xl bg-primary/5 border border-primary/10 p-6 space-y-5 relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-3xl -mr-12 -mt-12 transition-all group-hover:bg-primary/20" />
-                
+
                 <div className="space-y-4 relative z-10">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Total Bill</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
+                      Total Bill
+                    </span>
                     <span className="text-lg font-black text-foreground font-mono">
-                      {currency} {parseFloat(totalAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currency}{" "}
+                      {parseFloat(totalAmount || "0").toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
 
@@ -1627,10 +1778,15 @@ function SplitPanel() {
                         onClick={() => setIncludeCreator(!includeCreator)}
                         className={cn(
                           "w-10 h-6 rounded-full p-1 transition-all duration-300 focus:outline-none ring-offset-background focus:ring-2 focus:ring-primary/20",
-                          includeCreator ? "bg-primary shadow-sm" : "bg-muted"
+                          includeCreator ? "bg-primary shadow-sm" : "bg-muted",
                         )}
                       >
-                        <div className={cn("w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300", includeCreator ? "translate-x-4" : "translate-x-0")} />
+                        <div
+                          className={cn(
+                            "w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-300",
+                            includeCreator ? "translate-x-4" : "translate-x-0",
+                          )}
+                        />
                       </button>
                     </div>
 
@@ -1639,17 +1795,31 @@ function SplitPanel() {
                         <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                         <span className="text-muted-foreground font-medium">Participants</span>
                       </div>
-                      <span className="font-bold text-foreground bg-primary/10 px-2.5 py-0.5 rounded-full text-xs">{shareCount} total</span>
+                      <span className="font-bold text-foreground bg-primary/10 px-2.5 py-0.5 rounded-full text-xs">
+                        {shareCount} total
+                      </span>
                     </div>
 
                     {splitMethod === "custom" && (
                       <div className="flex justify-between items-center text-[11px]">
                         <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", Math.abs(remainingToSplit) < 0.01 ? "bg-primary" : "bg-rose-500")} />
+                          <div
+                            className={cn(
+                              "w-1.5 h-1.5 rounded-full",
+                              Math.abs(remainingToSplit) < 0.01 ? "bg-primary" : "bg-rose-500",
+                            )}
+                          />
                           <span className="text-muted-foreground">Status</span>
                         </div>
-                        <span className={cn("font-bold uppercase tracking-tighter", Math.abs(remainingToSplit) < 0.01 ? "text-primary" : "text-destructive")}>
-                          {Math.abs(remainingToSplit) < 0.01 ? "Fully Allocated" : "Allocation Pending"}
+                        <span
+                          className={cn(
+                            "font-bold uppercase tracking-tighter",
+                            Math.abs(remainingToSplit) < 0.01 ? "text-primary" : "text-destructive",
+                          )}
+                        >
+                          {Math.abs(remainingToSplit) < 0.01
+                            ? "Fully Allocated"
+                            : "Allocation Pending"}
                         </span>
                       </div>
                     )}
@@ -1661,9 +1831,16 @@ function SplitPanel() {
                         {splitMethod === "equal" ? "Cost Per Person" : "Your Contribution"}
                       </div>
                       <div className="text-3xl font-black text-primary text-center font-mono tracking-tighter">
-                        {currency} {splitMethod === "equal" 
-                          ? equalShare.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : parseFloat(creatorCustomAmount || "0").toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {currency}{" "}
+                        {splitMethod === "equal"
+                          ? equalShare.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })
+                          : parseFloat(creatorCustomAmount || "0").toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
                       </div>
                     </div>
                   </div>
@@ -1671,7 +1848,7 @@ function SplitPanel() {
               </div>
 
               <div className="text-[10px] text-center text-muted-foreground/60 font-medium italic px-4 leading-tight">
-                {splitMethod === "equal" 
+                {splitMethod === "equal"
                   ? "Vault Split automatically handles penny rounding to ensure exact settlement."
                   : "Ensure all custom shares sum up to the total bill amount before proceeding."}
               </div>
@@ -1720,7 +1897,9 @@ function SplitPanel() {
               ) : splitsOwed.filter((m) => m.status === "pending").length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                   <CheckCircle2 className="w-8 h-8 text-primary/20 mb-2" />
-                  <span className="text-sm font-medium text-muted-foreground">You are all clear!</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    You are all clear!
+                  </span>
                   <span className="text-xs text-muted-foreground/60 mt-0.5">
                     No pending splits to pay.
                   </span>
@@ -1740,12 +1919,11 @@ function SplitPanel() {
                               <AlertCircle className="w-3 h-3" /> Security Policy Restriction
                             </div>
                             <p className="opacity-80">
-                              Found your pending split share of {currency} {m.amount.toLocaleString()}, 
-                              but the database is restricting access to the bill details.
+                              Found your pending split share of {currency}{" "}
+                              {m.amount.toLocaleString()}, but the database is restricting access to
+                              the bill details.
                             </p>
-                            <div className="mt-1 font-mono text-[8px] opacity-50">
-                              ID: {m.id}
-                            </div>
+                            <div className="mt-1 font-mono text-[8px] opacity-50">ID: {m.id}</div>
                           </div>
                         );
                       }
@@ -1799,11 +1977,14 @@ function SplitPanel() {
                                 setSelectedMemberIdToPay(m.id);
                                 setSelectedSplitAmount(m.amount);
                                 setSelectedSplitTitle(m.bill_splits.title);
+                                setIdempotencyKey(crypto.randomUUID());
                                 setIsPinModalOpen(true);
                               }}
+                              disabled={profile?.is_suspended}
                             >
-                              Pay
+                              {profile?.is_suspended ? "Suspended" : "Pay"}
                             </Button>
+
                           </div>
                         </div>
                       );
@@ -1909,7 +2090,9 @@ function SplitPanel() {
                   {splitsCreated.map((s) => {
                     const CatIcon = getCategoryIcon(s.category);
                     const catColor = getCategoryColor(s.category);
-                    const paidMembers = s.bill_split_members.filter((m: any) => m.status === "paid");
+                    const paidMembers = s.bill_split_members.filter(
+                      (m: any) => m.status === "paid",
+                    );
                     const totalMembers = s.bill_split_members.length;
                     const progressPercentage =
                       totalMembers > 0 ? (paidMembers.length / totalMembers) * 100 : 100;
@@ -1981,7 +2164,8 @@ function SplitPanel() {
                           <div className="flex justify-between text-[10px] text-muted-foreground font-medium">
                             <span>Settled Progress</span>
                             <span>
-                              {paidMembers.length} of {totalMembers} paid ({Math.round(progressPercentage)}
+                              {paidMembers.length} of {totalMembers} paid (
+                              {Math.round(progressPercentage)}
                               %)
                             </span>
                           </div>
@@ -2062,6 +2246,7 @@ function SplitPanel() {
         onVerified={handlePinVerified}
         title="Authorize Bill Split Payment"
         description={`Securely authorize payment of ${currency} ${selectedSplitAmount.toLocaleString()} for "${selectedSplitTitle}".`}
+        amount={selectedSplitAmount}
       />
 
       {isPaying && (
@@ -2081,7 +2266,7 @@ function SplitPanel() {
       <AlertDialog open={!!splitToCancel} onOpenChange={(open) => !open && setSplitToCancel(null)}>
         <AlertDialogContent className="max-w-[380px] rounded-3xl border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden p-0">
           <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-destructive to-transparent opacity-50" />
-          
+
           <div className="p-8 text-center space-y-4">
             <div className="mx-auto w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center relative group">
               <div className="absolute inset-0 rounded-full bg-destructive/5 animate-ping group-hover:animate-none" />
@@ -2093,7 +2278,8 @@ function SplitPanel() {
                 Are you sure?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-sm text-muted-foreground leading-relaxed px-4">
-                Are you sure you want to cancel this split request? This will remove it for all participants.
+                Are you sure you want to cancel this split request? This will remove it for all
+                participants.
               </AlertDialogDescription>
             </div>
           </div>
@@ -2102,7 +2288,7 @@ function SplitPanel() {
             <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-border/40 bg-background/50 text-sm font-semibold hover:bg-muted transition-all">
               No, keep it
             </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmCancelSplit}
               className="flex-1 h-12 rounded-2xl bg-destructive text-white hover:bg-destructive/90 transition-all font-semibold shadow-lg shadow-destructive/20 border-0"
             >
@@ -2136,7 +2322,7 @@ function TransactionHistory() {
     type: typeFilter,
   });
 
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -2161,7 +2347,36 @@ function TransactionHistory() {
       : profile?.email?.split("@")[0] || t("common.vault_user");
     const symbol = currency === "USD" ? "$" : currency + " ";
 
-    // Method-specific logo helper - enhanced with all banks and mobile services
+    const categoryIcons: Record<string, any> = {
+      dining: Utensils,
+      shopping: ShoppingBag,
+      transport: Smartphone,
+      utilities: Zap,
+      entertainment: Tv,
+      healthcare: HeartPulse,
+      groceries: ShoppingCart,
+      personal: User,
+      income: ArrowDownLeft,
+      transfer: ArrowRight,
+    };
+
+    const categoryColors: Record<string, string> = {
+      dining: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+      shopping: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+      transport: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      utilities: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      entertainment: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      healthcare: "bg-red-500/10 text-red-500 border-red-500/20",
+      groceries: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      income: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    };
+
+    const txCategory = (t_data.category || "").toLowerCase();
+    const CategoryIcon = categoryIcons[txCategory] || null;
+    const categoryColorClass =
+      categoryColors[txCategory] || "bg-primary/10 text-primary border-primary/20";
+
+    // Method-specific logo helper
     const getMethodLogo = (method: string, description: string) => {
       const desc = (description || "").toLowerCase();
       const meth = (method || "").toLowerCase();
@@ -2197,43 +2412,53 @@ function TransactionHistory() {
     };
 
     if (t_data.type === "transfer") {
+      const isVaultTransfer = t_data.method === "vault" || (t_data.description || "").includes("Vault Transfer Ref:");
+      
       if (isSender) {
-        const desc = (t_data.description || "").toLowerCase();
         const logo = getMethodLogo(t_data.method || "", t_data.description || "");
         const useLogo = Boolean(logo);
 
-        let titleText = t_data.description;
+        let titleText = isVaultTransfer ? "P2P Transfer" : t_data.description;
         if (!titleText) {
-          const receiverName = t_data.receiver?.kyc_tag
+          const receiverTag = t_data.receiver?.kyc_tag
             ? `@${t_data.receiver.kyc_tag}`
-            : `${t_data.receiver?.first_name || t("common.user")} ${t_data.receiver?.last_name || ""}`.trim();
-          titleText = t("transactions.history.transfer_to", { receiverName });
+            : t_data.receiver?.first_name || t("common.user");
+          titleText = t_data.category ? `${t_data.category} | Sent to ${receiverTag}` : `Sent to ${receiverTag}`;
         }
 
         return {
           title: titleText,
+          subtitle: t_data.description, // Store the reference in subtitle/description area
           amount: `-${symbol}${t_data.amount.toLocaleString()}`,
           positive: false,
           icon: useLogo ? null : t_data.receiver?.first_name?.[0] || "V",
           logo: logo || t_data.receiver?.profile_photo_url,
           avatarUrl: t_data.receiver?.profile_photo_url,
           color: "bg-primary/20 text-primary",
+          CategoryIcon,
+          categoryColorClass,
         };
       } else {
-        let senderName = t_data.sender?.kyc_tag
-          ? `@${t_data.sender.kyc_tag}`
-          : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
-        const titleText =
-          t_data.description || t("transactions.history.received_from", { senderName });
+        let titleText = isVaultTransfer ? "P2P Transfer" : t_data.description;
+
+        if (!titleText) {
+          const senderName = t_data.sender?.kyc_tag
+            ? `@${t_data.sender.kyc_tag}`
+            : `${t_data.sender?.first_name || t("common.user")} ${t_data.sender?.last_name || ""}`.trim();
+          titleText = t("transactions.history.received_from", { senderName });
+        }
 
         return {
           title: titleText,
+          subtitle: t_data.description,
           amount: `+${symbol}${t_data.amount.toLocaleString()}`,
           positive: true,
           icon: t_data.sender?.first_name?.[0] || "V",
           logo: t_data.sender?.profile_photo_url,
           avatarUrl: t_data.sender?.profile_photo_url,
           color: "bg-primary/20 text-primary",
+          CategoryIcon,
+          categoryColorClass,
         };
       }
     } else if (t_data.type === "deposit") {
@@ -2253,6 +2478,8 @@ function TransactionHistory() {
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-primary/20 text-primary",
+        CategoryIcon,
+        categoryColorClass,
       };
     } else if (t_data.type === "withdrawal") {
       const logo = getMethodLogo(t_data.method, t_data.description);
@@ -2271,6 +2498,8 @@ function TransactionHistory() {
         logo: logo,
         avatarUrl: profile?.profile_photo_url || null,
         color: "bg-destructive/20 text-destructive",
+        CategoryIcon,
+        categoryColorClass,
       };
     }
     return {
@@ -2281,6 +2510,8 @@ function TransactionHistory() {
       logo: null,
       avatarUrl: null,
       color: "bg-secondary text-secondary-foreground",
+      CategoryIcon,
+      categoryColorClass,
     };
   };
 
@@ -2374,17 +2605,30 @@ function TransactionHistory() {
                     className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-white/5 transition-colors group"
                   >
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="flex items-center justify-center w-12 h-12 shrink-0 rounded-lg bg-input/40 border border-border/40">
-                        <span className="text-[10px] font-bold uppercase text-muted-foreground/70 tracking-wider">
-                          {typeLabel}
-                        </span>
+                      <div className="relative shrink-0">
+                        <Avatar className="w-12 h-12 rounded-lg border border-border/40 shadow-sm">
+                          <AvatarImage 
+                            src={details.logo || details.avatarUrl || undefined} 
+                            className="object-cover"
+                          />
+                          <AvatarFallback className={cn("rounded-lg text-sm font-bold uppercase", details.color)}>
+                            {details.icon || typeLabel[0]}
+                          </AvatarFallback>
+                        </Avatar>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
                           {details.title}
                         </div>
-                        <div className="text-[10px] text-muted-foreground/60 mt-1">
-                          {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
+                        {(details as any).subtitle && (
+                          <div className="text-[10px] text-primary/80 font-mono truncate">
+                            {(details as any).subtitle}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-muted-foreground/60">
+                            {format(new Date(t_item.created_at), "EEEE, MMM dd, yyyy · h:mm a")}
+                          </span>
                         </div>
                       </div>
                     </div>

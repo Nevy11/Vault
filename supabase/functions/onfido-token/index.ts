@@ -14,10 +14,10 @@ serve(async (req) => {
 
   const onfidoToken = Deno.env.get("ONFIDO_API_TOKEN");
   if (!onfidoToken) {
-    return new Response(
-      JSON.stringify({ error: "ONFIDO_API_TOKEN is not set" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "ONFIDO_API_TOKEN is not set" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -62,8 +62,9 @@ serve(async (req) => {
       });
 
       const applicantData = await applicantRes.json();
-      if (!applicantRes.ok) throw new Error(applicantData.error?.message || "Failed to create applicant");
-      
+      if (!applicantRes.ok)
+        throw new Error(applicantData.error?.message || "Failed to create applicant");
+
       currentApplicantId = applicantData.id;
 
       // Store applicant_id in metadata or a dedicated column if you have one
