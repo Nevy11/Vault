@@ -1874,6 +1874,28 @@ function SettingsPage() {
           {/* Danger Zone */}
           <SectionCard icon={ShieldAlert} title="Danger Zone">
             <div className="space-y-6">
+              {/* About Account Suspension */}
+              <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
+                <div className="space-y-5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 flex-shrink-0 mt-0.5">
+                      <Info className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-medium text-foreground">
+                        About Account Suspension
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                        Suspending your account is a protective measure that immediately freezes all
+                        financial activity. Use this if you notice suspicious logins, unauthorized
+                        transactions, or if you lost your device. Everything is preserved and
+                        you can self-restore later via email verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Suspend Account Card */}
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">
@@ -1886,8 +1908,7 @@ function SettingsPage() {
                         Suspend My Account
                       </h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                        Suspect suspicious activity? Immediately lock all financial transactions.
-                        You can self-restore later via email verification.
+                        Immediately lock all financial transactions.
                       </p>
                     </div>
                   </div>
@@ -1998,96 +2019,6 @@ function SettingsPage() {
                   </div>
                 </DialogContent>
               </Dialog>
-
-              {/* About Account Suspension */}
-              <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
-                <div className="space-y-5">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 flex-shrink-0 mt-0.5">
-                      <Info className="h-5 w-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-medium text-foreground">
-                        What Does Suspending Do?
-                      </h3>
-                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                        Suspending your account is a protective measure that immediately freezes all
-                        financial activity on your account. It does <strong>not</strong> delete any
-                        of your data — everything is preserved and waiting for you when you come back.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Reasons to Suspend */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
-                      Reasons to Suspend
-                    </p>
-                    <ul className="space-y-2">
-                      {[
-                        "You noticed a suspicious login or unfamiliar device on your account",
-                        "You lost your phone or your device was stolen",
-                        "You received an unauthorized transaction notification",
-                        "You suspect your password or credentials have been compromised",
-                        "You want to temporarily disable your account while traveling",
-                      ].map((reason) => (
-                        <li
-                          key={reason}
-                          className="flex items-start gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm text-muted-foreground"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-destructive/50 mt-1.5 flex-shrink-0" />
-                          {reason}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* What Happens to the System */}
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
-                      What Happens When You Suspend
-                    </p>
-                    <ul className="space-y-2">
-                      {[
-                        "All deposits, withdrawals, and transfers are blocked immediately",
-                        "Active loan repayments are paused — no penalties will accrue",
-                        "Savings goals are frozen in place and continue to be protected",
-                        "Your profile, transaction history, and data remain fully intact",
-                        "No one (including you) can perform financial operations until restored",
-                      ].map((effect) => (
-                        <li
-                          key={effect}
-                          className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm text-muted-foreground"
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
-                          {effect}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* How to Unsuspend */}
-                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 flex-shrink-0 mt-0.5">
-                        <CheckCircle2 className="h-4 w-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                          How to Unsuspend Your Account
-                        </h4>
-                        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-                          You can restore your account at any time by clicking the{" "}
-                          <strong className="text-foreground">"Restore & Unsuspend Account"</strong>{" "}
-                          button above. A 6-digit verification code will be sent to your registered
-                          email address. Simply enter the code to verify your identity and regain
-                          full access to all features. The entire process takes less than a minute.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </SectionCard>
         </div>
