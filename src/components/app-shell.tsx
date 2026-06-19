@@ -137,6 +137,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (currentDevice && !currentDevice.is_active) {
         handleSignOut("Your access was revoked.");
       }
+
+      // 3. Process recurring tasks (Reminders & Automated Savings)
+      await supabase.rpc("process_recurring_reminders_and_savings");
     };
     checkStatus();
 

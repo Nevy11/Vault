@@ -7,7 +7,8 @@ BEGIN;
 CREATE OR REPLACE FUNCTION public.disburse_loan(
     p_amount NUMERIC,
     p_interest_rate NUMERIC,
-    p_repayment_period INTEGER
+    p_repayment_period INTEGER,
+    p_user_id UUID DEFAULT NULL -- Added optional parameter
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -20,7 +21,12 @@ DECLARE
     v_total_due NUMERIC;
     v_user_id UUID;
 BEGIN
-    v_user_id := auth.uid();
+    -- Use provided user_id or authenticated user
+    v_user_id := COALESCE(p_user_id, auth.uid());
+    
+    IF v_user_id IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'message', 'User ID could not be determined.');
+    END IF;
     
     -- Check if user already has an active loan
     IF EXISTS (SELECT 1 FROM public.loans WHERE user_id = v_user_id AND status = 'active') THEN
@@ -48,6 +54,7 @@ BEGIN
         v_total_due,
         'active'
     ) RETURNING id INTO v_loan_id;
+    -- ... (rest of the function remains the same)
 
     -- Update Wallet Balance and Log Transaction via Ledger
     -- Using 'deposit' type to increase balance. 

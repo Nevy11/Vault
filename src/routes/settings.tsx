@@ -1126,7 +1126,7 @@ function SettingsPage() {
                 <div className="relative group/avatar">
                   <button
                     onClick={() => profile?.profile_photo_url && setShowViewModal(true)}
-                    className="relative block rounded-full border-2 border-border/40 overflow-hidden hover:border-primary/60 transition-all active:scale-95"
+                    className="relative block rounded-full overflow-hidden transition-all active:scale-95"
                     title={
                       profile?.profile_photo_url
                         ? t("settings.profile.picture.view")
