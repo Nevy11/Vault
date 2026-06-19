@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Landmark,
@@ -22,7 +22,6 @@ import {
   Send,
   UserCheck,
   Lock,
-  MessageSquare,
   Sparkles,
   RefreshCw,
 } from "lucide-react";
@@ -30,7 +29,6 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Card,
   CardContent,
@@ -74,12 +72,25 @@ const INTEREST_RATES: Record<string, number> = {
 };
 
 type OnboardingData = {
+  full_name: string;
+  id_number: string;
+  kra_pin: string;
+  date_of_birth: string;
+  nationality: string;
+  home_address: string;
+  phone_number: string;
+  email: string;
+};
+
+type DetailedLoanData = {
+  next_of_kin_name: string;
+  next_of_kin_phone: string;
+  next_of_kin_relationship: string;
   employment_status: string;
   monthly_income: number;
-  financial_dependents: number;
-  monthly_debt: number;
-  primary_loan_use: string;
-  id_number: string;
+  active_credit_obligations: string;
+  detailed_use: string;
+  agree_to_terms: boolean;
 };
 
 function LoanAssistant({
@@ -91,65 +102,80 @@ function LoanAssistant({
 }) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Partial<OnboardingData>>({
-    employment_status: profile?.employment_status || "",
-    monthly_income: profile?.monthly_income || 0,
-    financial_dependents: profile?.financial_dependents || 0,
-    monthly_debt: profile?.monthly_debt || 0,
-    primary_loan_use: profile?.primary_loan_use || "",
+    full_name: profile?.full_name || (profile?.first_name ? `${profile.first_name} ${profile.last_name || ""}`.trim() : ""),
     id_number: profile?.id_number || "",
+    kra_pin: profile?.kra_pin || "",
+    date_of_birth: profile?.date_of_birth || "",
+    nationality: profile?.nationality || "",
+    home_address: profile?.home_address || "",
+    phone_number: profile?.phone_number || "",
+    email: profile?.email || "",
   });
 
   const questions = [
     {
-      id: "id_number",
-      label: "National ID Number",
-      description: "Enter your valid Government ID or Passport number.",
+      id: "full_name",
+      label: "Full Name (as it appears on official documents)",
+      description: "Must match your ID or Passport exactly.",
       type: "text",
     },
     {
-      id: "employment_status",
-      label: "Employment Status",
-      description: "How do you currently earn your primary income?",
-      options: ["Full-time salaried", "Freelancer/Gig worker", "Student", "Business Owner"],
-      type: "select",
+      id: "id_number",
+      label: "National ID Number or Passport Number",
+      description: "Government issued identification.",
+      type: "text",
     },
     {
-      id: "monthly_income",
-      label: "Monthly Income (KES)",
-      description: "Your average monthly personal income before expenses.",
-      type: "number",
+      id: "kra_pin",
+      label: "KRA PIN",
+      description: "Kenya Revenue Authority Personal Identification Number.",
+      type: "text",
     },
     {
-      id: "financial_dependents",
-      label: "Financial Dependents",
-      description: "Number of people who rely on your income.",
-      type: "number",
+      id: "date_of_birth",
+      label: "Date of Birth",
+      description: "Your official date of birth.",
+      type: "date",
     },
     {
-      id: "monthly_debt",
-      label: "Existing Monthly Debt (KES)",
-      description: "Total monthly repayments for loans or credit cards elsewhere.",
-      type: "number",
+      id: "nationality",
+      label: "Nationality",
+      description: "Your country of citizenship.",
+      type: "text",
     },
     {
-      id: "primary_loan_use",
-      label: "Primary Loan Purpose",
-      description: "What do you intend to use Vault credit for most often?",
-      options: ["Business capital", "Emergency bills", "Education", "Personal"],
-      type: "select",
+      id: "home_address",
+      label: "Current Residential Address (County/Town)",
+      description: "Where you currently live (e.g., Nairobi, Kilimani).",
+      type: "text",
+    },
+    {
+      id: "phone_number",
+      label: "Primary Phone Number",
+      description: "Your active contact phone number.",
+      type: "text",
+    },
+    {
+      id: "email",
+      label: "Primary Email Address",
+      description: "Your active contact email address.",
+      type: "email",
     },
   ];
 
-  const current = questions[step];
+  const current = questions[step] || {};
 
   const handleNext = () => {
+    if (!current.id) return;
     const value = data[current.id as keyof OnboardingData];
-    if (value === undefined || value === "" || (current.type === "number" && isNaN(Number(value)))) {
+    if (value === undefined || value === "") {
       toast.error("Please provide a valid answer.");
       return;
     }
-    if (step < questions.length) {
+    if (step < questions.length - 1) {
       setStep(step + 1);
+    } else if (step === questions.length - 1) {
+      setStep(questions.length); // Final review
     }
   };
 
@@ -165,7 +191,7 @@ function LoanAssistant({
             <ShieldCheck className="w-6 h-6" />
           </div>
           <h3 className="text-xl font-bold text-slate-950 dark:text-white">Review & Verify</h3>
-          <p className="text-xs text-muted-foreground font-medium">Please confirm your details are accurate for limit expansion.</p>
+          <p className="text-xs text-muted-foreground font-medium">Please confirm your details are accurate.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 rounded-2xl bg-slate-900/5 dark:bg-white/5 border border-white/10 shadow-inner">
@@ -173,9 +199,7 @@ function LoanAssistant({
             <div key={q.id} className="space-y-1">
               <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">{q.label}</span>
               <p className="text-sm font-bold text-slate-950 dark:text-white truncate">
-                {q.id.includes("income") || q.id.includes("debt") 
-                  ? `KES ${data[q.id as keyof OnboardingData]?.toLocaleString()}`
-                  : data[q.id as keyof OnboardingData]}
+                {data[q.id as keyof OnboardingData]}
               </p>
             </div>
           ))}
@@ -224,44 +248,16 @@ function LoanAssistant({
           </p>
         </div>
 
-        {current.type === "select" ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {current.options?.map((opt) => (
-              <Button
-                key={opt}
-                variant={data[current.id as keyof OnboardingData] === opt ? "default" : "outline"}
-                className={cn(
-                  "h-12 rounded-xl text-xs font-bold transition-all border-white/10",
-                  data[current.id as keyof OnboardingData] === opt 
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md scale-[1.02]" 
-                    : "hover:bg-emerald-500/5 hover:border-emerald-500/30"
-                )}
-                onClick={() => {
-                  setData(prev => ({ ...prev, [current.id]: opt }));
-                }}
-              >
-                {opt}
-                {data[current.id as keyof OnboardingData] === opt && <Check className="ml-2 w-4 h-4" />}
-              </Button>
-            ))}
-          </div>
-        ) : (
-          <div className="relative">
-            <Input
-              type={current.type}
-              value={data[current.id as keyof OnboardingData] || ""}
-              onChange={(e) => setData(prev => ({ ...prev, [current.id]: current.type === "number" ? parseFloat(e.target.value) : e.target.value }))}
-              placeholder={current.type === "number" ? "0.00" : "Enter details..."}
-              className="h-14 text-xl font-bold rounded-2xl bg-white/40 dark:bg-slate-900/40 border-white/10 focus:ring-emerald-500/20"
-              autoFocus
-            />
-            {(current.id.includes("income") || current.id.includes("debt")) && (
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
-                KES
-              </span>
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <Input
+            type={current.type}
+            value={data[current.id as keyof OnboardingData] || ""}
+            onChange={(e) => setData(prev => ({ ...prev, [current.id!]: e.target.value }))}
+            placeholder="Enter details..."
+            className="h-14 text-xl font-bold rounded-2xl bg-white/40 dark:bg-slate-900/40 border-white/10 focus:ring-emerald-500/20"
+            autoFocus
+          />
+        </div>
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-white/5">
@@ -294,7 +290,6 @@ function LoansPage() {
   const { t } = useTranslation();
   const [profile, refreshProfile] = useProfileSignal();
 
-  // Define membershipMonths for use in the UI and eligibility checks
   const membershipMonths = useMemo(() => {
     if (!profile?.created_at) return 0;
     return Math.max(0, Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30)));
@@ -314,11 +309,68 @@ function LoansPage() {
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Advanced Assessment State
+  const [showAmountForm, setShowAmountForm] = useState(false);
   const [assessment, setAssessment] = useState<any>(null);
   const [extensionAssessment, setExtensionAssessment] = useState<any>(null);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showExtensionPopup, setShowExtensionPopup] = useState(false);
+
+  const isKycExpired = useMemo(() => {
+    if (!profile?.kyc_verified_at) return false;
+    const verifiedDate = new Date(profile.kyc_verified_at);
+    const oneYearAgo = new Date();
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+    return verifiedDate < oneYearAgo;
+  }, [profile?.kyc_verified_at]);
+
+  const isProfileComplete = useMemo(() => {
+    const hasStatus = profile?.kyc_status === "verified";
+    const hasRequiredFields = !!(
+      profile?.full_name &&
+      profile?.id_number &&
+      profile?.kra_pin &&
+      profile?.date_of_birth &&
+      profile?.nationality &&
+      profile?.home_address &&
+      profile?.phone_number &&
+      profile?.email
+    );
+    return hasStatus && hasRequiredFields && !isKycExpired;
+  }, [profile, isKycExpired]);
+
+  const [detailedData, setDetailedData] = useState<DetailedLoanData>({
+    next_of_kin_name: "",
+    next_of_kin_phone: "",
+    next_of_kin_relationship: "Spouse",
+    employment_status: "",
+    monthly_income: 0,
+    active_credit_obligations: "",
+    detailed_use: "",
+    agree_to_terms: false,
+  });
+
+  useEffect(() => {
+    const checkExpiry = async () => {
+      if (profile?.id && profile?.kyc_status === "verified" && isKycExpired) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .update({
+              kyc_status: "unverified",
+              kyc_verified_at: null
+            })
+            .eq("id", profile.id)
+            .select("*")
+            .single();
+          if (error) throw error;
+          if (data) refreshProfile(data);
+          toast.info("Your annual verification has expired. Please verify your details again.");
+        } catch (err) {
+          console.error("Error resetting expired KYC:", err);
+        }
+      }
+    };
+    checkExpiry();
+  }, [profile?.id, profile?.kyc_status, isKycExpired, refreshProfile]);
 
   const fetchLoanData = async () => {
     if (!profile?.id) return;
@@ -333,18 +385,6 @@ function LoansPage() {
 
       if (activeErr) throw activeErr;
       setActiveLoan(active);
-
-      if (active) {
-        setActiveTab("tracker");
-        // Run extension assessment if active loan exists
-        const { data: extData, error: extErr } = await supabase.rpc("calculate_loan_assessment", {
-          p_requested_amount: 0,
-          p_requested_period_months: 1, // Extensions are month-by-month
-          p_is_extension_request: true,
-          p_loan_id: active.id,
-        });
-        if (!extErr) setExtensionAssessment(extData);
-      }
 
       const { data: history, error: historyErr } = await supabase
         .from("loans")
@@ -361,22 +401,10 @@ function LoansPage() {
           .select("*")
           .eq("loan_id", active.id)
           .order("created_at", { ascending: false });
-
+        
         if (ledgerErr) throw ledgerErr;
         setLedgerEntries(ledger || []);
       }
-
-      // Check if profile is complete
-      const isProfileComplete = !!(
-        profile?.id_number &&
-        profile?.employment_status &&
-        profile?.monthly_income !== undefined && profile?.monthly_income !== null &&
-        profile?.financial_dependents !== undefined && profile?.financial_dependents !== null &&
-        profile?.monthly_debt !== undefined && profile?.monthly_debt !== null &&
-        profile?.primary_loan_use
-      );
-      setShowOnboarding(!isProfileComplete);
-
     } catch (error: any) {
       console.error("Error fetching loan data:", error.message);
     } finally {
@@ -388,15 +416,13 @@ function LoansPage() {
     fetchLoanData();
   }, [profile?.id]);
 
-  // Assessment Effect
   useEffect(() => {
-    const runAssessment = async () => {
-      if (!profile?.id || parseFloat(loanAmount) <= 0) return;
+    const fetchAssessment = async () => {
+      if (!profile?.id || !loanAmount || isNaN(parseFloat(loanAmount))) return;
       try {
         const { data, error } = await supabase.rpc("calculate_loan_assessment", {
-          p_requested_amount: parseFloat(loanAmount) || 0,
+          p_requested_amount: parseFloat(loanAmount),
           p_requested_period_months: parseInt(period),
-          p_is_extension_request: false,
         });
         if (error) throw error;
         setAssessment(data);
@@ -404,76 +430,87 @@ function LoansPage() {
         console.error("Assessment error:", err);
       }
     };
-    runAssessment();
-  }, [loanAmount, period, profile?.id]);
+    fetchAssessment();
+  }, [profile?.id, loanAmount, period]);
+
+  // Redirect to tracker tab if there is an active loan on page load
+  useEffect(() => {
+    if (activeLoan && activeTab === "request") {
+      setActiveTab("tracker");
+    }
+  }, [activeLoan]);
 
   const handleOnboardingComplete = async (onboardingData: OnboardingData) => {
+    if (!profile?.id) return;
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
-        .update(onboardingData)
-        .eq("id", profile.id);
+        .update({
+          full_name: onboardingData.full_name,
+          id_number: onboardingData.id_number,
+          kra_pin: onboardingData.kra_pin,
+          date_of_birth: onboardingData.date_of_birth || null,
+          nationality: onboardingData.nationality,
+          home_address: onboardingData.home_address,
+          phone_number: onboardingData.phone_number,
+          email: onboardingData.email,
+          kyc_status: "verified",
+          kyc_verified_at: new Date().toISOString()
+        })
+        .eq("id", profile.id)
+        .select("*")
+        .single();
 
       if (error) throw error;
-      toast.success("Profile updated! Assessment logic is now active.");
-      refreshProfile();
-      setShowOnboarding(false);
+      toast.success("Demographics Verified!", { description: "You can now proceed with your loan application." });
+      if (data) refreshProfile(data);
     } catch (err: any) {
-      toast.error("Failed to update profile", { description: err.message });
+      toast.error("Failed to verify demographics", { description: err.message });
     }
   };
 
-  const handleRequestLoan = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const confirmLoanDisbursement = async () => {
     if (!profile?.id) return;
-
-    // 1. Check Membership Age (Tenure)
-    const membershipMonths = profile?.created_at 
-      ? Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24 * 30))
-      : 0;
-
-    if (membershipMonths < 9) {
-      toast.error("Eligibility Required", {
-        description: `You must be a member for at least 9 months to access Vault Credit. Current: ${membershipMonths}m.`,
-        className: "bg-destructive/10 border-destructive/20",
-      });
-      return;
-    }
-
-    // 2. Check Assessment / Transaction History
-    if (assessment?.status === "rejected") {
-      toast.error("Limit Exceeded", { 
-        description: assessment.message || "Your transaction history is currently insufficient for this loan amount.",
-        className: "bg-destructive/10 border-destructive/20",
-      });
-      return;
-    }
-
-    if (!assessment || assessment.calculated_limit <= 0) {
-      toast.error("Insufficient History", { 
-        description: "Your transaction volume is currently too low to unlock a credit limit. Increase your deposits to grow your limit.",
-        className: "bg-destructive/10 border-destructive/20",
-      });
-      return;
-    }
-
     try {
       const { data, error } = await supabase.rpc("disburse_loan", {
         p_amount: parseFloat(loanAmount),
         p_interest_rate: assessment?.base_interest || INTEREST_RATES[period],
         p_repayment_period: parseInt(period),
+        p_detailed_use: detailedData.detailed_use,
+        p_employment_status: detailedData.employment_status,
+        p_monthly_income: detailedData.monthly_income,
+        p_active_credit_obligations: detailedData.active_credit_obligations,
+        p_next_of_kin_name: detailedData.next_of_kin_name,
+        p_next_of_kin_phone: detailedData.next_of_kin_phone
       });
 
       if (error) throw error;
 
       if (data.success) {
         toast.success(t("loans.toasts.approved"), {
-          description: t("loans.toasts.approved_desc", {
-            amount: parseFloat(loanAmount).toLocaleString(),
-          }),
+          description: `Loan of KES ${parseFloat(loanAmount).toLocaleString()} disbursed successfully.`,
         });
         await fetchLoanData();
         setActiveTab("tracker");
+        setShowAmountForm(false);
+        setDetailedData(prev => ({
+          ...prev,
+          detailed_use: "",
+          employment_status: "",
+          monthly_income: 0,
+          active_credit_obligations: "",
+          next_of_kin_name: "",
+          next_of_kin_phone: ""
+        }));
+        setLoanAmount("");
+        
+        // Fetch updated profile to refresh client state
+        const { data: updatedProfile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", profile.id)
+          .maybeSingle();
+        if (updatedProfile) refreshProfile(updatedProfile);
       } else {
         toast.error(t("loans.toasts.failed"), { description: data.message });
       }
@@ -483,27 +520,19 @@ function LoansPage() {
   };
 
   const handleRequestExtension = async () => {
-    if (!activeLoan || !extensionAssessment) return;
-
+    if (!activeLoan) return;
     try {
-      // We need an RPC to actually apply the extension (update loan period and balance)
-      // I will create this RPC next, but for now let's use the assessment data.
       const newDueDate = addMonths(new Date(activeLoan.due_date), 1);
-      
       const { error } = await supabase
         .from("loans")
         .update({
           due_date: newDueDate.toISOString(),
-          remaining_balance: extensionAssessment.total_repayment_due,
-          months_already_extended: extensionAssessment.months_already_extended,
+          status: 'active'
         })
         .eq("id", activeLoan.id);
 
       if (error) throw error;
-
-      toast.success("Loan Extended!", {
-        description: `New due date: ${format(newDueDate, "MMM d, yyyy")}. A penalty of KES ${extensionAssessment.extension_penalties.toLocaleString()} was applied.`,
-      });
+      toast.success("Loan Extended!");
       await fetchLoanData();
       setShowExtensionPopup(false);
     } catch (err: any) {
@@ -512,61 +541,23 @@ function LoansPage() {
   };
 
   const handleRepayment = async () => {
-    if (!repayAmount || !repayProvider || !activeLoan) {
-      toast.error(t("loans.toasts.incomplete"), {
-        description: t("loans.toasts.incomplete_desc"),
-      });
-      return;
-    }
-
-    const isVault = repayProvider === "vault_balance";
-    const isMobile = ["mpesa", "airtel"].includes(repayProvider);
-
-    if (!isVault && !sourceIdentifier) {
-      const label = isMobile
-        ? t("transactions.form.phone_number")
-        : t("transactions.form.account_number");
-      toast.error(t("loans.toasts.missing_id", { label }), {
-        description: t("loans.toasts.missing_id_desc", { label: label.toLowerCase() }),
-      });
-      return;
-    }
-
-    const finalSource = isVault
-      ? t("loans.categories.vault")
-      : `${repayProvider.toUpperCase()} (${sourceIdentifier})`;
-
+    if (!repayAmount || !repayProvider || !activeLoan) return;
     try {
       const { data, error } = await supabase.rpc("repay_loan", {
         p_loan_id: activeLoan.id,
         p_amount: parseFloat(repayAmount),
-        p_source: finalSource,
+        p_source: repayProvider,
         p_payment_type: "manual",
       });
-
       if (error) throw error;
-      const result = data;
-
-      if (result.success) {
-        toast.success(t("loans.toasts.repayment_success"), {
-          description: t("loans.toasts.repayment_success_desc", {
-            amount: parseFloat(repayAmount).toLocaleString(),
-            source: finalSource,
-          }),
-        });
+      if (data.success) {
+        toast.success("Repayment Success!");
         await fetchLoanData();
         setShowRepayPopup(false);
-        setRepayAmount("");
-        setSourceIdentifier("");
-        setRepayProvider("");
-        if (result.new_balance === 0) {
-          setActiveTab("success");
-        }
-      } else {
-        toast.error(t("loans.toasts.repayment_failed"), { description: result.message });
+        if (data.new_balance === 0) setActiveTab("success");
       }
     } catch (err: any) {
-      toast.error(t("loans.toasts.repayment_failed"), { description: err.message });
+      toast.error("Repayment Failed", { description: err.message });
     }
   };
 
@@ -574,31 +565,21 @@ function LoansPage() {
     <AppShell>
       <div className="relative min-h-[calc(100vh-4rem)] w-full overflow-hidden">
         <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-fixed"
-          style={{
-            backgroundImage:
-              'url("https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=2070&auto=format&fit=crop")',
-            opacity: 0.2,
-          }}
+          className="absolute inset-0 z-0 bg-cover bg-center bg-fixed opacity-10"
+          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?q=80&w=2070&auto=format&fit=crop")' }}
         />
-        <div className="absolute inset-0 z-0 bg-background/10 backdrop-blur-[2px]" />
-
+        
         <main className="relative z-10 max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
             <div className="flex items-center gap-3">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full w-8 h-8 hover:bg-white/20"
-                onClick={() => history.back()}
-              >
+              <Button variant="ghost" size="icon" className="rounded-full w-8 h-8 hover:bg-white/20" onClick={() => window.history.back()}>
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div>
-                <h1 className="text-4xl font-bold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
+                <h1 className="text-4xl font-bold tracking-tight mb-2 text-slate-950 dark:text-white">
                   {t("loans.title")}
                 </h1>
-                <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100 text-xs sm:text-sm">
+                <p className="text-muted-foreground flex items-center gap-2 font-medium text-xs sm:text-sm">
                   <ShieldCheck className="w-4 h-4 text-emerald-500" />
                   {t("loans.subtitle")}
                 </p>
@@ -606,22 +587,13 @@ function LoansPage() {
             </div>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
               <TabsList className="grid grid-cols-3 w-full md:w-auto h-12 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-1 rounded-2xl border border-white/20">
-                <TabsTrigger
-                  value="request"
-                  className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-[10px] sm:text-sm"
-                >
+                <TabsTrigger value="request" className="rounded-xl font-bold data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-[10px] sm:text-sm">
                   {t("loans.tabs.request")}
                 </TabsTrigger>
-                <TabsTrigger
-                  value="tracker"
-                  className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-[10px] sm:text-sm"
-                >
+                <TabsTrigger value="tracker" className="rounded-xl font-bold data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-[10px] sm:text-sm">
                   {t("loans.tabs.tracker")}
                 </TabsTrigger>
-                <TabsTrigger
-                  value="success"
-                  className="rounded-xl font-bold transition-all duration-300 data-[state=active]:bg-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-[10px] sm:text-sm"
-                >
+                <TabsTrigger value="success" className="rounded-xl font-bold data-[state=active]:bg-emerald-600 data-[state=active]:text-white text-[10px] sm:text-sm">
                   {t("loans.tabs.status")}
                 </TabsTrigger>
               </TabsList>
@@ -629,890 +601,335 @@ function LoansPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-            <TabsContent
-              value="request"
-              className="focus-visible:outline-none animate-in fade-in duration-500"
-            >
+            <TabsContent value="request" className="focus-visible:outline-none animate-in fade-in duration-500">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 <div className="lg:col-span-2 space-y-6">
-                  {showOnboarding ? (
-                    <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl p-0 shadow-lg overflow-hidden relative animate-in slide-in-from-top-4 duration-500">
+                  {activeLoan ? (
+                    <Card className="rounded-2xl border border-destructive/20 bg-destructive/5 dark:bg-destructive/10 backdrop-blur-xl p-8 shadow-lg text-center space-y-6 animate-in fade-in duration-500">
+                      <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mx-auto border border-destructive/20 animate-pulse">
+                        <AlertCircle className="w-8 h-8" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-xl font-bold text-slate-950 dark:text-white">Outstanding Loan</h3>
+                        <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                          You have an outstanding active loan. Vault enforces a limit of one active loan at a time. Please repay your current outstanding balance to apply for a new loan.
+                        </p>
+                      </div>
+                      <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 max-w-xs mx-auto text-xs font-bold text-destructive">
+                        LIMIT OF ONE ACTIVE LOAN UNTIL PAID
+                      </div>
+                      <Button onClick={() => setActiveTab("tracker")} className="rounded-xl px-6 h-11 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+                        View Active Loan Tracker
+                      </Button>
+                    </Card>
+                  ) : !isProfileComplete ? (
+                    <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl p-0 shadow-lg overflow-hidden animate-in slide-in-from-top-4 duration-500">
                       <div className="p-4 border-b border-white/10 bg-emerald-500/5 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <UserCheck className="w-4 h-4 text-emerald-600" />
-                          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-950 dark:text-white">Demographics Verification</h3>
+                          <h3 className="text-xs font-bold uppercase tracking-wider">Demographics Verification</h3>
                         </div>
-                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[8px] font-bold">
-                          <ShieldCheck className="w-2.5 h-2.5" /> VERIFIED DATA
+                        <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[8px] font-bold">
+                          REQUIRED ONCE
                         </div>
                       </div>
                       <div className="p-8">
-                        <LoanAssistant 
-                          onComplete={handleOnboardingComplete}
-                          profile={profile}
-                        />
+                        <LoanAssistant onComplete={handleOnboardingComplete} profile={profile} />
                       </div>
                     </Card>
-                  ) : (
-                    <div className="space-y-6 animate-in fade-in duration-700">
-                      {/* Verified Profile Summary Card */}
-                      <Card className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/5 backdrop-blur-xl p-0 shadow-md overflow-hidden group">
-                        <div className="px-4 py-3 border-b border-emerald-500/10 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                            <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-700">Verified Profile</h3>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 px-2.5 rounded-lg text-[10px] font-bold text-emerald-600 hover:bg-emerald-500/10"
-                            onClick={() => setShowOnboarding(true)}
-                          >
-                            <RefreshCw className="w-3 h-3 mr-1.5" /> Edit Profile
-                          </Button>
+                  ) : !showAmountForm ? (
+                    <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl p-0 shadow-lg overflow-hidden animate-in slide-in-from-right-4 duration-500">
+                      <div className="p-4 border-b border-white/10 bg-emerald-500/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Send className="w-4 h-4 text-emerald-600" />
+                          <h3 className="text-xs font-bold uppercase tracking-wider">Loan Application Form</h3>
                         </div>
-                        <div className="p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                          <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Employment</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white truncate">{profile?.employment_status}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Income</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white tabular-nums">KES {profile?.monthly_income?.toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Dependents</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white">{profile?.financial_dependents}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Debt</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white tabular-nums">KES {profile?.monthly_debt?.toLocaleString()}</p>
-                          </div>
-                          <div className="space-y-1">
-                            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest">Primary Use</span>
-                            <p className="text-[11px] font-bold text-slate-950 dark:text-white truncate">{profile?.primary_loan_use}</p>
-                          </div>
+                        <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 text-[8px] font-bold">
+                          STEP 1: DETAILS
                         </div>
-                      </Card>
-
-                      <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl p-4 shadow-lg overflow-hidden relative">
-                        {showOnboarding && (
-                          <div className="absolute inset-0 z-20 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-300">
-                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-3 border border-primary/20">
-                              <Lock className="w-6 h-6" />
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-950 dark:text-white mb-1 uppercase tracking-tight">Loan Requests Locked</h3>
-                            <p className="text-[10px] text-muted-foreground font-medium max-w-[200px] mb-4">
-                              Please complete your demographic verification first to unlock borrowing power.
-                            </p>
-                            <Button 
-                              size="sm" 
-                              className="h-8 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 shadow-md"
-                              onClick={() => {
-                                const el = document.getElementById('demographics-form');
-                                el?.scrollIntoView({ behavior: 'smooth' });
-                              }}
-                            >
-                              Verify Demographics
-                            </Button>
+                      </div>
+                      <div className="p-8 space-y-8">
+                        {/* SECTION 1: NEXT OF KIN */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 px-1">
+                            <UserCheck className="w-4 h-4 text-emerald-600" />
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em]">I. Next of Kin Contacts</h3>
                           </div>
-                        )}
-                        <form onSubmit={handleRequestLoan} className="space-y-4">
-                          <div className="space-y-1.5">
-                            <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
-                              {t("loans.request.loan_amount")}
-                            </Label>
-                            <div className="relative">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium text-muted-foreground">
-                                KES
-                              </span>
-                              <Input
-                                type="number"
-                                value={loanAmount}
-                                onChange={(e) => setLoanAmount(e.target.value)}
-                                placeholder="0.00"
-                                className="h-11 pl-12 text-lg font-bold rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 focus:bg-white/60 transition-all tabular-nums"
-                                required
-                              />
+                          <div className="p-6 rounded-2xl bg-slate-500/5 border border-white/5 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Next of Kin Name</Label>
+                                <Input 
+                                  placeholder="Full Legal Name" 
+                                  value={detailedData.next_of_kin_name} 
+                                  onChange={(e) => setDetailedData(prev => ({ ...prev, next_of_kin_name: e.target.value }))} 
+                                  className="h-12 rounded-xl bg-white/50 dark:bg-slate-900/50 border-white/10" 
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Next of Kin Phone</Label>
+                                <Input 
+                                  placeholder="07XX XXX XXX" 
+                                  value={detailedData.next_of_kin_phone} 
+                                  onChange={(e) => setDetailedData(prev => ({ ...prev, next_of_kin_phone: e.target.value }))} 
+                                  className="h-12 rounded-xl bg-white/50 dark:bg-slate-900/50 border-white/10" 
+                                />
+                              </div>
                             </div>
-                            <div className="flex justify-between items-center px-0.5">
-                              <span className="text-[8px] text-muted-foreground font-medium uppercase tracking-wider">
-                                Limit Level: KES {(assessment?.calculated_limit || 0).toLocaleString()}
-                              </span>
-                              {assessment?.status === "rejected" && assessment?.calculated_limit > 0 && (
-                                <span className="text-[8px] text-destructive font-semibold flex items-center gap-1">
-                                  <AlertCircle className="w-2 h-2" /> LIMIT EXCEEDED
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
-                                {t("loans.request.period")}
-                              </Label>
-                              <Select value={period} onValueChange={setPeriod}>
-                                <SelectTrigger className="h-9 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-medium text-[11px]">
-                                  <SelectValue placeholder={t("loans.request.period")} />
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Relationship to Applicant</Label>
+                              <Select 
+                                value={detailedData.next_of_kin_relationship} 
+                                onValueChange={(val) => setDetailedData(prev => ({ ...prev, next_of_kin_relationship: val }))}
+                              >
+                                <SelectTrigger className="h-12 rounded-xl bg-white/50 dark:bg-slate-900/50 border-white/10">
+                                  <SelectValue placeholder="Select Relationship" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl border-white/10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl shadow-xl">
-                                  <SelectItem value="1" className="font-medium text-[11px]">1 Month (3%)</SelectItem>
-                                  <SelectItem value="3" className="font-medium text-[11px]">3 Months (4%)</SelectItem>
-                                  <SelectItem value="5" className="font-medium text-[11px]">5 Months (5%)</SelectItem>
-                                  <SelectItem value="7" className="font-medium text-[11px]">7 Months (6%)</SelectItem>
-                                  <SelectItem value="9" className="font-medium text-[11px]">9 Months (7%)</SelectItem>
-                                  <SelectItem value="12" className="font-medium text-[11px]">12 Months (9%)</SelectItem>
+                                <SelectContent>
+                                  <SelectItem value="Spouse">Spouse</SelectItem>
+                                  <SelectItem value="Parent">Parent</SelectItem>
+                                  <SelectItem value="Sibling">Sibling</SelectItem>
+                                  <SelectItem value="Child">Child</SelectItem>
+                                  <SelectItem value="Other">Other Relative</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
-                            <div className="space-y-1.5">
-                              <Label className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground opacity-80">
-                                {t("common.date")}
-                              </Label>
-                              <div className="h-9 flex items-center px-3 rounded-xl bg-white/20 dark:bg-slate-900/20 border border-dashed border-white/10 text-muted-foreground font-medium text-[11px]">
-                                <Calendar className="w-3.5 h-3.5 mr-2 text-emerald-500" />
-                                {format(new Date(), "MMM d, yyyy")}
+                          </div>
+                        </div>
+
+                        {/* SECTION 2: EMPLOYMENT & FINANCIAL STATUS */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 px-1">
+                            <Building2 className="w-4 h-4 text-emerald-600" />
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em]">II. Employment & Income</h3>
+                          </div>
+                          <div className="p-6 rounded-2xl bg-slate-500/5 border border-white/5 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Current Employment Terms</Label>
+                                <Select 
+                                  value={detailedData.employment_status} 
+                                  onValueChange={(val) => setDetailedData(prev => ({ ...prev, employment_status: val }))}
+                                >
+                                  <SelectTrigger className="h-12 rounded-xl bg-white/50 dark:bg-slate-900/50 border-white/10">
+                                    <SelectValue placeholder="Select Terms" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Permanent">Permanent</SelectItem>
+                                    <SelectItem value="Contract">Contract</SelectItem>
+                                    <SelectItem value="Self-employed">Self-employed</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Net Monthly Income (KES)</Label>
+                                <Input 
+                                  type="number"
+                                  placeholder="Net Monthly Income" 
+                                  value={detailedData.monthly_income || ""} 
+                                  onChange={(e) => setDetailedData(prev => ({ ...prev, monthly_income: parseFloat(e.target.value) || 0 }))} 
+                                  className="h-12 rounded-xl bg-white/50 dark:bg-slate-900/50 border-white/10" 
+                                />
                               </div>
                             </div>
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Active Credit Obligations & Outstanding Balances</Label>
+                              <textarea 
+                                placeholder="Describe existing loans, credit cards, and outstanding balances (if none, write 'None')..." 
+                                value={detailedData.active_credit_obligations} 
+                                onChange={(e) => setDetailedData(prev => ({ ...prev, active_credit_obligations: e.target.value }))} 
+                                className="w-full min-h-[80px] p-4 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-white/10 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-sm font-medium" 
+                              />
+                            </div>
                           </div>
+                        </div>
 
-                          <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                            <div className="space-y-0.5">
-                              <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                {t("loans.request.principal")}
-                              </span>
-                              <p className="font-semibold text-[11px] text-slate-950 dark:text-white tabular-nums">
-                                KES {(parseFloat(loanAmount) || 0).toLocaleString()}
-                              </p>
-                            </div>
-                            <div className="space-y-0.5">
-                              <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                {t("loans.request.interest")}
-                              </span>
-                              <p className="font-semibold text-emerald-500 text-[11px] tabular-nums">
-                                {assessment?.base_interest ? `${assessment.base_interest}%` : "---"}
-                              </p>
-                            </div>
-                            <div className="space-y-0.5">
-                              <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                PROCESSING FEE
-                              </span>
-                              <p className="font-semibold text-[11px] text-slate-950 dark:text-white">
-                                KES 0
-                              </p>
-                            </div>
-                            <div className="space-y-0.5">
-                              <span className="text-[7px] text-muted-foreground uppercase tracking-wider font-semibold">
-                                {t("loans.request.total")}
-                              </span>
-                              <p className="font-bold text-[11px] text-slate-950 dark:text-white tabular-nums">
-                                KES {(assessment?.total_repayment_due || 0).toLocaleString()}
-                              </p>
-                            </div>
+                        {/* SECTION 3: PURPOSE */}
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-2 px-1">
+                            <Send className="w-4 h-4 text-emerald-600" />
+                            <h3 className="text-xs font-black uppercase tracking-[0.2em]">III. Loan Purpose</h3>
                           </div>
+                          <div className="p-6 rounded-2xl bg-slate-500/5 border border-white/5">
+                            <Label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 block">Purpose of the Loan</Label>
+                            <textarea 
+                              placeholder="Please describe how you plan to use these funds..." 
+                              value={detailedData.detailed_use} 
+                              onChange={(e) => setDetailedData(prev => ({ ...prev, detailed_use: e.target.value }))} 
+                              className="w-full min-h-[100px] p-4 rounded-xl bg-white/50 dark:bg-slate-900/50 border border-white/10 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all text-sm font-medium leading-relaxed" 
+                            />
+                          </div>
+                        </div>
 
-                          <div className="relative group pt-1">
-                            <Button
-                              type="submit"
-                              size="sm"
-                              disabled={
-                                assessment?.status === "rejected" || parseFloat(loanAmount) <= 0 || !!activeLoan
-                              }
-                              className="w-full h-10 rounded-xl text-xs font-bold shadow-md bg-emerald-600 hover:bg-emerald-700 transition-all active:scale-[0.98]"
-                            >
-                              {activeLoan
-                                ? t("loans.request.active_exists")
-                                : t("loans.request.disburse_btn")}
-                            </Button>
-                            {activeLoan && (
-                              <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-2.5 py-1 bg-destructive text-white text-[8px] font-bold uppercase tracking-wider rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none border border-white/5 flex items-center gap-1.5">
-                                <AlertCircle className="w-2.5 h-2.5" />{" "}
-                                {t("loans.request.single_active_rule")}
-                              </div>
-                            )}
+                        <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-start gap-4">
+                          <input 
+                            type="checkbox" 
+                            id="agree_terms" 
+                            checked={detailedData.agree_to_terms} 
+                            onChange={(e) => setDetailedData(prev => ({ ...prev, agree_to_terms: e.target.checked }))} 
+                            className="mt-1 w-5 h-5 rounded-lg border-emerald-500/30 text-emerald-600" 
+                          />
+                          <Label htmlFor="agree_terms" className="text-[11px] font-bold leading-normal cursor-pointer text-slate-700 dark:text-slate-300">
+                            I hereby declare that all information provided is true and accurate. I authorize Vault to verify these details.
+                          </Label>
+                        </div>
+
+                        <Button 
+                          className="w-full h-14 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl uppercase tracking-widest text-xs group" 
+                          disabled={
+                            !detailedData.next_of_kin_name || 
+                            !detailedData.next_of_kin_phone || 
+                            !detailedData.employment_status || 
+                            !detailedData.monthly_income || 
+                            !detailedData.active_credit_obligations || 
+                            !detailedData.detailed_use || 
+                            !detailedData.agree_to_terms
+                          } 
+                          onClick={() => setShowAmountForm(true)}
+                        >
+                          Proceed to Amount Selection <ArrowUpRight className="ml-2 w-5 h-5 group-hover:scale-110 transition-transform" />
+                        </Button>
+                      </div>
+                    </Card>
+                  ) : (
+                    <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl p-8 shadow-lg animate-in slide-in-from-right-4 duration-500">
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-emerald-600" />
+                          <h3 className="text-xs font-bold uppercase tracking-wider">Amount & Disbursement</h3>
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-7 px-2.5 rounded-lg text-[10px] font-bold" onClick={() => setShowAmountForm(false)}>
+                          <ArrowLeft className="w-3 h-3 mr-1.5" /> Back
+                        </Button>
+                      </div>
+                      <div className="space-y-6">
+                        <div className="space-y-1.5">
+                          <Label className="text-[8px] font-semibold uppercase tracking-wider opacity-80">Loan Amount</Label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-medium">KES</span>
+                            <Input type="number" value={loanAmount} onChange={(e) => setLoanAmount(e.target.value)} placeholder="0.00" className="h-14 pl-12 text-2xl font-black rounded-2xl" required />
                           </div>
-                        </form>
-                      </Card>
-                    </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                            <Label className="text-[8px] font-semibold uppercase tracking-wider opacity-80">Period</Label>
+                            <Select value={period} onValueChange={setPeriod}>
+                              <SelectTrigger className="h-12 rounded-2xl font-bold"><SelectValue placeholder="Period" /></SelectTrigger>
+                              <SelectContent>
+                                {Object.keys(INTEREST_RATES).map(k => <SelectItem key={k} value={k}>{k} Months ({INTEREST_RATES[k]}%)</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[8px] font-semibold uppercase tracking-wider opacity-80">Repayment Due</Label>
+                            <div className="h-12 flex items-center px-4 rounded-2xl bg-white/20 border border-dashed font-bold text-xs">
+                              <Calendar className="w-4 h-4 mr-2 text-emerald-500" /> {format(addMonths(new Date(), parseInt(period)), "MMM d, yyyy")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="p-6 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 grid grid-cols-2 gap-4">
+                          <div className="space-y-0.5"><span className="text-[7px] uppercase font-black">Principal</span><p className="font-black text-xs">KES {(parseFloat(loanAmount) || 0).toLocaleString()}</p></div>
+                          <div className="space-y-0.5"><span className="text-[7px] uppercase font-black">Interest</span><p className="font-black text-emerald-500 text-xs">{INTEREST_RATES[period]}%</p></div>
+                          <div className="space-y-0.5 col-span-2"><span className="text-[7px] uppercase font-black">Total Due</span><p className="font-black text-sm text-emerald-600">KES {((parseFloat(loanAmount) || 0) * (1 + INTEREST_RATES[period]/100)).toLocaleString()}</p></div>
+                        </div>
+                        <Button className="w-full h-14 rounded-2xl font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl uppercase group" disabled={parseFloat(loanAmount) <= 0 || !!activeLoan} onClick={confirmLoanDisbursement}>
+                          Confirm & Disburse Funds <Check className="ml-2 w-6 h-6 group-hover:scale-110" />
+                        </Button>
+                      </div>
+                    </Card>
                   )}
                 </div>
 
                 <div className="space-y-4">
-                  <Card className="rounded-2xl border border-white/20 bg-white/70 dark:bg-slate-950/60 backdrop-blur-xl overflow-hidden shadow-md">
-                    <CardHeader className="p-4 pb-2">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                        <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                          Limit Guard™
-                        </CardTitle>
-                      </div>
-                      <CardDescription className="font-medium text-[9px]">
-                        Disbursement criteria
-                      </CardDescription>
+                  <Card className="rounded-2xl border border-white/20 bg-white/70 dark:bg-slate-950/60 backdrop-blur-xl p-4 shadow-md">
+                    <CardHeader className="p-0 mb-4">
+                      <div className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-600" /><CardTitle className="text-[11px] font-bold uppercase">Limit Guard™</CardTitle></div>
                     </CardHeader>
-                    <CardContent className="space-y-4 p-4 pt-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", !showOnboarding ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">Demographics</span>
-                        </div>
-                        <span className={cn("text-[11px] font-bold", !showOnboarding ? "text-emerald-600" : "text-muted-foreground")}>
-                          {!showOnboarding ? "VERIFIED" : "PENDING"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", membershipMonths >= 9 ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">9-Month Membership</span>
-                        </div>
-                        <span className={cn("text-[11px] font-bold", membershipMonths >= 9 ? "text-emerald-600" : "text-muted-foreground")}>
-                          {membershipMonths >= 9 ? "VERIFIED" : "PENDING"}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={cn("w-1.5 h-1.5 rounded-full", (assessment?.calculated_limit > 0) ? "bg-emerald-500" : "bg-muted")} />
-                          <span className="text-[11px] text-slate-900 dark:text-slate-100 font-medium">30% Volume Limit</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-emerald-600 tabular-nums">
-                          KES {(assessment?.calculated_limit || 0).toLocaleString()}
-                        </span>
-                      </div>
-                      <div className="pt-3 border-t border-white/5">
-                        <p className="text-[10px] text-muted-foreground font-medium leading-relaxed italic">
-                          "Limits are strictly capped at 30% of your 3-month average volume."
-                        </p>
-                      </div>
+                    <CardContent className="space-y-3 p-0">
+                      <div className="flex justify-between items-center text-[10px] font-medium"><span>Membership</span><span className={cn(membershipMonths >= 9 ? "text-emerald-600" : "text-muted-foreground")}>{membershipMonths} / 9 Months</span></div>
+                      <div className="flex justify-between items-center text-[10px] font-medium"><span>Profile Status</span><span className={cn(isProfileComplete ? "text-emerald-600" : "text-muted-foreground")}>{isProfileComplete ? "VERIFIED" : "INCOMPLETE"}</span></div>
                     </CardContent>
-                    <CardFooter className="bg-emerald-500/5 p-3 border-t border-emerald-500/10 flex justify-between items-center">
-                      <div className="flex items-center gap-1.5 text-[8px] text-emerald-600 font-bold uppercase tracking-wider">
-                        <ShieldCheck className="w-3 h-3" /> SECURE LEDGER
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="w-6 h-6 rounded-full hover:bg-emerald-500/10 text-emerald-600"
-                        onClick={() => window.location.reload()}
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                      </Button>
-                    </CardFooter>
                   </Card>
-
-                  <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 backdrop-blur-sm shadow-sm relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-1 opacity-20 group-hover:opacity-40 transition-opacity">
-                      <Sparkles className="w-12 h-12 text-primary" />
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm relative z-10">
-                      <Zap className="w-3.5 h-3.5" />
-                    </div>
-                    <h4 className="font-bold uppercase text-[9px] tracking-wider text-slate-950 dark:text-white relative z-10">
-                      Limit Expansion Tip
-                    </h4>
-                    <p className="text-[10px] text-muted-foreground font-medium leading-tight relative z-10">
-                      Increase your monthly transaction volume to unlock up to 30% borrowing power based on your history.
-                    </p>
-                  </div>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent
-              value="tracker"
-              className="focus-visible:outline-none space-y-4 animate-in fade-in duration-500"
-            >
+            <TabsContent value="tracker" className="focus-visible:outline-none animate-in fade-in duration-500">
               {activeLoan ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="md:col-span-2 rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl overflow-hidden shadow-lg">
-                    <CardHeader className="p-4 pb-0.5">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-base font-bold text-slate-950 dark:text-white">
-                            {t("loans.tracker.credit_line")}
-                          </CardTitle>
-                          <CardDescription className="font-medium text-[10px] opacity-60">
-                            {t("loans.tracker.active_disbursement", {
-                              id: activeLoan.id.slice(0, 8),
-                            })}
-                          </CardDescription>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-semibold uppercase tracking-wider border border-emerald-500/20 shadow-sm">
-                            {activeLoan.status}
-                          </div>
-                          {activeLoan.months_already_extended > 0 && (
-                            <div className="text-[7px] font-bold text-primary uppercase tracking-tighter">
-                              Extended {activeLoan.months_already_extended}x
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4 p-4 py-3">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        <div className="space-y-0.5">
-                          <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">
-                            {t("loans.tracker.original")}
-                          </span>
-                          <p className="text-base font-bold text-slate-950 dark:text-white tabular-nums">
-                            KES {parseFloat(activeLoan.amount).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">
-                            {t("loans.tracker.repaid")}
-                          </span>
-                          <p className="text-base font-bold text-emerald-600 tabular-nums">
-                            KES{" "}
-                            {(
-                              parseFloat(activeLoan.amount) * (1 + activeLoan.interest_rate / 100) -
-                              parseFloat(activeLoan.remaining_balance)
-                            ).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[8px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">
-                            {t("loans.tracker.due")}
-                          </span>
-                          <p className="text-base font-bold text-destructive tabular-nums">
-                            {format(new Date(activeLoan.due_date), "MMM d, yyyy")}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-[9px] font-semibold">
-                          <span className="text-muted-foreground uppercase tracking-wider opacity-60">
-                            {t("loans.tracker.progress")}
-                          </span>
-                          <span className="text-emerald-600">
-                            {Math.round((
-                              ((parseFloat(activeLoan.amount) *
-                                (1 + activeLoan.interest_rate / 100) -
-                                parseFloat(activeLoan.remaining_balance)) /
-                                (parseFloat(activeLoan.amount) *
-                                  (1 + activeLoan.interest_rate / 100))) *
-                              100
-                            ))}
-                            %
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden border border-white/5">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full transition-all duration-1000 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
-                            style={{
-                              width: `${
-                                ((parseFloat(activeLoan.amount) *
-                                  (1 + activeLoan.interest_rate / 100) -
-                                  parseFloat(activeLoan.remaining_balance)) /
-                                  (parseFloat(activeLoan.amount) *
-                                    (1 + activeLoan.interest_rate / 100))) *
-                                100
-                              }%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-
-                    <CardFooter className="p-3 border-t border-white/5 flex gap-2 bg-white/5">
-                      <Button
-                        size="sm"
-                        className="flex-1 rounded-xl h-9 font-bold text-xs shadow-sm active:scale-95 transition-all"
-                        onClick={() => setShowRepayPopup(true)}
-                      >
-                        {t("loans.tracker.repay_btn")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 rounded-xl h-9 border-white/10 font-bold text-xs hover:bg-emerald-500/10 active:scale-95 transition-all"
-                        onClick={() => setShowExtensionPopup(true)}
-                        disabled={!extensionAssessment}
-                      >
-                        Request Extension
-                      </Button>
-                    </CardFooter>
-                  </Card>
-
-                  <div className="space-y-3">
-                    <Card className="rounded-2xl border border-white/10 bg-white/70 dark:bg-slate-950/60 backdrop-blur-xl shadow-md overflow-hidden">
-                      <CardHeader className="p-3 pb-0.5">
-                        <div className="flex items-center gap-2">
-                          <History className="w-3.5 h-3.5 text-muted-foreground" />
-                          <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-slate-950 dark:text-white">
-                            {t("loans.tracker.history")}
-                          </CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-2 p-3 pt-1.5">
-                        {loanHistory.slice(0, 4).map((loan) => (
-                          <div
-                            key={loan.id}
-                            className="flex items-center justify-between group cursor-pointer hover:bg-emerald-500/5 p-1 -mx-1 rounded-lg transition-all"
-                          >
-                            <div>
-                              <p className="text-[10px] font-semibold text-slate-950 dark:text-white">
-                                #{loan.id.slice(0, 6).toUpperCase()}
-                              </p>
-                              <p className="text-[8px] text-muted-foreground font-medium">
-                                {format(new Date(loan.created_at), "MMM d, yyyy")}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-[10px] font-bold text-slate-950 dark:text-white tabular-nums">
-                                KES {parseFloat(loan.amount).toLocaleString()}
-                              </p>
-                              <span
-                                className={cn(
-                                  "text-[8px] font-semibold uppercase tracking-tight",
-                                  loan.status === "paid" ? "text-emerald-500" : "text-primary",
-                                )}
-                              >
-                                {loan.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </CardContent>
-                    </Card>
-
-                    <div className="p-3 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center gap-3 shadow-sm backdrop-blur-sm">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 border border-emerald-500/20">
-                        <TrendingUp className="w-3.5 h-3.5" />
-                      </div>
-                      <div>
-                        <h4 className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Trust Score
-                        </h4>
-                        <p className="text-base font-bold text-slate-950 dark:text-white leading-none">
-                          {(loanHistory.filter(l => l.status === 'paid').length * 150 + 400).toString().slice(0,3)}
-                          <span className="text-[8px] text-emerald-500 font-bold ml-1 uppercase">
-                            ELITE
-                          </span>
-                        </p>
-                      </div>
+                <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 p-8 shadow-lg">
+                  <div className="flex justify-between items-start mb-8">
+                    <div>
+                      <h3 className="text-xl font-bold">Active Loan</h3>
+                      <p className="text-xs text-muted-foreground font-medium">ID: {activeLoan.id.slice(0,8).toUpperCase()}</p>
                     </div>
+                    <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold border border-emerald-500/20">{activeLoan.status.toUpperCase()}</div>
                   </div>
-                </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-8">
+                    <div><span className="text-[8px] uppercase font-bold text-muted-foreground">Original</span><p className="text-xl font-bold">KES {parseFloat(activeLoan.amount).toLocaleString()}</p></div>
+                    <div><span className="text-[8px] uppercase font-bold text-muted-foreground">Remaining</span><p className="text-xl font-bold text-destructive">KES {parseFloat(activeLoan.remaining_balance).toLocaleString()}</p></div>
+                    <div><span className="text-[8px] uppercase font-bold text-muted-foreground">Due Date</span><p className="text-xl font-bold">{format(new Date(activeLoan.due_date), "MMM d, yyyy")}</p></div>
+                  </div>
+                  <div className="flex gap-4">
+                    <Button className="flex-1 h-12 rounded-xl font-bold" onClick={() => setShowRepayPopup(true)}>Repay Now</Button>
+                    <Button variant="outline" className="flex-1 h-12 rounded-xl font-bold" onClick={() => setShowExtensionPopup(true)}>Request Extension</Button>
+                  </div>
+                </Card>
               ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-muted-foreground mb-3 shadow-inner border border-white/5">
-                    <Clock className="w-6 h-6" />
-                  </div>
-                  <h2 className="text-lg font-bold text-slate-950 dark:text-white mb-1 uppercase italic">
-                    {t("loans.tracker.no_active")}
-                  </h2>
-                  <p className="text-muted-foreground font-medium mb-5 max-w-xs text-[10px]">
-                    {t("loans.tracker.ready_boost")}
-                  </p>
-                  <Button
-                    onClick={() => setActiveTab("request")}
-                    className="rounded-xl px-5 h-9 font-bold text-xs bg-emerald-600 hover:bg-emerald-700 shadow-md"
-                  >
-                    {t("loans.tracker.get_loan_btn")}
-                  </Button>
-                </div>
-              )}
-
-              {activeLoan && (
-                <div className="mt-6 space-y-2.5 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
-                  <div className="flex items-center gap-1.5 px-1">
-                    <History className="w-3.5 h-3.5 text-emerald-500" />
-                    <h3 className="text-xs font-bold uppercase tracking-tight text-slate-950 dark:text-white">
-                      {t("loans.tracker.ledger_history")}
-                    </h3>
-                  </div>
-                  <Card className="rounded-2xl border border-white/10 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl overflow-hidden shadow-md">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-white/5 bg-slate-900/5 dark:bg-white/5">
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
-                              {t("common.date")}
-                            </th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
-                              {t("transactions.form.provider")}
-                            </th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
-                              {t("common.type")}
-                            </th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-muted-foreground">
-                              {t("loans.tracker.paid")}
-                            </th>
-                            <th className="px-4 py-2 font-bold uppercase tracking-wider text-[8px] text-emerald-600">
-                              {t("loans.tracker.balance")}
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {ledgerEntries.map((entry) => (
-                            <tr key={entry.id} className="hover:bg-emerald-500/5 transition-colors">
-                              <td className="px-4 py-2 font-medium text-[10px] opacity-70">
-                                {format(new Date(entry.created_at), "MMM d, HH:mm")}
-                              </td>
-                              <td className="px-4 py-2">
-                                <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                                    {entry.source.toLowerCase().includes("bank") ? (
-                                      <Building2 className="w-2.5 h-2.5 text-emerald-600" />
-                                    ) : (
-                                      <Smartphone className="w-2.5 h-2.5 text-emerald-600" />
-                                    )}
-                                  </div>
-                                  <span className="font-semibold uppercase tracking-tighter text-[8px]">
-                                    {entry.source}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-2">
-                                <span
-                                  className={cn(
-                                    "px-1.5 py-0.5 rounded-full text-[7px] font-bold uppercase tracking-wider border",
-                                    entry.payment_type === "automated"
-                                      ? "bg-primary/10 text-primary border-primary/20"
-                                      : "bg-slate-500/10 text-slate-500 border-slate-500/20",
-                                  )}
-                                >
-                                  {entry.payment_type}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 font-bold text-[10px] text-slate-950 dark:text-white tabular-nums">
-                                KES {parseFloat(entry.amount).toLocaleString()}
-                              </td>
-                              <td className="px-4 py-2 font-bold text-[10px] text-emerald-600 tabular-nums">
-                                KES {parseFloat(entry.remaining_balance).toLocaleString()}
-                              </td>
-                            </tr>
-                          ))}
-                          {ledgerEntries.length === 0 && (
-                            <tr>
-                              <td
-                                colSpan={5}
-                                className="px-4 py-8 text-center text-muted-foreground font-semibold italic text-[10px]"
-                              >
-                                {t("loans.tracker.no_activity")}
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
+                <div className="text-center py-20">
+                  <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-bold">No Active Loans</h3>
+                  <Button onClick={() => setActiveTab("request")} className="mt-4 rounded-xl px-8 h-11 font-bold bg-emerald-600 text-white">Apply Now</Button>
                 </div>
               )}
             </TabsContent>
+            
+            <TabsContent value="success" className="focus-visible:outline-none text-center py-20 animate-in zoom-in-95 duration-500">
+               <div className="relative inline-block mb-6">
+                 <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-xl scale-125 animate-pulse" />
+                 <div className="relative w-24 h-24 rounded-full bg-emerald-500/10 border-2 border-emerald-500/20 flex items-center justify-center text-emerald-600 shadow-lg mx-auto">
+                   <Sparkles className="w-12 h-12" />
+                 </div>
+               </div>
+               <h2 className="text-3xl font-black mb-2 text-slate-950 dark:text-white">No Outstanding Balance!</h2>
+               <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 mb-6 uppercase tracking-wider">Your credit profile is in excellent standing</p>
+               
+               <div className="max-w-md mx-auto p-6 rounded-2xl bg-card border border-white/10 dark:bg-slate-950/40 backdrop-blur-md mb-8 shadow-inner">
+                 <p className="text-sm italic text-muted-foreground font-serif leading-relaxed">
+                   "A satisfied debt is the best asset. Good credit is wealth that doesn't depreciate; it is built on consistency and honor."
+                 </p>
+                 <div className="h-px bg-white/10 my-4" />
+                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Vault Wise Credit Tip</p>
+               </div>
 
-            <TabsContent
-              value="success"
-              className="focus-visible:outline-none animate-in zoom-in-95 duration-500"
-            >
-              <div className="max-w-4xl mx-auto py-12">
-                {activeLoan ? (
-                  <div className="space-y-8">
-                    <div className="relative text-center">
-                      <div className="absolute inset-x-0 top-0 h-40 rounded-[2.5rem] bg-emerald-500/10 blur-3xl opacity-40" />
-                      <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-[2rem] bg-white/90 shadow-2xl border border-white/40 backdrop-blur-xl text-destructive mx-auto">
-                        <AlertCircle className="w-12 h-12 text-emerald-600" />
-                      </div>
-                    </div>
-
-                    <div className="text-center">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-muted-foreground mb-3">
-                        {t("common.status")}
-                      </p>
-                      <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-950 dark:text-white uppercase">
-                        {t("loans.status.pending_title")}
-                      </h2>
-                      <p className="mt-4 text-sm sm:text-base font-medium text-slate-700 dark:text-slate-300 max-w-2xl mx-auto">
-                        {t("loans.status.pending_description", {
-                          amount: (parseFloat(activeLoan.remaining_balance) || 0).toLocaleString(),
-                        })}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                      <Card className="rounded-[2rem] border border-white/30 bg-white/90 shadow-2xl p-8 text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground mb-3">
-                          {t("loans.status.outstanding_balance")}
-                        </p>
-                        <p className="text-3xl sm:text-4xl font-bold text-slate-950 tabular-nums">
-                          KES {(parseFloat(activeLoan.remaining_balance) || 0).toLocaleString()}
-                        </p>
-                        <p className="mt-2 text-xs sm:text-sm text-muted-foreground font-medium">
-                          {t("loans.status.remaining_note")}
-                        </p>
-                      </Card>
-
-                      <Card className="rounded-[2rem] border border-white/30 bg-emerald-500/10 shadow-2xl p-8 text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-emerald-700 mb-3">
-                          {t("loans.status.potential_boost")}
-                        </p>
-                        <p className="text-3xl sm:text-4xl font-bold text-emerald-700">
-                          +{potentialLimitBoost}%
-                        </p>
-                        <p className="mt-2 text-xs sm:text-sm text-emerald-950/80 font-medium">
-                          {t("loans.status.boost_note")}
-                        </p>
-                      </Card>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-2">
-                      <Button
-                        className="h-12 px-8 rounded-full bg-emerald-600 text-white font-bold shadow-xl hover:bg-emerald-700 transition-all"
-                        onClick={() => setShowRepayPopup(true)}
-                      >
-                        {t("loans.status.pay_now_btn")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-12 px-8 rounded-full border-white/30 text-slate-950 dark:text-white font-bold hover:bg-white/10 transition-all"
-                        onClick={() => setActiveTab("tracker")}
-                      >
-                        {t("loans.status.view_tracker_btn")}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-20">
-                    <h2 className="text-xl font-bold text-slate-950 dark:text-white mb-3">
-                      {t("loans.status.no_pending_title")}
-                    </h2>
-                    <p className="text-sm text-muted-foreground mb-6">
-                      {t("loans.status.no_pending_desc")}
-                    </p>
-                    <Button
-                      onClick={() => setActiveTab("request")}
-                      className="rounded-full px-6 h-11 font-bold bg-emerald-600 hover:bg-emerald-700 transition-all"
-                    >
-                      {t("loans.status.request_btn")}
-                    </Button>
-                  </div>
-                )}
-              </div>
+               <Button onClick={() => setActiveTab("request")} className="rounded-2xl px-10 h-13 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/10">
+                 Request New Loan
+               </Button>
             </TabsContent>
           </Tabs>
         </main>
       </div>
 
+      {/* MODALS */}
       <Dialog open={showRepayPopup} onOpenChange={setShowRepayPopup}>
-        <DialogContent className="max-w-sm rounded-2xl border-white/10 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-          <div className="relative p-5">
-            <button
-              onClick={() => setShowRepayPopup(false)}
-              className="absolute right-4 top-4 w-6 h-6 rounded-full bg-muted/20 flex items-center justify-center hover:bg-muted/40 transition-colors z-20"
-            >
-              <X className="w-3 h-3" />
-            </button>
-
-            <DialogHeader className="mb-5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-2 border border-emerald-500/20">
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <DialogTitle className="text-lg font-bold text-slate-950 dark:text-white">
-                {t("loans.repayment_modal.title")}
-              </DialogTitle>
-              <DialogDescription className="font-medium text-[11px] text-muted-foreground">
-                {t("loans.repayment_modal.description")}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-5">
-              <div className="p-4 rounded-xl bg-slate-900/5 dark:bg-white/5 border border-white/5 text-center">
-                <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-wider">
-                  {t("loans.repayment_modal.total_outstanding")}
-                </span>
-                <p className="text-xl font-bold text-slate-950 dark:text-white tabular-nums">
-                  KES {activeLoan ? parseFloat(activeLoan.remaining_balance).toLocaleString() : "0.00"}
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t("loans.repayment_modal.payment_source")}
-                </Label>
-                <Select
-                  value={repayProvider}
-                  onValueChange={(val) => {
-                    setRepayProvider(val);
-                    setSourceIdentifier("");
-                  }}
-                >
-                  <SelectTrigger className="h-10 rounded-lg bg-muted/10 border-white/10 font-semibold text-xs">
-                    <SelectValue placeholder={t("loans.repayment_modal.payment_source")} />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-lg shadow-xl backdrop-blur-xl border-white/20 z-[100] max-h-[300px] overflow-y-auto">
-                    <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                      <Smartphone className="w-2.5 h-2.5" /> {t("loans.categories.mobile")}
-                    </div>
-                    <SelectItem value="mpesa" className="font-medium text-xs">
-                      M-Pesa
-                    </SelectItem>
-                    <SelectItem value="airtel" className="font-medium text-xs">
-                      Airtel Money
-                    </SelectItem>
-                    <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
-                      <Building2 className="w-2.5 h-2.5" /> {t("loans.categories.banks")}
-                    </div>
-                    <SelectItem value="kcb" className="font-medium text-xs">KCB Group</SelectItem>
-                    <SelectItem value="equity" className="font-medium text-xs">Equity Bank</SelectItem>
-                    <SelectItem value="ncba" className="font-medium text-xs">NCBA Bank</SelectItem>
-                    <SelectItem value="absa" className="font-medium text-xs">Absa Kenya</SelectItem>
-                    <SelectItem value="coop" className="font-medium text-xs">Co-operative Bank</SelectItem>
-                    <SelectItem value="stanbic" className="font-medium text-xs">Stanbic Bank</SelectItem>
-                    <SelectItem value="im" className="font-medium text-xs">I&M Bank</SelectItem>
-                    <SelectItem value="dtb" className="font-medium text-xs">Diamond Trust Bank</SelectItem>
-                    <SelectItem value="family" className="font-medium text-xs">Family Bank Kenya</SelectItem>
-                    <div className="px-3 py-1.5 text-[8px] font-bold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/5 mt-1">
-                      <Wallet className="w-2.5 h-2.5" /> {t("loans.categories.vault")}
-                    </div>
-                    <SelectItem
-                      value="vault_balance"
-                      className="font-bold text-emerald-600 text-xs"
-                    >
-                      Vault Account
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {repayProvider && repayProvider !== "vault_balance" && (
-                <div className="space-y-1.5 animate-in slide-in-from-top-1 duration-300">
-                  <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {["mpesa", "airtel"].includes(repayProvider)
-                      ? t("transactions.form.phone_number")
-                      : t("transactions.form.account_number")}
-                  </Label>
-                  <div className="relative">
-                    {["mpesa", "airtel"].includes(repayProvider) ? (
-                      <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    ) : (
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    )}
-                    <Input
-                      placeholder={
-                        ["mpesa", "airtel"].includes(repayProvider) ? "07123..." : "1234567..."
-                      }
-                      value={sourceIdentifier}
-                      onChange={(e) => setSourceIdentifier(e.target.value)}
-                      className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-medium text-xs text-slate-950 dark:text-white"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <Label className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {t("common.amount")} (KES)
-                </Label>
-                <div className="relative">
-                  <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={repayAmount}
-                    onChange={(e) => setRepayAmount(e.target.value)}
-                    className="h-10 pl-9 rounded-lg bg-muted/5 border-white/10 font-bold text-xs text-slate-950 dark:text-white tabular-nums"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-10 rounded-lg font-bold text-xs border-white/10"
-                onClick={() => setShowRepayPopup(false)}
-              >
-                {t("common.back")}
-              </Button>
-              <Button
-                className="flex-1 h-10 rounded-lg font-bold text-xs shadow-md bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleRepayment}
-              >
-                {t("loans.repayment_modal.process_btn")} <Check className="ml-1.5 w-3.5 h-3.5" />
-              </Button>
-            </div>
+        <DialogContent className="max-w-sm rounded-3xl p-6">
+          <DialogHeader><DialogTitle>Loan Repayment</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input type="number" placeholder="Amount to repay" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} className="h-12 rounded-xl" />
+            <Select value={repayProvider} onValueChange={setRepayProvider}>
+              <SelectTrigger className="h-12 rounded-xl"><SelectValue placeholder="Payment Method" /></SelectTrigger>
+              <SelectContent><SelectItem value="vault_balance">Vault Balance</SelectItem></SelectContent>
+            </Select>
+            <Button className="w-full h-12 rounded-xl font-bold bg-emerald-600" onClick={handleRepayment}>Confirm Repayment</Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* EXTENSION POPUP MODAL */}
       <Dialog open={showExtensionPopup} onOpenChange={setShowExtensionPopup}>
-        <DialogContent className="max-w-sm rounded-2xl border-white/10 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl p-0 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-          <div className="relative p-5">
-            <button
-              onClick={() => setShowExtensionPopup(false)}
-              className="absolute right-4 top-4 w-6 h-6 rounded-full bg-muted/20 flex items-center justify-center hover:bg-muted/40 transition-colors z-20"
-            >
-              <X className="w-3 h-3" />
-            </button>
-
-            <DialogHeader className="mb-5">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-2 border border-primary/20">
-                <RefreshCw className="w-5 h-5" />
-              </div>
-              <DialogTitle className="text-lg font-bold text-slate-950 dark:text-white">
-                Request Loan Extension
-              </DialogTitle>
-              <DialogDescription className="font-medium text-[11px] text-muted-foreground">
-                Extend your repayment deadline by 30 days.
-              </DialogDescription>
-            </DialogHeader>
-
-            {extensionAssessment && activeLoan && (
-              <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-slate-900/5 dark:bg-white/5 border border-white/5 text-center">
-                    <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-wider">
-                      Extension Penalty
-                    </span>
-                    <p className="text-base font-bold text-primary tabular-nums">
-                      KES {extensionAssessment.extension_penalties.toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-900/5 dark:bg-white/5 border border-white/5 text-center">
-                    <span className="text-[8px] font-semibold uppercase text-muted-foreground tracking-wider">
-                      New Total Due
-                    </span>
-                    <p className="text-base font-bold text-slate-950 dark:text-white tabular-nums">
-                      KES {extensionAssessment.total_repayment_due.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="w-3 h-3 text-emerald-600" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-700">New Deadline</span>
-                  </div>
-                  <p className="text-xs font-bold text-slate-950 dark:text-white">
-                    {format(addMonths(new Date(activeLoan.due_date), 1), "MMMM d, yyyy")}
-                  </p>
-                  <p className="mt-1 text-[8px] text-muted-foreground leading-tight">
-                    Every extension adds a 1% penalty (max 3%). Your credit score will remain unaffected if extended before the deadline.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 h-10 rounded-lg font-bold text-xs border-white/10"
-                onClick={() => setShowExtensionPopup(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 h-10 rounded-lg font-bold text-xs shadow-md bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleRequestExtension}
-                disabled={extensionAssessment?.status === 'error'}
-              >
-                Confirm Extension
-              </Button>
-            </div>
+        <DialogContent className="max-w-sm rounded-3xl p-6">
+          <DialogHeader><DialogTitle>Request Extension</DialogTitle></DialogHeader>
+          <div className="space-y-4 pt-4 text-center">
+            <p className="text-sm font-medium">Extend your loan by 30 days for a small processing fee.</p>
+            <Button className="w-full h-12 rounded-xl font-bold bg-emerald-600" onClick={handleRequestExtension}>Confirm Extension</Button>
           </div>
         </DialogContent>
       </Dialog>

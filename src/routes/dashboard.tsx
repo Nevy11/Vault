@@ -186,13 +186,13 @@ function QuickSend({
         className,
       )}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
           {title}
         </div>
         <ArrowRight className="w-3 h-3 text-muted-foreground/40" />
       </div>
-      <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide min-h-[90px]">
         {loading ? (
           <>
             {[1, 2, 3, 4].map((i) => (
@@ -216,20 +216,13 @@ function QuickSend({
                 onClick={() => a.tag && onAvatarClick?.(a.tag)}
               >
                 <div className="relative">
-                  {a.avatarUrl ? (
-                    <img
-                      src={a.avatarUrl}
-                      alt={a.name}
-                      className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
-                    />
-                  ) : (
-                    <div
-                      className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
-                    >
+                  <Avatar className="w-12 h-12 shadow-lg transition-transform group-hover:scale-105 group-active:scale-95">
+                    <AvatarImage src={a.avatarUrl || undefined} alt={a.name} />
+                    <AvatarFallback className={cn("text-white font-semibold", a.color)}>
                       {a.initial}
-                    </div>
-                  )}
-                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm z-10" />
                 </div>
                 <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                   {a.name}

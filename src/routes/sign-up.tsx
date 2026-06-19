@@ -56,12 +56,15 @@ function SignUp() {
     initialStep === "verify" ? "verify" : "signUp",
   );
   const [status, setStatus] = useState<"idle" | "sending" | "verifying">("idle");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [country, setCountry] = useState("Kenya");
+  const [nationality, setNationality] = useState("Kenyan");
   const [code, setCode] = useState("");
   const navigate = useNavigate({ from: Route.fullPath });
 
@@ -121,7 +124,7 @@ function SignUp() {
         return;
       }
 
-      // Check if email is already in use in profiles (optional but good for consistency)
+      // Check if email is already in use in profiles
       const { data: existingEmail, error: emailError } = await supabase
         .from("profiles")
         .select("id")
@@ -166,9 +169,9 @@ function SignUp() {
         options: {
           data: {
             username,
-            full_name: username, // This ensures Display Name is not null in Supabase Auth
+            full_name: `${firstName} ${lastName}`,
             phone,
-            pin_hash: hashedPin, // Pass to DB trigger for instant profile creation
+            pin_hash: hashedPin,
           },
         },
       });
@@ -265,17 +268,17 @@ function SignUp() {
     const hashedPin = await hashPin(pin);
 
     console.log("Upserting profile...");
-    // Note: We use first_name to store the username until official KYC
     const { error: profileError } = await supabase.from("profiles").upsert({
       id: user.id,
-      first_name: username,
-      last_name: "Pending_KYC",
+      first_name: firstName,
+      last_name: lastName,
       email: email,
       phone_number: phone,
       pin_hash: hashedPin,
       kyc_status: "unverified",
       kyc_tag: kycTag,
       country: country,
+      nationality: nationality,
       primary_currency: countryToCurrency[country] || "USD",
     });
 
@@ -365,6 +368,24 @@ function SignUp() {
 
           {step === "signUp" ? (
             <form className="mt-7 space-y-4" onSubmit={handleSendCode}>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="First Name" required>
+                  <Input
+                    className="h-11 bg-input/60 border-border focus-visible:ring-primary"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Last Name" required>
+                  <Input
+                    className="h-11 bg-input/60 border-border focus-visible:ring-primary"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </Field>
+              </div>
               <Field label="Username" hint="your unique identity" required>
                 <Input
                   className="h-11 bg-input/60 border-border focus-visible:ring-primary"
@@ -394,18 +415,34 @@ function SignUp() {
                   required
                 />
               </Field>
-              <Field label="Country" required>
-                <select
-                  className="w-full h-11 bg-input/60 border border-border rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                >
-                  <option value="Kenya">Kenya</option>
-                  <option value="United States">United States</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="Europe">Europe</option>
-                </select>
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Country" required>
+                  <select
+                    className="w-full h-11 bg-input/60 border border-border rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                  >
+                    <option value="Kenya">Kenya</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Europe">Europe</option>
+                  </select>
+                </Field>
+                <Field label="Nationality" required>
+                  <select
+                    className="w-full h-11 bg-input/60 border border-border rounded-md px-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                    value={nationality}
+                    onChange={(e) => setNationality(e.target.value)}
+                  >
+                    <option value="Kenyan">Kenyan</option>
+                    <option value="American">American</option>
+                    <option value="British">British</option>
+                    <option value="German">German</option>
+                    <option value="French">French</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </Field>
+              </div>
               <Field label="Secure PIN" hint="required for transactions" required>
                 <div className="grid grid-cols-2 gap-3">
                   <Input
@@ -430,30 +467,6 @@ function SignUp() {
                   />
                 </div>
               </Field>
-
-              <ol className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-                <li className="flex-1">
-                  <div className="h-1 rounded-full bg-primary" />
-                  <p className="mt-2 text-foreground">
-                    <span className="font-medium">1.</span> Account Details
-                  </p>
-                </li>
-                <span className="text-muted-foreground/60">→</span>
-                <li className="flex-1">
-                  <div className="h-1 rounded-full bg-border" />
-                  <p className="mt-2">
-                    <span className="font-medium">2.</span> KYC Verification
-                  </p>
-                  <p className="text-[11px] text-muted-foreground/80">(Smile Identity API)</p>
-                </li>
-                <span className="text-muted-foreground/60">→</span>
-                <li className="flex-1">
-                  <div className="h-1 rounded-full bg-border" />
-                  <p className="mt-2">
-                    <span className="font-medium">3.</span> Success
-                  </p>
-                </li>
-              </ol>
 
               <label className="flex items-start gap-2.5 pt-2 text-sm text-foreground/90">
                 <Checkbox

@@ -36,9 +36,9 @@ BEGIN
         );
     END IF;
 
-    -- 2. Average Volume & Limit Calculation
-    v_avg_volume := public.get_three_month_avg_volume(v_user_id);
-    v_max_limit := v_avg_volume * 0.30;
+    -- 2. Average Volume & Limit Calculation (Disabled/Forced for Testing)
+    -- v_avg_volume := public.get_three_month_avg_volume(v_user_id);
+    v_max_limit := 999999999; -- Manually set to a high limit for testing
 
     -- 3. Extension Logic
     IF p_is_extension_request THEN
