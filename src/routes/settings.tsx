@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft,
@@ -8,7 +8,6 @@ import {
   Smartphone,
   ScrollText,
   CheckCircle2,
-  AlertCircle,
   Info,
   ChevronRight,
   Settings as SettingsIcon,
@@ -899,114 +898,6 @@ function SettingsPage() {
       toast.error(error.message || "Error removing avatar");
     } finally {
       setUploading(false);
-    }
-  }
-
-  // Account Deletion State
-  const [deleteStage, setDeleteStage] = useState<
-    "initial" | "asset_warning" | "warning" | "verify" | "email_sent"
-  >("initial");
-  const [activeAssets, setActiveAssets] = useState<string[]>([]);
-  const [isCheckingAssets, setIsCheckingAssets] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState("");
-  const [deletePassword, setDeletePassword] = useState("");
-  const [fallbackLink, setFallbackLink] = useState<string | null>(null);
-  const deleteTargetText = profile?.email || "delete my account";
-
-  const { balance } = useWalletBalance();
-  const navigate = useNavigate();
-
-  async function handleInitialDeleteClick() {
-    try {
-      setIsCheckingAssets(true);
-      const assets: string[] = [];
-
-      if (balance && Number(balance) > 0) {
-        assets.push(t("settings.danger.assets.balance"));
-      }
-
-      const { data: loans } = await supabase.from("loans").select("id").eq("status", "active");
-
-      if (loans && loans.length > 0) {
-        assets.push(t("settings.danger.assets.loans"));
-      }
-
-      const { data: savings } = await supabase
-        .from("savings_goals")
-        .select("id")
-        .eq("status", "active");
-
-      if (savings && savings.length > 0) {
-        assets.push(t("settings.danger.assets.savings"));
-      }
-
-      if (assets.length > 0) {
-        setActiveAssets(assets);
-        setDeleteStage("asset_warning");
-      } else {
-        setDeleteStage("warning");
-      }
-    } catch (err) {
-      console.error("Error checking assets:", err);
-      setDeleteStage("warning"); // Fallback to normal flow if check fails
-    } finally {
-      setIsCheckingAssets(false);
-    }
-  }
-
-  async function handleDeleteAccount() {
-    try {
-      if (deleteConfirmText !== deleteTargetText) {
-        toast.error("Confirmation text does not match");
-        return;
-      }
-
-      setSaving(true);
-
-      const { data, error } = await supabase.functions.invoke("send-predelete-email", {
-        body: {
-          email: profile?.email,
-        },
-      });
-
-      if (error) {
-        console.error("DEBUG: Full Function Error Object:", error);
-
-        let errMsg = "Error initiating deletion";
-
-        // Try to parse the specific error returned by our function
-        try {
-          // FunctionsHttpError might contain the response body
-          const errorData = await error.context.json();
-          console.log("DEBUG: Parsed Error Data:", errorData);
-
-          if (errorData.error === "INVALID_PASSWORD")
-            errMsg = "Incorrect password. Please try again.";
-          if (errorData.error === "EMAIL_MISMATCH")
-            errMsg = "The email provided does not match your account.";
-          if (errorData.msg) errMsg = errorData.msg;
-        } catch (e) {
-          console.log("DEBUG: Could not parse error body, using message:", error.message);
-          if (error.message.includes("INVALID_PASSWORD"))
-            errMsg = "Incorrect password. Please try again.";
-        }
-
-        throw new Error(errMsg);
-      }
-
-      if (data && data.error === "EMAIL_DELIVERY_FAILED" && data.action_link) {
-        console.warn("Email delivery failed, providing manual link");
-        setFallbackLink(data.action_link);
-        setDeleteStage("email_sent");
-        toast.warning("Delivery restricted. Please confirm manually.");
-      } else {
-        setDeleteStage("email_sent");
-        toast.success("Verification email sent");
-      }
-    } catch (error: any) {
-      toast.error(error.message || "Error deleting account");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -2108,271 +1999,95 @@ function SettingsPage() {
                 </DialogContent>
               </Dialog>
 
+              {/* About Account Suspension */}
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
-                <div className="space-y-4">
+                <div className="space-y-5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-input/40 text-muted-foreground/70 flex-shrink-0 mt-0.5">
-                      <X className="h-5 w-5" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 flex-shrink-0 mt-0.5">
+                      <Info className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-medium text-foreground">
-                        {t("settings.danger.delete_account")}
+                        What Does Suspending Do?
                       </h3>
                       <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                        {t("settings.danger.delete_desc")}
+                        Suspending your account is a protective measure that immediately freezes all
+                        financial activity on your account. It does <strong>not</strong> delete any
+                        of your data — everything is preserved and waiting for you when you come back.
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border/60 bg-card/40 p-4 flex items-start gap-3">
-                    <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
-                    <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed">
-                      {t("settings.danger.irreversible_title")}
+
+                  {/* Reasons to Suspend */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                      Reasons to Suspend
                     </p>
+                    <ul className="space-y-2">
+                      {[
+                        "You noticed a suspicious login or unfamiliar device on your account",
+                        "You lost your phone or your device was stolen",
+                        "You received an unauthorized transaction notification",
+                        "You suspect your password or credentials have been compromised",
+                        "You want to temporarily disable your account while traveling",
+                      ].map((reason) => (
+                        <li
+                          key={reason}
+                          className="flex items-start gap-3 p-3 rounded-xl bg-destructive/5 border border-destructive/10 text-sm text-muted-foreground"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-destructive/50 mt-1.5 flex-shrink-0" />
+                          {reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* What Happens to the System */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                      What Happens When You Suspend
+                    </p>
+                    <ul className="space-y-2">
+                      {[
+                        "All deposits, withdrawals, and transfers are blocked immediately",
+                        "Active loan repayments are paused — no penalties will accrue",
+                        "Savings goals are frozen in place and continue to be protected",
+                        "Your profile, transaction history, and data remain fully intact",
+                        "No one (including you) can perform financial operations until restored",
+                      ].map((effect) => (
+                        <li
+                          key={effect}
+                          className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm text-muted-foreground"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                          {effect}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* How to Unsuspend */}
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 flex-shrink-0 mt-0.5">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                          How to Unsuspend Your Account
+                        </h4>
+                        <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+                          You can restore your account at any time by clicking the{" "}
+                          <strong className="text-foreground">"Restore & Unsuspend Account"</strong>{" "}
+                          button above. A 6-digit verification code will be sent to your registered
+                          email address. Simply enter the code to verify your identity and regain
+                          full access to all features. The entire process takes less than a minute.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-
-              <Dialog onOpenChange={(open) => !open && setDeleteStage("initial")}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    className="w-full h-12 rounded-xl transition-all active:scale-95 font-medium text-base shadow-sm hover:shadow-md"
-                    onClick={(e) => {
-                      // We don't want the dialog to open immediately if we are checking assets
-                      // but DialogTrigger handles the opening.
-                      // So we'll run our check.
-                      handleInitialDeleteClick();
-                    }}
-                  >
-                    {isCheckingAssets ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    {t("settings.danger.delete_btn")}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-0 overflow-hidden shadow-2xl">
-                  {/* Static Header for Accessibility */}
-                  <DialogHeader className="hidden">
-                    <DialogTitle>Account Deletion</DialogTitle>
-                    <DialogDescription>Account deletion process</DialogDescription>
-                  </DialogHeader>
-
-                  {deleteStage === "asset_warning" && (
-                    <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
-                      <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif text-amber-500 flex items-center gap-2">
-                          <AlertCircle className="w-6 h-6" />
-                          {t("settings.danger.assets.title")}
-                        </DialogTitle>
-                        <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
-                          {t("settings.danger.assets.desc")}
-                        </DialogDescription>
-                      </DialogHeader>
-
-                      <div className="space-y-4 mb-8">
-                        <ul className="space-y-3">
-                          {activeAssets.map((asset, idx) => (
-                            <li
-                              key={idx}
-                              className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm font-medium text-amber-600"
-                            >
-                              <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                              {asset}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div className="flex flex-col gap-3">
-                        <Button
-                          variant="outline"
-                          className="w-full h-12 rounded-xl font-bold"
-                          onClick={() => {
-                            setDeleteStage("initial");
-                            navigate({ to: "/dashboard" });
-                          }}
-                        >
-                          {t("settings.danger.assets.back_to_dashboard")}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          className="w-full h-10 text-xs text-muted-foreground hover:text-foreground"
-                          onClick={() => setDeleteStage("warning")}
-                        >
-                          {t("settings.danger.assets.continue_anyway")}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {deleteStage === "initial" && !isCheckingAssets && (
-                    <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
-                      <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif">
-                          {t("settings.danger.confirm_title")}
-                        </DialogTitle>
-                        <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
-                          {t("settings.danger.confirm_desc")}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/20 flex gap-3 items-start">
-                          <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-                          <div className="text-sm text-destructive/80 font-medium">
-                            {t("settings.danger.confirm_purge")}
-                          </div>
-                        </div>
-                        <Button
-                          variant="destructive"
-                          className="w-full h-12 rounded-xl font-bold"
-                          onClick={() => setDeleteStage("warning")}
-                        >
-                          {t("settings.danger.confirm_btn")}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {deleteStage === "warning" && (
-                    <div className="p-8 animate-in slide-in-from-right-4 duration-300">
-                      <div className="mb-6">
-                        <div className="text-2xl font-serif text-destructive">
-                          {t("settings.danger.final_warning")}
-                        </div>
-                        <div className="text-muted-foreground mt-2 leading-relaxed">
-                          {t("settings.danger.final_desc")}
-                        </div>
-                      </div>
-                      <ul className="space-y-3 mb-8">
-                        {(t("settings.danger.final_list", { returnObjects: true }) as string[]).map(
-                          (text) => (
-                            <li key={text} className="flex items-center gap-3 text-xs font-medium">
-                              <div className="w-1.5 h-1.5 rounded-full bg-destructive/40" />
-                              {text}
-                            </li>
-                          ),
-                        )}
-                      </ul>
-                      <div className="flex gap-3">
-                        <Button
-                          variant="outline"
-                          className="flex-1 h-12 rounded-xl"
-                          onClick={() => setDeleteStage("initial")}
-                        >
-                          {t("settings.danger.go_back")}
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          className="flex-1 h-12 rounded-xl font-bold"
-                          onClick={() => setDeleteStage("verify")}
-                        >
-                          {t("settings.danger.confirm_impact")}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {deleteStage === "verify" && (
-                    <div className="p-8 animate-in slide-in-from-right-4 duration-300">
-                      <DialogHeader className="mb-6">
-                        <DialogTitle className="text-2xl font-serif">
-                          {t("settings.danger.verify_identity")}
-                        </DialogTitle>
-                        <DialogDescription className="text-muted-foreground mt-2 leading-relaxed">
-                          {t("settings.danger.verify_desc", { target: deleteTargetText })}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-6">
-                        <div className="space-y-4">
-                          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start mb-6">
-                            <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                            <div className="text-sm text-amber-700/80 font-medium">
-                              To proceed, you will receive a secure confirmation link at{" "}
-                              <strong>{profile?.email}</strong>.
-                            </div>
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
-                              Confirmation Text
-                            </label>
-                            <Input
-                              placeholder={t("settings.danger.placeholder")}
-                              value={deleteConfirmText}
-                              onChange={(e) => setDeleteConfirmText(e.target.value)}
-                              className="h-12 bg-input/40 border-border/60 rounded-xl font-mono text-sm"
-                              autoFocus
-                            />
-                          </div>
-                        </div>
-
-                        <Button
-                          variant="destructive"
-                          className="w-full h-12 rounded-xl font-bold shadow-lg shadow-destructive/20 disabled:opacity-30 transition-all"
-                          disabled={deleteConfirmText !== deleteTargetText || saving}
-                          onClick={handleDeleteAccount}
-                        >
-                          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                          Send Confirmation Email
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {deleteStage === "email_sent" && (
-                    <div className="p-8 animate-in fade-in zoom-in-95 duration-500 text-center">
-                      <div
-                        className={`w-20 h-20 ${fallbackLink ? "bg-amber-500/10" : "bg-primary/10"} rounded-full flex items-center justify-center mx-auto mb-6`}
-                      >
-                        {fallbackLink ? (
-                          <AlertCircle className="w-10 h-10 text-amber-500" />
-                        ) : (
-                          <CheckCircle2 className="w-10 h-10 text-primary" />
-                        )}
-                      </div>
-                      <div className="mb-6">
-                        <div className="text-2xl font-serif text-center">
-                          {fallbackLink
-                            ? "Confirm Manually"
-                            : t("settings.danger.email_sent_title")}
-                        </div>
-                        <div className="text-muted-foreground mt-2 leading-relaxed text-center">
-                          {fallbackLink
-                            ? "We couldn't deliver the email, but you can confirm your deletion request manually by clicking the button below."
-                            : t("settings.danger.email_sent_desc", { email: profile?.email })}
-                        </div>
-                      </div>
-
-                      {fallbackLink ? (
-                        <div className="flex flex-col gap-3">
-                          <Button
-                            className="w-full h-12 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white"
-                            onClick={() => {
-                              window.location.href = fallbackLink;
-                            }}
-                          >
-                            Confirm Deletion Now
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            className="w-full h-10 text-xs text-muted-foreground"
-                            onClick={() => setDeleteStage("initial")}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          className="w-full h-12 rounded-xl font-bold"
-                          onClick={() => {
-                            setDeleteStage("initial");
-                          }}
-                        >
-                          Got it
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
             </div>
           </SectionCard>
         </div>
