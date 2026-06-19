@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, User, Settings, Bell, Sun, Moon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { useTheme } from "@/hooks/use-theme";
 import { useNotifications } from "@/hooks/use-notifications";
 import { useJointSavings } from "@/hooks/use-joint-savings";
@@ -33,7 +33,7 @@ const navLinks = [
 export function TopNav() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [profile, setProfile] = useProfileSignal();
+  const { profile } = useProfile();
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -59,7 +59,6 @@ export function TopNav() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setProfile(null);
     setOpen(false);
     window.location.href = "/";
   };

@@ -342,7 +342,10 @@
       "transfer_sent": "Transfer sent",
       "security_alerts": "Security alerts",
       "ai_insights_label": "AI Advisor insights",
-      "ai_insights_desc": "Receive proactive financial health alerts and advice."
+      "ai_insights_desc": "Receive proactive financial health alerts and advice.",
+      "text_size_title": "Text Accessibility",
+      "text_size_desc": "Adjust app-wide text sizes to support short or long-sighted reading.",
+      "text_size_btn": "Configure"
     },
     "danger": {
       "delete_account": "Delete Account",
@@ -902,7 +905,7 @@
         "deadlines": "Goal Deadlines",
         "locking": "Fund Locking",
         "reward": "2% Reward",
-        "funding": "Auto Funding"
+        "funding": "Automated saving"
       },
       "view_btn": "View Savings",
       "setup_btn": "Setup Savings"
@@ -910,11 +913,11 @@
     "loans": {
       "credit_title": "Credit Line",
       "title": "Instant Credit",
-      "description": "Access credit limits up to 50% of your balance. No paperwork, instant disbursement based on history.",
+      "description": "Unlock credit limits up to 30% of your average monthly transaction volume. Instant disbursement based on your membership age.",
       "items": {
-        "eligibility": "Verified Eligibility",
-        "limits": "Instant Limits",
-        "growth": "Limit Growth",
+        "eligibility": "9-Month Membership",
+        "limits": "30% Volume Limit",
+        "growth": "Automated Growth",
         "tracker": "Repayment Tracker"
       },
       "request_btn": "Request Credit"
@@ -926,7 +929,7 @@
       "locking_title": "Locking",
       "locking_desc": "Funds cryptographically locked until deadline to protect discipline.",
       "lending_title": "Lending",
-      "lending_desc": "Requires integrity verification. Strictly capped at 50% of frequent balance."
+      "lending_desc": "Requires 9 months membership age. Strictly capped at 30% of your 3-month average volume."
     }
   },
   "receipts": {
@@ -941,11 +944,18 @@
     "method": "Method",
     "type": "Type",
     "completed": "COMPLETED",
-    "transfer_secure_msg": "Your transfer of {{currency}} {{amount}} has been processed securely.",
-    "legal_note": "This digital receipt is cryptographically signed and serves as official proof of transaction for Vault OS services.",
+    "transfer_secure_msg": "Your transfer of {{currency}} {{amount}} has been processed securely and verified by Vault OS.",
+    "legal_note": "This receipt is digitally signed and cryptographically verified by Vault OS. It constitutes an official and tamper-evident record of the transaction described above. Retain for your records.",
     "certified": "Transaction Certified",
     "back": "Back",
-    "download": "Download receipt"
+    "download": "Download receipt",
+    "digital_signature": "Digital Signature",
+    "verification_code": "Verification Code",
+    "issued_at": "Issued At",
+    "verified": "Verified",
+    "encrypted": "Encrypted",
+    "stamp_verified": "Verified",
+    "stamp_official": "Official"
   },
   "kyc": {
     "meta_title": "Vault — KYC Verification",

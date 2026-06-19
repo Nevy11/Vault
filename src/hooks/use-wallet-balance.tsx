@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { getCurrencyForNationality } from "@/lib/utils";
 import { getConversionRate } from "@/lib/currency-utils";
 
@@ -48,7 +48,7 @@ type UseWalletBalanceReturn = {
 };
 
 export function useWalletBalance(): UseWalletBalanceReturn {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [wallet, setWallet] = useState<WalletBalance>(null);
   const walletRef = useRef<WalletBalance>(null);
   const [displayBalance, setDisplayBalance] = useState<number | null>(null);
@@ -125,35 +125,38 @@ export function useWalletBalance(): UseWalletBalanceReturn {
   }, [profile]);
 
   // Add currency to dependency array to trigger re-calculation
-  const computeBalances = useCallback(async (walletData: WalletBalance, userId: string, preferredCurrency: string) => {
-    if (!walletData) {
-      setDisplayBalance(null);
-      setDisplayCurrency("USD");
-      setSecondaryBalance(undefined);
-      return;
-    }
+  const computeBalances = useCallback(
+    async (walletData: WalletBalance, userId: string, preferredCurrency: string) => {
+      if (!walletData) {
+        setDisplayBalance(null);
+        setDisplayCurrency("USD");
+        setSecondaryBalance(undefined);
+        return;
+      }
 
-    const nativeCurrency = walletData.currency || "USD";
-    const nativeAmount = Number(walletData.balance ?? 0);
-    const targetCurrency = preferredCurrency || nativeCurrency;
+      const nativeCurrency = walletData.currency || "USD";
+      const nativeAmount = Number(walletData.balance ?? 0);
+      const targetCurrency = preferredCurrency || nativeCurrency;
 
-    const rate = await getConversionRate(nativeCurrency, targetCurrency);
-    const convertedAmount = nativeAmount * rate;
+      const rate = await getConversionRate(nativeCurrency, targetCurrency);
+      const convertedAmount = nativeAmount * rate;
 
-    setDisplayBalance(convertedAmount);
-    setDisplayCurrency(targetCurrency);
+      setDisplayBalance(convertedAmount);
+      setDisplayCurrency(targetCurrency);
 
-    // Optional: Secondary balance (if native != target)
-    if (nativeCurrency !== targetCurrency) {
-      setSecondaryBalance({
-        amount: nativeAmount,
-        currency: nativeCurrency,
-        label: `Native (${nativeCurrency})`,
-      });
-    } else {
-      setSecondaryBalance(undefined);
-    }
-  }, []);
+      // Optional: Secondary balance (if native != target)
+      if (nativeCurrency !== targetCurrency) {
+        setSecondaryBalance({
+          amount: nativeAmount,
+          currency: nativeCurrency,
+          label: `Native (${nativeCurrency})`,
+        });
+      } else {
+        setSecondaryBalance(undefined);
+      }
+    },
+    [],
+  );
 
   // Effect to watch for changes
   useEffect(() => {
@@ -161,7 +164,7 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     if (wallet && profile) {
       computeBalances(wallet, profile.id, preferredCurrency);
     }
-  }, [ (profile as any)?.primary_currency, wallet, computeBalances, profile]);
+  }, [(profile as any)?.primary_currency, wallet, computeBalances, profile]);
 
   const fetchWallet = useCallback(
     async (isSilent = false) => {

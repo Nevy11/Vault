@@ -29,6 +29,7 @@ export type JointContribution = {
   user_id: string;
   amount: number;
   type: "deposit" | "withdrawal";
+  balance_after: number;
   created_at: string;
   profile?: any;
 };
@@ -64,21 +65,6 @@ export function useJointSavings() {
   const [invites, setInvites] = useState<JointPotInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
-
-  useEffect(() => {
-    const init = async () => {
-      await Promise.all([fetchPots(), fetchInvites()]);
-      setInitialFetchDone(true);
-      setLoading(false);
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPotId) {
-      fetchPotDetails(selectedPotId);
-    }
-  }, [selectedPotId]);
 
   const fetchPots = useCallback(async () => {
     try {
@@ -118,7 +104,15 @@ export function useJointSavings() {
 
       const { data, error } = await supabase
         .from("pot_members")
-        .select("*, pot:joint_pots(*)")
+        .select(
+          `
+          *,
+          pot:joint_pots(
+            *,
+            creator:profiles!joint_pots_creator_id_fkey(*)
+          )
+        `,
+        )
         .eq("user_id", user.id)
         .eq("status", "invited");
 
@@ -132,45 +126,99 @@ export function useJointSavings() {
     }
   }, []);
 
-  const fetchPotDetails = async (potId: string) => {
-    // Only show loading if we don't have a selected pot yet or it's a new one
-    if (!selectedPot || selectedPot.id !== potId) {
-      setLoading(true);
-    }
+  const fetchPotDetails = useCallback(
+    async (potId: string) => {
+      // Only show loading if we don't have a selected pot yet or it's a new one
+      if (!selectedPot || selectedPot.id !== potId) {
+        setLoading(true);
+      }
 
-    try {
-      const { data: pot, error: potErr } = await supabase
-        .from("joint_pots")
-        .select("*")
-        .eq("id", potId)
-        .single();
+      try {
+        const { data: pot, error: potErr } = await supabase
+          .from("joint_pots")
+          .select("*")
+          .eq("id", potId)
+          .single();
 
-      if (potErr) throw potErr;
-      setSelectedPot(pot);
+        if (potErr) throw potErr;
+        setSelectedPot(pot);
 
-      const [membersRes, contributionsRes, requestsRes] = await Promise.all([
-        supabase.from("pot_members").select("*, profile:profiles(*)").eq("pot_id", potId),
-        supabase
-          .from("pot_contributions")
-          .select("*, profile:profiles(*)")
-          .eq("pot_id", potId)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("pot_withdrawal_requests")
-          .select("*, profile:profiles(*), approvals:pot_withdrawal_approvals(*)")
-          .eq("pot_id", potId)
-          .order("created_at", { ascending: false }),
-      ]);
+        const [membersRes, contributionsRes, requestsRes] = await Promise.all([
+          supabase.from("pot_members").select("*, profile:profiles(*)").eq("pot_id", potId),
+          supabase
+            .from("pot_contributions")
+            .select("*, profile:profiles(*)")
+            .eq("pot_id", potId)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("pot_withdrawal_requests")
+            .select("*, profile:profiles(*), approvals:pot_withdrawal_approvals(*)")
+            .eq("pot_id", potId)
+            .order("created_at", { ascending: false }),
+        ]);
 
-      setMembers(membersRes.data || []);
-      setContributions(contributionsRes.data || []);
-      setRequests(requestsRes.data || []);
-    } catch (err) {
-      console.error("Error fetching pot details:", err);
-    } finally {
+        setMembers(membersRes.data || []);
+        setContributions(contributionsRes.data || []);
+        setRequests(requestsRes.data || []);
+      } catch (err) {
+        console.error("Error fetching pot details:", err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [selectedPot],
+  );
+
+  useEffect(() => {
+    const init = async () => {
+      await Promise.all([fetchPots(), fetchInvites()]);
+      setInitialFetchDone(true);
       setLoading(false);
+    };
+    init();
+
+    // SETUP REALTIME SUBSCRIPTIONS
+    // Use a unique channel name to avoid collisions between multiple hook instances
+    const channelName = `joint_pots_realtime_${Math.random().toString(36).substring(7)}`;
+    const potsChannel = supabase
+      .channel(channelName)
+      .on("postgres_changes", { event: "*", schema: "public", table: "joint_pots" }, () => {
+        fetchPots();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "pot_members" }, () => {
+        fetchPots();
+        fetchInvites();
+        if (selectedPotId) fetchPotDetails(selectedPotId);
+      })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pot_withdrawal_requests" },
+        () => {
+          if (selectedPotId) fetchPotDetails(selectedPotId);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pot_withdrawal_approvals" },
+        () => {
+          if (selectedPotId) fetchPotDetails(selectedPotId);
+        },
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "pot_contributions" }, () => {
+        if (selectedPotId) fetchPotDetails(selectedPotId);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(potsChannel);
+    };
+  }, [selectedPotId, fetchPots, fetchInvites, fetchPotDetails]);
+
+  useEffect(() => {
+    if (selectedPotId) {
+      fetchPotDetails(selectedPotId);
     }
-  };
+  }, [selectedPotId, fetchPotDetails]);
 
   const createPot = async (
     title: string,
@@ -265,6 +313,8 @@ export function useJointSavings() {
       toast.error("Failed to deposit");
     } else {
       toast.success(`Deposited KES ${amount.toLocaleString()}!`);
+      // No manual refetch needed here as Realtime will catch the 'wallets' table change
+      // in useWalletBalance and 'joint_pots' change here.
       fetchPotDetails(potId);
     }
   };

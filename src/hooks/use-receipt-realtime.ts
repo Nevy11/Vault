@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { toast } from "sonner";
 import { type Receipt } from "@/api/receipts";
 
@@ -9,7 +9,7 @@ import { type Receipt } from "@/api/receipts";
  * Listens for newly generated receipts via Supabase Realtime and triggers notifications.
  */
 export function useReceiptRealtime() {
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [latestReceipt, setLatestReceipt] = useState<Receipt | null>(null);
 
   useEffect(() => {

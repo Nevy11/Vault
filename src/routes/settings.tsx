@@ -27,6 +27,8 @@ import {
   Lock,
   Eye,
   EyeOff,
+  ShieldAlert,
+  ShieldOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +42,7 @@ import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { formatKycTag, hashPin } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { profileSignal, useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import {
   Sheet,
   SheetContent,
@@ -274,9 +276,12 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
         return;
       }
 
-      // 2. Trigger OTP via Reset Password flow
-      const { error: otpError } = await supabase.auth.resetPasswordForEmail(profile.email);
-      if (otpError) throw otpError;
+      // 2. Trigger Step-up OTP
+      const { data, error: otpError } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "send", purpose: "pin_change" },
+      });
+      
+      if (otpError || data?.error) throw new Error(otpError?.message || data?.error || "Failed to send code.");
 
       toast.success("Verification code sent to your email");
       setStep("verify");
@@ -296,14 +301,12 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
     try {
       setIsChanging(true);
 
-      // 1. Verify the OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: profile.email,
-        token: otp,
-        type: "recovery",
+      // 1. Verify the OTP using our Edge Function
+      const { data, error: verifyError } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "verify", code: otp },
       });
 
-      if (verifyError) throw verifyError;
+      if (verifyError || data?.error) throw new Error(verifyError?.message || data?.error || "Verification failed.");
 
       // 2. Hash and save the new PIN
       const hashedNew = await hashPin(newPin);
@@ -313,6 +316,12 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
         .eq("id", profile.id);
 
       if (updateError) throw updateError;
+
+      // 3. Log Audit Event
+      await supabase.rpc("log_audit_event", {
+        p_action: "pin_changed",
+        p_status: "success",
+      });
 
       toast.success("PIN changed successfully!");
       setOpen(false);
@@ -331,8 +340,8 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
   };
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onOpenChange={(val) => {
         setOpen(val);
         if (!val) {
@@ -356,10 +365,9 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
             {step === "input" ? t("settings.security.pin.dialog_title") : "Verify Update"}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            {step === "input" 
-              ? t("settings.security.pin.dialog_desc") 
-              : `A 6-digit code was sent to ${profile.email}. Enter it below to confirm your new PIN.`
-            }
+            {step === "input"
+              ? t("settings.security.pin.dialog_desc")
+              : `A 6-digit code was sent to ${profile.email}. Enter it below to confirm your new PIN.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -454,7 +462,7 @@ function ChangePinDialog({ profile, onSuccess }: { profile: any; onSuccess: () =
                   autoFocus
                 />
               </div>
-              
+
               <Button
                 onClick={handleVerifyAndSave}
                 disabled={isChanging || otp.length !== 6}
@@ -489,7 +497,7 @@ function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useProfileSignal();
+  const { profile, updateProfile } = useProfile();
 
   async function updateLanguage(lang: string) {
     try {
@@ -505,10 +513,7 @@ function SettingsPage() {
       if (error) throw error;
 
       i18n.changeLanguage(lang);
-      setProfile({
-        ...profile,
-        language: lang,
-      });
+      updateProfile({ language: lang }); // Note: updateProfile needs to handle this or we use queryClient
 
       const messages: Record<string, string> = {
         en: "Language updated to English",
@@ -545,8 +550,10 @@ function SettingsPage() {
 
   // Local state for name to make input controlled and smooth
   const [fullName, setFullName] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     if (profile) {
       setFullName(`${profile.first_name || ""} ${profile.last_name || ""}`.trim());
       setLoading(false);
@@ -675,7 +682,7 @@ function SettingsPage() {
         },
         () => {
           fetchDevices();
-        }
+        },
       )
       .subscribe();
 
@@ -723,27 +730,7 @@ function SettingsPage() {
   }
 
   async function updatePreference(key: string, value: boolean) {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({ [key]: value })
-        .eq("id", user.id);
-
-      if (error) throw error;
-
-      setProfile({
-        ...profile,
-        [key]: value,
-      });
-      // Silent update for toggles to avoid toast spam
-    } catch (error: any) {
-      toast.error(error.message || "Error updating preference");
-    }
+    updateProfile({ [key]: value });
   }
 
   async function handleSave() {
@@ -792,16 +779,7 @@ function SettingsPage() {
         updates.kyc_tag = kycTag;
       }
 
-      const { error } = await supabase.from("profiles").update(updates).eq("id", user.id);
-
-      if (error) throw error;
-
-      setProfile({
-        ...profile,
-        first_name: firstName,
-        last_name: lastName,
-        kyc_tag: profile?.kyc_tag || kycTag,
-      });
+      updateProfile(updates);
       toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error(error.message || "Error updating profile");
@@ -885,7 +863,7 @@ function SettingsPage() {
 
       if (updateError) throw updateError;
 
-      setProfile({ ...profile, profile_photo_url: publicUrl });
+      updateProfile({ profile_photo_url: publicUrl });
       toast.success("Profile picture updated!");
     } catch (error: any) {
       toast.error(error.message || "Error uploading avatar");
@@ -915,7 +893,7 @@ function SettingsPage() {
 
       if (error) throw error;
 
-      setProfile({ ...profile, profile_photo_url: null });
+      updateProfile({ profile_photo_url: null });
       toast.success("Profile picture removed");
     } catch (error: any) {
       toast.error(error.message || "Error removing avatar");
@@ -925,7 +903,9 @@ function SettingsPage() {
   }
 
   // Account Deletion State
-  const [deleteStage, setDeleteStage] = useState<"initial" | "asset_warning" | "warning" | "verify" | "email_sent">("initial");
+  const [deleteStage, setDeleteStage] = useState<
+    "initial" | "asset_warning" | "warning" | "verify" | "email_sent"
+  >("initial");
   const [activeAssets, setActiveAssets] = useState<string[]>([]);
   const [isCheckingAssets, setIsCheckingAssets] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
@@ -940,16 +920,13 @@ function SettingsPage() {
     try {
       setIsCheckingAssets(true);
       const assets: string[] = [];
-      
+
       if (balance && Number(balance) > 0) {
         assets.push(t("settings.danger.assets.balance"));
       }
 
-      const { data: loans } = await supabase
-        .from("loans")
-        .select("id")
-        .eq("status", "active");
-      
+      const { data: loans } = await supabase.from("loans").select("id").eq("status", "active");
+
       if (loans && loans.length > 0) {
         assets.push(t("settings.danger.assets.loans"));
       }
@@ -958,7 +935,7 @@ function SettingsPage() {
         .from("savings_goals")
         .select("id")
         .eq("status", "active");
-      
+
       if (savings && savings.length > 0) {
         assets.push(t("settings.danger.assets.savings"));
       }
@@ -985,32 +962,35 @@ function SettingsPage() {
       }
 
       setSaving(true);
-      
+
       const { data, error } = await supabase.functions.invoke("send-predelete-email", {
-        body: { 
-          email: profile?.email
+        body: {
+          email: profile?.email,
         },
       });
 
       if (error) {
         console.error("DEBUG: Full Function Error Object:", error);
-        
+
         let errMsg = "Error initiating deletion";
-        
+
         // Try to parse the specific error returned by our function
         try {
           // FunctionsHttpError might contain the response body
           const errorData = await error.context.json();
           console.log("DEBUG: Parsed Error Data:", errorData);
-          
-          if (errorData.error === "INVALID_PASSWORD") errMsg = "Incorrect password. Please try again.";
-          if (errorData.error === "EMAIL_MISMATCH") errMsg = "The email provided does not match your account.";
+
+          if (errorData.error === "INVALID_PASSWORD")
+            errMsg = "Incorrect password. Please try again.";
+          if (errorData.error === "EMAIL_MISMATCH")
+            errMsg = "The email provided does not match your account.";
           if (errorData.msg) errMsg = errorData.msg;
         } catch (e) {
           console.log("DEBUG: Could not parse error body, using message:", error.message);
-          if (error.message.includes("INVALID_PASSWORD")) errMsg = "Incorrect password. Please try again.";
+          if (error.message.includes("INVALID_PASSWORD"))
+            errMsg = "Incorrect password. Please try again.";
         }
-        
+
         throw new Error(errMsg);
       }
 
@@ -1030,9 +1010,95 @@ function SettingsPage() {
     }
   }
 
+  async function handleSuspendAccount(reason: string) {
+    try {
+      setSaving(true);
+      const { error } = await supabase.rpc("suspend_account", {
+        p_reason: reason,
+      });
+
+      if (error) throw error;
+
+      toast.success("Account suspended for your security.");
+      window.location.reload();
+    } catch (error: any) {
+      toast.error(error.message || "Error suspending account");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const [suspensionReason, setSuspensionReason] = useState("");
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [restoreOtp, setRestoreOtp] = useState("");
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  async function handleInitiateRestore() {
+    try {
+      setIsRestoring(true);
+      const { data, error } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "send", purpose: "account_restore" },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error || "Failed to send code");
+      toast.success("Recovery code sent to your email");
+      setShowRestoreDialog(true);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsRestoring(false);
+    }
+  }
+
+  async function handleVerifyRestore() {
+    try {
+      setIsRestoring(true);
+      const { data, error } = await supabase.functions.invoke("step-up-auth", {
+        body: { action: "verify", code: restoreOtp },
+      });
+      if (error || data?.error) throw new Error(error?.message || data?.error || "Verification failed");
+
+      const { error: rpcError } = await supabase.rpc("unsuspend_account");
+      if (rpcError) throw rpcError;
+
+      toast.success("Account restored successfully!");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsRestoring(false);
+    }
+  }
+
   return (
     <AppShell>
       <main className="mx-auto max-w-screen-2xl px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16">
+        {profile?.is_suspended && (
+          <div className="mb-8 p-4 rounded-2xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center text-destructive shrink-0">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-sm font-bold text-destructive uppercase tracking-tight">
+                Account Suspended
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Your account is currently locked. Reason: {profile.suspended_reason || "Security concerns"}.
+                Restore your account using your email verification code.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:bg-destructive/5"
+              onClick={handleInitiateRestore}
+              disabled={isRestoring}
+            >
+              {isRestoring ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}
+              Restore Account
+            </Button>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-12 lg:mb-16">
           <Link
@@ -1060,7 +1126,7 @@ function SettingsPage() {
                 <div className="relative group/avatar">
                   <button
                     onClick={() => profile?.profile_photo_url && setShowViewModal(true)}
-                    className="relative block rounded-full border-2 border-border/40 overflow-hidden hover:border-primary/60 transition-all active:scale-95"
+                    className="relative block rounded-full overflow-hidden transition-all active:scale-95"
                     title={
                       profile?.profile_photo_url
                         ? t("settings.profile.picture.view")
@@ -1098,7 +1164,7 @@ function SettingsPage() {
                     )}
                   </button>
 
-                  {profile?.profile_photo_url && (
+                  {isMounted && profile?.profile_photo_url && (
                     <button
                       onClick={removeAvatar}
                       disabled={uploading}
@@ -1580,7 +1646,7 @@ function SettingsPage() {
                         if (error) toast.error("Failed to update biometric preference");
                         else {
                           toast.success(`Biometrics ${val ? "enabled" : "disabled"}`);
-                          profileSignal.set({ ...profile, biometric_enabled: val });
+                          updateProfile({ biometric_enabled: val });
                         }
                       });
                   }
@@ -1676,12 +1742,16 @@ function SettingsPage() {
                                 </div>
                               </div>
                             </div>
-                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
-                              device.is_active 
-                                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
-                                : "border-muted-foreground/30 bg-muted/10 text-muted-foreground"
-                            }`}>
-                              <span className={`h-1 w-1 rounded-full ${device.is_active ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`} />
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
+                                device.is_active
+                                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-500"
+                                  : "border-muted-foreground/30 bg-muted/10 text-muted-foreground"
+                              }`}
+                            >
+                              <span
+                                className={`h-1 w-1 rounded-full ${device.is_active ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"}`}
+                              />
                               {device.is_active ? t("settings.security.devices.live") : "Ended"}
                             </span>
                           </div>
@@ -1805,7 +1875,7 @@ function SettingsPage() {
                       .eq("id", profile!.id);
                     if (error) toast.error("Error updating currency");
                     else {
-                      setProfile({ ...profile!, primary_currency: newCurrency });
+                      updateProfile({ primary_currency: newCurrency });
                       toast.success("Currency updated");
                     }
                   }}
@@ -1820,7 +1890,6 @@ function SettingsPage() {
                   <option value="NGN">NGN (Naira)</option>
                   <option value="GHS">GHS (Cedi)</option>
                 </select>
-
               </div>
               <div>
                 <label className="block text-sm text-muted-foreground mb-2">
@@ -1836,6 +1905,23 @@ function SettingsPage() {
                   <option value="system">System</option>
                 </select>
               </div>
+            </div>
+
+            <div className="py-6 border-b border-border/40 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-foreground">
+                  {t("settings.preferences.text_size_title", "Text Accessibility")}
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("settings.preferences.text_size_desc", "Adjust app-wide text sizes to support short or long-sighted reading.")}
+                </p>
+              </div>
+              <Link
+                to="/preferences"
+                className="inline-flex h-9 items-center justify-center rounded-xl bg-primary/10 px-4 text-xs font-semibold text-primary border border-primary/20 hover:bg-primary/20 transition-all active:scale-95 shadow-sm shrink-0"
+              >
+                {t("settings.preferences.text_size_btn", "Configure")} →
+              </Link>
             </div>
 
             <div className="pt-6">
@@ -1895,8 +1981,133 @@ function SettingsPage() {
           </SectionCard>
 
           {/* Danger Zone */}
-          <SectionCard icon={X} title={t("settings.sections.danger")}>
+          <SectionCard icon={ShieldAlert} title="Danger Zone">
             <div className="space-y-6">
+              {/* Suspend Account Card */}
+              <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10 text-destructive flex-shrink-0 mt-0.5">
+                      <ShieldOff className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-medium text-foreground">
+                        Suspend My Account
+                      </h3>
+                      <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+                        Suspect suspicious activity? Immediately lock all financial transactions.
+                        You can self-restore later via email verification.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6">
+                  {profile?.is_suspended ? (
+                    <Button
+                      variant="outline"
+                      className="w-full h-12 rounded-xl border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 font-bold"
+                      onClick={handleInitiateRestore}
+                      disabled={isRestoring}
+                    >
+                      {isRestoring ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                      )}
+                      Restore & Unsuspend Account
+                    </Button>
+                  ) : (
+                    <Dialog open={showSuspendDialog} onOpenChange={setShowSuspendDialog}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full h-12 rounded-xl border-destructive/30 text-destructive hover:bg-destructive/5 font-bold"
+                          disabled={saving}
+                        >
+                          <ShieldAlert className="w-4 h-4 mr-2" />
+                          Suspend Account Now
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
+                        <DialogHeader className="mb-6">
+                          <DialogTitle className="text-2xl font-serif">
+                            Confirm Suspension
+                          </DialogTitle>
+                          <DialogDescription className="text-muted-foreground">
+                            Please provide a reason for suspending your account. This will help us
+                            secure your assets.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-6">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                              Reason for suspension
+                            </label>
+                            <textarea
+                              className="w-full min-h-[100px] rounded-xl border border-border/60 bg-input/40 p-4 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                              placeholder="e.g., Suspicious login detected from unknown device"
+                              value={suspensionReason}
+                              onChange={(e) => setSuspensionReason(e.target.value)}
+                            />
+                          </div>
+                          <Button
+                            className="w-full h-12 rounded-xl font-bold bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={!suspensionReason.trim() || saving}
+                            onClick={() => handleSuspendAccount(suspensionReason)}
+                          >
+                            {saving ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <ShieldOff className="w-4 h-4 mr-2" />
+                            )}
+                            Confirm Suspension
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
+              </div>
+
+              {/* Restore Dialog (OTP) */}
+              <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
+                <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-border/40 rounded-3xl p-8">
+                  <DialogHeader className="mb-6">
+                    <DialogTitle className="text-2xl font-serif text-center">Restore Account</DialogTitle>
+                    <DialogDescription className="text-muted-foreground text-center">
+                      Enter the 6-digit code sent to <strong>{profile?.email}</strong> to verify your identity and restore access.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-6">
+                    <div className="space-y-1.5 text-center">
+                      <Input
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={restoreOtp}
+                        onChange={(e) => setRestoreOtp(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                        className="h-16 bg-input/40 border-border/60 rounded-xl text-center font-mono text-3xl tracking-[0.5em]"
+                        autoFocus
+                      />
+                    </div>
+                    <Button
+                      className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white"
+                      disabled={restoreOtp.length !== 6 || isRestoring}
+                      onClick={handleVerifyRestore}
+                    >
+                      {isRestoring ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                      Verify & Restore Account
+                    </Button>
+                    <button
+                      onClick={handleInitiateRestore}
+                      className="w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Didn't receive a code? Resend
+                    </button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <div className="w-full rounded-2xl border border-border/40 bg-input/20 p-6 sm:p-8">
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -1928,7 +2139,7 @@ function SettingsPage() {
                     className="w-full h-12 rounded-xl transition-all active:scale-95 font-medium text-base shadow-sm hover:shadow-md"
                     onClick={(e) => {
                       // We don't want the dialog to open immediately if we are checking assets
-                      // but DialogTrigger handles the opening. 
+                      // but DialogTrigger handles the opening.
                       // So we'll run our check.
                       handleInitialDeleteClick();
                     }}
@@ -1943,7 +2154,7 @@ function SettingsPage() {
                     <DialogTitle>Account Deletion</DialogTitle>
                     <DialogDescription>Account deletion process</DialogDescription>
                   </DialogHeader>
-                  
+
                   {deleteStage === "asset_warning" && (
                     <div className="p-8 animate-in fade-in zoom-in-95 duration-300">
                       <DialogHeader className="mb-6">
@@ -1955,11 +2166,14 @@ function SettingsPage() {
                           {t("settings.danger.assets.desc")}
                         </DialogDescription>
                       </DialogHeader>
-                      
+
                       <div className="space-y-4 mb-8">
                         <ul className="space-y-3">
                           {activeAssets.map((asset, idx) => (
-                            <li key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm font-medium text-amber-600">
+                            <li
+                              key={idx}
+                              className="flex items-center gap-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/10 text-sm font-medium text-amber-600"
+                            >
                               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                               {asset}
                             </li>
@@ -2071,7 +2285,8 @@ function SettingsPage() {
                           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-3 items-start mb-6">
                             <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                             <div className="text-sm text-amber-700/80 font-medium">
-                              To proceed, you will receive a secure confirmation link at <strong>{profile?.email}</strong>.
+                              To proceed, you will receive a secure confirmation link at{" "}
+                              <strong>{profile?.email}</strong>.
                             </div>
                           </div>
 
@@ -2104,7 +2319,9 @@ function SettingsPage() {
 
                   {deleteStage === "email_sent" && (
                     <div className="p-8 animate-in fade-in zoom-in-95 duration-500 text-center">
-                      <div className={`w-20 h-20 ${fallbackLink ? "bg-amber-500/10" : "bg-primary/10"} rounded-full flex items-center justify-center mx-auto mb-6`}>
+                      <div
+                        className={`w-20 h-20 ${fallbackLink ? "bg-amber-500/10" : "bg-primary/10"} rounded-full flex items-center justify-center mx-auto mb-6`}
+                      >
                         {fallbackLink ? (
                           <AlertCircle className="w-10 h-10 text-amber-500" />
                         ) : (
@@ -2113,11 +2330,13 @@ function SettingsPage() {
                       </div>
                       <div className="mb-6">
                         <div className="text-2xl font-serif text-center">
-                          {fallbackLink ? "Confirm Manually" : t("settings.danger.email_sent_title")}
+                          {fallbackLink
+                            ? "Confirm Manually"
+                            : t("settings.danger.email_sent_title")}
                         </div>
                         <div className="text-muted-foreground mt-2 leading-relaxed text-center">
-                          {fallbackLink 
-                            ? "We couldn't deliver the email, but you can confirm your deletion request manually by clicking the button below." 
+                          {fallbackLink
+                            ? "We couldn't deliver the email, but you can confirm your deletion request manually by clicking the button below."
                             : t("settings.danger.email_sent_desc", { email: profile?.email })}
                         </div>
                       </div>

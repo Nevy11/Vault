@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/api/supabase";
@@ -70,6 +70,8 @@ export const Route = createFileRoute("/savings")({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       tab: search.tab as string | undefined,
+      mode: search.mode as "individual" | "joint" | undefined,
+      potId: search.potId as string | undefined,
     };
   },
   component: SavingsPage,
@@ -77,21 +79,39 @@ export const Route = createFileRoute("/savings")({
 
 function SavingsPage() {
   const { t } = useTranslation();
-  const { tab } = Route.useSearch();
+  const navigate = useNavigate();
+  const search = Route.useSearch();
+  const { tab, mode } = search;
 
   // Top-level mode: 'individual' or 'joint'
-  const [viewMode, setViewMode] = useState<"individual" | "joint">("individual");
+  const [viewMode, setViewMode] = useState<"individual" | "joint">(mode || "individual");
   // Sub-tabs for individual
-  const [individualTab, setIndividualTab] = useState("overview");
+  const [individualTab, setIndividualTab] = useState(tab || "overview");
 
-  const financialJokes = useMemo(
-    () => t("savings.jokes", { returnObjects: true }) as string[],
-    [t],
-  );
-  const savingLines = useMemo(
-    () => t("savings.saving_lines", { returnObjects: true }) as string[],
-    [t],
-  );
+  const [isEditing, setIsEditing] = useState(false);
+  const [showContributionModal, setShowContributionModal] = useState(false);
+  const [showAutoPopup, setShowAutoPopup] = useState(false);
+
+  // New goal form state
+  const [goalTitle, setGoalTitle] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [goalSource, setGoalSource] = useState("");
+  const [isAutomated, setIsAutomated] = useState(false);
+  const [autoFreq, setAutoFreq] = useState("weekly");
+  const [autoAmount, setAutoAmount] = useState("");
+  const [autoProvider, setAutoProvider] = useState("");
+
+  // Setup account info
+  const [setupPhone, setSetupPhone] = useState("");
+  const [setupAccount, setSetupAccount] = useState("");
+  const [autoPhone, setAutoPhone] = useState("");
+  const [autoAccount, setAutoAccount] = useState("");
+
+  // Contribution state
+  const [contribAmount, setContribAmount] = useState("");
+  const [contribSource, setContribSource] = useState("");
+  const [contribPhone, setContribPhone] = useState("");
+  const [contribAccount, setContribAccount] = useState("");
 
   const {
     goals,
@@ -105,107 +125,50 @@ function SavingsPage() {
     updateGoal,
   } = useSavings();
 
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [isAutomated, setIsAutomated] = useState(false);
-  const [showAutoPopup, setShowAutoPopup] = useState(false);
-  const [showContributionModal, setShowContributionModal] = useState(false);
-  const [contribAmount, setContribAmount] = useState("");
-  const [contribSource, setContribSource] = useState("");
-  const [contribPhone, setContribPhone] = useState("");
-  const [contribAccount, setContribAccount] = useState("");
-  const [setupPhone, setSetupPhone] = useState("");
-  const [setupAccount, setSetupAccount] = useState("");
-  const [targetAmount, setTargetAmount] = useState("");
-  const [goalTitle, setGoalTitle] = useState("");
-
-  // Automation state
-  const [autoFreq, setAutoFreq] = useState("weekly");
-  const [autoAmount, setAutoAmount] = useState("");
-  const [autoProvider, setAutoProvider] = useState("");
-  const [autoPhone, setAutoPhone] = useState("");
-  const [autoAccount, setAutoAccount] = useState("");
-
-  const [goalSource, setGoalSource] = useState("");
-
   const today = format(new Date(), "yyyy-MM-dd");
-
-  useEffect(() => {
-    if (tab) {
-      if (tab === "joint") {
-        setViewMode("joint");
-      } else {
-        setViewMode("individual");
-        setIndividualTab(tab);
-      }
-    } else if (goals.length === 0) {
-      setIndividualTab("setup");
-    }
-  }, [tab, goals.length]);
-
-  useEffect(() => {
-    if (individualTab === "setup" && isEditing && savingsGoal) {
-      setGoalTitle(savingsGoal.title || "");
-      setGoalSource(savingsGoal.funding_source || "");
-      setTargetAmount(formatWithCommas(savingsGoal.target_amount));
-      setIsAutomated(savingsGoal.is_automated || false);
-      if (savingsGoal.is_automated) {
-        setAutoFreq(savingsGoal.automation_frequency || "weekly");
-        setAutoAmount(formatWithCommas(savingsGoal.automation_amount || ""));
-        setAutoProvider(savingsGoal.automation_provider || "");
-      }
-    } else if (individualTab === "setup" && !isEditing) {
-      // Clear form for new goal
-      setGoalTitle("");
-      setGoalSource("");
-      setTargetAmount("");
-      setIsAutomated(false);
-      setAutoFreq("weekly");
-      setAutoAmount("");
-      setAutoProvider("");
-    }
-  }, [individualTab, isEditing, savingsGoal]);
-
-  const progress = savingsGoal ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100 : 0;
   const rewardAmount = savingsGoal ? savingsGoal.target_amount * 0.02 : 0;
+  const progress = savingsGoal
+    ? (savingsGoal.current_amount / savingsGoal.target_amount) * 100
+    : 0;
+
+  const ringRadius = 40;
+  const ringCircumference = 2 * Math.PI * ringRadius;
+  const ringOffset = ringCircumference - (progress / 100) * ringCircumference;
+
+  const deadline = savingsGoal ? new Date(savingsGoal.deadline_date) : null;
+  const daysLeft = deadline ? differenceInCalendarDays(deadline, startOfToday()) : null;
+  const displayDaysLeft = daysLeft !== null ? Math.max(0, daysLeft) : null;
+
   const remaining = savingsGoal
     ? Math.max(0, savingsGoal.target_amount - savingsGoal.current_amount)
     : 0;
-  const deadlineDate = savingsGoal?.lockUntil ?? savingsGoal?.deadline_date;
-  const daysLeft = deadlineDate
-    ? differenceInCalendarDays(new Date(deadlineDate), startOfToday())
-    : null;
-  const averageContribution = ledger.length
-    ? Math.round(ledger.reduce((sum, entry) => sum + Number(entry.amount), 0) / ledger.length)
-    : 0;
 
-  const progressValue = Math.max(0, Math.min(100, progress));
-  const ringRadius = 40;
-  const ringCircumference = 2 * Math.PI * ringRadius;
-  const ringOffset = ringCircumference - (progressValue / 100) * ringCircumference;
-  const displayDaysLeft = daysLeft !== null ? Math.max(0, daysLeft) : null;
+  const averageContribution = useMemo(() => {
+    if (!ledger.length) return 0;
+    const total = ledger.reduce((sum, entry) => sum + Number(entry.amount), 0);
+    return total / ledger.length;
+  }, [ledger]);
 
   const barData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, index) => {
-      const date = subDays(startOfToday(), 6 - index);
-      return {
-        key: format(date, "yyyy-MM-dd"),
-        label: format(date, "EEE"),
-        amount: 0,
-      };
-    });
-
-    const totals: Record<string, number> = {};
-    ledger.forEach((entry) => {
-      const dateKey = format(new Date(entry.created_at), "yyyy-MM-dd");
-      totals[dateKey] = (totals[dateKey] || 0) + Number(entry.amount);
-    });
-
-    return last7Days.map((day) => ({
-      ...day,
-      amount: totals[day.key] || 0,
-    }));
+    if (!ledger.length) return [];
+    // Last 7 contributions
+    return [...ledger]
+      .slice(0, 7)
+      .reverse()
+      .map((entry) => ({
+        label: format(new Date(entry.created_at), "MMM dd"),
+        amount: Number(entry.amount),
+      }));
   }, [ledger]);
+
+  const financialJokes = useMemo(
+    () => t("savings.jokes", { returnObjects: true }) as string[],
+    [t],
+  );
+  const savingLines = useMemo(
+    () => t("savings.saving_lines", { returnObjects: true }) as string[],
+    [t],
+  );
 
   const [jokeIndex, setJokeIndex] = useState(0);
   const joke = useMemo(() => financialJokes[jokeIndex], [jokeIndex, financialJokes]);
@@ -215,12 +178,50 @@ function SavingsPage() {
 
   useEffect(() => {
     if (showContributionModal) {
-      setLineIndex(Math.floor(Math.random() * savingLines.length));
+      setLineIndex(Math.floor(Math.random() * (savingLines?.length || 1)));
     }
   }, [showContributionModal, savingLines]);
 
   const nextJoke = () => {
-    setJokeIndex((prev) => (prev + 1) % financialJokes.length);
+    setJokeIndex((prev) => (prev + 1) % (financialJokes?.length || 1));
+  };
+
+  // Sync mode with URL if it changes externally or on load
+  useEffect(() => {
+    if (mode && mode !== viewMode) {
+      setViewMode(mode);
+    } else if (!mode && tab === "joint") {
+      // Legacy support for ?tab=joint
+      handleSetViewMode("joint");
+    }
+  }, [mode, tab]);
+
+  // Sync sub-tab with URL
+  useEffect(() => {
+    if (tab && tab !== individualTab && viewMode === "individual") {
+      setIndividualTab(tab);
+    }
+  }, [tab, viewMode]);
+
+  const handleSetViewMode = (newMode: "individual" | "joint") => {
+    setViewMode(newMode);
+    navigate({
+      search: (prev) => ({ ...prev, mode: newMode }),
+    });
+  };
+
+  // Auto-switch to completion tab if goal is met
+  useEffect(() => {
+    if (savingsGoal && savingsGoal.current_amount >= savingsGoal.target_amount) {
+      setIndividualTab("congrats");
+    }
+  }, [savingsGoal]);
+
+  const handleSetIndividualTab = (newTab: string) => {
+    setIndividualTab(newTab);
+    navigate({
+      search: (prev) => ({ ...prev, tab: newTab }),
+    });
   };
 
   const handleCreateGoal = async (e: React.FormEvent) => {
@@ -369,38 +370,96 @@ function SavingsPage() {
     }
   };
 
-  const confirmAutomation = () => {
-    if (!autoAmount || !autoProvider) {
+  const confirmAutomation = async () => {
+    if (!autoAmount) {
       toast.error(t("common.errors.incomplete_settings"), {
         description: t("common.errors.provide_amount_provider"),
       });
       return;
     }
 
-    let displayProvider = autoProvider;
-    if (["mpesa", "airtel", "any"].includes(autoProvider) && autoPhone) {
-      displayProvider = `${autoProvider.toUpperCase()} (${autoPhone})`;
-    } else if (
-      ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
-        autoProvider,
-      ) &&
-      autoAccount
-    ) {
-      displayProvider = `${autoProvider.toUpperCase()} (${autoAccount})`;
-    }
+    const displayProvider = "Vault Account";
 
-    setIsAutomated(true);
-    setShowAutoPopup(false);
-    toast.success("Automation Configured", {
-      description: `KES ${autoAmount} will be deducted ${autoFreq} via ${displayProvider}.`,
-    });
+    if (isEditing && savingsGoal?.id) {
+      const success = await updateGoal(savingsGoal.id, {
+        is_automated: true,
+        automation_amount: parseFormattedNumber(autoAmount),
+        automation_frequency: autoFreq,
+        automation_provider: "vault_balance",
+      });
+      if (success) {
+        setIsAutomated(true);
+        setShowAutoPopup(false);
+        toast.success("Automation Enabled", {
+          description: `KES ${autoAmount} will be deducted ${autoFreq} from your Vault Account.`,
+        });
+      }
+    } else {
+      // For new goal creation, just set the state
+      setIsAutomated(true);
+      setShowAutoPopup(false);
+      toast.success("Automation Configured", {
+        description: `KES ${autoAmount} will be deducted ${autoFreq} via ${displayProvider}. This will be saved when you create the goal.`,
+      });
+    }
   };
 
-  const handleReceiveReward = () => {
-    toast.success("Reward Received!", {
-      description: `KES ${rewardAmount.toLocaleString()} has been added to your Vault account.`,
-      icon: <Sparkles className="w-5 h-5 text-emerald-500" />,
-    });
+  const handleReceiveReward = async () => {
+    if (!savingsGoal) return;
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const totalToReceive = Number(savingsGoal.target_amount) + rewardAmount;
+
+      // 1. Update Wallet
+      const { data: wallet } = await supabase
+        .from("wallets")
+        .select("id, balance")
+        .eq("user_id", user.id)
+        .single();
+
+      if (wallet) {
+        await supabase
+          .from("wallets")
+          .update({ balance: Number(wallet.balance) + totalToReceive })
+          .eq("id", wallet.id);
+      }
+
+      // 2. Mark goal as completed
+      await supabase
+        .from("savings_goals")
+        .update({ status: "completed" })
+        .eq("id", savingsGoal.id);
+
+      // 3. Log to Transactions
+      await supabase.from("transactions").insert({
+        sender_id: user.id,
+        type: "deposit",
+        method: "vault",
+        amount: totalToReceive,
+        status: "completed",
+        description: `Savings Goal Completed: ${savingsGoal.title}`,
+      });
+
+      toast.success("Reward received!", {
+        description: `KES ${totalToReceive.toLocaleString()} has been added to your balance.`,
+      });
+
+      // 4. Default to new goal if goals exist, otherwise setup
+      if (goals.length > 1) {
+        setIndividualTab("overview");
+      } else {
+        setIndividualTab("setup");
+      }
+      fetchSavingsData();
+    } catch (error) {
+      console.error("Error receiving reward:", error);
+      toast.error("Failed to process reward.");
+    }
   };
 
   return (
@@ -417,8 +476,8 @@ function SavingsPage() {
         />
         <div className="absolute inset-0 z-0 bg-background/10 backdrop-blur-[2px]" />
 
-        <main className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 animate-in fade-in duration-700">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+        <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 animate-in fade-in duration-700">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -429,10 +488,10 @@ function SavingsPage() {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
+                <h1 className="text-3xl font-medium tracking-tight mb-2 drop-shadow-sm text-slate-950 dark:text-white">
                   {t("savings.title")}
                 </h1>
-                <p className="text-muted-foreground flex items-center gap-2 font-medium text-slate-900 dark:text-slate-100">
+                <p className="text-muted-foreground flex items-center gap-2 font-normal text-slate-900 dark:text-slate-100">
                   <ShieldCheck className="w-4 h-4 text-primary" />
                   {t("savings.subtitle")}
                 </p>
@@ -449,7 +508,7 @@ function SavingsPage() {
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "text-muted-foreground hover:text-foreground",
                 )}
-                onClick={() => setViewMode("individual")}
+                onClick={() => handleSetViewMode("individual")}
               >
                 <PiggyBank className="w-4 h-4 mr-2" />
                 Personal
@@ -462,7 +521,7 @@ function SavingsPage() {
                     ? "bg-primary text-primary-foreground shadow-lg"
                     : "text-muted-foreground hover:text-foreground",
                 )}
-                onClick={() => setViewMode("joint")}
+                onClick={() => handleSetViewMode("joint")}
               >
                 <Users className="w-4 h-4 mr-2" />
                 Joint
@@ -474,7 +533,7 @@ function SavingsPage() {
           {viewMode === "individual" && (
             <Tabs
               value={individualTab}
-              onValueChange={setIndividualTab}
+              onValueChange={handleSetIndividualTab}
               className="space-y-8 animate-in slide-in-from-right-4 duration-500"
             >
               <div className="flex justify-center mb-8">
@@ -559,8 +618,8 @@ function SavingsPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                  <Card className="lg:col-span-2 rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
+                <div className="space-y-8 animate-in fade-in duration-700">
+                  <Card className="w-full rounded-2xl border border-white/30 bg-white/85 dark:bg-slate-950/80 backdrop-blur-2xl overflow-hidden shadow-2xl">
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between flex-wrap gap-4">
                         <div className="space-y-1">
@@ -582,17 +641,18 @@ function SavingsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid gap-8 xl:grid-cols-[1.75fr_1fr] items-stretch">
-                        <div className="space-y-6">
-                          <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-7 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
+                      <div className="grid gap-8 xl:grid-cols-[2.2fr_1fr] items-stretch">
+                        <div className="space-y-8">
+                          {/* Top Status Card */}
+                          <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-8 border border-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:border-slate-800 dark:text-white">
                             <div className="absolute right-0 top-0 h-full w-full bg-[radial-gradient(circle_at_top_right,_rgba(16,185,129,0.18),_transparent_25%)] pointer-events-none" />
                             <div className="relative z-10 space-y-6">
                               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                                 <div>
-                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-medium">
                                     {t("savings.overview.savings_status")}
                                   </p>
-                                  <h2 className="mt-3 text-4xl font-bold tracking-tight">
+                                  <h2 className="mt-3 text-4xl font-medium tracking-tight">
                                     KES {savingsGoal?.current_amount?.toLocaleString() || "0"}
                                   </h2>
                                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
@@ -603,7 +663,7 @@ function SavingsPage() {
                                 </div>
                                 <div className="relative rounded-3xl bg-white p-4 border border-slate-200 shadow-sm text-center dark:bg-slate-900 dark:border-slate-800">
                                   <Calendar className="absolute right-4 top-4 w-4 h-4 text-emerald-500" />
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 text-center">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 text-center font-medium">
                                     {t("savings.overview.days_left")}
                                   </p>
                                   <div className="mt-4 flex items-center justify-center">
@@ -631,10 +691,10 @@ function SavingsPage() {
                                         />
                                       </svg>
                                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span className="text-sm font-semibold text-slate-950 dark:text-white">
+                                        <span className="text-sm font-medium text-slate-950 dark:text-white">
                                           {displayDaysLeft !== null ? displayDaysLeft : "--"}
                                         </span>
-                                        <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400">
+                                        <span className="text-[10px] uppercase tracking-[0.3em] text-slate-400 font-medium">
                                           {t("savings.overview.days")}
                                         </span>
                                       </div>
@@ -645,10 +705,10 @@ function SavingsPage() {
 
                               <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.progress")}
                                   </p>
-                                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                                  <p className="mt-2 text-2xl font-medium text-slate-950 dark:text-white">
                                     {progress.toFixed(0)}%
                                   </p>
                                   <Progress
@@ -657,10 +717,10 @@ function SavingsPage() {
                                   />
                                 </div>
                                 <div className="rounded-3xl bg-white p-4 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.remaining")}
                                   </p>
-                                  <p className="mt-2 text-2xl font-bold text-slate-950 dark:text-white">
+                                  <p className="mt-2 text-2xl font-medium text-slate-950 dark:text-white">
                                     KES {remaining.toLocaleString()}
                                   </p>
                                   <p className="mt-1 text-xs text-slate-500">
@@ -674,18 +734,18 @@ function SavingsPage() {
                           <div className="rounded-[2rem] bg-white/95 dark:bg-slate-950/95 p-4 md:p-5 shadow-2xl border border-white/60 dark:border-white/10">
                             <div className="flex items-center justify-between gap-4 mb-4">
                               <div className="space-y-1">
-                                <p className="text-[10px] uppercase tracking-[0.4em] font-semibold text-muted-foreground">
+                                <p className="text-[10px] uppercase tracking-[0.4em] font-normal text-muted-foreground">
                                   {t("savings.overview.momentum")}
                                 </p>
-                                <h3 className="text-lg font-bold text-slate-950 dark:text-white">
+                                <h3 className="text-lg font-medium text-slate-950 dark:text-white">
                                   {t("savings.overview.daily_progress")}
                                 </h3>
                               </div>
-                              <div className="rounded-3xl bg-primary/10 px-3 py-2 text-primary font-semibold text-xs uppercase">
+                              <div className="rounded-3xl bg-primary/10 px-3 py-2 text-primary font-normal text-xs uppercase">
                                 {t("savings.overview.money_fancy")}
                               </div>
                             </div>
-                            <div className="h-[280px]">
+                            <div className="h-[250px]">
                               <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={barData}>
                                   <defs>
@@ -747,8 +807,8 @@ function SavingsPage() {
                           </div>
                         </div>
 
-                        <div className="space-y-6 flex flex-col justify-center">
-                          <Card className="min-h-[30rem] rounded-[2rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 overflow-hidden relative flex flex-col justify-between">
+                        <div className="flex flex-col gap-8 h-full">
+                          <Card className="flex-1 rounded-[2.5rem] border border-slate-200 bg-gradient-to-br from-emerald-100 via-white to-slate-100 text-slate-950 shadow-2xl p-6 overflow-hidden relative flex flex-col">
                             <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-emerald-500/15 blur-3xl" />
                             <div className="absolute -left-10 bottom-10 w-36 h-36 rounded-full bg-primary/15 blur-3xl" />
                             <div className="relative z-10 space-y-6">
@@ -757,36 +817,36 @@ function SavingsPage() {
                                   <PiggyBank className="w-6 h-6" />
                                 </div>
                                 <div>
-                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                  <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-normal">
                                     {t("savings.overview.goal_snapshot")}
                                   </p>
-                                  <h3 className="text-2xl font-bold">
+                                  <h3 className="text-2xl font-medium">
                                     {t("savings.overview.visible_progress")}
                                   </h3>
                                 </div>
                               </div>
-                              <div className="relative z-10 mt-6 grid gap-4">
-                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                              <div className="relative z-10 mt-6 grid gap-4 flex-1">
+                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col justify-center">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.reward")}
                                   </p>
-                                  <p className="mt-3 text-2xl font-bold">
+                                  <p className="mt-3 text-2xl font-medium">
                                     KES {rewardAmount.toLocaleString()}
                                   </p>
                                 </div>
-                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col justify-center">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.avg_day")}
                                   </p>
-                                  <p className="mt-3 text-2xl font-bold">
+                                  <p className="mt-3 text-2xl font-medium">
                                     KES {averageContribution.toLocaleString()}
                                   </p>
                                 </div>
-                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm">
-                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">
+                                <div className="rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col justify-center">
+                                  <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500 font-normal">
                                     {t("savings.overview.funding")}
                                   </p>
-                                  <p className="mt-3 text-lg font-bold">
+                                  <p className="mt-3 text-lg font-medium">
                                     {savingsGoal?.funding_source ||
                                       t("savings.overview.funding_fallback")}
                                   </p>
@@ -802,19 +862,19 @@ function SavingsPage() {
                                 <Sparkles className="w-7 h-7" />
                               </div>
                               <div>
-                                <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-semibold">
+                                <p className="text-xs uppercase tracking-[0.35em] text-emerald-700 font-normal">
                                   {t("savings.overview.quick_tip")}
                                 </p>
-                                <p className="text-lg font-bold">
+                                <p className="text-lg font-medium">
                                   {t("savings.overview.tip_desc")}
                                 </p>
                               </div>
                             </div>
-                            <p className="mt-4 text-sm text-slate-600 leading-relaxed">{joke}</p>
+                            <p className="mt-4 text-sm text-slate-600 leading-relaxed font-normal">{joke}</p>
                             <div className="mt-5">
                               <Button
                                 variant="outline"
-                                className="w-full rounded-xl border-primary/30 font-semibold hover:bg-primary/5 transition-all"
+                                className="w-full rounded-xl border-primary/30 font-medium hover:bg-primary/5 transition-all"
                                 onClick={nextJoke}
                               >
                                 {t("savings.overview.next_tip")}
@@ -834,84 +894,46 @@ function SavingsPage() {
                       </Button>
                     </CardFooter>
                   </Card>
-
-                  {/* Savings Tip Card */}
-                  <Card className="mx-auto w-full max-w-[26rem] min-h-[18rem] max-h-[20rem] rounded-2xl border border-slate-200 bg-emerald-50 dark:border-slate-800 dark:bg-slate-950 overflow-hidden flex flex-col shadow-xl animate-in fade-in duration-500">
-                    <CardHeader className="relative overflow-hidden px-5 pt-5">
-                      <div className="absolute -top-8 -right-8 h-24 w-24 rounded-full bg-emerald-500/10 blur-3xl" />
-                      <div className="absolute -bottom-6 -left-6 h-20 w-20 rounded-full bg-primary/10 blur-3xl" />
-                      <div className="flex items-center justify-between gap-3 relative z-10">
-                        <div className="flex items-center gap-3">
-                          <div className="grid place-items-center h-11 w-11 rounded-3xl bg-white text-emerald-600 shadow-sm animate-pulse">
-                            <Wallet className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <CardTitle className="font-semibold text-slate-950 dark:text-white uppercase tracking-tight text-base">
-                              {t("savings.tip.title")}
-                            </CardTitle>
-                            <CardDescription className="text-xs text-slate-600 dark:text-slate-400">
-                              {t("savings.tip.description")}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <Sparkles className="w-5 h-5 text-emerald-500 animate-bounce" />
-                      </div>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col justify-center px-5 py-4">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white leading-snug tracking-tight">
-                        {joke}
-                      </p>
-                    </CardContent>
-                    <div className="px-5 pb-5 border-t border-slate-200 dark:border-slate-800">
-                      <Button
-                        variant="outline"
-                        className="w-full rounded-xl border-primary/30 font-semibold hover:bg-primary/5 transition-all py-3"
-                        onClick={nextJoke}
-                      >
-                        {t("savings.overview.next_tip")}
-                      </Button>
-                    </div>
-                  </Card>
                 </div>
 
                 {/* Ledger Table */}
                 <div className="space-y-4">
-                  <h3 className="text-xl font-bold text-slate-950 dark:text-white uppercase tracking-tight">
+                  <h3 className="text-xl font-medium text-slate-950 dark:text-white uppercase tracking-tight">
                     {t("savings.ledger.title")}
                   </h3>
                   <div className="rounded-2xl border border-white/30 bg-white/80 dark:bg-slate-950/80 overflow-hidden backdrop-blur-2xl shadow-2xl">
                     <table className="w-full text-left">
                       <thead>
                         <tr className="border-b border-white/20 bg-primary/5">
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.date")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.source")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.type")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white">
                             {t("common.amount")}
                           </th>
-                          <th className="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-slate-950 dark:text-white text-right">
+                          <th className="px-6 py-4 text-xs font-medium uppercase tracking-wider text-slate-950 dark:text-white text-right">
                             {t("savings.ledger.running_total")}
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/10 font-semibold text-slate-900 dark:text-slate-100">
+                      <tbody className="divide-y divide-white/10 font-medium text-slate-900 dark:text-slate-100">
                         {ledger.length > 0 ? (
                           ledger.map((row) => (
                             <tr key={row.id} className="hover:bg-primary/5 transition-colors">
-                              <td className="px-6 py-4 text-sm">
+                              <td className="px-6 py-4 text-sm font-normal">
                                 {format(new Date(row.created_at), "MMM dd, yyyy")}
                               </td>
-                              <td className="px-6 py-4 text-sm capitalize">{row.source}</td>
+                              <td className="px-6 py-4 text-sm capitalize font-normal">{row.source}</td>
                               <td className="px-6 py-4">
                                 <span
                                   className={cn(
-                                    "px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider shadow-sm",
+                                    "px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wider shadow-sm",
                                     row.type === "automated"
                                       ? "bg-primary text-primary-foreground"
                                       : "bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
@@ -920,10 +942,10 @@ function SavingsPage() {
                                   {row.type}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                              <td className="px-6 py-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                                 +KES {Number(row.amount).toLocaleString()}
                               </td>
-                              <td className="px-6 py-4 text-sm font-mono text-right font-bold">
+                              <td className="px-6 py-4 text-sm font-mono text-right font-medium">
                                 KES {Number(row.running_total).toLocaleString()}
                               </td>
                             </tr>
@@ -932,7 +954,7 @@ function SavingsPage() {
                           <tr>
                             <td
                               colSpan={5}
-                              className="px-6 py-12 text-center text-muted-foreground font-medium"
+                              className="px-6 py-12 text-center text-muted-foreground font-normal"
                             >
                               {t("savings.ledger.no_contributions")}
                             </td>
@@ -962,7 +984,7 @@ function SavingsPage() {
                     <form onSubmit={handleCreateGoal} className="space-y-8">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                         <div className="space-y-2">
-                          <Label className="text-[9px] font-semibold uppercase tracking-wider">
+                          <Label className="text-[9px] font-medium uppercase tracking-wider">
                             {t("savings.form.title")}
                           </Label>
                           <div className="relative">
@@ -971,13 +993,13 @@ function SavingsPage() {
                               placeholder={t("savings.form.title_placeholder")}
                               value={goalTitle}
                               onChange={(e) => setGoalTitle(e.target.value)}
-                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-semibold text-sm"
+                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-medium text-sm"
                               required
                             />
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-[9px] font-semibold uppercase tracking-wider">
+                          <Label className="text-[9px] font-medium uppercase tracking-wider">
                             {t("savings.form.target_amount")}
                           </Label>
                           <div className="relative">
@@ -986,7 +1008,7 @@ function SavingsPage() {
                               placeholder="0.00"
                               value={targetAmount}
                               onChange={(e) => setTargetAmount(formatWithCommas(e.target.value))}
-                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-semibold text-sm tabular-nums"
+                              className="h-10 pl-10 rounded-xl bg-white/40 dark:bg-slate-900/40 border-white/10 font-medium text-sm tabular-nums"
                               required
                             />
                           </div>
@@ -997,11 +1019,11 @@ function SavingsPage() {
                         <div className="space-y-3">
                           <Label
                             htmlFor="start"
-                            className="text-sm font-semibold uppercase tracking-[0.1em]"
+                            className="text-sm font-medium uppercase tracking-[0.1em]"
                           >
                             {t("savings.form.start_date")}{" "}
                             {isEditing && savingsGoal && (
-                              <span className="text-[10px] text-amber-600 lowercase font-semibold">
+                              <span className="text-[10px] text-amber-600 lowercase font-medium">
                                 {t("savings.form.fixed")}
                               </span>
                             )}
@@ -1019,7 +1041,7 @@ function SavingsPage() {
                               defaultValue={isEditing ? savingsGoal?.start_date || today : today}
                               readOnly={isEditing && !!savingsGoal}
                               className={cn(
-                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold",
+                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium",
                                 isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                               )}
                               required
@@ -1029,11 +1051,11 @@ function SavingsPage() {
                         <div className="space-y-3">
                           <Label
                             htmlFor="deadline"
-                            className="text-sm font-semibold uppercase tracking-[0.1em]"
+                            className="text-sm font-medium uppercase tracking-[0.1em]"
                           >
                             {t("savings.form.deadline_date")}{" "}
                             {isEditing && savingsGoal && (
-                              <span className="text-[10px] text-amber-600 lowercase font-semibold">
+                              <span className="text-[10px] text-amber-600 lowercase font-medium">
                                 {t("savings.form.fixed")}
                               </span>
                             )}
@@ -1053,7 +1075,7 @@ function SavingsPage() {
                               defaultValue={isEditing ? savingsGoal?.deadline_date : ""}
                               readOnly={isEditing && !!savingsGoal}
                               className={cn(
-                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold",
+                                "h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium",
                                 isEditing && savingsGoal && "opacity-60 cursor-not-allowed",
                               )}
                               required
@@ -1065,124 +1087,73 @@ function SavingsPage() {
                       <div className="space-y-3">
                         <Label
                           htmlFor="source"
-                          className="text-sm font-semibold uppercase tracking-[0.1em]"
+                          className="text-sm font-medium uppercase tracking-[0.1em]"
                         >
                           {t("savings.form.funding_source")}
                         </Label>
                         <Select value={goalSource} onValueChange={setGoalSource}>
-                          <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold">
+                          <SelectTrigger className="h-14 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-medium">
                             <SelectValue placeholder={t("savings.form.select_source")} />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl border-white/30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl max-h-[400px] overflow-y-auto">
                             <SelectItem
-                              value="any"
-                              className="font-semibold text-emerald-600 dark:text-emerald-400"
-                            >
-                              {t("savings.form.any_available")}
-                            </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                              <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
-                            </div>
-                            <SelectItem
                               value="vault_balance"
-                              className="font-semibold text-primary"
+                              className="font-bold text-emerald-600 dark:text-emerald-400"
                             >
                               {t("savings.form.vault_account")}
                             </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                            <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
                               {t("savings.form.categories")}
                             </div>
-                            <SelectItem value="any_mobile" className="font-semibold text-primary">
+                            <SelectItem value="any_mobile" className="font-bold text-primary">
                               {t("savings.form.any_mobile")}
                             </SelectItem>
-                            <SelectItem value="any_bank" className="font-semibold text-primary">
+                            <SelectItem value="any_bank" className="font-bold text-primary">
                               {t("savings.form.any_bank")}
                             </SelectItem>
-                            <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                            <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
                               {t("savings.form.specifics")}
                             </div>
-                            <SelectItem value="mpesa" className="font-semibold">
-                              {t("savings.form.providers.mpesa")}
-                            </SelectItem>
-                            <SelectItem value="airtel" className="font-semibold">
-                              {t("savings.form.providers.airtel")}
-                            </SelectItem>
-                            <SelectItem value="kcb" className="font-semibold">
-                              {t("savings.form.providers.kcb")}
-                            </SelectItem>
-                            <SelectItem value="equity" className="font-semibold">
-                              {t("savings.form.providers.equity")}
-                            </SelectItem>
-                            <SelectItem value="ncba" className="font-semibold">
-                              {t("savings.form.providers.ncba")}
-                            </SelectItem>
-                            <SelectItem value="absa" className="font-semibold">
-                              {t("savings.form.providers.absa")}
-                            </SelectItem>
-                            <SelectItem value="coop" className="font-semibold">
-                              {t("savings.form.providers.coop")}
-                            </SelectItem>
-                            <SelectItem value="stanbic" className="font-semibold">
-                              {t("savings.form.providers.stanbic")}
-                            </SelectItem>
-                            <SelectItem value="im" className="font-semibold">
-                              {t("savings.form.providers.im")}
-                            </SelectItem>
-                            <SelectItem value="dtb" className="font-semibold">
-                              {t("savings.form.providers.dtb")}
-                            </SelectItem>
-                            <SelectItem value="family" className="font-semibold">
-                              {t("savings.form.providers.family")}
-                            </SelectItem>
+                            {Object.entries(t("savings.form.providers", { returnObjects: true })).map(([key, value]) => (
+                              <SelectItem key={key} value={key} className="font-medium">
+                                {value as string}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
 
                       {/* Conditional Setup Inputs */}
-                      {["mpesa", "airtel", "any_mobile"].includes(goalSource) && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {t("savings.form.default_phone")}
-                          </Label>
-                          <div className="relative">
-                            <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              type="tel"
-                              placeholder="e.g. 0712345678"
-                              value={setupPhone}
-                              onChange={(e) => setSetupPhone(e.target.value)}
-                              className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {[
-                        "kcb",
-                        "equity",
-                        "ncba",
-                        "absa",
-                        "coop",
-                        "stanbic",
-                        "im",
-                        "dtb",
-                        "family",
-                        "any_bank",
-                      ].includes(goalSource) && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                            {t("savings.form.default_bank")}
-                          </Label>
-                          <div className="relative">
-                            <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input
-                              type="text"
-                              placeholder="Enter account number"
-                              value={setupAccount}
-                              onChange={(e) => setSetupAccount(e.target.value)}
-                              className="h-14 pl-12 rounded-2xl bg-white/50 dark:bg-slate-900/40 border-white/40 font-semibold"
-                            />
-                          </div>
+                      {(["mpesa", "airtel", "any_mobile"].includes(goalSource) || 
+                        ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family", "any_bank"].includes(goalSource)) && (
+                        <div className="space-y-4 p-6 rounded-2xl bg-white/30 border border-white/20 animate-in slide-in-from-top-2 duration-300">
+                          {["mpesa", "airtel", "any_mobile"].includes(goalSource) ? (
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-bold uppercase tracking-widest">{t("savings.form.default_phone")}</Label>
+                              <div className="relative">
+                                <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input 
+                                  placeholder="+254 7XX XXX XXX" 
+                                  value={setupPhone} 
+                                  onChange={(e) => setSetupPhone(e.target.value)}
+                                  className="h-11 pl-10 rounded-xl bg-white/50 border-white/10"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Label className="text-[10px] font-bold uppercase tracking-widest">{t("savings.form.default_bank")}</Label>
+                              <div className="relative">
+                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Input 
+                                  placeholder="0000000000" 
+                                  value={setupAccount} 
+                                  onChange={(e) => setSetupAccount(e.target.value)}
+                                  className="h-11 pl-10 rounded-xl bg-white/50 border-white/10"
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1339,7 +1310,7 @@ function SavingsPage() {
                             className="h-18 px-12 rounded-[1.5rem] text-xl font-bold shadow-2xl shadow-emerald-500/30 bg-emerald-600 hover:bg-emerald-700 transition-all duration-300 hover:scale-105 active:scale-95"
                             onClick={handleReceiveReward}
                           >
-                            {t("savings.completion.receive_reward_btn")}
+                            Receive
                           </Button>
                           <Button
                             variant="outline"
@@ -1414,102 +1385,66 @@ function SavingsPage() {
                 </div>
               </div>
 
+              {/* Conditional Inputs */}
               <div className="space-y-3">
                 <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {t("savings.form.funding_source")}
+                  {t("savings.add_savings_modal.source_label")}
                 </Label>
                 <Select value={contribSource} onValueChange={setContribSource}>
                   <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-semibold">
                     <SelectValue placeholder={t("savings.add_savings_modal.source_placeholder")} />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1">
-                      <Smartphone className="w-3 h-3" /> {t("savings.form.any_mobile")}
-                    </div>
-                    <SelectItem value="mpesa" className="font-semibold">
-                      {t("savings.form.providers.mpesa")}
-                    </SelectItem>
-                    <SelectItem value="airtel" className="font-semibold">
-                      {t("savings.form.providers.airtel")}
-                    </SelectItem>
-
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Building2 className="w-3 h-3" /> {t("savings.form.any_bank")}
-                    </div>
-                    <SelectItem value="kcb" className="font-semibold">
-                      {t("savings.form.providers.kcb")}
-                    </SelectItem>
-                    <SelectItem value="equity" className="font-semibold">
-                      {t("savings.form.providers.equity")}
-                    </SelectItem>
-                    <SelectItem value="ncba" className="font-semibold">
-                      {t("savings.form.providers.ncba")}
-                    </SelectItem>
-                    <SelectItem value="absa" className="font-semibold">
-                      {t("savings.form.providers.absa")}
-                    </SelectItem>
-                    <SelectItem value="coop" className="font-semibold">
-                      {t("savings.form.providers.coop")}
-                    </SelectItem>
-                    <SelectItem value="stanbic" className="font-semibold">
-                      {t("savings.form.providers.stanbic")}
-                    </SelectItem>
-                    <SelectItem value="im" className="font-semibold">
-                      {t("savings.form.providers.im")}
-                    </SelectItem>
-                    <SelectItem value="dtb" className="font-semibold">
-                      {t("savings.form.providers.dtb")}
-                    </SelectItem>
-                    <SelectItem value="family" className="font-semibold">
-                      {t("savings.form.providers.family")}
-                    </SelectItem>
-
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
-                    </div>
-                    <SelectItem value="vault_balance" className="font-semibold">
+                  <SelectContent className="rounded-2xl border-white/30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl max-h-[400px]">
+                    <SelectItem value="vault_balance" className="font-bold text-emerald-600">
                       {t("savings.form.vault_account")}
                     </SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                      {t("savings.form.categories")}
+                    </div>
+                    <SelectItem value="mpesa" className="font-bold text-primary">M-Pesa</SelectItem>
+                    <SelectItem value="airtel" className="font-bold text-primary">Airtel Money</SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                      {t("savings.form.specifics")}
+                    </div>
+                    {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].map((b) => (
+                      <SelectItem key={b} value={b} className="font-medium">
+                        {t(`savings.form.providers.${b}`)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
-              {/* Conditional Inputs */}
-              {["mpesa", "airtel"].includes(contribSource) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.form.providers.phone_number")}
-                  </Label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="tel"
-                      placeholder="e.g. 0712345678"
-                      value={contribPhone}
-                      onChange={(e) => setContribPhone(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
-                contribSource,
-              ) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.form.providers.bank_account")}
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Enter account number"
-                      value={contribAccount}
-                      onChange={(e) => setContribAccount(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
+              {(["mpesa", "airtel"].includes(contribSource) || 
+                ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(contribSource)) && (
+                <div className="space-y-4 p-5 rounded-2xl bg-primary/5 border border-primary/10 animate-in slide-in-from-top-2">
+                  {["mpesa", "airtel"].includes(contribSource) ? (
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">{t("savings.add_savings_modal.phone_label")}</Label>
+                      <div className="relative">
+                        <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                        <Input 
+                          placeholder="+254 7XX XXX XXX" 
+                          value={contribPhone} 
+                          onChange={(e) => setContribPhone(e.target.value)}
+                          className="h-11 pl-10 rounded-xl bg-white/50 border-white/10"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">{t("savings.add_savings_modal.account_label")}</Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                        <Input 
+                          placeholder="0000000000" 
+                          value={contribAccount} 
+                          onChange={(e) => setContribAccount(e.target.value)}
+                          className="h-11 pl-10 rounded-xl bg-white/50 border-white/10"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1607,104 +1542,65 @@ function SavingsPage() {
 
               <div className="space-y-3">
                 <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {t("savings.automation_modal.financial_provider")}
+                  {t("savings.automation_modal.provider_label")}
                 </Label>
                 <Select value={autoProvider} onValueChange={setAutoProvider}>
                   <SelectTrigger className="h-14 rounded-2xl bg-muted/20 border-white/20 font-semibold">
-                    <SelectValue placeholder={t("savings.automation_modal.which_provider")} />
+                    <SelectValue placeholder={t("savings.automation_modal.provider_placeholder")} />
                   </SelectTrigger>
-                  <SelectContent className="rounded-2xl shadow-2xl backdrop-blur-xl max-h-[300px] overflow-y-auto">
-                    <SelectItem
-                      value="any"
-                      className="font-semibold text-emerald-600 dark:text-emerald-400"
-                    >
-                      {t("savings.form.any_available")}
-                    </SelectItem>
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Wallet className="w-3 h-3" /> {t("savings.form.vault")}
-                    </div>
-                    <SelectItem value="vault_balance" className="font-semibold">
+                  <SelectContent className="rounded-2xl border-white/30 bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl shadow-2xl max-h-[300px]">
+                    <SelectItem value="vault_balance" className="font-bold text-emerald-600">
                       {t("savings.form.vault_account")}
                     </SelectItem>
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Smartphone className="w-3 h-3" /> {t("savings.form.categories")}
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                      {t("savings.form.categories")}
                     </div>
-                    <SelectItem value="mpesa" className="font-semibold">
-                      {t("savings.form.providers.mpesa")}
-                    </SelectItem>
-                    <SelectItem value="airtel" className="font-semibold">
-                      {t("savings.form.providers.airtel")}
-                    </SelectItem>
-                    <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase flex items-center gap-1 border-t border-white/10 mt-1">
-                      <Building2 className="w-3 h-3" /> {t("savings.form.any_bank")}
+                    <SelectItem value="mpesa" className="font-bold text-primary">M-Pesa (STK Push)</SelectItem>
+                    <SelectItem value="airtel" className="font-bold text-primary">Airtel Money</SelectItem>
+                    <SelectItem value="any" className="font-bold text-primary">External Bank Account</SelectItem>
+                    <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase border-t border-white/10 mt-1">
+                      {t("savings.form.specifics")}
                     </div>
-                    <SelectItem value="kcb" className="font-semibold">
-                      {t("savings.form.providers.kcb")}
-                    </SelectItem>
-                    <SelectItem value="equity" className="font-semibold">
-                      {t("savings.form.providers.equity")}
-                    </SelectItem>
-                    <SelectItem value="ncba" className="font-semibold">
-                      {t("savings.form.providers.ncba")}
-                    </SelectItem>
-                    <SelectItem value="absa" className="font-semibold">
-                      {t("savings.form.providers.absa")}
-                    </SelectItem>
-                    <SelectItem value="coop" className="font-semibold">
-                      {t("savings.form.providers.coop")}
-                    </SelectItem>
-                    <SelectItem value="stanbic" className="font-semibold">
-                      {t("savings.form.providers.stanbic")}
-                    </SelectItem>
-                    <SelectItem value="im" className="font-semibold">
-                      {t("savings.form.providers.im")}
-                    </SelectItem>
-                    <SelectItem value="dtb" className="font-semibold">
-                      {t("savings.form.providers.dtb")}
-                    </SelectItem>
-                    <SelectItem value="family" className="font-semibold">
-                      {t("savings.form.providers.family")}
-                    </SelectItem>
+                    {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].map((b) => (
+                      <SelectItem key={b} value={b} className="font-medium">
+                        {t(`savings.form.providers.${b}`)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Conditional Automation Inputs */}
-              {["mpesa", "airtel", "any"].includes(autoProvider) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.automation_modal.phone_for_deduction")}
-                  </Label>
-                  <div className="relative">
-                    <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="tel"
-                      placeholder="e.g. 0712345678"
-                      value={autoPhone}
-                      onChange={(e) => setAutoPhone(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(
-                autoProvider,
-              ) && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    {t("savings.automation_modal.bank_for_deduction")}
-                  </Label>
-                  <div className="relative">
-                    <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Enter account number"
-                      value={autoAccount}
-                      onChange={(e) => setAutoAccount(e.target.value)}
-                      className="h-14 pl-12 rounded-2xl bg-muted/20 border-white/20 font-semibold"
-                    />
-                  </div>
+              {(["mpesa", "airtel", "any"].includes(autoProvider) || 
+                ["kcb", "equity", "ncba", "absa", "coop", "stanbic", "im", "dtb", "family"].includes(autoProvider)) && (
+                <div className="space-y-4 p-5 rounded-2xl bg-primary/5 border border-primary/10 animate-in slide-in-from-top-2">
+                  {["mpesa", "airtel", "any"].includes(autoProvider) ? (
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">{t("savings.automation_modal.phone_label")}</Label>
+                      <div className="relative">
+                        <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                        <Input 
+                          placeholder="+254 7XX XXX XXX" 
+                          value={autoPhone} 
+                          onChange={(e) => setAutoPhone(e.target.value)}
+                          className="h-11 pl-10 rounded-xl bg-white/50 border-white/10"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest">{t("savings.automation_modal.account_label")}</Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                        <Input 
+                          placeholder="0000000000" 
+                          value={autoAccount} 
+                          onChange={(e) => setAutoAccount(e.target.value)}
+                          className="h-11 pl-10 rounded-xl bg-white/50 border-white/10"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

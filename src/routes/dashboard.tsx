@@ -8,12 +8,32 @@ import {
   Settings,
   HelpCircle,
   RefreshCw,
-  ShieldCheck,
   Shield,
   Loader2,
   ArrowRight,
   TrendingUp,
   Landmark,
+  ShieldAlert,
+  Utensils,
+  ShoppingBag,
+  Smartphone,
+  Zap,
+  Tv,
+  HeartPulse,
+  ShoppingCart,
+  User,
+  ArrowDownLeft,
+  ArrowUpRight,
+  History,
+  Target,
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2,
+  Clock,
+  Check,
+  ChevronRight,
+  X,
+  Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -22,7 +42,7 @@ import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions, type Transaction } from "@/hooks/use-transactions";
 import { useLedger, type LedgerEntry } from "@/hooks/use-ledger";
 import { usePortfolioSummary } from "@/hooks/use-portfolio-summary";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { useNotifications } from "@/hooks/use-notifications";
 import { supabase } from "@/api/supabase";
 import { format, formatDistanceToNow, startOfWeek, startOfMonth, subDays } from "date-fns";
@@ -87,11 +107,11 @@ function AccountBadge({
             <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-inner">
               {icon}
             </div>
-            <div>
-              <div className="text-base font-medium tracking-tight">{name}</div>
-              <div className="text-xs text-muted-foreground/80 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                {type}
+            <div className="min-w-0">
+              <div className="text-base font-medium tracking-tight truncate">{name}</div>
+              <div className="text-xs text-muted-foreground/80 flex items-center gap-1.5 truncate">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0" />
+                <span className="truncate">{type}</span>
               </div>
             </div>
           </div>
@@ -186,13 +206,13 @@ function QuickSend({
         className,
       )}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground/80">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">
           {title}
         </div>
         <ArrowRight className="w-3 h-3 text-muted-foreground/40" />
       </div>
-      <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide min-h-[90px]">
         {loading ? (
           <>
             {[1, 2, 3, 4].map((i) => (
@@ -216,20 +236,13 @@ function QuickSend({
                 onClick={() => a.tag && onAvatarClick?.(a.tag)}
               >
                 <div className="relative">
-                  {a.avatarUrl ? (
-                    <img
-                      src={a.avatarUrl}
-                      alt={a.name}
-                      className="w-12 h-12 rounded-full object-cover shadow-lg transition-transform group-hover:scale-105 group-active:scale-95"
-                    />
-                  ) : (
-                    <div
-                      className={`w-12 h-12 rounded-full ${a.color} flex items-center justify-center text-white font-semibold shadow-lg transition-transform group-hover:scale-105 group-active:scale-95`}
-                    >
+                  <Avatar className="w-12 h-12 shadow-lg transition-transform group-hover:scale-105 group-active:scale-95">
+                    <AvatarImage src={a.avatarUrl || undefined} alt={a.name} />
+                    <AvatarFallback className={cn("text-white font-semibold", a.color)}>
                       {a.initial}
-                    </div>
-                  )}
-                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card shadow-sm z-10" />
                 </div>
                 <span className="text-[10px] font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                   {a.name}
@@ -545,12 +558,12 @@ function SecurityStatus() {
               status: "active",
             },
           ].map((item) => (
-            <div key={item.label} className="group/item">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors">
+            <div key={item.label} className="group/item min-w-0">
+              <div className="flex items-center justify-between mb-1.5 gap-2">
+                <span className="text-xs text-muted-foreground/80 group-hover/item:text-foreground transition-colors truncate">
                   {item.label}
                 </span>
-                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                <span className="text-[10px] font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 shrink-0">
                   {item.val}
                 </span>
               </div>
@@ -576,7 +589,7 @@ function SecurityStatus() {
 
 function AIInsightsWidget({ profileId }: { profileId?: string }) {
   const { t } = useTranslation();
-  const [profile] = useProfileSignal();
+  const { profile } = useProfile();
   const [insight, setInsight] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -677,15 +690,15 @@ function AIInsightsWidget({ profileId }: { profileId?: string }) {
               <path d="M16.24 7.76l2.83-2.83" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-lg font-bold text-foreground">{t("ai_insights.title")}</h3>
+          <div className="min-w-0">
+            <h3 className="text-lg font-bold text-foreground truncate">{t("ai_insights.title")}</h3>
             {insight ? (
               <div className="mt-2 space-y-1">
-                <div className="text-sm font-semibold text-primary">
+                <div className="text-sm font-semibold text-primary truncate">
                   {insight.title || insight.content}
                 </div>
                 {insight.title && (
-                  <div className="text-xs text-muted-foreground leading-relaxed">
+                  <div className="text-xs text-muted-foreground leading-relaxed break-words line-clamp-2 sm:line-clamp-none">
                     {insight.content}
                   </div>
                 )}
@@ -726,22 +739,30 @@ const filters = [
 function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [profile] = useProfileSignal();
-  
+  const { profile, isLoading: profileLoading } = useProfile();
+
   // Guard against unauthenticated/loading state
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   if (!profile) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return <div className="p-8 text-center">Please log in to view your dashboard.</div>;
   }
 
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
-  
+
   const {
     transactions,
     loading: txLoading,
     error: txError,
     refetch: refetchTransactions,
   } = useTransactions();
-  
+
   const { entries: ledgerEntries, loading: ledgerLoading } = useLedger(currency);
   const { notifications, markAsRead } = useNotifications();
   const portfolioSummary = usePortfolioSummary(profile?.id);
@@ -820,41 +841,32 @@ function DashboardPage() {
   }, [profile?.id, transactions]); // Refetch when transactions change
 
   const frequentRecipients = useMemo(() => {
-    const seenIds = new Set();
-    const uniqueRecipients: {
-      id: string;
-      initial: string;
-      color: string;
-      name: string;
-      tag?: string;
-      avatarUrl?: string | null;
-    }[] = [];
     const currentUserId = (profile as any)?.id;
+    if (!currentUserId || !transactions) return [];
 
-    if (!currentUserId) return [];
+    // 1. Count occurrences per receiver
+    const counts: Record<string, number> = {};
+    const recipientDetails: Record<string, any> = {};
 
     for (const tx of transactions) {
-      if (
-        tx.type === "transfer" &&
-        tx.sender_id === currentUserId &&
-        tx.receiver &&
-        tx.receiver_id
-      ) {
-        if (!seenIds.has(tx.receiver_id)) {
-          seenIds.add(tx.receiver_id);
-          uniqueRecipients.push({
-            id: tx.receiver_id,
-            initial: tx.receiver?.first_name?.[0] ?? "V",
-            color: "bg-emerald-500",
-            name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
-            tag: tx.receiver?.kyc_tag,
-            avatarUrl: tx.receiver?.profile_photo_url,
-          });
-        }
+      if (tx.type === "transfer" && tx.sender_id === currentUserId && tx.receiver_id) {
+        counts[tx.receiver_id] = (counts[tx.receiver_id] || 0) + 1;
+        recipientDetails[tx.receiver_id] = {
+          id: tx.receiver_id,
+          initial: tx.receiver?.first_name?.[0] ?? "V",
+          color: "bg-emerald-500",
+          name: `${tx.receiver?.first_name ?? "Vault"} ${tx.receiver?.last_name ?? ""}`.trim(),
+          tag: tx.receiver?.kyc_tag,
+          avatarUrl: tx.receiver?.profile_photo_url,
+        };
       }
-      if (uniqueRecipients.length >= 4) break;
     }
-    return uniqueRecipients;
+
+    // 2. Sort by count descending and take top 5
+    return Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([id]) => recipientDetails[id]);
   }, [transactions, profile]);
 
   const handleQuickSend = (tag: string) => {
@@ -890,6 +902,19 @@ function DashboardPage() {
     return transactions;
   }, [transactions, activeFilter, profile]);
 
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+          <p className="text-muted-foreground animate-pulse font-medium">
+            {t("common.loading_secure_vault")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const getTransactionDetails = (tx: any) => {
     const isSender = tx.sender_id === (profile as any)?.id;
     const userName = profile?.first_name
@@ -897,8 +922,38 @@ function DashboardPage() {
       : profile?.email?.split("@")[0] || t("common.vault_user");
     const symbol = currency === "USD" ? "$" : currency + " ";
 
+    const categoryIcons: Record<string, any> = {
+      dining: Utensils,
+      shopping: ShoppingBag,
+      transport: Smartphone,
+      utilities: Zap,
+      entertainment: Tv,
+      healthcare: HeartPulse,
+      groceries: ShoppingCart,
+      personal: User,
+      income: ArrowDownLeft,
+      transfer: ArrowRight,
+    };
+
+    const categoryColors: Record<string, string> = {
+      dining: "bg-orange-500/10 text-orange-500 border-orange-500/20",
+      shopping: "bg-pink-500/10 text-pink-500 border-pink-500/20",
+      transport: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+      utilities: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
+      entertainment: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+      healthcare: "bg-red-500/10 text-red-500 border-red-500/20",
+      groceries: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      income: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    };
+
+    const txCategory = (tx.category || "").toLowerCase();
+    const CategoryIcon = categoryIcons[txCategory] || null;
+    const categoryColorClass =
+      categoryColors[txCategory] || "bg-primary/10 text-primary border-primary/20";
+
     // Method-specific logo helper - enhanced with all banks
     const getMethodLogo = (method: string, description: string) => {
+
       const desc = (description || "").toLowerCase();
       const meth = (method || "").toLowerCase();
 
@@ -950,8 +1005,9 @@ function DashboardPage() {
         const desc = (tx.description || "").toLowerCase();
         const logo = getMethodLogo(tx.method || "", tx.description || "");
         const hasMobileOrBank = logo && desc.includes("transfer to");
+        const isVaultTransfer = tx.method === "vault" || (tx.description || "").includes("Vault Transfer Ref:");
 
-        let titleText = tx.description;
+        let titleText = isVaultTransfer ? "P2P Transfer" : tx.description;
         if (!titleText) {
           const receiverName = tx.receiver?.first_name || t("common.user");
           titleText = t("transactions.history.transfer_to", { receiverName });
@@ -959,23 +1015,32 @@ function DashboardPage() {
 
         return {
           title: titleText,
+          subtitle: tx.description,
           amount: `-${symbol}${tx.amount.toLocaleString()}`,
           positive: false,
           icon: hasMobileOrBank ? null : tx.receiver?.first_name?.[0] || "T",
           logo: hasMobileOrBank ? logo : tx.receiver?.profile_photo_url || null,
+          avatarUrl: tx.receiver?.profile_photo_url || null,
           color: "bg-primary/20 text-primary",
+          CategoryIcon,
+          categoryColorClass,
         };
       } else {
-        let senderName = tx.sender?.first_name || t("common.user");
-        const titleText =
-          tx.description || t("transactions.history.received_from", { senderName });
+        const senderName = tx.sender?.first_name || t("common.user");
+        const isVaultTransfer = tx.method === "vault" || (tx.description || "").includes("Vault Transfer Ref:");
+        const titleText = isVaultTransfer ? "P2P Transfer" : (tx.description || t("transactions.history.received_from", { senderName }));
+
         return {
           title: titleText,
+          subtitle: tx.description,
           amount: `+${symbol}${tx.amount.toLocaleString()}`,
           positive: true,
           icon: tx.sender?.first_name?.[0] || "R",
           logo: tx.sender?.profile_photo_url || null,
+          avatarUrl: tx.sender?.profile_photo_url || null,
           color: "bg-emerald-500/20 text-emerald-500",
+          CategoryIcon,
+          categoryColorClass,
         };
       }
     } else if (tx.type === "deposit") {
@@ -987,6 +1052,8 @@ function DashboardPage() {
         icon: logo ? null : "D",
         logo: logo,
         color: "bg-emerald-500/20 text-emerald-500",
+        CategoryIcon,
+        categoryColorClass,
       };
     } else if (tx.type === "withdrawal") {
       const logo = getMethodLogo(tx.method, tx.description);
@@ -997,6 +1064,8 @@ function DashboardPage() {
         icon: logo ? null : "W",
         logo: logo,
         color: "bg-destructive/20 text-destructive",
+        CategoryIcon,
+        categoryColorClass,
       };
     }
     return {
@@ -1006,6 +1075,8 @@ function DashboardPage() {
       icon: "?",
       logo: null,
       color: "bg-secondary text-secondary-foreground",
+      CategoryIcon,
+      categoryColorClass,
     };
   };
 
@@ -1014,6 +1085,30 @@ function DashboardPage() {
   return (
     <AppShell>
       <main className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {profile?.is_suspended && (
+          <div className="mb-8 p-4 rounded-3xl bg-destructive/10 border border-destructive/20 flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500 shadow-lg shadow-destructive/5 backdrop-blur-sm">
+            <div className="w-14 h-14 rounded-2xl bg-destructive/20 flex items-center justify-center text-destructive shrink-0 shadow-inner ring-1 ring-destructive/30">
+              <ShieldAlert className="w-8 h-8" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-sm font-bold text-destructive uppercase tracking-widest leading-none mb-1">
+                Account Suspended
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                Your account is currently locked. Reason: {profile.suspended_reason || "Security concerns"}.
+                You can self-restore your account in settings via email verification.
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl h-10 px-6 font-bold uppercase tracking-wider text-[10px] transition-all active:scale-95"
+              onClick={() => navigate({ to: "/settings" })}
+            >
+              Go to Settings
+            </Button>
+          </div>
+        )}
         <div className="mb-6">
           <h1
             className="text-2xl font-bold tracking-tight text-slate-950 dark:text-white"
@@ -1226,14 +1321,8 @@ function DashboardPage() {
           <QuickSend
             className="col-span-1"
             onAvatarClick={handleQuickSend}
-            loading={loadingSuggestedUsers && frequentRecipients.length === 0}
-            avatars={
-              frequentRecipients.length > 0
-                ? frequentRecipients
-                : suggestedUsers.length > 0
-                  ? suggestedUsers
-                  : []
-            }
+            loading={txLoading && frequentRecipients.length === 0}
+            avatars={frequentRecipients}
           />
           <div className="col-span-1">
             <NetWorthChart
@@ -1313,20 +1402,27 @@ function DashboardPage() {
                 return (
                   <li
                     key={tx.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3 group"
                   >
                     <div className="flex items-center gap-4">
-                      <span className="text-[10px] uppercase w-9 text-center text-muted-foreground shrink-0">
-                        {typeLabel}
-                      </span>
-                      <Avatar className="w-9 h-9 border border-border/40 shrink-0">
-                        <AvatarImage src={details.logo || (details as any).avatarUrl || undefined} />
-                        <AvatarFallback className={cn("text-sm font-semibold", details.color)}>
-                          {details.icon}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative shrink-0">
+                        <Avatar className="w-10 h-10 border border-border/40 shadow-sm rounded-xl">
+                          <AvatarImage
+                            src={details.logo || (details as any).avatarUrl || undefined}
+                            className="object-cover"
+                          />
+                          <AvatarFallback className={cn("text-xs font-bold rounded-xl", details.color)}>
+                            {details.icon}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                       <div className="min-w-0">
-                        <div className="text-sm truncate">{details.title}</div>
+                        <div className="text-sm truncate font-medium">{details.title}</div>
+                        {(details as any).subtitle && (
+                          <div className="text-[10px] text-primary/80 font-mono truncate">
+                            {(details as any).subtitle}
+                          </div>
+                        )}
                         <div className="text-[10px] text-muted-foreground/60 mt-1 font-medium">
                           {format(new Date(tx.created_at), "EEEE, MMM d · h:mm a")}
                         </div>

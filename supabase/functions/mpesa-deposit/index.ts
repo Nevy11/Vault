@@ -67,9 +67,12 @@ serve(async (req) => {
       .replace(/[^0-9]/g, "")
       .slice(0, 14);
 
-    const storeNumber = Deno.env.get("DARAJA_STORE_NUMBER") || Deno.env.get("DARAJA_SHORTCODE") || "174379";
-    const tillNumber = Deno.env.get("DARAJA_TILL_NUMBER") || (Deno.env.get("DARAJA_STORE_NUMBER") ? storeNumber : "174379");
-    
+    const storeNumber =
+      Deno.env.get("DARAJA_STORE_NUMBER") || Deno.env.get("DARAJA_SHORTCODE") || "174379";
+    const tillNumber =
+      Deno.env.get("DARAJA_TILL_NUMBER") ||
+      (Deno.env.get("DARAJA_STORE_NUMBER") ? storeNumber : "174379");
+
     // Automatically detect transaction type: Sandbox default shortcode 174379 requires CustomerPayBillOnline
     const isSandboxDefault = storeNumber === "174379";
     const transactionType = isSandboxDefault ? "CustomerPayBillOnline" : "CustomerBuyGoodsOnline";

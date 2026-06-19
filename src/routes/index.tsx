@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Shield,
   Database,
@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { TopNav } from "@/components/top-nav";
 import { Logo } from "@/components/logo";
+import { useEffect } from "react";
+import { useProfile } from "@/hooks/use-profile";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -533,6 +535,35 @@ function Footer() {
 }
 
 function LandingPage() {
+  const { profile, isLoading } = useProfile();
+  const navigate = useNavigate();
+
+  // Immediately check localStorage for an active Supabase session token.
+  // This runs synchronously on render so we can block the landing page
+  // from flashing before the async profile query resolves.
+  const hasSession = typeof window !== "undefined" && Object.keys(localStorage).some(
+    (key) => key.startsWith("sb-") && key.endsWith("-auth-token")
+  );
+
+  useEffect(() => {
+    if (!isLoading && profile) {
+      navigate({ to: "/dashboard" });
+    }
+  }, [profile, isLoading, navigate]);
+
+  // If a session token exists (logged-in user), always show the spinner —
+  // never flash the landing page. The redirect fires as soon as profile loads.
+  if (hasSession || profile) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-muted-foreground text-xs font-mono tracking-wider uppercase">Loading your Vault...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Nav />

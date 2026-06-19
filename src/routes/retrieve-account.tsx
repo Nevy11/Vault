@@ -36,7 +36,9 @@ function RetrieveAccountPage() {
         if (error) throw error;
 
         setStatus("success");
-        setMessage("Your account has been successfully restored! All your details and data are back to normal. You can now access your dashboard.");
+        setMessage(
+          "Your account has been successfully restored! All your details and data are back to normal. You can now access your dashboard.",
+        );
       } catch (err: any) {
         let errMsg = "Failed to restore account.";
         try {
@@ -71,7 +73,7 @@ function RetrieveAccountPage() {
             </div>
             <h1 className="text-3xl font-serif">Welcome Back!</h1>
             <p className="text-muted-foreground leading-relaxed">{message}</p>
-            <Button 
+            <Button
               className="w-full h-12 rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700"
               onClick={() => navigate({ to: "/dashboard" })}
             >
@@ -87,7 +89,7 @@ function RetrieveAccountPage() {
             </div>
             <h1 className="text-3xl font-serif text-destructive">Restoration Failed</h1>
             <p className="text-muted-foreground leading-relaxed">{message}</p>
-            <Button 
+            <Button
               variant="outline"
               className="w-full h-12 rounded-xl font-bold"
               onClick={() => navigate({ to: "/login" })}

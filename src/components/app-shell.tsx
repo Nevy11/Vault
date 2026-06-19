@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { HelpCircle, Home, Send, Settings, User, LogOut, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 import { getDeviceMacAddress, getDeviceName } from "@/lib/device-detection";
 import { toast } from "sonner";
 import {
@@ -19,7 +19,6 @@ import { TopNav } from "@/components/top-nav";
 import { ScanToPay } from "./scan-to-pay";
 import { FinanceAdvisorContent } from "./finance-advisor-content";
 import { FloatingAdvisor } from "./floating-advisor";
-import { SwirlFireEffect } from "./swirl-fire-effect";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -96,7 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const [profile, setProfile] = useProfileSignal();
+  const { profile } = useProfile();
   const [isAdvisorOpen, setIsAdvisorOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -105,7 +104,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       localStorage.setItem("revocation_message", message);
     }
     await supabase.auth.signOut();
-    setProfile(null);
     navigate({ to: "/" });
   };
 
@@ -128,17 +126,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .from("user_devices")
         .select("*")
         .eq("user_id", profile.id);
-      
+
       if (error) return;
 
       // Filter in JS
-      const currentDevice = data?.find(d => 
-        (d.mac_address && d.mac_address === mac) || (d.device_name === getDeviceName())
+      const currentDevice = data?.find(
+        (d) => (d.mac_address && d.mac_address === mac) || d.device_name === getDeviceName(),
       );
-      
+
       if (currentDevice && !currentDevice.is_active) {
         handleSignOut("Your access was revoked.");
       }
+
+      // 3. Process recurring tasks (Reminders & Automated Savings)
+      await supabase.rpc("process_recurring_reminders_and_savings");
     };
     checkStatus();
 
@@ -157,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           if (payload.new && payload.new.mac_address === mac && !payload.new.is_active) {
             handleSignOut("This device has been revoked by another session.");
           }
-        }
+        },
       )
       .subscribe();
 
@@ -172,7 +173,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       style={{ background: "var(--gradient-bg)" }}
       suppressHydrationWarning
     >
-      <SwirlFireEffect />
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
         <div className="flex h-16 items-center px-4 border-b border-border/40">
@@ -203,7 +203,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className="w-full"
-            onClick={handleSignOut}
+            onClick={() => handleSignOut()}
             suppressHydrationWarning
           >
             <LogOut className="mr-2 h-4 w-4" />
