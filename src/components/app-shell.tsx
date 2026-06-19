@@ -19,7 +19,6 @@ import { TopNav } from "@/components/top-nav";
 import { ScanToPay } from "./scan-to-pay";
 import { FinanceAdvisorContent } from "./finance-advisor-content";
 import { FloatingAdvisor } from "./floating-advisor";
-import { SwirlFireEffect } from "./swirl-fire-effect";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
@@ -171,7 +170,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       style={{ background: "var(--gradient-bg)" }}
       suppressHydrationWarning
     >
-      <SwirlFireEffect />
       {/* Sidebar */}
       <div className="hidden md:block fixed left-0 top-0 z-50 h-full w-64 bg-card border-r border-border/40">
         <div className="flex h-16 items-center px-4 border-b border-border/40">
@@ -202,7 +200,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className="w-full"
-            onClick={handleSignOut}
+            onClick={() => handleSignOut()}
             suppressHydrationWarning
           >
             <LogOut className="mr-2 h-4 w-4" />
