@@ -291,25 +291,38 @@ export function DepositPanel() {
       });
 
       if (error) {
+        // Try to extract provider-friendly message
         let errorMessage = t("transactions.deposit.mpesa_init_error");
         try {
-          // Try to get the error response body
           const errorResponse = await error.context?.json();
           errorMessage =
             errorResponse?.error || errorResponse?.errorMessage || error.message || errorMessage;
         } catch (e) {
           errorMessage = error.message || errorMessage;
         }
-        throw new Error(errorMessage);
+
+        // Show clear localized provider + suggestion message
+        toast.error(
+          t("transactions.deposit.provider_error", {
+            provider: selectedCarrier || "M-Pesa",
+            message: errorMessage,
+          }),
+        );
+        setStatus("idle");
+        return;
       }
 
       if (!data || (data.ResponseCode !== "0" && data.ResponseCode !== 0)) {
-        throw new Error(
-          data?.errorMessage ||
-            data?.ResponseDescription ||
-            data?.CustomerMessage ||
-            "Payment initiation failed: No response from provider",
+        const providerMessage =
+          data?.errorMessage || data?.ResponseDescription || data?.CustomerMessage || null;
+        toast.error(
+          t("transactions.deposit.provider_error", {
+            provider: selectedCarrier || "M-Pesa",
+            message: providerMessage || t("transactions.deposit.payment_failed"),
+          }),
         );
+        setStatus("idle");
+        return;
       }
 
       // Store the checkout ID for later confirmation

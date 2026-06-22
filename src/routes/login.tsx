@@ -140,30 +140,43 @@ function LoginPage() {
     }
   };
 
+  // Auto-submit when user completes the 6-digit code
+  useEffect(() => {
+    if (step === "verify" && code.length === 6) {
+      verifyCode(code);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, step]);
+
   const handleVerify = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (code.length === 6) {
-      setStatus("verifying");
-      try {
-        const normalizedEmail = email.trim().toLowerCase();
-        // 1. Verify OTP using 'email' type for 6-digit token verification
-        const {
-          data: { user },
-          error: verifyError,
-        } = await supabase.auth.verifyOtp({
-          email: normalizedEmail,
-          token: code,
-          type: "email",
-        });
+    // delegate to shared verifier
+    if (code.length === 6) await verifyCode(code);
+  };
 
-        if (verifyError) throw verifyError;
+  // Shared verifier used by form submit and auto-verify on input completion
+  const verifyCode = async (token: string) => {
+    if (status === "verifying") return;
+    setStatus("verifying");
+    try {
+      const normalizedEmail = email.trim().toLowerCase();
+      // 1. Verify OTP using 'email' type for 6-digit token verification
+      const {
+        data: { user },
+        error: verifyError,
+      } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token,
+        type: "email",
+      });
 
-        await processAuthenticatedUser(user);
-      } catch (error: any) {
-        console.error("Verification error:", error);
-        toast.error(error.message || "Verification failed");
-        setStatus("idle");
-      }
+      if (verifyError) throw verifyError;
+
+      await processAuthenticatedUser(user);
+    } catch (error: any) {
+      console.error("Verification error:", error);
+      toast.error(error.message || "Verification failed");
+      setStatus("idle");
     }
   };
 
@@ -324,7 +337,7 @@ function LoginPage() {
                   inputMode="numeric"
                   maxLength={6}
                   value={code}
-                  onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="••••••"
                   className="h-12 tracking-[0.45em] text-center bg-input/60 border-border focus-visible:ring-primary font-bold text-lg"
                   required

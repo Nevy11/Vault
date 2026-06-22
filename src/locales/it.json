@@ -546,6 +546,7 @@
       "link_new_bank": "Collega Nuovo Conto Bancario",
       "mobile_money": "Mobile Money",
       "mpesa_init_error": "Inizializzazione pagamento M-Pesa fallita",
+        "provider_error": "Pagamento {{provider}} non riuscito: {{message}}",
       "mpesa_pin_note": "Inserisci il tuo **PIN M-Pesa** sul telefono per completare il deposito di {{amount}}.",
       "payment_confirmed": "Pagamento confermato! Il tuo saldo è stato aggiornato.",
       "payment_failed": "Pagamento fallito o annullato.",

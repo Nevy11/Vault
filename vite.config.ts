@@ -81,6 +81,16 @@ export default defineConfig({
     css: {
       transformer: "postcss",
     },
+    server: {
+      proxy: {
+        '/functions/v1': {
+          target: 'https://vwxlnchdathjuprrlite.supabase.co',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path: string) => path.replace(/^\/functions\/v1/, '/functions/v1'),
+        },
+      },
+    },
     build: {
       emptyOutDir: true,
     },

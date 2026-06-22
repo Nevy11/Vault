@@ -565,6 +565,7 @@
       "link_new_bank": "Link New Bank Account",
       "mobile_money": "Mobile Money",
       "mpesa_init_error": "Failed to initiate M-Pesa payment",
+      "provider_error": "{{provider}} payment failed: {{message}}",
       "mpesa_pin_note": "Please enter your **M-Pesa PIN** on your phone to complete the deposit of {{amount}}.",
       "payment_confirmed": "Payment confirmed! Your balance has been updated.",
       "payment_failed": "Payment failed or was cancelled.",

@@ -546,6 +546,7 @@
       "link_new_bank": "Neues Bankkonto verknüpfen",
       "mobile_money": "Mobiles Geld",
       "mpesa_init_error": "M-Pesa-Zahlung konnte nicht initiiert werden",
+      "provider_error": "{{provider}} Zahlung fehlgeschlagen: {{message}}",
       "mpesa_pin_note": "Bitte geben Sie Ihre **M-Pesa PIN** auf Ihrem Telefon ein, um die Einzahlung von {{amount}} abzuschließen.",
       "payment_confirmed": "Zahlung bestätigt! Ihr Guthaben wurde aktualisiert.",
       "payment_failed": "Zahlung fehlgeschlagen oder wurde abgebrochen.",
