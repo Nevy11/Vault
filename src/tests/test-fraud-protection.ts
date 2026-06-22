@@ -1,4 +1,5 @@
-import { checkVelocity, checkValueSpike, evaluateTransaction } from '../../lib/fraud-protection';
+import { describe, it, expect } from 'vitest';
+import { checkVelocity, checkValueSpike, evaluateTransaction } from '../lib/fraud-protection';
 
 describe('fraud protection', () => {
   it('checkVelocity returns correct result', async () => {

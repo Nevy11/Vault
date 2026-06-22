@@ -47,6 +47,9 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
     RouterProvider: ({ children }: any) => React.createElement(React.Fragment, null, children),
     Link: ({ to, children, ...rest }: any) => React.createElement("a", { href: to, ...rest }, children),
     useRouter: () => ({ isServer: false, route: {}, state: {} }),
+    // helpers used by route-based tests
+    createFileRoute: (path: string) => (opts: any) => ({ ...opts, useSearch: () => ({}) }),
+    createRootRouteWithContext: () => (opts: any) => ({ ...opts, useSearch: () => ({}) }),
   };
 });
 

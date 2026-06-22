@@ -13,8 +13,7 @@ export const Route = createFileRoute("/retrieve-account")({
   },
   component: RetrieveAccountPage,
 });
-
-function RetrieveAccountPage() {
+export function RetrieveAccountPage() {
   const { token } = Route.useSearch();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Restoring your account...");

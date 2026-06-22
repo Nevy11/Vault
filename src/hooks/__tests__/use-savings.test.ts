@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/api/supabase', () => ({
@@ -42,10 +42,10 @@ describe('useSavings hook', () => {
       return { select: vi.fn().mockResolvedValue({ data: [] }) };
     });
 
-    const { result, waitForNextUpdate } = renderHook(() => useSavings());
+    const { result } = renderHook(() => useSavings());
 
     // Wait for initial fetchSavingsData to complete
-    await waitForNextUpdate();
+    await waitFor(() => expect(result.current.loading).toBe(false));
 
     // Attempt to add automated contribution larger than wallet balance
     await act(async () => {

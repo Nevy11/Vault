@@ -187,6 +187,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const [bank, setBank] = useState("");
   const [provider, setProvider] = useState("M-Pesa");
   const [selectedCategory, setSelectedCategory] = useState("Transfer");
+  const [categoryInput, setCategoryInput] = useState("");
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "confirming" | "processing" | "success">("idle");
@@ -443,14 +444,13 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not found");
-
       if (method === "vault") {
         const fullTag = identifier.startsWith("@") ? identifier : `@${identifier}`;
         const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
           p_sender_id: user.id,
           p_recipient_tag: fullTag,
           p_amount: parseFloat(amount),
-          p_category: selectedCategory,
+          p_category: categoryInput?.trim() ? categoryInput.trim() : selectedCategory,
           p_note: note.trim() || null,
           p_idempotency_key: idempotencyKey,
         });
@@ -798,6 +798,45 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
               {method === "vault" && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   <Label>Spending Category</Label>
+                  <div className="mb-2">
+                    <input
+                      aria-label="Category"
+                      placeholder="Type to search or create category"
+                      className="w-full bg-background/40 h-10 border-border/60 px-3"
+                      value={categoryInput}
+                      onChange={(e) => {
+                        setCategoryInput(e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          // treat enter as selecting typed category
+                          setSelectedCategory(categoryInput || selectedCategory);
+                        }
+                      }}
+                    />
+                    {/* Suggestions */}
+                    {categoryInput && (
+                      <div className="mt-1 bg-card/40 border border-border/50 p-2 rounded">
+                        {categories
+                          .filter((c) => c.label.toLowerCase().includes(categoryInput.toLowerCase()) || c.id.toLowerCase().includes(categoryInput.toLowerCase()))
+                          .slice(0, 6)
+                          .map((c) => (
+                            <button
+                              key={`sugg-${c.id}`}
+                              onClick={() => {
+                                setSelectedCategory(c.id);
+                                setCategoryInput(c.id);
+                              }}
+                              className="text-sm mr-2 mb-1 px-2 py-1 rounded bg-background/30 border"
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        {/* allow create */}
+                        <div className="text-xs text-muted-foreground mt-1">Press Enter to use "{categoryInput}"</div>
+                      </div>
+                    )}
+                  </div>
                   <div className="grid grid-cols-3 gap-2">
                     {categories.slice(0, 9).map((cat) => {
                       const CatIcon = cat.icon;
@@ -805,7 +844,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
                       return (
                         <button
                           key={cat.id}
-                          onClick={() => setSelectedCategory(cat.id)}
+                          onClick={() => {
+                            setSelectedCategory(cat.id);
+                            setCategoryInput(cat.id);
+                          }}
                           className={cn(
                             "flex flex-col items-center justify-center p-2 rounded-xl border transition-all gap-1 group",
                             isSelected
@@ -1006,6 +1048,8 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
         })}
         amount={parseFloat(amount || "0")}
       />
+
+      
     </div>
   );
 }
