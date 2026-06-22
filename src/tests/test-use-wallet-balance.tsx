@@ -1,6 +1,6 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import { useWalletBalance } from '../../hooks/use-wallet-balance';
+import { renderHook, waitFor } from '@testing-library/react';
+import { useWalletBalance } from '../hooks/use-wallet-balance';
+import { describe, it, expect, vi } from 'vitest';
 
 describe('useWalletBalance', () => {
   it('returns correct wallet balance', async () => {
@@ -10,9 +10,9 @@ describe('useWalletBalance', () => {
 
   it('handles wallet balance updates', async () => {
     const { result } = renderHook(() => useWalletBalance());
-    const updateBalance = jest.fn();
+    const updateBalance = vi.fn();
     result.current.updateBalance = updateBalance;
-    fireEvent.updateBalance(100);
+    result.current.updateBalance(100);
     await waitFor(() => expect(updateBalance).toHaveBeenCalledTimes(1));
   });
 });

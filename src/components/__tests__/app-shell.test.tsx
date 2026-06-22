@@ -27,6 +27,7 @@ describe("AppShell component", () => {
     );
 
     expect(screen.getByText("Child")).toBeInTheDocument();
-    expect(screen.getByText("nav.dashboard")).toBeInTheDocument();
+    // Accept multiple matching nodes; ensure at least one nav.dashboard exists
+    expect(screen.getAllByText("nav.dashboard").length).toBeGreaterThan(0);
   });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react';
-import { DepositPanel } from '../../components/deposit-panel';
+import { DepositPanel } from '../components/deposit-panel';
+import { describe, it, expect } from 'vitest';
 
 describe('DepositPanel', () => {
   it('renders correctly', () => {

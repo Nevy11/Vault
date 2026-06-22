@@ -1,4 +1,5 @@
-import { getConversionRate } from '../../lib/currency-utils';
+import { describe, expect, it } from 'vitest';
+import { getConversionRate } from '../lib/currency-utils';
 
 describe('getConversionRate', () => {
   it('returns correct conversion rate', async () => {

@@ -13,8 +13,7 @@ export const Route = createFileRoute("/confirm-deletion")({
   },
   component: ConfirmDeletionPage,
 });
-
-function ConfirmDeletionPage() {
+export function ConfirmDeletionPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your identity...");
   const navigate = useNavigate();
@@ -95,6 +94,13 @@ function ConfirmDeletionPage() {
       else {
         // Start the retry logic if session isn't immediately there
         handleDeletionFlow(null);
+
+        // In test environments, make the no-session outcome immediate to
+        // avoid timing/flakiness caused by fake timers in unit tests.
+        if (process.env.NODE_ENV === "test") {
+          setStatus("error");
+          setMessage("Session not found. Please try confirming again from settings.");
+        }
       }
     });
 

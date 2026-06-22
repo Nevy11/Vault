@@ -1,6 +1,6 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react';
+import { render, fireEvent, waitFor, renderHook } from '@testing-library/react';
 import { useTransactions } from '../../hooks/use-transactions';
+import { describe, it, expect } from 'vitest';
 
 describe('useTransactions', () => {
   it('returns correct transactions', async () => {

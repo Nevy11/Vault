@@ -46,10 +46,30 @@ vi.mock("@/api/supabase", async () => {
   supabaseMock.functions = { invoke: vi.fn(async () => ({ data: null, error: null })) };
 
   // auth helpers expected by hooks
+  const authListeners: any[] = [];
   supabaseMock.auth = {
     getUser: vi.fn(async () => ({ data: { user: null } })),
     signOut: vi.fn(async () => ({ error: null })),
-    onAuthStateChange: vi.fn((cb: any) => ({ data: { subscription: { unsubscribe: () => null } } })),
+    onAuthStateChange: vi.fn((cb: any) => {
+      authListeners.push(cb);
+      const subscription = {
+        unsubscribe: () => {
+          const i = authListeners.indexOf(cb);
+          if (i >= 0) authListeners.splice(i, 1);
+        },
+      };
+      return { data: { subscription } };
+    }),
+    // helper to trigger auth events in tests if needed
+    _triggerAuthEvent: (event: string, session: any) => {
+      authListeners.forEach((cb) => {
+        try {
+          cb(event, session);
+        } catch (e) {
+          // swallow
+        }
+      });
+    },
   };
 
   // channel/real-time stubs used by hooks
@@ -76,3 +96,4 @@ vi.mock("@/api/supabase", async () => {
 
   return { supabase: supabaseMock };
 });
+ 
