@@ -143,9 +143,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     checkStatus();
 
-    // 2. Realtime subscription
+    // 2. Realtime subscription — use a unique channel name per user to avoid
+    //    "cannot add postgres_changes callbacks after subscribe()" on re-mount
+    const channelName = `device_revocation:${profile.id}`;
+    const existingChannel = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+    if (existingChannel) {
+      supabase.removeChannel(existingChannel);
+    }
+
     const channel = supabase
-      .channel("device_revocation")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

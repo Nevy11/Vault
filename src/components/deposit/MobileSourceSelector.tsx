@@ -1,6 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Smartphone, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import * as React from "react";
 
 interface MobileSourceSelectorProps {
   sources: any[];
@@ -116,7 +118,7 @@ export function MobileSourceSelector({
                 placeholder="0712 345 678"
                 className="h-10 rounded-xl bg-white"
                 value={newPhoneNumber}
-                onChange={(e) => onNewPhoneChange(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onNewPhoneChange(e.target.value)}
               />
             </div>
           </div>
