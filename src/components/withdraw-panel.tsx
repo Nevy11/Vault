@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useProfile } from "@/hooks/use-profile";
+import { useKycGuard } from "@/hooks/use-kyc-guard";
 import { evaluateTransaction } from "@/lib/fraud-protection";
 import { StepUpAuthModal } from "./step-up-auth-modal";
 
@@ -96,6 +97,7 @@ export function WithdrawPanel() {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { balance, currency, loading, updateBalance } = useWalletBalance();
+  const { checkKyc, KycGuardDialog } = useKycGuard();
   const [amount, setAmount] = useState<string>("");
   const [channel, setChannel] = useState<Channel>("bank");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -156,6 +158,10 @@ export function WithdrawPanel() {
   }, [amount, fee]);
 
   const handleWithdrawClick = async () => {
+    let kycPassed = false;
+    checkKyc(() => { kycPassed = true; });
+    if (!kycPassed) return;
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error(t("transactions.deposit.valid_amount_error"));
       return;
@@ -528,6 +534,8 @@ export function WithdrawPanel() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <KycGuardDialog />
 
       {/* Processing Overlay */}
       {status === "processing" && (

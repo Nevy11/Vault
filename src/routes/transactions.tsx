@@ -47,6 +47,7 @@ import { TransactionPinModal } from "@/components/transaction-pin-modal";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useProfile } from "@/hooks/use-profile";
+import { useKycGuard } from "@/hooks/use-kyc-guard";
 import { supabase } from "@/api/supabase";
 import { initiateStkPush } from "@/api/daraja";
 import { toast } from "sonner";
@@ -178,6 +179,7 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   const { t } = useTranslation();
   const { currency, refetch: refetchBalance } = useWalletBalance();
   const { profile } = useProfile();
+  const { checkKyc, KycGuardDialog } = useKycGuard();
   const [method, setMethod] = useState<"vault" | "bank" | "mobile" | null>(null);
   const [amount, setAmount] = useState("");
   const [identifier, setIdentifier] = useState("");
@@ -418,6 +420,10 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
   };
 
   const handleSendClick = () => {
+    let kycPassed = false;
+    checkKyc(() => { kycPassed = true; });
+    if (!kycPassed) return;
+
     if (!amount || !identifier || (method === "bank" && !bank)) {
       toast.error(t("transactions.errors.fill_required"));
       return;
@@ -971,6 +977,8 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <KycGuardDialog />
 
       {/* Processing Overlay */}
       {status === "processing" && (

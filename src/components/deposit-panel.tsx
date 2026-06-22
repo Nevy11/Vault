@@ -42,6 +42,7 @@ import { useProfile } from "@/hooks/use-profile";
 import { supabase } from "@/api/supabase";
 import { hashPin } from "@/lib/utils";
 import { useWalletBalance } from "@/hooks/use-wallet-balance";
+import { useKycGuard } from "@/hooks/use-kyc-guard";
 
 import { StripePayment } from "./stripe-payment";
 import { loadStripe } from "@stripe/stripe-js";
@@ -99,6 +100,7 @@ export function DepositPanel() {
   const { t } = useTranslation();
   const { profile } = useProfile();
   const { currency, balance: walletBalance, refetch: refetchWallet } = useWalletBalance();
+  const { checkKyc, KycGuardDialog } = useKycGuard();
   const [channel, setChannel] = useState<SourceChannel>("mobile");
   const [inputCurrency, setInputCurrency] = useState<"USD" | "KES">(
     currency === "KES" ? "KES" : "USD",
@@ -186,6 +188,10 @@ export function DepositPanel() {
   }, [amount, inputCurrency, currency]);
 
   const handleDepositClick = async () => {
+    let kycPassed = false;
+    checkKyc(() => { kycPassed = true; });
+    if (!kycPassed) return;
+
     if (!amount || parseFloat(amount) <= 0) {
       toast.error(t("transactions.deposit.valid_amount_error"));
       return;
@@ -644,6 +650,8 @@ export function DepositPanel() {
           </div>
         </div>
       </div>
+
+      <KycGuardDialog />
 
       {/* Processing Overlay */}
       {status === "processing" && (
