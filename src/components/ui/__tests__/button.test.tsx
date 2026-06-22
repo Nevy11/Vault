@@ -7,25 +7,25 @@ describe("Button component", () => {
   it("renders correctly with default props", () => {
     render(<Button>Click me</Button>);
     const button = screen.getByRole("button", { name: "Click me" });
-    expect(button).toBeInTheDocument();
-    expect(button).toHaveClass("bg-primary");
+    expect(button).not.toBeNull();
+    expect(button.className).toContain("bg-primary");
   });
 
   it("applies the destructive variant correctly", () => {
     render(<Button variant="destructive">Delete</Button>);
     const button = screen.getByRole("button", { name: "Delete" });
-    expect(button).toHaveClass("bg-destructive");
+    expect(button.className).toContain("bg-destructive");
   });
 
   it("applies sizes correctly", () => {
     render(<Button size="sm">Small</Button>);
     const button = screen.getByRole("button", { name: "Small" });
-    expect(button).toHaveClass("h-8");
+    expect(button.className).toContain("h-8");
   });
 
   it("can be disabled", () => {
     render(<Button disabled>Disabled</Button>);
     const button = screen.getByRole("button", { name: "Disabled" });
-    expect(button).toBeDisabled();
+    expect(button.hasAttribute("disabled")).toBe(true);
   });
 });

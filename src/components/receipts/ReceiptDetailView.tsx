@@ -1,12 +1,15 @@
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
-import { X, Download, Share2, Receipt as ReceiptIcon, ShieldCheck, Lock, BadgeCheck } from "lucide-react";
+import { X, Download, Share2, Receipt as ReceiptIcon, ShieldCheck, Lock, BadgeCheck, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import type { Receipt } from "@/api/receipts";
 import { useMemo } from "react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { toast } from "sonner";
+import { useEffect, useRef } from "react";
 
 interface ReceiptDetailViewProps {
   receipt: Receipt;
@@ -56,6 +59,9 @@ export function ReceiptDetailView({ receipt, onBack }: ReceiptDetailViewProps) {
   const issuedAt = format(new Date(receipt.created_at), "PPP 'at' HH:mm:ss 'UTC'");
 
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharePopoverOpen, setSharePopoverOpen] = useState(false);
+  const cleanupTimer = useRef<number | null>(null);
 
   function buildPdfDoc() {
     const doc = new jsPDF({
@@ -246,12 +252,64 @@ export function ReceiptDetailView({ receipt, onBack }: ReceiptDetailViewProps) {
       const blob = doc.output("blob");
       const filename = `Receipt_${receipt.receipt_number}_${format(new Date(receipt.created_at), "yyyy-MM-dd")}.pdf`;
       const shareResult = await shareBlob(blob, filename, `Receipt ${receipt.receipt_number}`, `Vault receipt ${receipt.receipt_number}`);
+
       if (shareResult.method === "fallback") {
-        // show simple options to share link via WhatsApp or Email
-        setShowShareOptions(true);
+        // Attempt server upload to get a signed URL first
+        try {
+          const dataUri = doc.output("datauristring") as string; // data:application/pdf;base64,XXXXX
+          const base64 = dataUri.split(",")[1];
+          const resp = await fetch(`/api/upload-receipt`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: base64, fileName: filename }),
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            setShareUrl(json.url);
+            setSharePopoverOpen(true);
+            if (cleanupTimer.current) window.clearTimeout(cleanupTimer.current);
+            // no need to revoke signed URL; schedule clearing of UI state only
+            cleanupTimer.current = window.setTimeout(() => {
+              setShareUrl(null);
+              setSharePopoverOpen(false);
+            }, 60 * 60 * 1000);
+            return;
+          }
+        } catch (err) {
+          console.warn("Server upload failed, falling back to blob URL", err);
+        }
+
+        // fallback to blob URL if server upload fails
+        setShareUrl(shareResult.url);
+        setSharePopoverOpen(true);
+        // auto-cleanup after 60s
+        if (cleanupTimer.current) window.clearTimeout(cleanupTimer.current);
+        cleanupTimer.current = window.setTimeout(() => {
+          if (shareResult.url) URL.revokeObjectURL(shareResult.url);
+          setShareUrl(null);
+          setSharePopoverOpen(false);
+        }, 60000);
       }
     } catch (e) {
       console.error("Share failed", e);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cleanupTimer.current) window.clearTimeout(cleanupTimer.current);
+      if (shareUrl) URL.revokeObjectURL(shareUrl);
+    };
+  }, [shareUrl]);
+
+  const handleCopyLink = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard");
+    } catch (e) {
+      console.error("Copy failed", e);
+      toast.error("Could not copy link");
     }
   };
 
@@ -272,9 +330,80 @@ export function ReceiptDetailView({ receipt, onBack }: ReceiptDetailViewProps) {
           >
             <Download size={16} />
           </Button>
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-            <Share2 size={16} />
-          </Button>
+          <Popover open={sharePopoverOpen} onOpenChange={(v) => setSharePopoverOpen(Boolean(v))}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full"
+                onClick={handleShare}
+                title={t("receipts.share")}
+              >
+                <Share2 size={16} />
+              </Button>
+            </PopoverTrigger>
+
+            <PopoverContent>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 text-sm break-all">
+                    {shareUrl ? (
+                      <a href={shareUrl} target="_blank" rel="noreferrer" className="text-primary underline">
+                        Open temporary receipt link
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Share receipt</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={handleCopyLink} disabled={!shareUrl}>
+                      <Copy className="mr-2" /> Copy
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (!shareUrl) return;
+                      openWhatsAppWithText(`Here's your Vault receipt: ${shareUrl}`);
+                    }}
+                  >
+                    WhatsApp
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      if (!shareUrl) return;
+                      openEmail(`Vault Receipt ${receipt.receipt_number}`, `Download: ${shareUrl}`);
+                    }}
+                  >
+                    Email
+                  </Button>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSharePopoverOpen(false);
+                      if (shareUrl) {
+                        URL.revokeObjectURL(shareUrl);
+                        setShareUrl(null);
+                      }
+                      if (cleanupTimer.current) {
+                        window.clearTimeout(cleanupTimer.current);
+                        cleanupTimer.current = null;
+                      }
+                    }}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -293,6 +422,34 @@ export function ReceiptDetailView({ receipt, onBack }: ReceiptDetailViewProps) {
               VAULT OS
             </span>
           </div>
+          {showShareOptions && (
+            <div className="mt-4 flex gap-2 justify-center">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const doc = buildPdfDoc();
+                  const blob = doc.output("blob");
+                  const url = URL.createObjectURL(blob);
+                  openWhatsAppWithText(`Here's your Vault receipt: ${url}`);
+                  setTimeout(() => URL.revokeObjectURL(url), 10000);
+                }}
+              >
+                Share via WhatsApp
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const doc = buildPdfDoc();
+                  const blob = doc.output("blob");
+                  const url = URL.createObjectURL(blob);
+                  openEmail(`Vault Receipt ${receipt.receipt_number}`, `Download your receipt here: ${url}`);
+                  setTimeout(() => URL.revokeObjectURL(url), 10000);
+                }}
+              >
+                Share via Email
+              </Button>
+            </div>
+          )}
 
           {/* Subtle receipt icon watermark */}
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">

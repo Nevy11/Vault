@@ -21,12 +21,12 @@ describe("Card component", () => {
     );
 
     const card = screen.getByTestId("card");
-    expect(card).toBeInTheDocument();
-    expect(card).toHaveClass("rounded-xl");
-    
-    expect(screen.getByText("Card Title")).toBeInTheDocument();
-    expect(screen.getByText("Card Description")).toBeInTheDocument();
-    expect(screen.getByText("Card Content")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Card Footer Button" })).toBeInTheDocument();
+    expect(card).not.toBeNull();
+    expect(card.className).toContain("rounded-xl");
+
+    expect(screen.getByText("Card Title")).not.toBeNull();
+    expect(screen.getByText("Card Description")).not.toBeNull();
+    expect(screen.getByText("Card Content")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Card Footer Button" })).not.toBeNull();
   });
 });
