@@ -97,6 +97,10 @@ FORMATTING INSTRUCTIONS:
 - Provide clean, professional plain text that is easy to read.
 - YOU MUST RESPOND IN ${targetLanguage.toUpperCase()}.
 
+CRITICAL RULES:
+- If the user simply greets you (e.g. "hello", "hi"), DO NOT call the get_financial_context tool and DO NOT list their financial data. Simply reply with a warm, brief greeting and ask how you can help them today.
+- Only fetch or summarize their financial data if they explicitly ask about their finances, spending, balances, or goals.
+
 Your goal is to provide holistic financial advice. Keep responses friendly and actionable.`;
 
     const validMessages = (messages || []).filter(
@@ -202,6 +206,22 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
                 description: "Fetch the user's wallet balance, savings goals, active loans, and recent transactions. Call this tool when the user asks about their finances, spending, balances, affordability, or history.",
                 parameters: { type: "object", properties: {}, required: [] }
               }
+            },
+            {
+              type: "function",
+              function: {
+                name: "prepare_transaction",
+                description: "Prepare a financial transaction. Call this when the user asks to create a savings goal or set aside/deposit money into a savings goal.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    action_type: { type: "string", enum: ["create_savings_goal", "deposit_to_savings"] },
+                    amount: { type: "number", description: "The amount to deposit or target amount for a new goal" },
+                    goal_name: { type: "string", description: "The name of the savings goal" }
+                  },
+                  required: ["action_type", "amount", "goal_name"]
+                }
+              }
             }
           ];
 
@@ -265,6 +285,15 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
               aiResponse = data.choices[0].message.content;
               success = true;
               break;
+            } else if (toolCall.function.name === "prepare_transaction") {
+              const args = JSON.parse(toolCall.function.arguments);
+              return new Response(JSON.stringify({ 
+                text: `I've prepared the transaction to ${args.action_type === 'create_savings_goal' ? 'create a new savings goal' : 'deposit into savings'}. Please confirm below.`,
+                action: args
+              }), {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "application/json" },
+              });
             }
           } else {
             aiResponse = message.content;
@@ -290,10 +319,25 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
           }
 
           const tools = [{
-            functionDeclarations: [{
-              name: "get_financial_context",
-              description: "Fetch the user's wallet balance, savings goals, active loans, and recent transactions. Call this tool when the user asks about their finances, spending, balances, affordability, or history."
-            }]
+            functionDeclarations: [
+              {
+                name: "get_financial_context",
+                description: "Fetch the user's wallet balance, savings goals, active loans, and recent transactions. Call this tool when the user asks about their finances, spending, balances, affordability, or history."
+              },
+              {
+                name: "prepare_transaction",
+                description: "Prepare a financial transaction. Call this when the user asks to create a savings goal or set aside/deposit money into a savings goal.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    action_type: { type: "STRING", description: "Either 'create_savings_goal' or 'deposit_to_savings'" },
+                    amount: { type: "NUMBER", description: "The amount to deposit or target amount for a new goal" },
+                    goal_name: { type: "STRING", description: "The name of the savings goal" }
+                  },
+                  required: ["action_type", "amount", "goal_name"]
+                }
+              }
+            ]
           }];
 
           const reqBody: any = {
@@ -338,6 +382,15 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
              if (!res.ok) throw new Error(await res.text());
              data = await res.json();
              candidate = data.candidates?.[0];
+          } else if (functionCall && functionCall.name === "prepare_transaction") {
+             const args = functionCall.args;
+             return new Response(JSON.stringify({ 
+               text: `I've prepared the transaction to ${args.action_type === 'create_savings_goal' ? 'create a new savings goal' : 'deposit into savings'}. Please confirm below.`,
+               action: args
+             }), {
+               status: 200,
+               headers: { ...corsHeaders, "Content-Type": "application/json" },
+             });
           }
 
           aiResponse = candidate?.content?.parts?.[0]?.text;

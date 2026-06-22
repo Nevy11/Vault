@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Sparkles, Shield, Volume2, VolumeX, Mic, MicOff } from "lucide-react";
+import { Sparkles, Shield, Volume2, VolumeX, Mic, MicOff, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/api/supabase";
@@ -36,7 +36,7 @@ function loadCachedMessagesRaw(userId: string) {
   }
 }
 
-function saveCachedMessagesRaw(userId: string, messages: Array<{ sender: string; text: string }>) {
+function saveCachedMessagesRaw(userId: string, messages: Array<{ sender: string; text: string; action?: any }>) {
   try {
     const payload = { ts: Date.now(), messages };
     localStorage.setItem(cacheKeyForUser(userId), JSON.stringify(payload));
@@ -135,14 +135,19 @@ function SuggestionChips({ text, onSelect }: { text: string; onSelect: (val: str
 function Bubble({
   sender,
   text,
+  action,
   onSuggestionSelect,
+  onActionAccept,
 }: {
   sender: string;
   text: string;
+  action?: any;
   onSuggestionSelect: (val: string) => void;
+  onActionAccept?: (action: any) => void;
 }) {
   const { t } = useTranslation();
   const isAdvisor = sender === "advisor";
+  const [accepted, setAccepted] = useState(false);
   return (
     <div className={`flex w-full ${isAdvisor ? "justify-start" : "justify-end"} mb-6`}>
       <div
@@ -169,7 +174,37 @@ function Bubble({
 
           <div className="text-sm">
             {isAdvisor ? (
-              <MarkdownContent text={text} />
+              <>
+                <MarkdownContent text={text} />
+                {action && (
+                  <div className="mt-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 shadow-sm relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 scale-150 transform -translate-y-4 translate-x-4">
+                      <Sparkles className="w-16 h-16 text-emerald-500" />
+                    </div>
+                    <h4 className="text-emerald-700 dark:text-emerald-400 font-bold text-sm mb-1 uppercase tracking-wider flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Pending Action
+                    </h4>
+                    <p className="text-zinc-600 dark:text-zinc-300 text-sm mb-3">
+                      {action.action_type === "create_savings_goal" ? "Create Savings Goal: " : "Deposit to Savings: "}
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{action.goal_name}</span> for <span className="font-bold text-emerald-600 dark:text-emerald-400">{action.amount}</span>
+                    </p>
+                    <Button 
+                      disabled={accepted}
+                      onClick={() => {
+                        setAccepted(true);
+                        if (onActionAccept) onActionAccept(action);
+                      }}
+                      className={cn(
+                        "w-full rounded-full font-semibold shadow-md transition-all duration-300",
+                        accepted ? "bg-zinc-200 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-500" : "bg-emerald-500 text-white hover:bg-emerald-600 hover:shadow-emerald-500/25"
+                      )}
+                    >
+                      {accepted ? "Accepted" : "Accept Action"}
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <p className="whitespace-pre-wrap leading-relaxed">{text}</p>
             )}
@@ -262,6 +297,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
             cached.map((m: any) => ({
               sender: m.sender,
               text: m.text,
+              action: m.action,
             })),
           );
           setIsInitialLoading(false);
@@ -278,15 +314,25 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
 
         if (history && history.length > 0) {
           const ordered = history.slice().reverse();
-          const mapped = ordered.map((m) => ({
-            sender: m.sender,
-            text: m.text,
-          }));
+          const mapped = ordered.map((m) => {
+            let action = undefined;
+            let text = m.text;
+            if (text.includes("||ACTION:")) {
+              const parts = text.split("||ACTION:");
+              text = parts[0];
+              try { action = JSON.parse(parts[1]); } catch(e) {}
+            }
+            return {
+              sender: m.sender,
+              text: text,
+              action,
+            };
+          });
 
           setMessages(mapped);
           saveCachedMessagesRaw(
             userId,
-            mapped.map(({ sender, text }) => ({ sender, text })),
+            mapped.map(({ sender, text, action }) => ({ sender, text, action })),
           );
         } else if (!cached || cached.length === 0) {
           const greetingMsg = [
@@ -298,7 +344,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
           setMessages(greetingMsg);
           saveCachedMessagesRaw(
             userId,
-            greetingMsg.map(({ sender, text }) => ({ sender, text })),
+            greetingMsg.map(({ sender, text }) => ({ sender, text, action: undefined })),
           );
         }
       } catch (error) {
@@ -316,7 +362,7 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
     if (!userId) return;
     saveCachedMessagesRaw(
       userId,
-      messages.map((m) => ({ sender: m.sender, text: m.text })),
+      messages.map((m) => ({ sender: m.sender, text: m.text, action: m.action })),
     );
   }, [messages, userId]);
 
@@ -378,15 +424,17 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       }
 
       const aiText = data.text;
+      const aiAction = data.action;
       const newAiMessage = {
         sender: "advisor",
         text: aiText,
+        action: aiAction,
       };
 
       await supabase.from("ai_chat_messages").insert({
         user_id: userId,
         sender: "advisor",
-        text: aiText,
+        text: aiAction ? `${aiText}||ACTION:${JSON.stringify(aiAction)}` : aiText,
       });
 
       setMessages((current) => [...current, newAiMessage]);
@@ -396,6 +444,67 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
       toast.error(t("advisor.error_response"));
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleActionAccept = async (action: any) => {
+    try {
+      if (action.action_type === "create_savings_goal") {
+        const today = new Date();
+        const nextYear = new Date();
+        nextYear.setFullYear(today.getFullYear() + 1);
+
+        const { error } = await supabase.from("savings_goals").insert({
+          user_id: userId,
+          title: action.goal_name,
+          target_amount: action.amount,
+          current_amount: 0,
+          status: "active",
+          start_date: today.toISOString().split('T')[0],
+          deadline_date: nextYear.toISOString().split('T')[0]
+        });
+        if (error) throw error;
+        toast.success(`Savings goal "${action.goal_name}" created!`);
+        processSubmit(`I have accepted the action to create the savings goal "${action.goal_name}".`);
+      } else if (action.action_type === "deposit_to_savings") {
+        const { data: goal } = await supabase.from("savings_goals").select("*").eq("user_id", userId).eq("title", action.goal_name).single();
+        if (goal) {
+          const { error: goalErr } = await supabase.from("savings_goals").update({
+            current_amount: goal.current_amount + action.amount
+          }).eq("id", goal.id);
+          if (goalErr) throw goalErr;
+          
+          const { data: wallet } = await supabase.from("wallets").select("*").eq("user_id", userId).single();
+          if (wallet) {
+            await supabase.from("wallets").update({ balance: wallet.balance - action.amount }).eq("id", wallet.id);
+          }
+          
+          await supabase.from("savings_ledger").insert({
+            goal_id: goal.id,
+            user_id: userId,
+            amount: action.amount,
+            source: "wallet",
+            type: "manual",
+            running_total: goal.current_amount + action.amount
+          });
+
+          await supabase.from("transactions").insert({
+            sender_id: userId,
+            receiver_id: userId,
+            amount: action.amount,
+            type: "transfer",
+            category: "Savings",
+            status: "completed",
+            description: `Deposit to ${action.goal_name}`
+          });
+          toast.success(`Deposited ${action.amount} to "${action.goal_name}"!`);
+          processSubmit(`I have accepted the action to deposit ${action.amount} into "${action.goal_name}".`);
+        } else {
+          toast.error("Savings goal not found.");
+        }
+      }
+    } catch (e: any) {
+      toast.error("Failed to execute action: " + e.message);
     }
   };
 
@@ -473,7 +582,9 @@ export function FinanceAdvisorContent({ isModal = false }: { isModal?: boolean }
               key={index}
               sender={message.sender}
               text={message.text}
+              action={message.action}
               onSuggestionSelect={processSubmit}
+              onActionAccept={handleActionAccept}
             />
           ))}
           {isLoading && (
