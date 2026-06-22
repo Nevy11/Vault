@@ -546,6 +546,7 @@
       "link_new_bank": "Vincular Nueva Cuenta Bancaria",
       "mobile_money": "Dinero Móvil",
       "mpesa_init_error": "Error al iniciar el pago de M-Pesa",
+        "provider_error": "El pago con {{provider}} falló: {{message}}",
       "mpesa_pin_note": "Ingrese su **PIN de M-Pesa** en su teléfono para completar el depósito de {{amount}}.",
       "payment_confirmed": "¡Pago confirmado! Su saldo ha sido actualizado.",
       "payment_failed": "El pago falló o fue cancelado.",

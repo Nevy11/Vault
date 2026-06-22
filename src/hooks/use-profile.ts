@@ -63,7 +63,7 @@ export function useProfile() {
   });
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (updates: Partial<Profile>) => {
+    mutationFn: async (updates: Partial<NonNullable<Profile>>) => {
       const {
         data: { session },
       } = await supabase.auth.getSession();

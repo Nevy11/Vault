@@ -558,6 +558,7 @@
       "link_new_bank": "Unganisha Akaunti Mpya ya Benki",
       "mobile_money": "Pesa kwa Simu",
       "mpesa_init_error": "Imeshindikana kuanzisha malipo ya M-Pesa",
+      "provider_error": "{{provider}} malipo yalishindwa: {{message}}",
       "mpesa_pin_note": "Tafadhali ingiza **PIN yako ya M-Pesa** kwenye simu yako ili kukamilisha amana ya {{amount}}.",
       "payment_confirmed": "Malipo yamethibitishwa! Salio lako limesasishwa.",
       "payment_failed": "Malipo yameshindikana au yameghairiwa.",

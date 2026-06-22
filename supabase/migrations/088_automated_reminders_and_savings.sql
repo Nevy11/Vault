@@ -20,7 +20,7 @@ BEGIN
         FROM public.notifications
         WHERE user_id = v_loan.user_id 
           AND title = 'Loan Repayment Reminder' 
-          AND (metadata->>'loan_id')::uuid = v_loan.id
+          AND metadata->>'loan_id' = v_loan.id::text
         ORDER BY created_at DESC LIMIT 1;
 
         IF v_last_reminder IS NULL OR v_last_reminder <= NOW() - INTERVAL '3 days' THEN
@@ -43,7 +43,7 @@ BEGIN
         FROM public.notifications
         WHERE user_id = v_goal.user_id 
           AND title = 'Savings Progress Reminder' 
-          AND (metadata->>'goal_id')::uuid = v_goal.id
+          AND metadata->>'goal_id' = v_goal.id::text
         ORDER BY created_at DESC LIMIT 1;
 
         IF v_last_reminder IS NULL OR v_last_reminder <= NOW() - INTERVAL '3 days' THEN

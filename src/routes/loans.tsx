@@ -56,7 +56,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { format, addMonths } from "date-fns";
 import { supabase } from "@/api/supabase";
-import { useProfileSignal } from "@/lib/profile-signal";
+import { useProfile } from "@/hooks/use-profile";
 
 export const Route = createFileRoute("/loans")({
   component: LoansPage,
@@ -288,7 +288,7 @@ function LoanAssistant({
 
 function LoansPage() {
   const { t } = useTranslation();
-  const [profile, refreshProfile] = useProfileSignal();
+  const { profile, refetch: refetchProfile } = useProfile();
 
   const membershipMonths = useMemo(() => {
     if (!profile?.created_at) return 0;
@@ -325,7 +325,7 @@ function LoansPage() {
   const isProfileComplete = useMemo(() => {
     const hasStatus = profile?.kyc_status === "verified";
     const hasRequiredFields = !!(
-      profile?.full_name &&
+      (profile?.first_name || profile?.last_name || profile?.full_name) &&
       profile?.id_number &&
       profile?.kra_pin &&
       profile?.date_of_birth &&
@@ -362,7 +362,7 @@ function LoansPage() {
             .select("*")
             .single();
           if (error) throw error;
-          if (data) refreshProfile(data);
+          if (data) refetchProfile();
           toast.info("Your annual verification has expired. Please verify your details again.");
         } catch (err) {
           console.error("Error resetting expired KYC:", err);
@@ -370,7 +370,7 @@ function LoansPage() {
       }
     };
     checkExpiry();
-  }, [profile?.id, profile?.kyc_status, isKycExpired, refreshProfile]);
+  }, [profile?.id, profile?.kyc_status, isKycExpired, refetchProfile]);
 
   const fetchLoanData = async () => {
     if (!profile?.id) return;
@@ -441,12 +441,21 @@ function LoansPage() {
   }, [activeLoan]);
 
   const handleOnboardingComplete = async (onboardingData: OnboardingData) => {
-    if (!profile?.id) return;
+    if (!profile?.id) {
+      console.error("No profile ID found during onboarding completion");
+      toast.error("Session profile not found. Please log in again.");
+      return;
+    }
     try {
+      const nameParts = (onboardingData.full_name || "").trim().split(/\s+/);
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
       const { data, error } = await supabase
         .from("profiles")
         .update({
-          full_name: onboardingData.full_name,
+          first_name: firstName,
+          last_name: lastName,
           id_number: onboardingData.id_number,
           kra_pin: onboardingData.kra_pin,
           date_of_birth: onboardingData.date_of_birth || null,
@@ -463,8 +472,9 @@ function LoansPage() {
 
       if (error) throw error;
       toast.success("Demographics Verified!", { description: "You can now proceed with your loan application." });
-      if (data) refreshProfile(data);
+      refetchProfile();
     } catch (err: any) {
+      console.error("Error saving profile details:", err);
       toast.error("Failed to verify demographics", { description: err.message });
     }
   };
@@ -510,7 +520,7 @@ function LoansPage() {
           .select("*")
           .eq("id", profile.id)
           .maybeSingle();
-        if (updatedProfile) refreshProfile(updatedProfile);
+        if (updatedProfile) refetchProfile();
       } else {
         toast.error(t("loans.toasts.failed"), { description: data.message });
       }
@@ -718,6 +728,7 @@ function LoansPage() {
                                     <SelectItem value="Permanent">Permanent</SelectItem>
                                     <SelectItem value="Contract">Contract</SelectItem>
                                     <SelectItem value="Self-employed">Self-employed</SelectItem>
+                                    <SelectItem value="Not employed">Not employed</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -780,7 +791,7 @@ function LoansPage() {
                             !detailedData.next_of_kin_name || 
                             !detailedData.next_of_kin_phone || 
                             !detailedData.employment_status || 
-                            !detailedData.monthly_income || 
+                            (detailedData.employment_status !== "Not employed" && !detailedData.monthly_income) || 
                             !detailedData.active_credit_obligations || 
                             !detailedData.detailed_use || 
                             !detailedData.agree_to_terms

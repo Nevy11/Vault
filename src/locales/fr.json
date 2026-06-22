@@ -546,6 +546,7 @@
       "link_new_bank": "Lier un nouveau compte bancaire",
       "mobile_money": "Argent Mobile",
       "mpesa_init_error": "Échec de l'initialisation du paiement M-Pesa",
+        "provider_error": "Le paiement {{provider}} a échoué : {{message}}",
       "mpesa_pin_note": "Veuillez entrer votre **PIN M-Pesa** sur votre téléphone pour finaliser le dépôt de {{amount}}.",
       "payment_confirmed": "Paiement confirmé ! Votre solde a été mis à jour.",
       "payment_failed": "Le paiement a échoué ou a été annulé.",
