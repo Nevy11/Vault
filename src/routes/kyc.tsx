@@ -78,7 +78,7 @@ function Confetti() {
 // 3. Main Page Component
 function KYCPage() {
   const { t } = useTranslation();
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, refetch } = useProfile();
   const [isLoading, setIsLoading] = useState(false);
   const [showOnfido, setShowOnfido] = useState(false);
   const [kycStep, setKycStep] = useState<"intro" | "select_id" | "details" | "upload" | "biometric">("intro");
@@ -214,7 +214,7 @@ function KYCPage() {
       if (error) throw error;
       
       toast.success("Identity details submitted for review.");
-      if (profile) setProfile({ ...profile, kyc_status: "pending" });
+      refetch();
       setKycStep("intro");
     } catch (err: any) {
       console.error("Manual verification error:", err);
