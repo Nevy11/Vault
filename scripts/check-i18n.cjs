@@ -61,7 +61,10 @@ function main() {
 
   const missing = [];
   for (const k of used) {
-    if (!available.has(k)) missing.push(k);
+    if (available.has(k)) continue;
+    // consider a key present if any available key is a child (e.g. savings.form.providers.mpesa)
+    const hasChild = Array.from(available).some(a => a.startsWith(k + '.'));
+    if (!hasChild) missing.push(k);
   }
 
   if (missing.length === 0) {

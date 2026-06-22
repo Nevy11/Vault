@@ -11,6 +11,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { VLogo } from "@/components/v-logo";
+import { TransactionPinModal } from "./transaction-pin-modal";
+import TransferResult from "./transfer-result";
+import { supabase } from "@/api/supabase";
+import { logAudit } from "@/lib/audit";
 
 export function ScanToPay({ className }: { className?: string }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -21,6 +25,11 @@ export function ScanToPay({ className }: { className?: string }) {
   const streamRef = useRef<MediaStream | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const streamAttachedRef = useRef(false);
+  const [scannedPayload, setScannedPayload] = useState<string | null>(null);
+  const [showPin, setShowPin] = useState(false);
+  const [detectedUser, setDetectedUser] = useState<{ tag?: string; amount?: number; desc?: string } | null>(null);
+  const [transferResult, setTransferResult] = useState<null | { status: "success" | "insufficient_balance" | "timeout" | "error"; message?: string }>(null);
+  const detectorRef = useRef<any>(null);
 
   const stopCamera = () => {
     console.log("[ScanToPay] Stopping camera...");
@@ -126,6 +135,123 @@ export function ScanToPay({ className }: { className?: string }) {
       setCameraError(null);
     }
   }, [isOpen]);
+
+  // Setup barcode detector if available
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if ((window as any).BarcodeDetector) {
+      try {
+        detectorRef.current = new (window as any).BarcodeDetector({ formats: ["qr_code"] });
+      } catch (e) {
+        detectorRef.current = null;
+      }
+    }
+  }, []);
+
+  // Scan loop when camera active
+  useEffect(() => {
+    let raf = 0;
+    let mounted = true;
+    const canvas = document.createElement("canvas");
+
+    async function scanFrame() {
+      if (!mounted) return;
+      try {
+        if (!videoRef.current || videoRef.current.readyState < 2) {
+          raf = requestAnimationFrame(scanFrame);
+          return;
+        }
+
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+
+        if (detectorRef.current) {
+          const results = await detectorRef.current.detect(canvas);
+          if (results && results.length > 0 && results[0].rawValue) {
+            handleDetected(results[0].rawValue as string);
+            return;
+          }
+        }
+
+        raf = requestAnimationFrame(scanFrame);
+      } catch (err) {
+        console.warn("scanFrame error", err);
+        raf = requestAnimationFrame(scanFrame);
+      }
+    }
+
+    if (isCameraActive) {
+      raf = requestAnimationFrame(scanFrame);
+    }
+
+    return () => {
+      mounted = false;
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [isCameraActive]);
+
+  const handleDetected = (raw: string) => {
+    console.log("QR detected:", raw);
+    setScannedPayload(raw);
+    // Parse common payment link formats (e.g., /pay/@username?amount=10&desc=foo)
+    try {
+      const url = new URL(raw, window.location.origin);
+      if (url.pathname.startsWith("/pay/")) {
+        const tag = url.pathname.replace(/^\/pay\//, "");
+        const amount = url.searchParams.get("amount");
+        const desc = url.searchParams.get("desc");
+        setDetectedUser({ tag, amount: amount ? Number(amount) : undefined, desc: desc || undefined });
+        setShowPin(true);
+        // stop camera to avoid duplicate scans
+        stopCamera();
+      }
+    } catch (e) {
+      // Not a URL - treat as raw tag
+      setDetectedUser({ tag: raw });
+      setShowPin(true);
+      stopCamera();
+    }
+  };
+
+  const executeScannedPayment = async () => {
+    if (!detectedUser) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.info("Sign in to complete this payment");
+        window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+        return;
+      }
+
+      // Extract tag and amount
+      const recipientTag = detectedUser.tag?.startsWith("@") ? detectedUser.tag : `@${detectedUser.tag}`;
+      const amount = detectedUser.amount || 0;
+
+      const { data, error: rpcError } = await supabase.rpc("vault_transfer", {
+        p_sender_id: user.id,
+        p_recipient_tag: recipientTag,
+        p_amount: Number(amount),
+      });
+
+      if (rpcError) throw rpcError;
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result?.success) throw new Error(result?.message || "Transfer failed");
+      // show result screen instead of only toast so users get clear next actions
+      setTransferResult({ status: "success", message: "Payment sent" });
+      // fire event so dashboard hooks can refresh immediately
+      window.dispatchEvent(new CustomEvent("vault:balance-updated"));
+      await logAudit({ action: "p2p_qr_paid", details: { recipient: recipientTag, amount } });
+      setShowPin(false);
+    } catch (err: any) {
+      console.error("Scanned payment failed", err);
+      const msg = err?.message || String(err) || "Payment failed";
+      setTransferResult({ status: "error", message: msg });
+      await logAudit({ action: "p2p_qr_failed", details: { error: String(err) } });
+    }
+  };
 
   const handleScanClick = () => {
     console.log("[ScanToPay] Scan to Pay FAB Clicked");
@@ -274,8 +400,38 @@ export function ScanToPay({ className }: { className?: string }) {
               </div>
             </div>
           </div>
+          {transferResult && (
+            <div className="p-4 bg-zinc-800/60 border-t border-white/5">
+              <TransferResult
+                status={transferResult.status}
+                message={transferResult.message}
+                onRetry={() => {
+                  setTransferResult(null);
+                  setShowPin(true);
+                }}
+                onClose={() => {
+                  setTransferResult(null);
+                  setIsOpen(false);
+                }}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
+
+      <TransactionPinModal
+        isOpen={showPin}
+        onClose={() => {
+          setShowPin(false);
+          setDetectedUser(null);
+          setScannedPayload(null);
+          setIsOpen(false);
+        }}
+        onVerified={async () => {
+          await executeScannedPayment();
+        }}
+        amount={detectedUser?.amount || 0}
+      />
 
       <style>{`
         @keyframes scan-slow {

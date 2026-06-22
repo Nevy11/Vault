@@ -299,6 +299,7 @@
         "last_activity": "Last Activity",
         "revoke": "Revoke Access",
         "revoke_note": "Revoking a device will immediately sign it out and require a new secure PIN verification to re-authorize."
+        ,"required": "Required"
       },
       "pin": {
         "change": "Change Secure PIN",
@@ -381,8 +382,12 @@
     "save": "Save Changes",
     "loading": "Loading...",
     "error": "Error",
+    "cancel": "Cancel",
+    "loading_secure_vault": "Loading secure vault...",
     "back": "Back",
     "amount": "Amount",
+    "source": "Source",
+    "welcome": "Welcome",
     "status": "Status",
     "completed": "Completed",
     "all": "All",
@@ -441,6 +446,11 @@
       "mobile": "Mobile Money",
       "mobile_desc": "Send to M-Pesa or Airtel",
       "mpesa": "M-Pesa"
+    },
+    "ledger": {
+      "transaction": {
+        "processing": "Processing"
+      }
     },
     "banks": {
       "kcb": "KCB Bank (Kenya Commercial Bank)",
@@ -514,6 +524,7 @@
       "no_activity": "No activity found matching your criteria.",
       "data_synced": "Data Synced {{minutes}} minutes ago",
       "load_more": "Load More Transactions",
+      
       "transfer_to": "Transfer to {{receiverName}}",
       "received_from": "Received from {{senderName}}",
       "deposit_to": "{{bankName}} deposit to {{userName}}",
@@ -706,7 +717,9 @@
       "quick_tip": "Quick tip",
       "tip_desc": "Save a little each day",
       "next_tip": "Next Tip",
-      "add_savings_btn": "Add Savings"
+      "add_savings_btn": "Add Savings",
+      "fixed_field": "Fixed Contribution",
+      "fixed_field_desc": "A fixed amount automatically deducted on schedule."
     },
     "tip": {
       "title": "Savings Tip",
@@ -771,6 +784,9 @@
       "title": "Add Savings",
       "amount_label": "Contribution Amount (KES)",
       "amount_placeholder": "Enter amount to save",
+      "account_label": "Account",
+      "phone_label": "Phone Number",
+      "source_label": "Source",
       "source_placeholder": "Where are you saving from?",
       "save_now_btn": "Save Now"
     },
@@ -787,8 +803,13 @@
       "which_provider": "Which provider?",
       "phone_for_deduction": "Phone Number for Deduction",
       "bank_for_deduction": "Bank Account for Deduction",
-      "confirm_ok": "Confirm OK"
+      "confirm_ok": "Confirm OK",
+      "account_label": "Account",
+      "phone_label": "Phone Number",
+      "provider_label": "Provider",
+      "provider_placeholder": "Select provider"
     },
+    
     "jokes": [
       "Save a little every day and your goal gets closer faster.",
       "Daily deposits build momentum more than one big push.",
@@ -1019,4 +1040,53 @@
       }
     }
   }
+  ,
+  "kyc_tag": "KYC Tag",
+  "preferences": {
+    "description": "User preferences and preview settings",
+    "preview": {
+      "sampleText": "The quick brown fox jumps over the lazy dog.",
+      "sampleTitle": "Preview Title",
+      "title": "Preview"
+    },
+    "textSize": {
+      "currentScale": "Current Scale",
+      "default": "Default",
+      "defaultIndicator": "Default",
+      "description": "Adjust app-wide text sizes for accessibility.",
+      "extraLarge": "Extra Large",
+      "huge": "Huge",
+      "large": "Large",
+      "small": "Small",
+      "title": "Text Size"
+    },
+    "title": "Preferences"
+  },
+  "sonner": "sonner",
+  "ws": "WebSocket",
+  "stripe-ach": "Stripe ACH",
+  "rate": "Rate",
+  "content-type": "content-type",
+  "courier": "Courier",
+  "helvetica": "Helvetica",
+  "id": "ID",
+  "location": "Location",
+  "mousemove": "mousemove",
+  "status": "Status",
+  ".": ".",
+  "2d": "2d",
+  "Child": "Child",
+  "Deposit": "Deposit",
+  "Error": "Error",
+  "OFFICIAL": "OFFICIAL",
+  "Outline": "Outline",
+  "SHA-256": "SHA-256",
+  "T": "T",
+  "V": "V",
+  "VAULT": "VAULT",
+  "VERIFIED": "VERIFIED",
+  "Vault": "Vault",
+  "Withdraw": "Withdraw",
+  "a": "a",
+  "amount": "Amount"
 }

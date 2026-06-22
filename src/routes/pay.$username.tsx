@@ -50,7 +50,7 @@ function PaymentPortal() {
   const cleanUsername = (username || "").replace(/^@/, "").toLowerCase();
   const paymentLink =
     typeof window !== "undefined"
-      ? `${window.location.origin}/pay/@${cleanUsername}`
+      ? `${window.location.origin}/pay/@${cleanUsername}${amount ? `?amount=${encodeURIComponent(amount)}` : ""}${merchant?.business?.business_description ? `${amount ? "&" : "?"}desc=${encodeURIComponent(merchant.business.business_description)}` : ""}`
       : `/pay/@${cleanUsername}`;
 
   useEffect(() => {

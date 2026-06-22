@@ -307,6 +307,16 @@ export function useWalletBalance(): UseWalletBalanceReturn {
     };
   }, [fetchWallet, profile?.id]);
 
+  // Listen for manual refresh events (e.g., after QR transfer) to immediately refetch
+  useEffect(() => {
+    const handler = () => {
+      console.log("Received vault:balance-updated event; refetching wallet");
+      fetchWallet(true).catch((e) => console.warn(e));
+    };
+    window.addEventListener("vault:balance-updated", handler as EventListener);
+    return () => window.removeEventListener("vault:balance-updated", handler as EventListener);
+  }, [fetchWallet]);
+
   const refetch = async () => {
     await fetchWallet();
   };
