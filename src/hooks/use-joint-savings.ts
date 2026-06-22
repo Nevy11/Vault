@@ -302,6 +302,46 @@ export function useJointSavings() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
+    // 1. Fetch user's wallet
+    const { data: wallet, error: walletError } = await supabase
+      .from("wallets")
+      .select("balance, id, currency")
+      .eq("user_id", user.id)
+      .single();
+
+    if (walletError || !wallet) {
+      toast.error("Could not find your Vault wallet");
+      return;
+    }
+
+    const KES_USD_RATE = 130.0;
+    const amountInWalletCurrency =
+      wallet.currency === "USD" ? Number((amount / KES_USD_RATE).toFixed(2)) : amount;
+
+    if (Number(wallet.balance) < amountInWalletCurrency) {
+      toast.error("Insufficient Vault balance");
+      return;
+    }
+
+    // 2. Call create_ledger_entry RPC function to deduct wallet and log transaction
+    const potTitle = selectedPot?.title || "Joint Savings Pot";
+    const { error: ledgerError } = await supabase.rpc("create_ledger_entry", {
+      p_user_id: user.id,
+      p_amount: -amountInWalletCurrency,
+      p_currency: wallet.currency || "USD",
+      p_type: "withdrawal",
+      p_reference: `joint_deposit_${potId}_${Date.now()}`,
+      p_description: `Joint Savings Deposit: ${potTitle}`,
+      p_status: "completed",
+      p_metadata: { payment_method: "vault", pot_id: potId },
+    });
+
+    if (ledgerError) {
+      toast.error("Failed to deduct from wallet: " + ledgerError.message);
+      return;
+    }
+
+    // 3. Record the joint savings contribution
     const { error } = await supabase.from("pot_contributions").insert({
       pot_id: potId,
       user_id: user.id,
@@ -310,11 +350,19 @@ export function useJointSavings() {
     });
 
     if (error) {
-      toast.error("Failed to deposit");
+      toast.error("Wallet deducted, but failed to record joint contribution");
     } else {
       toast.success(`Deposited KES ${amount.toLocaleString()}!`);
-      // No manual refetch needed here as Realtime will catch the 'wallets' table change
-      // in useWalletBalance and 'joint_pots' change here.
+      
+      // 4. Insert custom joint savings notification
+      await supabase.from("notifications").insert({
+        user_id: user.id,
+        title: "Joint Savings Deposit",
+        message: `Your deposit of KES ${amount.toLocaleString()} to "${potTitle}" was successful.`,
+        type: "success",
+        metadata: { pot_id: potId, type: "pot_deposit" }
+      });
+
       fetchPotDetails(potId);
     }
   };
@@ -378,6 +426,15 @@ export function useJointSavings() {
       toast.error("Failed to join pot");
     } else {
       toast.success("Joined shared pot!");
+      
+      // Mark matching notification as read
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("metadata->>pot_id", potId)
+        .eq("metadata->>type", "pot_invite");
+
       fetchPots();
       fetchInvites();
     }
@@ -401,6 +458,15 @@ export function useJointSavings() {
       toast.error("Failed to decline invite");
     } else {
       toast.success("Invite declined");
+
+      // Mark matching notification as read
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("user_id", user.id)
+        .eq("metadata->>pot_id", potId)
+        .eq("metadata->>type", "pot_invite");
+
       fetchInvites();
     }
   };
