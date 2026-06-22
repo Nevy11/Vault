@@ -741,18 +741,6 @@ function DashboardPage() {
   const navigate = useNavigate();
   const { profile, isLoading: profileLoading } = useProfile();
 
-  // Guard against unauthenticated/loading state
-  if (profileLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return <div className="p-8 text-center">Please log in to view your dashboard.</div>;
-  }
 
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
 
@@ -901,6 +889,14 @@ function DashboardPage() {
 
     return transactions;
   }, [transactions, activeFilter, profile]);
+
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!profile) {
     return (

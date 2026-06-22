@@ -108,6 +108,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     const message = localStorage.getItem("revocation_message");
     if (message) {
       toast.error(message);
@@ -137,9 +141,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       if (currentDevice && !currentDevice.is_active) {
         handleSignOut("Your access was revoked.");
       }
-
-      // 3. Process recurring tasks (Reminders & Automated Savings)
-      await supabase.rpc("process_recurring_reminders_and_savings");
     };
     checkStatus();
 
@@ -173,6 +174,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       supabase.removeChannel(channel);
     };
   }, [profile]);
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div
