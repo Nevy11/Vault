@@ -15,6 +15,8 @@ import { useProfile } from "@/hooks/use-profile";
 import { useEffect, useState } from "react";
 import { useInactivityTimeout } from "@/hooks/use-inactivity-timeout";
 import { TextSizeProvider } from "@/hooks/use-text-size";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 
 import "../styles.css";
 import appCss from "../styles.css?url";
@@ -212,6 +214,20 @@ function MultiWindowOverlay({ onUseHere }: { onUseHere: () => void }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    const persister = createSyncStoragePersister({
+      storage: window.localStorage,
+    });
+    const unsubscribe = persistQueryClient({
+      queryClient,
+      persister,
+      maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    });
+    return () => {
+      unsubscribe[0]?.();
+    };
+  }, [queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
