@@ -43,7 +43,7 @@ serve(async (req) => {
     } = await supabase.auth.getUser();
     if (userError || !user) throw new Error("Unauthorized");
 
-    // Apply Rate Limiting: Max 10 requests per minute
+    // Apply Rate Limiting
     const { data: allowed, error: rlError } = await supabase.rpc("check_rate_limit", {
         p_key: `ai_chat:${user.id}`,
         p_max_attempts: 10,
@@ -62,42 +62,6 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const { messages, userInput } = body;
 
-    // Determine if financial context is needed based on the query
-    const query = (
-      (userInput || "") +
-      " " +
-      (messages
-        ?.slice(-3)
-        .map((m: any) => m.text)
-        .join(" ") || "")
-    ).toLowerCase();
-    const financialKeywords = [
-      "balance",
-      "wallet",
-      "money",
-      "cash",
-      "funds",
-      "savings",
-      "goal",
-      "saved",
-      "loan",
-      "debt",
-      "credit",
-      "borrow",
-      "owe",
-      "transaction",
-      "activity",
-      "history",
-      "spent",
-      "ledger",
-      "receipt",
-      "how much",
-      "status",
-      "finance",
-      "pay",
-    ];
-    const needsFinancialContext = financialKeywords.some((keyword) => query.includes(keyword));
-
     // Fetch user profile and preferences (always needed)
     const { data: profile } = await supabase
       .from("profiles")
@@ -110,156 +74,21 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    let wallet = null;
-    let savingsGoals = [];
-    let savingsLedger = [];
-    let loans = [];
-    let loansLedger = [];
-    let spendingCategories: any[] = [];
-
-    if (needsFinancialContext) {
-      // 1. Fetch wallet balance
-      const { data: walletData } = await supabase
-        .from("wallets")
-        .select("id, balance, currency")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      wallet = walletData;
-
-      // 2. Fetch active savings goals & ledger
-      const { data: goalsData } = await supabase
-        .from("savings_goals")
-        .select("id, title, target_amount, current_amount, deadline_date, status")
-        .eq("user_id", user.id)
-        .eq("status", "active");
-      savingsGoals = goalsData || [];
-      const { data: sLedgerData } = await supabase
-        .from("savings_ledger")
-        .select("amount, type, created_at, goal_id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-      savingsLedger = sLedgerData || [];
-
-      // 3. Fetch active loans
-      const { data: loansData } = await supabase
-        .from("loans")
-        .select("id, amount, interest_rate, due_date, remaining_balance, status")
-        .eq("user_id", user.id)
-        .eq("status", "active");
-      loans = loansData || [];
-
-      // 4. Fetch recent loan payments
-      const { data: lLedgerData } = await supabase
-        .from("loans_ledger")
-        .select("amount, payment_type, created_at, loan_id")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(5);
-      loansLedger = lLedgerData || [];
-
-      // 5. Fetch spending by category (last 30 days)
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: categoryData } = await supabase
-        .from("transactions")
-        .select("category, amount")
-        .eq("sender_id", user.id)
-        .gte("created_at", thirtyDaysAgo);
-
-      if (categoryData) {
-        const aggregates = categoryData.reduce((acc: any, curr: any) => {
-          const cat = curr.category || "Uncategorized";
-          acc[cat] = (acc[cat] || 0) + Number(curr.amount);
-          return acc;
-        }, {});
-        spendingCategories = Object.entries(aggregates).map(([cat, amt]) => ({
-          category: cat,
-          total: amt,
-        }));
-      }
-    }
-
     const firstName = profile?.first_name || "User";
-    const currency = wallet?.currency || "USD";
-    const balance = wallet ? `${currency} ${wallet.balance.toLocaleString()}` : "Not requested";
-
-    // Format Knowledge Strings
-    const goalsText =
-      savingsGoals && savingsGoals.length > 0
-        ? savingsGoals
-            .map(
-              (g) =>
-                `- Goal: ${g.title} (${currency} ${g.current_amount.toLocaleString()}/${g.target_amount.toLocaleString()})`,
-            )
-            .join("\n")
-        : needsFinancialContext
-          ? "No active savings goals."
-          : "Not requested";
-
-    const loansText =
-      loans && loans.length > 0
-        ? loans
-            .map(
-              (l) =>
-                `- Loan: ${currency} ${l.remaining_balance.toLocaleString()} (Due: ${new Date(l.due_date).toLocaleDateString()}, Rate: ${l.interest_rate}%)`,
-            )
-            .join("\n")
-        : needsFinancialContext
-          ? "No active loans."
-          : "Not requested";
-
-    const spendingText =
-      spendingCategories && spendingCategories.length > 0
-        ? spendingCategories
-            .map((s) => `- ${s.category}: ${currency} ${s.total.toLocaleString()}`)
-            .join("\n")
-        : needsFinancialContext
-          ? "No categorized spending in the last 30 days."
-          : "Not requested";
-
-    const recentActivity = needsFinancialContext
-      ? [
-          ...(savingsLedger?.map(
-            (l) =>
-              `- Saved: ${currency} ${l.amount.toLocaleString()} (${l.type}) on ${new Date(l.created_at).toLocaleDateString()}`,
-          ) || []),
-          ...(loansLedger?.map(
-            (l) =>
-              `- Loan Payment: ${currency} ${l.amount.toLocaleString()} (${l.payment_type}) on ${new Date(l.created_at).toLocaleDateString()}`,
-          ) || []),
-        ].slice(0, 10)
-      : [];
-
     const languageCode = preferences?.language || "en";
     const languageNames: Record<string, string> = {
-      en: "English",
-      es: "Spanish",
-      fr: "French",
-      de: "German",
-      it: "Italian",
-      pt: "Portuguese",
-      sw: "Swahili",
+      en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese", sw: "Swahili",
     };
     const targetLanguage = languageNames[languageCode] || "English";
 
-    const systemPrompt = `You are the professional Finance Advisor for Vault OS. You are assisting ${firstName}.
-    ${
-      needsFinancialContext
-        ? `
-    - Wallet Balance: ${balance}
-    - Spending by Category (Last 30 Days):
-    ${spendingText}
-    - Active Savings:
-    ${goalsText}
-    - Active Loans:
-    ${loansText}
-    - Recent Activity:
-    ${recentActivity.length > 0 ? recentActivity.join("\n") : "No recent activity."}
-    `
-        : "Financial data was not requested for this query to preserve privacy unless the user asks about their balance, savings, or loans."
-    }
+    // POINT 2: Add Current Date and Time
+    const currentDateTime = new Date().toLocaleString('en-US', { 
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', 
+      hour: 'numeric', minute: '2-digit', timeZoneName: 'short' 
+    });
 
-
+    const baseSystemPrompt = `You are the professional Finance Advisor for Vault OS. You are assisting ${firstName}.
+Current Date and Time: ${currentDateTime}
 
 FORMATTING INSTRUCTIONS:
 - DO NOT use markdown asterisks (*) or double asterisks (**) for bolding or lists.
@@ -273,14 +102,69 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
     const validMessages = (messages || []).filter(
       (m: any) => (m.sender === "user" || m.sender === "advisor") && m.text,
     );
-    const recentMessages = validMessages.slice(-29);
+    
+    // POINT 5: Smarter Context Truncation (Slice by characters)
+    let charCount = 0;
+    const truncatedMessages = [];
+    for (let i = validMessages.length - 1; i >= 0; i--) {
+      const msg = validMessages[i];
+      if (charCount + msg.text.length > 6000) break; // Limit to ~6k chars of history
+      truncatedMessages.unshift(msg);
+      charCount += msg.text.length;
+    }
+    const recentMessages = truncatedMessages;
+
+    // POINT 3 & 4: Function to fetch financial data with raw transactions
+    const fetchFinancialData = async () => {
+      try {
+        const { data: walletData } = await supabase.from("wallets").select("balance, currency").eq("user_id", user.id).maybeSingle();
+        const { data: goalsData } = await supabase.from("savings_goals").select("title, target_amount, current_amount").eq("user_id", user.id).eq("status", "active");
+        const { data: loansData } = await supabase.from("loans").select("interest_rate, due_date, remaining_balance").eq("user_id", user.id).eq("status", "active");
+        
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: categoryData } = await supabase.from("transactions").select("category, amount").eq("sender_id", user.id).gte("created_at", thirtyDaysAgo);
+        
+        let spendingText = "No categorized spending.";
+        if (categoryData && categoryData.length > 0) {
+          const aggregates = categoryData.reduce((acc: any, curr: any) => {
+            const cat = curr.category || "Uncategorized";
+            acc[cat] = (acc[cat] || 0) + Number(curr.amount);
+            return acc;
+          }, {});
+          spendingText = Object.entries(aggregates).map(([cat, amt]) => `- ${cat}: ${amt}`).join("\n");
+        }
+
+        const { data: recentTxs } = await supabase.from("transactions")
+          .select("amount, category, type, description, created_at, status")
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order("created_at", { ascending: false })
+          .limit(10);
+          
+        let rawTxText = "No recent transactions.";
+        if (recentTxs && recentTxs.length > 0) {
+          rawTxText = recentTxs.map(tx => `- [${new Date(tx.created_at).toLocaleDateString()}] ${tx.type.toUpperCase()}: ${tx.amount} (${tx.category || 'Uncategorized'}) - ${tx.description || tx.status}`).join("\n");
+        }
+
+        const currency = walletData?.currency || "USD";
+        const balance = walletData ? `${currency} ${walletData.balance.toLocaleString()}` : "Not found";
+
+        return JSON.stringify({
+          walletBalance: balance,
+          spendingLast30Days: spendingText,
+          recentTransactions: rawTxText,
+          activeSavings: goalsData || "None",
+          activeLoans: loansData || "None"
+        });
+      } catch(err) {
+        return JSON.stringify({ error: "Failed to retrieve financial context" });
+      }
+    };
 
     const models = [
       { provider: "gemini", model: "gemini-1.5-flash" },
       { provider: "groq", model: "llama-3.3-70b-versatile" },
       { provider: "openrouter", model: "mistralai/mistral-7b-instruct:free" },
       { provider: "gemini", model: "gemini-1.5-pro" },
-      { provider: "openrouter", model: "google/gemma-7b-it:free" },
       { provider: "openai", model: "gpt-4o-mini" },
     ];
 
@@ -310,7 +194,27 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
             apiKey = OPENROUTER_API_KEY;
           }
 
-          const res = await fetch(baseUrl, {
+          const tools = [
+            {
+              type: "function",
+              function: {
+                name: "get_financial_context",
+                description: "Fetch the user's wallet balance, savings goals, active loans, and recent transactions. Call this tool when the user asks about their finances, spending, balances, affordability, or history.",
+                parameters: { type: "object", properties: {}, required: [] }
+              }
+            }
+          ];
+
+          const openAiMessages = [
+            { role: "system", content: baseSystemPrompt },
+            ...recentMessages.map((m: any) => ({
+              role: m.sender === "user" ? "user" : "assistant",
+              content: m.text,
+            })),
+            ...(userInput ? [{ role: "user", content: userInput }] : []),
+          ];
+
+          let res = await fetch(baseUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -320,67 +224,126 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
             },
             body: JSON.stringify({
               model: modelConfig.model,
-              messages: [
-                { role: "system", content: systemPrompt },
-                ...recentMessages.map((m: any) => ({
-                  role: m.sender === "user" ? "user" : "assistant",
-                  content: m.text,
-                })),
-                ...(userInput ? [{ role: "user", content: userInput }] : []),
-              ],
+              messages: openAiMessages,
               temperature: 0.7,
+              tools,
+              tool_choice: "auto"
             }),
           });
-          if (res.ok) {
-            const data = await res.json();
-            aiResponse = data.choices[0].message.content;
+          
+          if (!res.ok) throw new Error(await res.text());
+          let data = await res.json();
+          let message = data.choices[0].message;
+
+          // Process tool call if requested
+          if (message.tool_calls && message.tool_calls.length > 0) {
+            const toolCall = message.tool_calls[0];
+            if (toolCall.function.name === "get_financial_context") {
+              const finData = await fetchFinancialData();
+              openAiMessages.push(message);
+              openAiMessages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                name: toolCall.function.name,
+                content: finData
+              });
+
+              res = await fetch(baseUrl, {
+                 method: "POST",
+                 headers: {
+                   "Content-Type": "application/json",
+                   Authorization: `Bearer ${apiKey}`,
+                 },
+                 body: JSON.stringify({
+                    model: modelConfig.model,
+                    messages: openAiMessages,
+                    temperature: 0.7
+                 })
+              });
+              if (!res.ok) throw new Error(await res.text());
+              data = await res.json();
+              aiResponse = data.choices[0].message.content;
+              success = true;
+              break;
+            }
+          } else {
+            aiResponse = message.content;
             success = true;
             break;
-          } else {
-            const errorData = await res.json();
-            lastErrorMessage = errorData?.error?.message || res.statusText;
           }
+
         } else if (modelConfig.provider === "gemini") {
-          const advisorPersona = `[SYSTEM INSTRUCTION: ${systemPrompt}]\n\n`;
-          let contents = [];
-          const firstUserIndex = recentMessages.findIndex((m: any) => m.sender === "user");
-          if (firstUserIndex !== -1) {
-            contents = recentMessages.slice(firstUserIndex).map((msg: any, idx: number) => ({
-              role: msg.sender === "user" ? "user" : "model",
-              parts: [{ text: idx === 0 ? advisorPersona + msg.text : msg.text }],
-            }));
-          }
+          let contents = recentMessages.map((msg: any) => ({
+            role: msg.sender === "user" ? "user" : "model",
+            parts: [{ text: msg.text }],
+          }));
+          
           if (userInput) {
             if (contents.length > 0 && contents[contents.length - 1].role === "user") {
               contents[contents.length - 1].parts[0].text += `\n${userInput}`;
             } else {
               contents.push({
                 role: "user",
-                parts: [{ text: contents.length === 0 ? advisorPersona + userInput : userInput }],
+                parts: [{ text: userInput }],
               });
             }
           }
-          const res = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                contents,
-                generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-              }),
-            },
-          );
-          if (res.ok) {
-            const data = await res.json();
-            aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (aiResponse) {
-              success = true;
-              break;
-            }
-          } else {
-            const errorData = await res.json();
-            lastErrorMessage = errorData?.error?.message || res.statusText;
+
+          const tools = [{
+            functionDeclarations: [{
+              name: "get_financial_context",
+              description: "Fetch the user's wallet balance, savings goals, active loans, and recent transactions. Call this tool when the user asks about their finances, spending, balances, affordability, or history."
+            }]
+          }];
+
+          const reqBody: any = {
+            systemInstruction: { parts: [{ text: baseSystemPrompt }] },
+            contents,
+            tools,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+          };
+
+          let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(reqBody)
+          });
+
+          if (!res.ok) throw new Error(await res.text());
+          let data = await res.json();
+          let candidate = data.candidates?.[0];
+          
+          let functionCall = candidate?.content?.parts?.find((p: any) => p.functionCall)?.functionCall;
+
+          if (functionCall && functionCall.name === "get_financial_context") {
+             const finData = await fetchFinancialData();
+             contents.push(candidate.content);
+             contents.push({
+               role: "function",
+               parts: [{
+                 functionResponse: {
+                   name: "get_financial_context",
+                   response: { result: finData }
+                 }
+               }]
+             });
+             
+             reqBody.contents = contents;
+             delete reqBody.tools;
+             res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.model}:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(reqBody)
+             });
+             if (!res.ok) throw new Error(await res.text());
+             data = await res.json();
+             candidate = data.candidates?.[0];
+          }
+
+          aiResponse = candidate?.content?.parts?.[0]?.text;
+          if (aiResponse) {
+            success = true;
+            break;
           }
         }
       } catch (err: any) {
@@ -391,7 +354,6 @@ Your goal is to provide holistic financial advice. Keep responses friendly and a
     if (!success) throw new Error(lastErrorMessage || "All AI models were unavailable.");
 
     // Final cleanup of any lingering asterisks if the AI ignored instructions
-    // This ensures "*" are converted to their "relative meanings" (bullets or emphasis)
     const cleanedResponse = aiResponse
       .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold stars, keep text
       .replace(/^\* /gm, "• ") // Convert list stars to bullet symbols

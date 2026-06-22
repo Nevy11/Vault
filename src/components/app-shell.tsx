@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       localStorage.setItem("revocation_message", message);
     }
     await supabase.auth.signOut();
-    navigate({ to: "/" });
+    navigate({ to: "/login" });
   };
 
   useEffect(() => {

@@ -60,7 +60,7 @@ export function TopNav() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setOpen(false);
-    window.location.href = "/";
+    window.location.href = "/login";
   };
 
   const { acceptInvite, declineInvite } = useJointSavings();
