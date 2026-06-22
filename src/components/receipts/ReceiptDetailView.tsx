@@ -46,13 +46,18 @@ function generateVerificationCode(receipt: Receipt): string {
   return `VLT-${seed.slice(0, 4)}-${seed.slice(4, 8)}-${seed.slice(8, 12)}`;
 }
 
+import { shareBlob, openWhatsAppWithText, openEmail } from "@/lib/share";
+import { useState } from "react";
+
 export function ReceiptDetailView({ receipt, onBack }: ReceiptDetailViewProps) {
   const { t } = useTranslation();
   const signature = useMemo(() => generateSignature(receipt), [receipt]);
   const verificationCode = useMemo(() => generateVerificationCode(receipt), [receipt]);
   const issuedAt = format(new Date(receipt.created_at), "PPP 'at' HH:mm:ss 'UTC'");
 
-  const handleDownload = () => {
+  const [showShareOptions, setShowShareOptions] = useState(false);
+
+  function buildPdfDoc() {
     const doc = new jsPDF({
       orientation: "portrait",
       unit: "mm",
@@ -225,9 +230,29 @@ export function ReceiptDetailView({ receipt, onBack }: ReceiptDetailViewProps) {
     doc.text(finalText, pageWidth / 2, yPosition, { align: "center", maxWidth: pageWidth - 40 });
 
     // Save
+    return doc;
+  }
+
+  const handleDownload = () => {
+    const doc = buildPdfDoc();
     doc.save(
       `Receipt_${receipt.receipt_number}_${format(new Date(receipt.created_at), "yyyy-MM-dd")}.pdf`,
     );
+  };
+
+  const handleShare = async () => {
+    try {
+      const doc = buildPdfDoc();
+      const blob = doc.output("blob");
+      const filename = `Receipt_${receipt.receipt_number}_${format(new Date(receipt.created_at), "yyyy-MM-dd")}.pdf`;
+      const shareResult = await shareBlob(blob, filename, `Receipt ${receipt.receipt_number}`, `Vault receipt ${receipt.receipt_number}`);
+      if (shareResult.method === "fallback") {
+        // show simple options to share link via WhatsApp or Email
+        setShowShareOptions(true);
+      }
+    } catch (e) {
+      console.error("Share failed", e);
+    }
   };
 
   return (
