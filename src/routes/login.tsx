@@ -221,7 +221,6 @@ function LoginPage() {
             action_type: "login",
             device_info: deviceName,
             location: "Kenya", // This would ideally come from a GeoIP service
-            nationality: "Kenyan",
           });
         } catch (deviceError) {
           console.error("Failed to record device/activity:", deviceError);
