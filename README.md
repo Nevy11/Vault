@@ -26,7 +26,7 @@ The project focuses on user authentication, wallet management, deposits/withdraw
 - Tailwind CSS 4
 - Supabase JS
 - pnpm package manager
-- Vercel deployment support
+- Cloudflare wrangler deployment support
 
 ## Repository Structure
 
