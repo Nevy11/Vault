@@ -13,7 +13,7 @@ export const Route = createFileRoute("/confirm-deletion")({
   },
   component: ConfirmDeletionPage,
 });
-export function ConfirmDeletionPage() {
+function ConfirmDeletionPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("Verifying your identity...");
   const navigate = useNavigate();

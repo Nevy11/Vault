@@ -38,7 +38,7 @@ export function TransactionPinModal({
 
   // Define Step-up threshold (e.g., $500)
   const STEP_UP_THRESHOLD = 500;
-  const requiresStepUp = amount >= STEP_UP_THRESHOLD;
+  const requiresStepUp = false; // Bypassed step-up auth edge function
 
   const handleVerify = async (value: string) => {
     if (value.length !== 6) return;

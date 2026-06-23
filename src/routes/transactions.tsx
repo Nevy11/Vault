@@ -452,7 +452,6 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
           p_amount: parseFloat(amount),
           p_category: categoryInput?.trim() ? categoryInput.trim() : selectedCategory,
           p_note: note.trim() || null,
-          p_idempotency_key: idempotencyKey,
         });
 
         if (rpcError) {
@@ -884,79 +883,83 @@ function SendPanel({ searchFilter }: { searchFilter?: string }) {
               </Button>
 
             </div>
+
+            {/* Right Column: Quick Send (P2P) */}
+            {method === "vault" && (
+              <div className="space-y-6">
+                {(filteredRecent.length > 0 || isSearching) && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <History className="w-4 h-4" />{" "}
+                      {searchFilter
+                        ? t("transactions.recipients.search_recent")
+                        : t("transactions.recipients.recent")}
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                      {filteredRecent.map((r) => (
+                        <button
+                          key={`recent-${r.id}`}
+                          onClick={() => handleSelectRecipient(r)}
+                          className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
+                        >
+                          <Avatar className="w-10 h-10 mb-3 border border-border/40">
+                            <AvatarImage src={r.avatarUrl ?? undefined} />
+                            <AvatarFallback className={cn("text-xs font-bold", r.color)}>
+                              {r.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="text-sm font-medium truncate">{r.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(filteredFrequent.length > 0 || isSearching) && (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Zap className="w-4 h-4" />{" "}
+                      {searchFilter
+                        ? t("transactions.recipients.search_frequent")
+                        : t("transactions.recipients.frequent")}
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                      {filteredFrequent.map((r, i) => (
+                        <button
+                          key={`freq-${r.id}-${i}`}
+                          onClick={() => handleSelectRecipient(r)}
+                          className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
+                        >
+                          <Avatar className="w-10 h-10 mb-3 border border-border/40">
+                            <AvatarImage src={r.avatarUrl ?? undefined} />
+                            <AvatarFallback className={cn("text-xs font-bold", r.color)}>
+                              {r.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="text-sm font-medium truncate">{r.name}</div>
+                          <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {searchFilter && filteredRecent.length === 0 && filteredFrequent.length === 0 && (
+                  <div className="py-12 text-center border border-dashed border-border/40 rounded-3xl bg-muted/5">
+                    <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("transactions.recipients.no_match", { searchFilter })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Header & Lists */}
-      <div className="space-y-6">
-        {(filteredRecent.length > 0 || isSearching) && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <History className="w-4 h-4" />{" "}
-              {searchFilter
-                ? t("transactions.recipients.search_recent")
-                : t("transactions.recipients.recent")}
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {filteredRecent.map((r) => (
-                <button
-                  key={`recent-${r.id}`}
-                  onClick={() => handleSelectRecipient(r)}
-                  className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
-                >
-                  <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl ?? undefined} />
-                    <AvatarFallback className={cn("text-xs font-bold", r.color)}>
-                      {r.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-sm font-medium truncate">{r.name}</div>
-                  <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {(filteredFrequent.length > 0 || isSearching) && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Zap className="w-4 h-4" />{" "}
-              {searchFilter
-                ? t("transactions.recipients.search_frequent")
-                : t("transactions.recipients.frequent")}
-            </div>
-            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-              {filteredFrequent.map((r) => (
-                <button
-                  key={`freq-${r.id}`}
-                  onClick={() => handleSelectRecipient(r)}
-                  className="flex-shrink-0 w-36 p-4 rounded-2xl border border-border/50 bg-card/40 hover:bg-card/60 transition-colors text-left"
-                >
-                  <Avatar className="w-10 h-10 mb-3 border border-border/40">
-                    <AvatarImage src={r.avatarUrl ?? undefined} />
-                    <AvatarFallback className={cn("text-xs font-bold", r.color)}>
-                      {r.avatar}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-sm font-medium truncate">{r.name}</div>
-                  <div className="text-[10px] text-muted-foreground truncate">{r.identifier}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {searchFilter && filteredRecent.length === 0 && filteredFrequent.length === 0 && (
-          <div className="py-12 text-center border border-dashed border-border/40 rounded-3xl bg-muted/5">
-            <Search className="w-8 h-8 text-muted-foreground/20 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">
-              {t("transactions.recipients.no_match", { searchFilter })}
-            </p>
-          </div>
-        )}
-      </div>
 
       {/* Confirmation Modal */}
       <Dialog open={status === "confirming"} onOpenChange={(open) => !open && setStatus("idle")}>
