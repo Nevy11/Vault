@@ -740,7 +740,11 @@ function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile, isLoading: profileLoading } = useProfile();
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { balance, currency, loading: balanceLoading, error: balanceError } = useWalletBalance();
 
@@ -890,7 +894,7 @@ function DashboardPage() {
     return transactions;
   }, [transactions, activeFilter, profile]);
 
-  if (profileLoading) {
+  if (!mounted || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
