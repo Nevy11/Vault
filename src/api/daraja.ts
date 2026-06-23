@@ -27,7 +27,14 @@ export async function initiateStkPush(params: {
 
     if (error) {
       console.error("Edge Function error:", error);
-      throw new Error(error.message || "Failed to initiate M-Pesa deposit");
+      let errMsg = "Failed to initiate M-Pesa deposit";
+      try {
+        const parsed = JSON.parse(error.message);
+        errMsg = parsed.error || errMsg;
+      } catch {
+        errMsg = error.message || error.details || errMsg;
+      }
+      throw new Error(errMsg);
     }
 
     // Create pending transaction in database

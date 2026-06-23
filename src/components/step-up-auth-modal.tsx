@@ -61,8 +61,15 @@ export function StepUpAuthModal({
       setResendTimer(60); // 60 seconds cooldown
     } catch (err: any) {
       console.error("Error sending OTP:", err);
-      setError(err.message || "Failed to send verification code");
-      toast.error("Failed to send verification code");
+      let errMsg = "Failed to send verification code";
+      try {
+        const parsed = JSON.parse(err.message);
+        errMsg = parsed.error || errMsg;
+      } catch {
+        errMsg = err.message || err.details || errMsg;
+      }
+      setError(errMsg);
+      toast.error(errMsg);
     } finally {
       setIsSending(false);
     }

@@ -235,7 +235,14 @@ export function DepositPanel() {
           throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error(t("transactions.deposit.stripe_init_error", { error: err.message }));
+        let errMsg = err.message || "Failed to initialize Stripe";
+        try {
+          const parsed = JSON.parse(err.message);
+          errMsg = parsed.error || errMsg;
+        } catch {
+          errMsg = err.details || errMsg;
+        }
+        toast.error(t("transactions.deposit.stripe_init_error", { error: errMsg }));
         setStatus("idle");
       }
       return;
@@ -256,7 +263,14 @@ export function DepositPanel() {
           throw new Error("No client secret returned");
         }
       } catch (err: any) {
-        toast.error(t("transactions.deposit.stripe_init_error", { error: err.message }));
+        let errMsg = err.message || "Failed to initialize Stripe";
+        try {
+          const parsed = JSON.parse(err.message);
+          errMsg = parsed.error || errMsg;
+        } catch {
+          errMsg = err.details || errMsg;
+        }
+        toast.error(t("transactions.deposit.stripe_init_error", { error: errMsg }));
         setStatus("idle");
       }
       return;

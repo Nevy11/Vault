@@ -155,9 +155,11 @@ Key serverless functions include:
 
 ## Mobile Companion App
 
-The mobile application is an Expo React Native app maintained in a separate repository (typically `../mobile`). It features a minimal authenticated flow with screens like `LoginScreen`, `SignUpScreen`, `DashboardScreen`, and `ReceiptHistoryScreen`.
+The mobile application is built using **Flutter** and is maintained in a separate repository. It features a fully authenticated flow designed to perfectly complement this web vault.
+
+- **Repository:** [https://github.com/Nevy11/vault-mobile](https://github.com/Nevy11/vault-mobile)
 - It authenticates against the same Supabase backend.
-- Environment variables are defined in the mobile app's `.env` using standard `EXPO_PUBLIC_*` names.
+- It shares the exact same database schema (profiles, transactions, wallets).
 
 ## Deployment
 
