@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
@@ -38,7 +38,7 @@ if (isServer) {
 }
 
 console.log("Initializing Supabase client...");
-export const supabase = createClient(
+export const supabase = createBrowserClient(
   supabaseUrl || "https://placeholder.supabase.co",
   supabaseAnonKey || "placeholder",
   {
@@ -49,5 +49,5 @@ export const supabase = createClient(
       detectSessionInUrl: true,
     },
     realtime: isServer ? { transport: ws } : undefined,
-  },
+  }
 );

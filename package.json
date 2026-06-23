@@ -5,11 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build --config vite.spa.config.ts && vite build && node -e \"const fs = require('fs'); const path = require('path'); const src = 'dist/assets'; const dest = 'dist/client/assets'; if (fs.existsSync(src)) { if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true }); fs.readdirSync(src).forEach(file => { const s = path.join(src, file); const d = path.join(dest, file); if (fs.existsSync(d)) fs.unlinkSync(d); fs.renameSync(s, d); }); }\"",
-    "build:dev": "vite build --mode development",
+    "build": "vite build",
     "preview": "vite preview",
-    "build:spa": "vite build --config vite.spa.config.ts",
-    "build:ssr": "vite build",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
@@ -18,7 +15,6 @@
     "test:e2e": "playwright test",
     "i18n:check": "node scripts/check-i18n.cjs"
   },
-  
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
     "@hookform/resolvers": "^5.2.2",
@@ -51,6 +47,7 @@
     "@radix-ui/react-visually-hidden": "^1.2.4",
     "@stripe/react-stripe-js": "^6.4.0",
     "@stripe/stripe-js": "^9.6.0",
+    "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.106.1",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/query-core": "^5.100.14",
@@ -100,7 +97,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "2.3.1",
     "@playwright/test": "^1.61.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
